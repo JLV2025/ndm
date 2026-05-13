@@ -1,0 +1,8 @@
+devices:
+- ip: 192.168.1.1
+  location: 数据中心 A 区
+  name: switch-core-01
+  notes: 核心交换机
+  platform: cisco_ios
+  type: cisco_ios
+  username: admin

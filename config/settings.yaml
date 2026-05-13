@@ -1,0 +1,30 @@
+# 全局配置
+
+# 数据存储根目录
+data_root: "./data"
+
+# 保留的版本数量（按设备独立保留）
+max_versions: 10
+
+# 日志缓冲大小（字节）
+log_buffer_size: 65536
+
+# SSH 超时设置（秒）
+ssh_timeout:
+  connect: 10
+  read: 30
+  write: 30
+
+# 分析配置
+analysis:
+  # 是否启用配置验证
+  enable_config_validation: true
+
+  # 是否启用性能分析
+  enable_performance_analysis: true
+
+  # 是否启用变更检测
+  enable_change_detection: true
+
+  # 变更检测对比周期（周数）
+  change_detection_lookback: 4

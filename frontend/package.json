@@ -1,0 +1,40 @@
+{
+  "name": "ndm-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.13.0",
+    "@emotion/styled": "^11.13.0",
+    "@hookform/resolvers": "^5.2.2",
+    "@mui/icons-material": "^5.16.13",
+    "@mui/material": "^5.16.13",
+    "axios": "^1.7.2",
+    "date-fns": "^3.6.0",
+    "jsdom": "^29.1.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.75.0",
+    "react-router-dom": "^6.26.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.4.0",
+    "@testing-library/react": "^16.0.0",
+    "@types/axios": "^0.14.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.4.5",
+    "vite": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}

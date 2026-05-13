@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QCNDM 网络配置管理系统 - 用户手册</title>
+<style>
+  :root {
+    --bg: #0a0f1a;
+    --card: #0d121f;
+    --border: rgba(52, 211, 153, 0.1);
+    --green: #34d399;
+    --blue: #2563eb;
+    --cyan: #06b6d4;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --red: #ef4444;
+    --yellow: #facc15;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 40px 24px; }
+
+  /* 封面 */
+  .cover {
+    text-align: center;
+    padding: 80px 0 60px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+  .cover h1 { font-size: 2.4rem; font-weight: 800; margin-bottom: 12px; }
+  .cover h1 .n { color: var(--blue); } .cover h1 .e { color: var(--cyan); } .cover h1 .p { color: var(--green); }
+  .cover .sub { color: var(--muted); font-size: 1rem; margin-bottom: 8px; }
+  .cover .ver { color: var(--muted); font-size: 0.8rem; }
+
+  /* 章 */
+  h2 {
+    font-size: 1.6rem; font-weight: 700; margin: 48px 0 20px; padding-bottom: 8px;
+    border-bottom: 2px solid var(--green); display: inline-block;
+  }
+  h3 { font-size: 1.2rem; font-weight: 600; margin: 32px 0 12px; color: var(--cyan); }
+  h4 { font-size: 1rem; font-weight: 600; margin: 20px 0 8px; color: var(--muted); }
+
+  p { margin-bottom: 12px; color: var(--muted); }
+  strong { color: var(--text); }
+  ul, ol { margin: 8px 0 16px 24px; color: var(--muted); }
+  li { margin-bottom: 6px; }
+
+  /* 卡片 */
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 24px; margin: 20px 0;
+  }
+  .card.tip {
+    border-left: 4px solid var(--green);
+  }
+  .card.warn {
+    border-left: 4px solid var(--yellow);
+  }
+  .card.danger {
+    border-left: 4px solid var(--red);
+  }
+  .card h4 { margin-top: 0; }
+
+  /* 截图模拟 */
+  .mock {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    margin: 20px 0; overflow: hidden;
+  }
+  .mock-bar {
+    background: rgba(52, 211, 153, 0.05); padding: 8px 16px;
+    display: flex; align-items: center; gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mock-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .mock-dot.r { background: #ef4444; } .mock-dot.y { background: #facc15; } .mock-dot.g { background: #34d399; }
+  .mock-title { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .mock-body { padding: 20px; font-size: 0.85rem; }
+  .mock-body pre { font-family: "Fira Code", "JetBrains Mono", monospace; font-size: 0.75rem; white-space: pre-wrap; }
+
+  /* 组件模拟 */
+  .btn { display: inline-block; padding: 6px 14px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; text-align: center; }
+  .btn.primary { background: var(--blue); color: #fff; }
+  .btn.outline { border: 1px solid var(--green); color: var(--green); background: rgba(52,211,153,0.05); }
+  .btn.danger { background: var(--red); color: #fff; }
+  .chip {
+    display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.7rem;
+    font-weight: 500; margin: 2px;
+  }
+  .chip.green { background: rgba(16,185,129,0.2); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+  .chip.yellow { background: rgba(250,204,21,0.15); color: #facc15; border: 1px solid rgba(250,204,21,0.3); }
+  .chip.red { background: rgba(239,68,68,0.2); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+  .chip.blue { background: rgba(59,130,246,0.2); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
+  .chip.cyan { background: rgba(6,182,212,0.2); color: #06b6d4; border: 1px solid rgba(6,182,212,0.3); }
+  .chip.muted { background: rgba(148,163,184,0.1); color: #94a3b8; border: 1px solid rgba(148,163,184,0.2); }
+
+  /* 表格 */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .tbl th { text-align: left; padding: 8px 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); }
+  .tbl td { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.02); }
+  .tbl tr:hover td { background: rgba(52,211,153,0.03); }
+
+  /* 对比栏 */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .compare .side { background: #0a0f1a; border-radius: 8px; padding: 16px; border: 1px solid var(--border); }
+  .compare .side.left { border-color: rgba(34,211,238,0.4); }
+  .compare .side.right { border-color: rgba(245,158,11,0.3); }
+
+  /* 步骤 */
+  .step { display: flex; gap: 16px; margin: 16px 0; }
+  .step-num { width: 32px; height: 32px; border-radius: 50%; background: var(--green); color: #000; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.9rem; flex-shrink: 0; }
+  .step-body { flex: 1; }
+
+  /* 响应式 */
+  @media (max-width: 640px) {
+    .cover h1 { font-size: 1.6rem; }
+    .compare { grid-template-columns: 1fr; }
+  }
+
+  /* 目录 */
+  .toc { margin: 0 0 32px; }
+  .toc a { color: var(--cyan); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  .toc li { margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<!-- ==================== 封面 ==================== -->
+<div class="cover">
+  <h1><span class="n">Network</span><span class="e">Engineer</span><span class="p">Pro</span></h1>
+  <p class="sub">QCNDM — 网络设备配置收集与管理系统</p>
+  <p class="ver">版本 1.0 &nbsp;|&nbsp; 2026 年 5 月</p>
+</div>
+
+<!-- ==================== 目录 ==================== -->
+<h2>目录</h2>
+<ol class="toc">
+  <li><a href="#overview">系统概述</a></li>
+  <li><a href="#login">登录页面 — 凭据管理</a></li>
+  <li><a href="#dashboard">Dashboard — 设备概览</a></li>
+  <li><a href="#devices">Devices — 设备管理</a>
+    <ol>
+      <li><a href="#dev-location">按 Location 筛选设备</a></li>
+      <li><a href="#dev-single">单台设备采集配置</a></li>
+      <li><a href="#dev-batch">多选与批量采集</a></li>
+      <li><a href="#dev-add">添加 / 删除设备</a></li>
+    </ol>
+  </li>
+  <li><a href="#viewer">Viewer — 配置查看与对比</a>
+    <ol>
+      <li><a href="#view-single">单版本查看</a></li>
+      <li><a href="#view-compare">双版本对比</a></li>
+    </ol>
+  </li>
+  <li><a href="#detail">Device Detail — 设备详情</a></li>
+  <li><a href="#faq">常见问题</a></li>
+</ol>
+
+<!-- ==================== 1. 系统概述 ==================== -->
+<h2 id="overview">1. 系统概述</h2>
+<p>
+  QCNDM 是一套<strong>网络交换机配置收集与分析系统</strong>，支持通过 SSH 登录 <strong>Cisco IOS</strong> 和 <strong>Aruba OS</strong> 交换机，
+  自动采集 running-config、startup-config、接口状态、系统日志等关键配置数据，并保存到本地进行版本管理和分析。
+</p>
+
+<div class="card">
+  <h4>核心功能</h4>
+  <ul>
+    <li><strong>设备发现</strong>：通过 Ping / TCP 检测设备在线状态</li>
+    <li><strong>配置采集</strong>：SSH 登录交换机，自动下载配置文件（10-30 秒）</li>
+    <li><strong>设备类型自动探测</strong>：当配置的设备类型不正确时，自动尝试正确的驱动</li>
+    <li><strong>配置分析</strong>：完整性验证、接口状态分析、版本变更检测</li>
+    <li><strong>版本管理</strong>：按周归档，保留最近 10 周的历史配置</li>
+    <li><strong>配置对比</strong>：左右分栏对比两个版本的差异，高亮变化</li>
+    <li><strong>批量采集</strong>：多选设备统一采集，实时查看每台进度</li>
+  </ul>
+</div>
+
+<div class="card tip">
+  <h4>技术架构</h4>
+  <p>前端：React + TypeScript + MUI (Material UI)，单页应用<br>
+  后端：Python FastAPI，使用 Netmiko 库进行 SSH 连接<br>
+  存储：本地 YAML 配置文件 + 文件系统按周归档</p>
+</div>
+
+<!-- ==================== 2. 登录页面 ==================== -->
+<h2 id="login">2. 登录页面 — 凭据管理</h2>
+
+<div class="mock">
+  <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span><span class="mock-title">登录页面</span></div>
+  <div class="mock-body">
+    <p style="margin-bottom:12px;"><strong style="color:#fff;font-size:1.1rem;">Connect to Network</strong></p>
+    <p style="margin-bottom:8px;">┌─────────────────────────────────┐</p>
+    <p style="margin-bottom:8px;">│ <span style="color:#94a3b8;">用户名 (Username)</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│</p>
+    <p style="margin-bottom:8px;">│ <span style="color:#e2e8f0;">pa.jing.lv</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│</p>
+    <p style="margin-bottom:8px;">├─────────────────────────────────┤</p>
+    <p style="margin-bottom:8px;">│ <span style="color:#94a3b8;">密码 (Password)</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│</p>
+    <p style="margin-bottom:8px;">│ ●●●●●●●●●●●●●● &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│</p>
+    <p>└─────────────────────────────────┘</p>
+    <p style="margin-top:12px;"><span class="btn primary">Connect</span></p>
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-body">
+    <strong>输入凭据：</strong>在登录页面输入 SSH 登录交换机所用的<strong>用户名</strong>和<strong>密码</strong>。
+  </div>
+</div>
+
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-body">
+    <strong>保存凭据：</strong>点击 <span class="btn primary" style="font-size:0.65rem;">Connect</span> 按钮，系统会将凭据<strong>加密后保存到浏览器 sessionStorage</strong> 中，有效期 4 小时。
+  </div>
+</div>
+
+<div class="card warn">
+  <h4>安全说明</h4>
+  <ul>
+    <li>用户名和密码使用 <strong>Base64 + encodeURIComponent</strong> 编码后存储，不会以明文形式保存在本地</li>
+    <li>仅在当前浏览器标签页有效（sessionStorage），关闭标签页即自动清除</li>
+    <li>4 小时后凭据自动过期，需重新登录</li>
+    <li>密码支持所有特殊字符（<code>!@#$%^&*()=+?&lt;&gt;</code> 等）</li>
+  </ul>
+</div>
+
+<!-- ==================== 3. Dashboard ==================== -->
+<h2 id="dashboard">3. Dashboard — 设备概览</h2>
+
+<h3>3.1 页面布局</h3>
+
+<div class="mock">
+  <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span><span class="mock-title">Dashboard</span></div>
+  <div class="mock-body">
+    <p><strong style="font-size:1.3rem;"><span style="color:#2563eb;">Network</span><span style="color:#06b6d4;">Engineer</span><span style="color:#34d399;">Pro</span></strong></p>
+    <p style="color:#94a3b8;font-size:0.7rem;">实时监控 | 配置收集 | 性能分析</p>
+    <p style="margin-top:16px;color:#94a3b8;font-size:0.65rem;">┌──────┐ &nbsp; ┌──────┐ &nbsp; ┌──────┐</p>
+    <p style="font-size:0.65rem;"><span style="color:#3b82f6;">Total Devices</span> &nbsp; <span style="color:#06b6d4;">Cisco IOS</span> &nbsp; <span style="color:#10b981;">Aruba OS</span></p>
+    <p style="font-size:1.5rem;font-weight:700;">  <span style="color:#3b82f6;">10</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#06b6d4;">5</span> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span style="color:#10b981;">5</span></p>
+    <p style="margin-top:8px;font-size:0.65rem;color:#94a3b8;">└──────┘ &nbsp; └──────┘ &nbsp; └──────┘</p>
+
+    <p style="margin-top:24px;font-weight:600;">Device Inventory &nbsp; <span class="btn outline" style="font-size:0.6rem;">刷新状态</span></p>
+    <table class="tbl" style="margin-top:8px;">
+      <tr><th>Device</th><th>Type</th><th>IP Address</th><th>Location</th><th>Status</th></tr>
+      <tr><td>🟦 BJQD1SWI01</td><td><span class="chip cyan">Aruba OS</span></td><td>10.210.255.1</td><td>BJQ</td><td><span class="chip green">Online</span></td></tr>
+      <tr><td>🟦 switch-core-02</td><td><span class="chip blue">Cisco IOS</span></td><td>192.168.1.2</td><td>-</td><td><span class="chip red">Offline</span></td></tr>
+      <tr><td>🟦 switch-full-01</td><td><span class="chip blue">Cisco IOS</span></td><td>192.168.2.1</td><td>数据中心 A 区</td><td><span class="chip muted">-</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<h3>3.2 统计卡片</h3>
+<p>页面顶部三张统计卡片分别显示：</p>
+<ul>
+  <li><strong>Total Devices</strong>（蓝色）— 设备总数量</li>
+  <li><strong>Cisco IOS</strong>（青色）— Cisco 设备数量</li>
+  <li><strong>Aruba OS</strong>（绿色）— Aruba 设备数量</li>
+</ul>
+
+<h3>3.3 设备状态检测</h3>
+<p>Dashboard 不会自动检测设备状态。需要手动点击 <span class="btn outline" style="font-size:0.65rem;">刷新状态</span> 按钮：</p>
+<ul>
+  <li>所有设备先显示 <span class="chip yellow">Checking...</span>（黄色）</li>
+  <li>顶部弹出蓝色提示："正在 Ping 所有设备，请暂时不要切换页面..."</li>
+  <li>Ping 完成后更新为 <span class="chip green">Online</span>（绿色）或 <span class="chip red">Offline</span>（红色）</li>
+  <li>切换页面时会自动取消进行中的 Ping 请求</li>
+</ul>
+
+<!-- ==================== 4. Devices ==================== -->
+<h2 id="devices">4. Devices — 设备管理</h2>
+<p>这是最核心的页面，提供设备的<strong>筛选、采集、管理、批量操作</strong>等功能。</p>
+
+<div class="mock">
+  <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span><span class="mock-title">Devices</span></div>
+  <div class="mock-body">
+    <p><strong style="font-size:1.3rem;"><span style="color:#2563eb;">Network</span><span style="color:#06b6d4;">Engineer</span><span style="color:#34d399;">Pro</span></strong></p>
+    <p style="font-size:0.65rem;color:var(--muted);">DEVICE INVENTORY MANAGEMENT</p>
+    <p style="margin-top:12px;font-size:0.65rem;color:var(--muted);">FILTER BY LOCATION</p>
+    <p style="margin-bottom:6px;"><span class="chip green" style="font-size:0.65rem;">BJD</span> <span class="chip muted" style="font-size:0.65rem;">BJQ</span> <span class="chip muted" style="font-size:0.65rem;">DZN</span> <span class="chip muted" style="font-size:0.65rem;">PVG</span> <span class="chip muted" style="font-size:0.65rem;">SHA</span> <span class="chip muted" style="font-size:0.65rem;">SZX</span> <span class="chip muted" style="font-size:0.65rem;">ZGN</span></p>
+    <p><span class="chip muted" style="font-size:0.65rem;">PEK</span> <span class="chip muted" style="font-size:0.65rem;">DEZ</span> <span class="chip muted" style="font-size:0.65rem;">UCD</span> <span class="chip muted" style="font-size:0.65rem;">SJY</span></p>
+  </div>
+</div>
+
+<h3 id="dev-location">4.1 按 Location 筛选设备卡片</h3>
+<ol>
+  <li>在顶部仪表板区域，点击某个 Location 按钮（如 <span class="chip green" style="font-size:0.7rem;">BJQ</span>），该按钮高亮为绿色</li>
+  <li>下方卡片区域自动显示该 Location 下的所有设备</li>
+  <li>每张设备卡片包含：设备名、IP、类型、位置、备注、<strong>采集按钮</strong></li>
+  <li>再次点击同一按钮或清空选择，卡片区域回到提示状态</li>
+</ol>
+
+<h3 id="dev-single">4.2 单台设备采集配置</h3>
+<div class="step"><div class="step-num">1</div><div class="step-body">在设备卡片或下方表格中，点击 <span style="color:var(--green);">☁</span> <strong>Collect</strong> 按钮</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body">系统先 Ping 设备检查可达性（黄色进度条 + "Pinging" 提示）</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body">Ping 成功后自动进入 SSH 采集阶段（蓝色进度条 + "正在收集配置..."提示）</div></div>
+<div class="step"><div class="step-num">4</div><div class="step-body">采集完成后弹出结果对话框：显示设备名、IP、软件版本、序列号、Running Config 行数</div></div>
+
+<div class="card tip">
+  <h4>类型自动修正</h4>
+  <p>如果配置的设备类型不正确（如将 <strong>Aruba CX 6300</strong> 配置为 <code>aruba_osswitch</code>），系统会自动探测正确的驱动类型，
+  采集成功后弹出黄色警告提示用户类型已自动修正。建议之后在设备编辑中更新类型配置。</p>
+</div>
+
+<h3 id="dev-batch">4.3 多选与批量采集</h3>
+<p>下方 Device Inventory 表格支持批量操作：</p>
+<div class="mock">
+  <div class="mock-body">
+    <table class="tbl">
+      <tr><th style="width:40px;">☐</th><th>Device</th><th>Type</th><th>IP Address</th><th>Location</th><th>Platform</th><th>Last Sync</th><th>Actions</th></tr>
+      <tr><td><span style="color:var(--green);">☑</span></td><td>BJQD1SWI01</td><td><span class="chip cyan">Aruba OS</span></td><td>10.210.255.1</td><td>BJQ</td><td>aruba_6300</td><td>05/13/2026</td><td><span style="color:var(--green);">☁</span> <span style="color:var(--green);">↻</span> <span style="color:var(--red);">✕</span></td></tr>
+      <tr><td><span style="color:var(--green);">☑</span></td><td>switch-core-02</td><td><span class="chip blue">Cisco IOS</span></td><td>192.168.1.2</td><td>-</td><td>-</td><td>-</td><td><span style="color:var(--green);">☁</span> <span style="color:var(--green);">↻</span> <span style="color:var(--red);">✕</span></td></tr>
+      <tr><td>☐</td><td>switch-access-01</td><td><span class="chip blue">Cisco IOS</span></td><td>192.168.1.10</td><td>办公区</td><td>-</td><td>-</td><td><span style="color:var(--green);">☁</span> <span style="color:var(--green);">↻</span> <span style="color:var(--red);">✕</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<ul>
+  <li><strong>全选：</strong>表头复选框一键全选 / 取消全选</li>
+  <li><strong>多选：</strong>勾选目标设备的复选框，标题栏出现 <span class="btn primary" style="font-size:0.65rem;background:#22d3ee;color:#000;">批量收集 (N)</span> 按钮</li>
+  <li><strong>批量采集：</strong>点击批量收集按钮后，系统逐台处理；顶部显示总体进度条和完成数量；每台设备的行状态列实时更新（OK / 失败）</li>
+  <li><strong>结果汇总：</strong>采集完成后，汇总面板以 Chip 标签展示每台设备的成功/失败状态</li>
+</ul>
+
+<h3 id="dev-add">4.4 添加 / 删除设备</h3>
+<p>点击页面右上角 <span class="btn primary" style="font-size:0.65rem;">Add Device</span> 按钮，弹出添加设备表单：</p>
+<ul>
+  <li><strong>Name</strong>：设备名称（字母、数字、下划线、连字符）</li>
+  <li><strong>IP Address</strong>：管理 IP 地址</li>
+  <li><strong>Type</strong>：选择 <code>cisco_ios</code> 或 <code>aruba_osswitch</code>（Aruba CX 选 aruba_osswitch 即可，系统会自动探测）</li>
+  <li><strong>Platform</strong>：平台型号（可选，如 <code>aruba_6300</code>）</li>
+  <li><strong>Location</strong>：机房位置（可选，用于 Location 筛选）</li>
+  <li><strong>Notes</strong>：备注信息（可选）</li>
+</ul>
+<p>删除设备：点击表格或卡片中的 <span style="color:var(--red);">✕</span> 按钮，确认后删除。</p>
+
+<!-- ==================== 5. Viewer ==================== -->
+<h2 id="viewer">5. Viewer — 配置查看与对比</h2>
+
+<div class="mock">
+  <div class="mock-bar"><span class="mock-dot r"></span><span class="mock-dot y"></span><span class="mock-dot g"></span><span class="mock-title">Viewer</span></div>
+  <div class="mock-body">
+    <p><strong style="font-size:1.3rem;"><span style="color:#2563eb;">Data</span><span style="color:#34d399;"> Viewer</span></strong></p>
+    <p style="font-size:0.7rem;color:var(--muted);">FILTER BY LOCATION</p>
+    <p><span class="chip muted" style="font-size:0.65rem;">BJD</span> <span class="chip green" style="font-size:0.65rem;">BJQ</span> <span class="chip muted" style="font-size:0.65rem;">DZN</span> <span class="chip muted" style="font-size:0.65rem;">PVG</span> ...</p>
+    <p style="margin:8px 0;">设备: [ BJQD1SWI01 (10.210.255.1) ▾ ]</p>
+    <p style="font-size:0.7rem;color:var(--muted);">历史配置版本 (BJQD1SWI01)</p>
+    <p>选择周: [ 2026-19 ▾ ] &nbsp; 选择文件: [ running-config.raw ▾ ]</p>
+  </div>
+</div>
+
+<h3 id="view-single">5.1 单版本查看（Single 模式）</h3>
+<ol>
+  <li>点击 Location 按钮筛选（可选），从下拉框选择目标设备</li>
+  <li>选择 <strong>周目录</strong>（如 2026-19），系统加载该周的配置文件列表</li>
+  <li>选择具体<strong>文件</strong>，内容自动加载</li>
+  <li>三个 Tab 切换查看方式：
+    <ul>
+      <li><strong>Raw</strong> — 原始文本，终端风格等宽字体显示</li>
+      <li><strong>Formatted</strong> — JSON 格式化（对 validation.json、performance.json 等）</li>
+      <li><strong>Analysis</strong> — 智能解析：Config Validation 错误表格 / Performance 接口状态 / Change Detection 变更统计</li>
+    </ul>
+  </li>
+</ol>
+
+<h3 id="view-compare">5.2 双版本对比（Compare 模式）</h3>
+<div class="step"><div class="step-num">1</div><div class="step-body">点击标题栏 <span class="chip green" style="font-size:0.7rem;">Compare</span> 切换为对比模式</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body">选择<strong>较新版本（左栏）</strong>的周目录和<strong>较旧版本（右栏）</strong>的周目录</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body">选择要对比的文件（如 running-config.raw），两份内容同时加载</div></div>
+
+<h4>对比结果显示</h4>
+<div class="compare">
+  <div class="side left">
+    <p style="font-size:0.7rem;"><span class="chip cyan">2026-19</span> 较新版本</p>
+    <pre style="margin-top:8px;font-size:0.7rem;line-height:1.8;">
+<span style="color:#e2e8f0;">  interface GigabitEthernet0/1</span>
+<span style="background:rgba(16,185,129,0.25);color:#10b981;border-left:3px solid #10b981;padding-left:8px;">+ description Uplink to Core</span>
+<span style="color:#e2e8f0;">  ip address 10.0.0.1 255.255.255.0</span>
+<span style="background:rgba(239,68,68,0.15);color:#ef4444;border-left:3px solid #ef4444;padding-left:8px;">- shutdown</span>
+<span style="color:#e2e8f0;">  no ip redirects</span>
+    </pre>
+  </div>
+  <div class="side right">
+    <p style="font-size:0.7rem;"><span class="chip" style="background:rgba(245,158,11,0.15);color:#f59e0b;">2026-18</span> 较旧版本</p>
+    <pre style="margin-top:8px;font-size:0.7rem;color:#94a3b8;line-height:1.8;">
+  interface GigabitEthernet0/1
+  ip address 10.0.0.1 255.255.255.0
+  shutdown
+  no ip redirects
+    </pre>
+  </div>
+</div>
+<ul>
+  <li><strong>左栏（较新版本）</strong>：绿色高亮 + 绿色左边框 = 新增行；红色高亮 + 红色左边框 = 删除行</li>
+  <li><strong>右栏（较旧版本）</strong>：完整旧版原始内容，灰色字体</li>
+  <li>两边同步滚动（需手动操作两个滚动条）</li>
+</ul>
+
+<h4>可用文件类型</h4>
+<div class="card">
+  <table class="tbl">
+    <tr><th>文件名</th><th>内容</th></tr>
+    <tr><td><code>running-config.raw</code></td><td>设备当前运行配置</td></tr>
+    <tr><td><code>startup-config.raw</code></td><td>设备启动配置</td></tr>
+    <tr><td><code>logs.raw</code></td><td>系统日志原始输出</td></tr>
+    <tr><td><code>interface-status.raw</code></td><td>接口状态原始输出</td></tr>
+    <tr><td><code>version.raw</code></td><td>show version 输出</td></tr>
+    <tr><td><code>interface-utilization.raw</code></td><td>接口利用率数据</td></tr>
+    <tr><td><code>validation.json</code></td><td>配置验证结果（JSON 格式）</td></tr>
+    <tr><td><code>performance.json</code></td><td>性能分析结果（JSON 格式）</td></tr>
+    <tr><td><code>change.json</code></td><td>变更检测结果（JSON 格式）</td></tr>
+    <tr><td><code>summary.txt</code></td><td>采集摘要报告（文本格式）</td></tr>
+  </table>
+</div>
+
+<!-- ==================== 6. 版本管理 ==================== -->
+<h2 id="detail">6. 版本管理与数据存储</h2>
+
+<h3>存储结构</h3>
+<div class="card">
+  <pre style="color:var(--muted);font-size:0.8rem;">
+data/
+  BJQD1SWI01/
+    2026-19/                    ← ISO 周目录（YYYY-WW）
+      running-config.raw        ← 同一周只保留最后一次采集
+      startup-config.raw
+      logs.raw
+      interface-status.raw
+      version.raw
+      interface-utilization.raw
+      validation.json
+      performance.json
+      change.json
+      summary.txt
+    2026-18/
+      ...
+    2026-10/                    ← 第 11 周自动删除
+      ...</pre>
+</div>
+
+<ul>
+  <li><strong>每台设备每周只保留一份配置</strong>：同一周多次采集，新数据覆盖旧数据</li>
+  <li><strong>保留最近 10 周</strong>：第 11 周的数据在下次采集时自动清理</li>
+  <li><strong>最近同步时间</strong>：每次成功采集后自动记录到 <code>devices.yaml</code> 的 <code>last_synced</code> 字段，格式 <code>MM/DD/YYYY HH:MM</code></li>
+</ul>
+
+<h3>设备信息文件</h3>
+<p>所有设备信息存储在 <code>config/devices.yaml</code> 文件中：</p>
+<div class="card">
+  <pre style="color:var(--muted);font-size:0.8rem;">
+devices:
+- name: BJQD1SWI01
+  ip: 10.210.255.1
+  type: aruba_osswitch
+  platform: aruba_6300
+  location: BJQ
+  notes: 北京 - 核心交换机 1
+  serial_number: CN9XXXXXXX
+  last_synced: "05/13/2026 14:30"</pre>
+</div>
+
+<!-- ==================== 7. 常见问题 ==================== -->
+<h2 id="faq">7. 常见问题</h2>
+
+<div class="card warn">
+  <h4>Q: 点击 Collect 后报错 "Pattern not detected"？</h4>
+  <p>A: 设备类型与驱动不匹配。Aruba CX 系列（6300/6400/8320）需使用 <code>aruba_aoscx</code> 驱动。
+  系统已内置<strong>设备类型自动探测</strong>功能，连接失败时会自动尝试其他驱动。如果仍然失败，请检查设备 platform 字段是否正确。</p>
+</div>
+
+<div class="card warn">
+  <h4>Q: 密码包含特殊字符（=、?、@ 等），会影响登录吗？</h4>
+  <p>A: 不会。系统已处理所有特殊字符的编解码。密码在前端使用 base64 + encodeURIComponent 编码存储，传输时通过 FormData 发送，后端通过 FastAPI Form 解析 — 全程不会截断或篡改。</p>
+</div>
+
+<div class="card warn">
+  <h4>Q: 设备显示 Offline，但能 SSH 登录？</h4>
+  <p>A: Ping 使用的是 ICMP 协议，部分网络环境会禁止 ICMP。系统在 Ping 失败后会自动尝试 TCP 22 端口连接。如果 TCP 22 开放，仍会标记为 Online。如果仍显示 Offline，请检查后端服务器是否能访问设备 IP。</p>
+</div>
+
+<div class="card warn">
+  <h4>Q: 批量采集时某台设备一直停在 "pending" 状态？</h4>
+  <p>A: 批量采集是<strong>串行</strong>处理的，每台设备需要 10-30 秒。请等待当前设备完成后，下一台才会开始。可以在表格右侧状态列查看实时进度。</p>
+</div>
+
+<div class="card warn">
+  <h4>Q: 配置对比时两边内容完全一样？</h4>
+  <p>A: 请确认选择的两个周目录不同。如果两周之间配置没有变化，两边内容相同是正常的 — 说明设备配置在此期间未发生变更。</p>
+</div>
+
+<div class="card warn">
+  <h4>Q: 如何修改设备类型？</h4>
+  <p>A: 在 Devices 页面的表格中点击设备详情按钮（↻），进入详情页面进行编辑。或者直接编辑 <code>config/devices.yaml</code> 文件。</p>
+</div>
+
+<!-- ==================== 页脚 ==================== -->
+<div style="text-align:center;margin-top:64px;padding:32px 0;border-top:1px solid var(--border);">
+  <p style="color:var(--muted);font-size:0.8rem;">
+    QCNDM — Network Configuration Data Manager<br>
+    版本 1.0 &nbsp;|&nbsp; 2026 年 5 月 &nbsp;|&nbsp; 用户手册
+  </p>
+</div>
+
+</div>
+
+</body>
+</html>

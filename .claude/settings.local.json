@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir C:\\\\Users\\\\jingl\\\\Desktop\\\\CC_Workspace\\\\projects\\\\ndm *)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(pip install *)",
+      "Bash(python -m uvicorn main:app --host 0.0.0.0 --port 8000)",
+      "Bash(dir C:\\\\Users\\\\jingl\\\\Desktop\\\\CC_Workspace\\\\projects\\\\ndm\\\\config *)",
+      "Bash(python *)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(pkill -f \"node.*frontend\")",
+      "Bash(curl -s http://localhost:3003)",
+      "Bash(taskkill *)"
+    ]
+  }
+}
