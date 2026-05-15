@@ -65,6 +65,30 @@ const Dashboard: React.FC = () => {
     }
   }
 
+  const sortedDevices = [...devices].sort((a: any, b: any) => {
+    const va = (a[sortField] || '').toString().toLowerCase()
+    const vb = (b[sortField] || '').toString().toLowerCase()
+    return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
+  })
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortField(field)
+      setSortDir('asc')
+    }
+  }
+
+  const sortStyle = (field: string) => ({
+    cursor: 'pointer',
+    userSelect: 'none',
+    '&:hover': { color: '#34d399' },
+    color: sortField === field ? '#34d399' : '#94a3b8',
+  } as const)
+
+  const [sortField, setSortField] = useState<string>('name')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [deviceStatus, setDeviceStatus] = useState<Record<string, 'checking' | 'online' | 'offline'>>({})
   const [pinging, setPinging] = useState(false)
   const pingControllerRef = useRef<AbortController | null>(null)
@@ -513,17 +537,23 @@ const Dashboard: React.FC = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em', py: 0.75 }}>
-                    Device
+                  <TableCell onClick={() => handleSort('name')} sx={{ ...sortStyle('name'), fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em', py: 0.75 }}>
+                    Device {sortField === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
                   </TableCell>
-                  <TableCell sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em', py: 0.75 }}>
-                    Type
+                  <TableCell onClick={() => handleSort('type')} sx={{ ...sortStyle('type'), fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em', py: 0.75 }}>
+                    Type {sortField === 'type' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
                   </TableCell>
                   <TableCell sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em', py: 0.75 }}>
                     IP Address
                   </TableCell>
+                  <TableCell onClick={() => handleSort('location')} sx={{ ...sortStyle('location'), fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em', py: 0.75 }}>
+                    Location {sortField === 'location' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                  </TableCell>
                   <TableCell sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em', py: 0.75 }}>
-                    Location
+                    Serial Number
+                  </TableCell>
+                  <TableCell sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em', py: 0.75 }}>
+                    Version
                   </TableCell>
                   <TableCell sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em', py: 0.75 }}>
                     Status
@@ -531,7 +561,7 @@ const Dashboard: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {devices.map((device) => {
+                {sortedDevices.map((device) => {
                   const colors = getDeviceColor(device.type)
                   return (
                     <TableRow
@@ -584,6 +614,12 @@ const Dashboard: React.FC = () => {
                       </TableCell>
                       <TableCell sx={{ color: '#e2e8f0', fontSize: '0.8rem' }}>{device.ip}</TableCell>
                       <TableCell sx={{ color: '#94a3b8', fontSize: '0.8rem' }}>{device.location || '-'}</TableCell>
+                      <TableCell sx={{ color: '#94a3b8', fontSize: '0.75rem', fontFamily: '"Fira Code",monospace' }}>
+                        {device.serial_number || '-'}
+                      </TableCell>
+                      <TableCell sx={{ color: '#94a3b8', fontSize: '0.75rem', fontFamily: '"Fira Code",monospace' }}>
+                        {device.version || '-'}
+                      </TableCell>
                       <TableCell>
                         {(() => {
                           const status = deviceStatus[device.name]

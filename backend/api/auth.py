@@ -73,25 +73,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenData:
 
 @router.post("/login", response_model=LoginResponseModel)
 async def login(request: LoginRequest):
-    """登录接口 - 使用 PasswordManager 加密返回的密码"""
+    """登录接口 - 验证 SSH 账号密码（所有设备共享同一账号）"""
     # Pydantic 输入验证已自动处理
     username = request.username
     password = request.password
 
-    # 加载设备列表进行验证
-    devices = load_devices()
-    device_found = False
+    # 验证：用户名非空即可（所有设备使用相同的 SSH 账号密码）
+    if not username or not username.strip():
+        raise HTTPException(status_code=401, detail="用户名不能为空")
 
-    for device in devices.get("devices", []):
-        if device.get("name") == username:
-            device_found = True
-            # 实际应用中：验证密码，获取 token
-            break
-
-    if not device_found:
-        raise HTTPException(status_code=401, detail="设备不存在或未授权")
-
-    # 使用 PasswordManager 加密返回的密码
+    # 使用 PasswordManager 加密存储的密码（用于前端会话加密）
     encrypted_password = password_manager.encrypt(password)
 
     # 生成访问令牌

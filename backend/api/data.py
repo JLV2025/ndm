@@ -7,6 +7,12 @@ import re
 
 router = APIRouter()
 
+# 从 settings 读取 data_root，避免相对路径问题
+def _get_data_root() -> str:
+    from utils.settings_loader import load_settings
+    settings = load_settings()
+    return settings.get("data_root", os.path.join(os.path.dirname(__file__), "..", "data"))
+
 
 def validate_filename(filename: str) -> str:
     """
@@ -81,7 +87,7 @@ def sanitize_device_name(device_name: str) -> str:
 async def get_device_weeks(device_name: str):
     """获取设备所有可用的周目录列表"""
     safe_device_name = sanitize_device_name(device_name)
-    data_root = os.path.join(os.path.dirname(__file__), "..", "data")
+    data_root = _get_data_root()
     device_path = os.path.join(data_root, safe_device_name)
 
     if not os.path.exists(device_path):
@@ -102,7 +108,7 @@ async def get_files_list(device_name: str, week: str):
     safe_device_name = sanitize_device_name(device_name)
     safe_filename = validate_filename(week)
 
-    data_root = os.path.join(os.path.dirname(__file__), "..", "data")
+    data_root = _get_data_root()
     file_path = os.path.join(data_root, safe_device_name, safe_filename)
 
     if not os.path.exists(file_path):
@@ -120,7 +126,7 @@ async def get_data_file(device_name: str, week: str, filename: str):
     safe_week = validate_filename(week)
     safe_filename = validate_filename(filename)
 
-    data_root = os.path.join(os.path.dirname(__file__), "..", "data")
+    data_root = _get_data_root()
     file_path = os.path.join(data_root, safe_device_name, safe_week, safe_filename)
 
     if not os.path.exists(file_path):

@@ -27,8 +27,19 @@ def _is_aruba_device(device_type: str) -> bool:
     return device_type in ("aruba_osswitch", "aruba_aoscx")
 
 
+def _strip_ansi(text: str) -> str:
+    """去除 ANSI 转义码和终端控制字符"""
+    import re as _re
+    # ANSI escape sequences: ESC[...m, ESC[...K, etc.
+    text = _re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', text)
+    # 其他控制字符 (保留 \r\n)
+    text = _re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', text)
+    return text
+
+
 def extract_software_version(version_output: str, device_type: str) -> str:
     """从 show version 输出中提取软件版本号"""
+    version_output = _strip_ansi(version_output)
     lines = version_output.splitlines()
 
     if device_type == "cisco_ios":
@@ -38,32 +49,82 @@ def extract_software_version(version_output: str, device_type: str) -> str:
                 return match.group(1)
     elif _is_aruba_device(device_type):
         for line in lines:
-            match = re.search(r'ArubaOSv9,\s*(\d+\.\d+\.\d+\.\d+)', line)
+            line_clean = line.strip()
+            if not line_clean:
+                continue
+            # Version      : FL.10.10.1070  (ArubaOS-CX)
+            match = re.search(r'Version\s*:\s*([A-Z]+\.\d+\.\d+\.\d+)', line_clean, re.IGNORECASE)
             if match:
+                print(f"[版本匹配] 模式1 (Version:): {match.group(1)}")
                 return match.group(1)
-            match = re.search(r'Firmware Version\s+(\d+\.\d+\.\d+\.\d+)', line, re.IGNORECASE)
+            # ArubaOS-CX FL.10.10.1070 或 ML.10.13.1040
+            match = re.search(r'ArubaOS-CX\s+(?:[A-Z]+\.)?(\d+\.\d+\.\d+)', line_clean)
             if match:
+                print(f"[版本匹配] 模式2 (ArubaOS-CX): {match.group(1)}")
+                return match.group(1)
+            # ArubaOSv9, 10.10.1070.0001
+            match = re.search(r'ArubaOSv\d+,\s*(\d+\.\d+\.\d+\.\d+)', line_clean)
+            if match:
+                print(f"[版本匹配] 模式3 (ArubaOSv): {match.group(1)}")
+                return match.group(1)
+            # Firmware Version 10.10.1070
+            match = re.search(r'Firmware Version\s+(\d+\.\d+\.\d+\.?\d*)', line_clean, re.IGNORECASE)
+            if match:
+                print(f"[版本匹配] 模式4 (Firmware Version): {match.group(1)}")
                 return match.group(1)
 
+    print(f"[版本提取失败] 设备类型={device_type}, 内容前500字符: {repr(version_output[:500])}")
     return "未知"
 
 
-def extract_serial_number(version_output: str, device_type: str) -> str:
-    """从 show version 输出中提取设备序列号"""
+def extract_serial_number(version_output: str, device_type: str, system_output: str = "", vsf_output: str = "") -> str:
+    """从 show version、show system、show vsf 输出中提取设备序列号（VSF/Stack 返回逗号拼接）"""
+    version_output = _strip_ansi(version_output)
     lines = version_output.splitlines()
+    serials = []
 
     if device_type == "cisco_ios":
+        # 堆叠交换机只取 System serial number，避免混入主板/电源/子板序列号
         for line in lines:
-            match = re.search(r'Serial Number[:\s]+([A-Za-z0-9]+)', line)
-            if match:
-                return match.group(1)
+            match = re.search(r'System\s+[Ss]erial\s*[Nn]umber[:\s]+([A-Za-z0-9]+)', line)
+            if match and match.group(1) not in serials:
+                serials.append(match.group(1))
+        # 回退：独立交换机可能只有 Processor board ID
+        if not serials:
+            for line in lines:
+                match = re.search(r'Processor\s+board\s+ID[:\s]+([A-Za-z0-9]+)', line, re.IGNORECASE)
+                if match and match.group(1) not in serials:
+                    serials.append(match.group(1))
     elif _is_aruba_device(device_type):
-        for line in lines:
-            match = re.search(r'Serial Number[:\s]+([A-Z0-9]+)', line)
-            if match:
-                return match.group(1)
+        # 1. 从 show vsf detail 提取成员序列号（VSF 堆叠）
+        if vsf_output:
+            vsf_output = _strip_ansi(vsf_output)
+            for line in vsf_output.splitlines():
+                match = re.search(r'[Ss]erial\s*[Nn]umber[:\s]+([A-Za-z0-9]+)', line)
+                if match and match.group(1) not in serials:
+                    serials.append(match.group(1))
+                    print(f"[序列号匹配] show vsf detail: {match.group(1)}")
+        # 2. 从 show version 提取
+        if not serials:
+            for line in lines:
+                match = re.search(r'[Ss]erial\s*[Nn]umber[:\s]+([A-Za-z0-9]+)', line)
+                if match and match.group(1) not in serials:
+                    serials.append(match.group(1))
+        # 3. 从 show system 提取
+        if not serials and system_output:
+            system_output = _strip_ansi(system_output)
+            for line in system_output.splitlines():
+                match = re.search(r'(?:Chassis\s*)?[Ss]erial\s*[Nn](?:br|umber)?[:\s]+([A-Za-z0-9]+)', line)
+                if match and match.group(1) not in serials:
+                    serials.append(match.group(1))
+                    print(f"[序列号匹配] show system: {match.group(1)}")
 
-    return "未知"
+    result = ", ".join(serials) if serials else "未知"
+    if result == "未知":
+        print(f"[序列号提取失败] 设备类型={device_type}, 版本输出前300字符: {repr(version_output[:300])}")
+        if system_output:
+            print(f"[序列号提取失败] 系统输出前300字符: {repr(system_output[:300])}")
+    return result
 
 
 def collect_device(
@@ -86,11 +147,12 @@ def collect_device(
         "type": device_type,
         "platform": device_platform,
         "port": 22,
-        "timeout": 30
+        "timeout": 120
     })
 
     if not conn.connect(username, password):
         error_msg = getattr(conn, '_last_error', '') or 'SSH 连接失败'
+        print(f"[收集失败] 连接失败: {error_msg}")
         return {
             "name": device_name,
             "ip": device_ip,
@@ -98,21 +160,59 @@ def collect_device(
             "error": error_msg
         }
 
+    print(f"[收集进度] SSH 连接成功，开始收集数据...")
+
     # 使用实际探测到的设备类型（可能与配置不同）
     effective_type = conn.actual_device_type or device_type
     type_mismatch = conn.type_mismatch
 
+    def _safe_collect(collect_func, label: str) -> str:
+        """安全执行单条命令收集，失败时返回错误信息但不抛异常"""
+        try:
+            return collect_func()
+        except Exception as e:
+            print(f"[收集异常] {label}: {e}")
+            return f"% 收集失败: {str(e)}"
+
     try:
         # 收集原始数据
-        running_config, startup_config = conn.collect_config()
-        logs = conn.collect_logs()
-        interface_status = conn.collect_interface_status()
-        version_info = conn.collect_show_version()
-        interface_utilization = conn.collect_show_interface_utilization()
+        print(f"[收集进度] 获取 running-config...")
+        try:
+            running_config, startup_config = conn.collect_config()
+        except Exception as e:
+            print(f"[收集异常] config: {e}")
+            running_config = f"% 收集失败: {str(e)}"
+            startup_config = running_config
+        print(f"[收集进度] running-config: {len(running_config)} 行, startup-config: {len(startup_config)} 行")
 
-        # 提取版本号和序列号（使用实际设备类型）
+        # Cisco IOS 日志无法限制条目数，全量收集太慢，跳过
+        if effective_type == "cisco_ios":
+            print(f"[收集进度] Cisco IOS 跳过日志收集（全量 show logging 太慢）")
+            logs = ""
+        else:
+            print(f"[收集进度] 获取 logs...")
+            logs = _safe_collect(conn.collect_logs, "logs")
+            print(f"[收集进度] logs: {len(logs)} 行")
+
+        print(f"[收集进度] 获取 interface status...")
+        interface_status = _safe_collect(conn.collect_interface_status, "interface status")
+        print(f"[收集进度] 获取 version...")
+        version_info = _safe_collect(conn.collect_show_version, "version")
+        print(f"[收集进度] 获取 interface utilization...")
+        interface_utilization = _safe_collect(conn.collect_show_interface_utilization, "interface utilization")
+
+        # Aruba CX show version 不含序列号，需要 show system + show vsf
+        system_info = ""
+        vsf_info = ""
+        if _is_aruba_device(effective_type):
+            print(f"[收集进度] 获取 system info (序列号)...")
+            system_info = _safe_collect(conn.collect_system_info, "show system")
+            print(f"[收集进度] 获取 vsf info (堆叠成员)...")
+            vsf_info = _safe_collect(conn.collect_vsf_info, "show vsf")
+
+        # 提取版本号和序列号（使用实际设备类型，传入 system + vsf 信息）
         software_version = extract_software_version(version_info, effective_type)
-        serial_number = extract_serial_number(version_info, effective_type)
+        serial_number = extract_serial_number(version_info, effective_type, system_info, vsf_info)
 
         # 查找基准配置路径
         baseline_path = os.path.join(data_root, device_name, "latest", "running-config.raw")
@@ -148,7 +248,7 @@ def collect_device(
             device_name, device_ip, device_type,
             week, data_root, settings,
             running_config, startup_config, logs,
-            interface_status, version_info, interface_utilization,
+            interface_status, version_info, interface_utilization, system_info, vsf_info,
             validation_results, performance_results, change_results,
             software_version, serial_number
         )
@@ -166,6 +266,9 @@ def collect_device(
         }
 
     except Exception as e:
+        print(f"[收集异常] {e}")
+        import traceback
+        traceback.print_exc()
         return {
             "name": device_name,
             "ip": device_ip,
@@ -181,7 +284,7 @@ def _save_data(
     week: str, data_dir: str, settings: Dict,
     running_config: str, startup_config: str,
     logs_raw: str, interface_status: str, version_info: str,
-    interface_utilization: str,
+    interface_utilization: str, system_info: str, vsf_info: str,
     validation_results: str, performance_results: str, change_results: str,
     software_version: str, serial_number: str
 ) -> None:
@@ -190,7 +293,8 @@ def _save_data(
     display_name = serial_number if serial_number else device_name
     device_base_dir = os.path.join(data_dir, device_name)
     week_dir = os.path.join(device_base_dir, week)
-    create_device_dir(week, data_dir, device_name)
+    os.makedirs(week_dir, exist_ok=True)
+    print(f"[保存] 设备={device_name}, 周={week}, 目录={week_dir}")
 
     # 保存原始配置
     with open(os.path.join(week_dir, "running-config.raw"), "w", encoding="utf-8") as f:
@@ -210,6 +314,14 @@ def _save_data(
 
     with open(os.path.join(week_dir, "interface-utilization.raw"), "w", encoding="utf-8") as f:
         f.write(interface_utilization)
+
+    if system_info:
+        with open(os.path.join(week_dir, "system.raw"), "w", encoding="utf-8") as f:
+            f.write(system_info)
+
+    if vsf_info:
+        with open(os.path.join(week_dir, "vsf.raw"), "w", encoding="utf-8") as f:
+            f.write(vsf_info)
 
     # 保存分析结果
     with open(os.path.join(week_dir, "validation.json"), "w", encoding="utf-8") as f:

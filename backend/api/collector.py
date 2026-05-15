@@ -103,6 +103,9 @@ async def collect_config(
         raise HTTPException(status_code=404, detail=f"设备 '{device_name}' 不存在")
 
     print(f"[收集] 设备={device_name}, 用户名={username}, 密码长度={len(password) if password else 0}")
+    if password:
+        pwd_preview = password[:4] + "..." if len(password) > 4 else password
+        print(f"[收集] 密码预览：{pwd_preview}")
 
     try:
         from services.collector_service import collect_device

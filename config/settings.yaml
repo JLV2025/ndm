@@ -1,7 +1,7 @@
 # 全局配置
 
-# 数据存储根目录
-data_root: "./data"
+# 数据存储根目录 - 使用绝对路径避免工作目录问题
+data_root: "C:/Users/jingl/Desktop/CC_Workspace/projects/ndm/data"
 
 # 保留的版本数量（按设备独立保留）
 max_versions: 10

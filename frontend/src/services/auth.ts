@@ -66,6 +66,11 @@ class SessionManager {
   }
 
   getSession(): Session | null {
+    // 检查当前 session 是否已过期
+    if (this.session && Date.now() > this.session.expiresAt) {
+      this.logout()
+      return null
+    }
     if (this.session) return this.session
 
     const stored = sessionStorage.getItem(SESSION_KEY)

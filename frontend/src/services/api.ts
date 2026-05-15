@@ -41,11 +41,12 @@ export const collectorApi = {
       method: 'POST',
       body: formData,
     })
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}))
-      throw new Error(errData.detail || `Request failed with status code ${res.status}`)
+    const data = await res.json()
+    // 后端返回 success: false 表示收集失败
+    if (!data.success) {
+      throw new Error(data.detail || `收集失败 (${data.error || '未知错误'})`)
     }
-    return res.json()
+    return data
   },
 
   // 批量收集设备配置

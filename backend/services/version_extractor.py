@@ -20,12 +20,22 @@ class VersionExtractor:
                 match = re.search(r'Version\s+(\d+\.\d+(?:\(\d+\))?)', line, re.IGNORECASE)
                 if match:
                     return match.group(1)
-        elif self.device_type == "aruba_osswitch":
+        elif self.device_type in ("aruba_osswitch", "aruba_aoscx"):
             for line in lines:
-                match = re.search(r'ArubaOSv9,\s*(\d+\.\d+\.\d+\.\d+)', line)
+                # Version      : FL.10.10.1070  (ArubaOS-CX)
+                match = re.search(r'Version\s*:\s*([A-Z]+\.\d+\.\d+\.\d+)', line, re.IGNORECASE)
                 if match:
                     return match.group(1)
-                match = re.search(r'Firmware Version\s+(\d+\.\d+\.\d+\.\d+)', line, re.IGNORECASE)
+                # ArubaOS-CX FL.10.10.1070 (同一行)
+                match = re.search(r'ArubaOS-CX\s+(?:[A-Z]+\.)?(\d+\.\d+\.\d+)', line)
+                if match:
+                    return match.group(1)
+                # ArubaOSv9, 10.10.1070.0001
+                match = re.search(r'ArubaOSv\d+,\s*(\d+\.\d+\.\d+\.\d+)', line)
+                if match:
+                    return match.group(1)
+                # Firmware Version 10.10.1070
+                match = re.search(r'Firmware Version\s+(\d+\.\d+\.\d+\.?\d*)', line, re.IGNORECASE)
                 if match:
                     return match.group(1)
 
@@ -40,9 +50,9 @@ class VersionExtractor:
                 match = re.search(r'Serial Number[:\s]+([A-Za-z0-9]+)', line)
                 if match:
                     return match.group(1)
-        elif self.device_type == "aruba_osswitch":
+        elif self.device_type in ("aruba_osswitch", "aruba_aoscx"):
             for line in lines:
-                match = re.search(r'Serial Number[:\s]+([A-Z0-9]+)', line)
+                match = re.search(r'Serial Number[:\s]+([A-Za-z0-9]+)', line)
                 if match:
                     return match.group(1)
 

@@ -68,3 +68,11 @@ security-review-report.md
 
 # OpenWolf
 .wolf/
+
+# Local IDE / Tool config (may contain secrets)
+.claude/
+.vscode/
+.idea/
+
+# Test fixtures with real IPs
+c:/tmp/switch.txt

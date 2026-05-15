@@ -85,7 +85,7 @@ const Viewer: React.FC = () => {
     if (!selectedDevice) return
     setLoading(true)
     dataApi.getDeviceWeeks(selectedDevice).then((res: any) => {
-      setWeeks(res.weeks || [])
+      setWeeks(res.data?.weeks || [])
     }).catch(() => setWeeks([])).finally(() => setLoading(false))
   }, [selectedDevice])
 

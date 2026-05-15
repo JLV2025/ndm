@@ -85,16 +85,37 @@ const DeviceDetail: React.FC = () => {
   }
 
   const handleCollect = async () => {
+    // 验证 session 是否有效
+    const session = sessionManager.getSession()
+    if (!session) {
+      setCollectError('请先登录或重新登录')
+      alert('请先登录')
+      window.location.href = '/login'
+      return
+    }
+
+    console.log('[调试] 设备收集 - 用户名:', username)
+    console.log('[调试] 设备收集 - 密码长度:', password ? password.length : 0)
+    console.log('[调试] 设备收集 - session 用户名:', session.username)
+    console.log('[调试] 设备收集 - session 密码长度:', session.password ? session.password.length : 0)
+    console.log('[调试] 设备收集 - 设备名:', name)
+    console.log('[调试] 设备收集 - device.formData:', formData)
+
     setCollecting(true)
     setCollectError('')
 
     try {
+      console.log('[调试] 发送收集请求...')
       const data = await collectorApi.collect(name!, username, password)
+      console.log('[调试] 收集响应:', data)
       setCollectResult(data.result)
+      setCollectError('')
       setShowCollect(true)
     } catch (error: any) {
-      setCollectError(error.message || '收集失败')
-      alert(error.message || '收集失败，请检查用户名密码')
+      console.error('[调试] 收集错误:', error)
+      const errorMsg = error.message || '收集失败'
+      setCollectError(errorMsg)
+      alert(errorMsg)
     } finally {
       setCollecting(false)
     }

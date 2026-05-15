@@ -72,6 +72,10 @@ const DeviceList: React.FC = () => {
   const [batchRunning, setBatchRunning] = useState(false)
   const [batchStatus, setBatchStatus] = useState<Record<string, BatchItemStatus>>({})
 
+  // 排序
+  const [sortField, setSortField] = useState<string>('name')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+
   useEffect(() => {
     loadDevices()
   }, [])
@@ -180,16 +184,19 @@ const DeviceList: React.FC = () => {
       const data = await collectorApi.batchCollect(deviceNames, session.username, session.password)
       const updated: Record<string, BatchItemStatus> = {}
       for (const r of data.results) {
+        // 确保 error 始终为字符串，避免 [object Object]
+        const errStr = typeof r.error === 'string' ? r.error : (r.error ? JSON.stringify(r.error) : '')
         updated[r.device || r.name] = {
           status: r.status === 'success' ? 'success' : 'failed',
-          error: r.error,
+          error: errStr || r.detail || '',
           result: r,
         }
       }
       setBatchStatus((prev) => ({ ...prev, ...updated }))
     } catch (error: any) {
+      const errMsg = typeof error.message === 'string' ? error.message : JSON.stringify(error)
       const failed: Record<string, BatchItemStatus> = {}
-      deviceNames.forEach((n) => { failed[n] = { status: 'failed', error: error.message } })
+      deviceNames.forEach((n) => { failed[n] = { status: 'failed', error: errMsg } })
       setBatchStatus((prev) => ({ ...prev, ...failed }))
     } finally {
       setBatchRunning(false)
@@ -222,9 +229,31 @@ const DeviceList: React.FC = () => {
   }
 
   // 按位置筛选
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortField(field)
+      setSortDir('asc')
+    }
+  }
+
+  const sortStyle = (field: string) => ({
+    cursor: 'pointer',
+    userSelect: 'none',
+    '&:hover': { color: '#34d399' },
+    color: sortField === field ? '#34d399' : '#94a3b8',
+  } as const)
+
   const filteredDevices = selectedLocation
     ? devices.filter((d) => (d.location || '').toUpperCase() === selectedLocation.toUpperCase())
-    : []
+    : devices
+
+  const sortedDevices = [...filteredDevices].sort((a: any, b: any) => {
+    const va = (a[sortField] || '').toString().toLowerCase()
+    const vb = (b[sortField] || '').toString().toLowerCase()
+    return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
+  })
 
   const allSelected = devices.length > 0 && selectedDevices.size === devices.length
   const someSelected = selectedDevices.size > 0 && selectedDevices.size < devices.length
@@ -376,9 +405,6 @@ const DeviceList: React.FC = () => {
                 {collectPhase === 'ping' ? '检测设备在线状态' : 'SSH 连接交换机，下载配置（10-30 秒）'}
               </Typography>
             </Box>
-            {collectError && (
-              <Chip label={collectError} size="small" sx={{ color: '#ef4444', bgcolor: 'rgba(239,68,68,0.1)' }} />
-            )}
           </Box>
           <LinearProgress
             sx={{
@@ -388,6 +414,13 @@ const DeviceList: React.FC = () => {
             }}
           />
         </Paper>
+      )}
+
+      {/* 收集错误提示 — 独立于进度条显示 */}
+      {collectError && !collecting && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setCollectError('')}>
+          {collectError}
+        </Alert>
       )}
 
       {/* 批量收集进度 */}
@@ -438,14 +471,14 @@ const DeviceList: React.FC = () => {
       {/* 设备卡片网格 — 仅在选择 location 后显示 */}
       {selectedLocation && (
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          {filteredDevices.length === 0 ? (
+          {sortedDevices.length === 0 ? (
             <Grid item xs={12}>
               <Paper sx={{ p: 3, textAlign: 'center', bgcolor: '#0d121f', border: '1px solid rgba(52,211,153,0.1)', borderRadius: 2 }}>
                 <Typography color="text.secondary">该位置 ({selectedLocation}) 下没有设备</Typography>
               </Paper>
             </Grid>
           ) : (
-            filteredDevices.map((device) => {
+            sortedDevices.map((device) => {
               const colors = getDeviceColor(device.type)
               return (
                 <Grid item xs={12} sm={6} md={4} lg={3} key={device.name}>
@@ -599,17 +632,23 @@ const DeviceList: React.FC = () => {
                     sx={{ color: '#94a3b8', '&.Mui-checked': { color: '#34d399' }, '&.MuiCheckbox-indeterminate': { color: '#34d399' } }}
                   />
                 </TableCell>
-                <TableCell sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>Device</TableCell>
-                <TableCell sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>Type</TableCell>
+                <TableCell onClick={() => handleSort('name')} sx={{ ...sortStyle('name'), fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>
+                  Device {sortField === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                </TableCell>
+                <TableCell onClick={() => handleSort('type')} sx={{ ...sortStyle('type'), fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>
+                  Type {sortField === 'type' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                </TableCell>
                 <TableCell sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>IP Address</TableCell>
-                <TableCell sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>Location</TableCell>
+                <TableCell onClick={() => handleSort('location')} sx={{ ...sortStyle('location'), fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>
+                  Location {sortField === 'location' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                </TableCell>
                 <TableCell sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>Platform</TableCell>
                 <TableCell sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>Last Sync</TableCell>
                 <TableCell sx={{ color: '#94a3b8', fontWeight: 600, textTransform: 'uppercase', fontSize: '0.7rem', letterSpacing: '0.05em' }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {devices.map((device) => {
+              {sortedDevices.map((device) => {
                 const colors = getDeviceColor(device.type)
                 const isSelected = selectedDevices.has(device.name)
                 const bs = batchStatus[device.name]

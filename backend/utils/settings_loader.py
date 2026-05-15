@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Dict
 
 
-# 配置文件路径（相对于 backend 根目录）
+# 配置文件路径（相对于项目根目录）
 _CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
 
 
