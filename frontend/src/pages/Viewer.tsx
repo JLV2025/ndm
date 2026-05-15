@@ -14,13 +14,12 @@ import { sessionManager } from '../services/auth'
 
 const LOCATIONS_ROW1 = ['BJD', 'BJQ', 'DZN', 'PVG', 'SHA', 'SZX', 'ZGN']
 const LOCATIONS_ROW2 = ['PEK', 'DEZ', 'UCD', 'SJY']
-// 简单逐行 diff
+
 function computeDiff(oldLines: string[], newLines: string[]): { type: 'same' | 'added' | 'removed'; text: string }[] {
   const result: { type: 'same' | 'added' | 'removed'; text: string }[] = []
   const oldSet = new Set(oldLines)
   const newSet = new Set(newLines)
 
-  // 逐行比较：标记新增和删除
   let oi = 0
   let ni = 0
   while (oi < oldLines.length || ni < newLines.length) {
@@ -57,13 +56,11 @@ const Viewer: React.FC = () => {
   const [weeks, setWeeks] = useState<string[]>([])
   const [files, setFiles] = useState<string[]>([])
 
-  // 单次查看
   const [selectedWeek, setSelectedWeek] = useState('')
   const [selectedFile, setSelectedFile] = useState('')
   const [content, setContent] = useState('')
   const [activeTab, setActiveTab] = useState(0)
 
-  // 对比模式
   const [compareMode, setCompareMode] = useState(false)
   const [compareWeek1, setCompareWeek1] = useState('')
   const [compareWeek2, setCompareWeek2] = useState('')
@@ -80,7 +77,6 @@ const Viewer: React.FC = () => {
     deviceApi.list().then((res: any) => setDevices(res.data)).catch(() => {})
   }, [])
 
-  // 切换设备时加载周列表
   useEffect(() => {
     if (!selectedDevice) return
     setLoading(true)
@@ -89,7 +85,6 @@ const Viewer: React.FC = () => {
     }).catch(() => setWeeks([])).finally(() => setLoading(false))
   }, [selectedDevice])
 
-  // 单次模式：选好 week + file 后加载内容
   useEffect(() => {
     if (compareMode || !selectedDevice || !selectedWeek || !selectedFile) return
     setLoadingContent(true)
@@ -99,7 +94,6 @@ const Viewer: React.FC = () => {
     }).catch(() => setError('加载文件失败')).finally(() => setLoadingContent(false))
   }, [selectedDevice, selectedWeek, selectedFile, compareMode])
 
-  // 切换 week 时加载文件列表
   useEffect(() => {
     if (!selectedDevice || !selectedWeek) return
     dataApi.getFilesList(selectedDevice, selectedWeek).then((res: any) => {
@@ -107,7 +101,6 @@ const Viewer: React.FC = () => {
     }).catch(() => setFiles([]))
   }, [selectedDevice, selectedWeek])
 
-  // 对比模式：加载两份内容
   useEffect(() => {
     if (!compareMode || !selectedDevice || !compareWeek1 || !compareWeek2 || !compareFile) return
     setLoadingContent(true)
@@ -121,12 +114,10 @@ const Viewer: React.FC = () => {
     }).catch(() => setError('加载对比文件失败')).finally(() => setLoadingContent(false))
   }, [compareMode, selectedDevice, compareWeek1, compareWeek2, compareFile])
 
-  // 按 location 筛选设备
   const filteredDevices = selectedLocation
     ? devices.filter((d) => (d.location || '').toUpperCase() === selectedLocation.toUpperCase())
     : devices
 
-  // 如果 URL 带了 device 参数且未选择设备，自动选择
   useEffect(() => {
     if (initialDevice && !selectedDevice && devices.length > 0) {
       const d = devices.find((x: any) => x.name === initialDevice)
@@ -140,20 +131,34 @@ const Viewer: React.FC = () => {
   const diffLines = useMemo(() => {
     if (!compareContent1 || !compareContent2) return null
     return computeDiff(
-      compareContent2.split('\n'),  // old (右侧)
-      compareContent1.split('\n'),  // new (左侧)
+      compareContent2.split('\n'),
+      compareContent1.split('\n'),
     )
   }, [compareContent1, compareContent2])
+
+  const toggleGroupSx = {
+    '& .MuiToggleButton-root': {
+      color: 'text.secondary',
+      borderColor: 'divider',
+      px: 2, py: 0.25, fontSize: '0.7rem', fontWeight: 600,
+      textTransform: 'none', borderRadius: '6px !important',
+      '&.Mui-selected': {
+        color: 'primary.main',
+        bgcolor: 'rgba(34,197,94,0.1)',
+        borderColor: 'rgba(34,197,94,0.3)',
+      },
+      '&:hover': { bgcolor: 'rgba(34,197,94,0.06)' },
+    },
+  }
 
   const renderContentTabs = (text: string) => {
     if (!text) return null
     return (
       <>
-        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)}
-          sx={{ mb: 2, borderBottom: '1px solid rgba(52,211,153,0.2)', '& .MuiTabs-indicator': { backgroundColor: '#34d399' } }}>
-          <Tab icon={<Terminal />} label="Raw" sx={{ color: '#94a3b8', '&.Mui-selected': { color: '#34d399' }, textTransform: 'uppercase', fontSize: '0.7rem' }} />
-          <Tab icon={<Description />} label="Formatted" sx={{ color: '#94a3b8', '&.Mui-selected': { color: '#34d399' }, textTransform: 'uppercase', fontSize: '0.7rem' }} />
-          <Tab icon={<Timeline />} label="Analysis" sx={{ color: '#94a3b8', '&.Mui-selected': { color: '#34d399' }, textTransform: 'uppercase', fontSize: '0.7rem' }} />
+        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ mb: 2 }}>
+          <Tab icon={<Terminal />} label="Raw" sx={{ fontSize: '0.7rem' }} />
+          <Tab icon={<Description />} label="Formatted" sx={{ fontSize: '0.7rem' }} />
+          <Tab icon={<Timeline />} label="Analysis" sx={{ fontSize: '0.7rem' }} />
         </Tabs>
         {renderTabContent(text, activeTab)}
       </>
@@ -163,12 +168,12 @@ const Viewer: React.FC = () => {
   const renderTabContent = (text: string, tab: number) => {
     if (tab === 0) {
       return (
-        <Paper sx={{ p: 2, bgcolor: '#0a0f1a', border: '1px solid rgba(52,211,153,0.1)', borderRadius: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, pb: 1, borderBottom: '1px solid rgba(52,211,153,0.2)' }}>
-            <Terminal sx={{ color: '#34d399', fontSize: 16 }} />
+        <Paper sx={{ p: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+            <Terminal sx={{ color: 'primary.main', fontSize: 16 }} />
             <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>Raw Content</Typography>
           </Box>
-          <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"Fira Code","JetBrains Mono",monospace', margin: 0, fontSize: '0.75rem', color: '#e2e8f0', lineHeight: 1.6 }}>{text}</pre>
+          <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"JetBrains Mono","Fira Code",monospace', margin: 0, fontSize: '0.75rem', color: '#F8FAFC', lineHeight: 1.6 }}>{text}</pre>
         </Paper>
       )
     }
@@ -176,12 +181,12 @@ const Viewer: React.FC = () => {
       try {
         const json = JSON.parse(text)
         return (
-          <Paper sx={{ p: 2, bgcolor: '#0a0f1a', border: '1px solid rgba(52,211,153,0.1)', borderRadius: 2 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, pb: 1, borderBottom: '1px solid rgba(52,211,153,0.2)' }}>
-              <Description sx={{ color: '#34d399', fontSize: 16 }} />
+          <Paper sx={{ p: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+              <Description sx={{ color: 'primary.main', fontSize: 16 }} />
               <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>JSON Formatted</Typography>
             </Box>
-            <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"Fira Code","JetBrains Mono",monospace', margin: 0, fontSize: '0.75rem', color: '#e2e8f0', lineHeight: 1.6 }}>{JSON.stringify(json, null, 2)}</pre>
+            <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"JetBrains Mono","Fira Code",monospace', margin: 0, fontSize: '0.75rem', color: '#F8FAFC', lineHeight: 1.6 }}>{JSON.stringify(json, null, 2)}</pre>
           </Paper>
         )
       } catch { return null }
@@ -191,12 +196,12 @@ const Viewer: React.FC = () => {
         const json = JSON.parse(text)
         if (json.errors) {
           return (
-            <Paper sx={{ p: 2, bgcolor: '#0d121f', border: '1px solid rgba(52,211,153,0.1)', borderRadius: 2 }}>
+            <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Config Validation</Typography>
               <Grid container spacing={2} sx={{ mb: 2 }}>
-                {[{ label: 'Errors', value: json.summary?.errors ?? 0, color: '#ef4444' }, { label: 'Warnings', value: json.summary?.warnings ?? 0, color: '#f59e0b' }, { label: 'Info', value: json.summary?.info ?? 0, color: '#3b82f6' }].map((item) => (
+                {[{ label: 'Errors', value: json.summary?.errors ?? 0, color: '#EF4444' }, { label: 'Warnings', value: json.summary?.warnings ?? 0, color: '#F59E0B' }, { label: 'Info', value: json.summary?.info ?? 0, color: '#3B82F6' }].map((item) => (
                   <Grid item xs={4} key={item.label}>
-                    <Box sx={{ p: 2, bgcolor: 'rgba(148,163,184,0.05)', border: `1px solid ${item.color}33`, borderRadius: 2, textAlign: 'center' }}>
+                    <Box sx={{ p: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1, textAlign: 'center' }}>
                       <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>{item.label}</Typography>
                       <Typography variant="h4" sx={{ color: item.color, fontWeight: 700 }}>{item.value}</Typography>
                     </Box>
@@ -207,18 +212,22 @@ const Viewer: React.FC = () => {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ color: '#94a3b8', fontWeight: 600, fontSize: '0.65rem' }}>Type</TableCell>
-                      <TableCell sx={{ color: '#94a3b8', fontWeight: 600, fontSize: '0.65rem' }}>Message</TableCell>
-                      <TableCell align="right" sx={{ color: '#94a3b8', fontWeight: 600, fontSize: '0.65rem' }}>Level</TableCell>
+                      <TableCell>Type</TableCell>
+                      <TableCell>Message</TableCell>
+                      <TableCell align="right">Level</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {json.errors?.map((err: any, idx: number) => (
-                      <TableRow key={idx} hover sx={{ '&:hover': { bgcolor: 'rgba(52,211,153,0.05)' } }}>
-                        <TableCell sx={{ color: '#e2e8f0', fontSize: '0.75rem' }}>{err.type}</TableCell>
-                        <TableCell sx={{ color: '#94a3b8', fontSize: '0.75rem' }}>{err.message}</TableCell>
+                      <TableRow key={idx} hover>
+                        <TableCell sx={{ fontSize: '0.75rem' }}>{err.type}</TableCell>
+                        <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>{err.message}</TableCell>
                         <TableCell align="right">
-                          <Chip label={err.severity} size="small" sx={{ bgcolor: err.severity === 'error' ? 'rgba(239,68,68,0.15)' : err.severity === 'warning' ? 'rgba(245,158,11,0.15)' : 'rgba(59,130,246,0.15)', color: err.severity === 'error' ? '#ef4444' : err.severity === 'warning' ? '#f59e0b' : '#3b82f6', fontWeight: 500, height: 18, fontSize: '0.6rem' }} />
+                          <Chip label={err.severity} size="small" sx={{
+                            bgcolor: err.severity === 'error' ? 'rgba(239,68,68,0.1)' : err.severity === 'warning' ? 'rgba(245,158,11,0.1)' : 'rgba(59,130,246,0.1)',
+                            color: err.severity === 'error' ? 'error.main' : err.severity === 'warning' ? 'warning.main' : 'info.main',
+                            fontWeight: 500, height: 18, fontSize: '0.6rem',
+                          }} />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -230,12 +239,12 @@ const Viewer: React.FC = () => {
         }
         if (json.interface_summary) {
           return (
-            <Paper sx={{ p: 2, bgcolor: '#0d121f', border: '1px solid rgba(52,211,153,0.1)', borderRadius: 2 }}>
+            <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Performance Analysis</Typography>
               <Grid container spacing={2} sx={{ mb: 2 }}>
-                {[{ label: 'Total', value: json.interface_summary.total, color: '#3b82f6' }, { label: 'UP', value: json.interface_summary.up, color: '#10b981' }, { label: 'DOWN', value: json.interface_summary.down, color: '#ef4444' }].map((item) => (
+                {[{ label: 'Total', value: json.interface_summary.total, color: '#3B82F6' }, { label: 'UP', value: json.interface_summary.up, color: '#22C55E' }, { label: 'DOWN', value: json.interface_summary.down, color: '#EF4444' }].map((item) => (
                   <Grid item xs={4} key={item.label}>
-                    <Box sx={{ p: 2, bgcolor: 'rgba(148,163,184,0.05)', border: `1px solid ${item.color}33`, borderRadius: 2, textAlign: 'center' }}>
+                    <Box sx={{ p: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1, textAlign: 'center' }}>
                       <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>{item.label}</Typography>
                       <Typography variant="h4" sx={{ color: item.color, fontWeight: 700 }}>{item.value}</Typography>
                     </Box>
@@ -246,15 +255,21 @@ const Viewer: React.FC = () => {
                 <Table size="small">
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ color: '#94a3b8', fontWeight: 600, fontSize: '0.65rem' }}>Interface</TableCell>
-                      <TableCell sx={{ color: '#94a3b8', fontWeight: 600, fontSize: '0.65rem' }}>Status</TableCell>
+                      <TableCell>Interface</TableCell>
+                      <TableCell>Status</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {json.interface_summary.details?.slice(0, 10).map((d: any, idx: number) => (
                       <TableRow key={idx} hover>
-                        <TableCell sx={{ color: '#e2e8f0', fontSize: '0.75rem' }}>{d.name}</TableCell>
-                        <TableCell><Chip label={d.status} size="small" sx={{ bgcolor: d.status_up ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)', color: d.status_up ? '#10b981' : '#ef4444', height: 18, fontSize: '0.6rem' }} /></TableCell>
+                        <TableCell sx={{ fontSize: '0.75rem' }}>{d.name}</TableCell>
+                        <TableCell>
+                          <Chip label={d.status} size="small" sx={{
+                            bgcolor: d.status_up ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                            color: d.status_up ? 'success.main' : 'error.main',
+                            height: 18, fontSize: '0.6rem',
+                          }} />
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -265,12 +280,12 @@ const Viewer: React.FC = () => {
         }
         if (json.summary) {
           return (
-            <Paper sx={{ p: 2, bgcolor: '#0d121f', border: '1px solid rgba(52,211,153,0.1)', borderRadius: 2 }}>
+            <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Change Detection</Typography>
               <Grid container spacing={2}>
-                {[{ label: 'Added', value: json.summary.added, color: '#10b981' }, { label: 'Removed', value: json.summary.removed, color: '#ef4444' }, { label: 'Has Changes', value: json.has_changes ? 'Yes' : 'No', color: json.has_changes ? '#f59e0b' : '#3b82f6' }].map((item) => (
+                {[{ label: 'Added', value: json.summary.added, color: '#22C55E' }, { label: 'Removed', value: json.summary.removed, color: '#EF4444' }, { label: 'Has Changes', value: json.has_changes ? 'Yes' : 'No', color: json.has_changes ? '#F59E0B' : '#3B82F6' }].map((item) => (
                   <Grid item xs={4} key={item.label}>
-                    <Box sx={{ p: 2, bgcolor: 'rgba(148,163,184,0.05)', border: `1px solid ${item.color}33`, borderRadius: 2, textAlign: 'center' }}>
+                    <Box sx={{ p: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1, textAlign: 'center' }}>
                       <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>{item.label}</Typography>
                       <Typography variant="h4" sx={{ color: item.color, fontWeight: 700 }}>{item.value}</Typography>
                     </Box>
@@ -285,31 +300,24 @@ const Viewer: React.FC = () => {
     return null
   }
 
-  const selectSx = {
-    bgcolor: '#0a0f1a', border: '1px solid rgba(52,211,153,0.2)',
-    '&:hover': { borderColor: 'rgba(52,211,153,0.4)' },
-    '&.Mui-focused': { borderColor: '#34d399' },
-  }
-
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
       {/* 顶部标题栏 */}
-      <Paper sx={{ p: 3, bgcolor: '#0d121f', border: '1px solid rgba(52,211,153,0.1)', mb: 3, borderRadius: 2, position: 'relative', overflow: 'hidden' }}>
-        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, height: '100%', opacity: 0.03, backgroundImage: 'linear-gradient(90deg, transparent 50%, rgba(52,211,153,0.3) 50%), linear-gradient(rgba(52,211,153,0.3) 1px, transparent 1px)', backgroundSize: '300% 100%, 50px 50px' }} />
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', position: 'relative', zIndex: 1 }}>
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Box>
-            <Typography variant="h4" sx={{ color: '#fff', fontWeight: 700 }}>
-              <span style={{ color: '#2563eb' }}>Data</span>
-              <span style={{ color: '#34d399' }}> Viewer</span>
+            <Typography variant="h4" sx={{ fontWeight: 700 }}>
+              <span style={{ color: '#22C55E' }}>Data</span>
+              <span style={{ color: '#F8FAFC' }}> Viewer</span>
             </Typography>
-            <Typography variant="subtitle2" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem' }}>
+            <Typography variant="subtitle2" color="text.secondary">
               Configuration & Analysis Viewer
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <ToggleButtonGroup value={compareMode ? 'compare' : 'single'} exclusive size="small"
               onChange={(_, v) => { if (v) { setCompareMode(v === 'compare'); setError(''); } }}
-              sx={{ '& .MuiToggleButton-root': { color: '#94a3b8', borderColor: 'rgba(148,163,184,0.25)', px: 2, py: 0.25, fontSize: '0.7rem', fontWeight: 600, textTransform: 'none', borderRadius: '6px !important', '&.Mui-selected': { color: '#34d399', bgcolor: 'rgba(52,211,153,0.15)', borderColor: 'rgba(52,211,153,0.4)' }, '&:hover': { bgcolor: 'rgba(52,211,153,0.08)' } } }}>
+              sx={toggleGroupSx}>
               <ToggleButton value="single"><Visibility sx={{ fontSize: 16, mr: 0.5 }} />Single</ToggleButton>
               <ToggleButton value="compare"><Compare sx={{ fontSize: 16, mr: 0.5 }} />Compare</ToggleButton>
             </ToggleButtonGroup>
@@ -318,22 +326,20 @@ const Viewer: React.FC = () => {
       </Paper>
 
       {/* 筛选面板 */}
-      <Paper sx={{ p: 2, bgcolor: '#0d121f', border: '1px solid rgba(52,211,153,0.1)', mb: 3, borderRadius: 2 }}>
-        {/* Location 按钮 */}
-        <Typography variant="caption" sx={{ color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', mb: 1 }}>Filter by Location</Typography>
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', mb: 1 }}>Filter by Location</Typography>
         <ToggleButtonGroup value={selectedLocation} exclusive onChange={(_, v) => { setSelectedLocation(v); setSelectedDevice(''); }} size="small"
-          sx={{ mb: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5, '& .MuiToggleButton-root': { color: '#94a3b8', borderColor: 'rgba(148,163,184,0.25)', px: 2, py: 0.25, fontSize: '0.7rem', fontWeight: 600, textTransform: 'none', borderRadius: '6px !important', '&.Mui-selected': { color: '#34d399', bgcolor: 'rgba(52,211,153,0.15)', borderColor: 'rgba(52,211,153,0.4)' }, '&:hover': { bgcolor: 'rgba(52,211,153,0.08)' } } }}>
+          sx={{ mb: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5, ...toggleGroupSx }}>
           {LOCATIONS_ROW1.map((loc) => <ToggleButton key={loc} value={loc}>{loc}</ToggleButton>)}
         </ToggleButtonGroup>
         <ToggleButtonGroup value={selectedLocation} exclusive onChange={(_, v) => { setSelectedLocation(v); setSelectedDevice(''); }} size="small"
-          sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, '& .MuiToggleButton-root': { color: '#94a3b8', borderColor: 'rgba(148,163,184,0.25)', px: 2, py: 0.25, fontSize: '0.7rem', fontWeight: 600, textTransform: 'none', borderRadius: '6px !important', '&.Mui-selected': { color: '#34d399', bgcolor: 'rgba(52,211,153,0.15)', borderColor: 'rgba(52,211,153,0.4)' }, '&:hover': { bgcolor: 'rgba(52,211,153,0.08)' } } }}>
+          sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, ...toggleGroupSx }}>
           {LOCATIONS_ROW2.map((loc) => <ToggleButton key={loc} value={loc}>{loc}</ToggleButton>)}
         </ToggleButtonGroup>
 
-        {/* 设备选择 */}
         <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
-          <Typography variant="caption" sx={{ color: '#94a3b8', whiteSpace: 'nowrap' }}>设备:</Typography>
-          <Select value={selectedDevice} onChange={(e) => setSelectedDevice(e.target.value)} displayEmpty fullWidth size="small" sx={selectSx}>
+          <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>设备:</Typography>
+          <Select value={selectedDevice} onChange={(e) => setSelectedDevice(e.target.value)} displayEmpty fullWidth size="small">
             <MenuItem value="" disabled><em>选择设备</em></MenuItem>
             {filteredDevices.map((d: any) => (
               <MenuItem key={d.name} value={d.name}>{d.name} ({d.ip})</MenuItem>
@@ -344,40 +350,40 @@ const Viewer: React.FC = () => {
 
       {/* 内容区域 */}
       {!selectedDevice && (
-        <Paper sx={{ p: 4, textAlign: 'center', bgcolor: '#0d121f', border: '1px solid rgba(52,211,153,0.1)', borderRadius: 2 }}>
-          <Storage sx={{ fontSize: 48, color: 'rgba(148,163,184,0.2)', mb: 2 }} />
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Storage sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
           <Typography color="text.secondary">选择 Location 和设备后查看配置历史</Typography>
         </Paper>
       )}
 
       {loading && (
-        <Paper sx={{ p: 4, textAlign: 'center', bgcolor: '#0d121f', borderRadius: 2 }}>
-          <CircularProgress sx={{ color: '#34d399' }} />
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <CircularProgress />
         </Paper>
       )}
 
       {selectedDevice && !loading && !compareMode && (
-        <Paper sx={{ p: 2, bgcolor: '#0d121f', border: '1px solid rgba(52,211,153,0.1)', borderRadius: 2, mb: 3 }}>
+        <Paper sx={{ p: 2, mb: 3 }}>
           <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem' }}>
             历史配置版本 ({selectedDevice})
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={4}>
-              <Select value={selectedWeek} onChange={(e) => { setSelectedWeek(e.target.value); setSelectedFile(''); }} displayEmpty fullWidth size="small" sx={selectSx}>
+              <Select value={selectedWeek} onChange={(e) => { setSelectedWeek(e.target.value); setSelectedFile(''); }} displayEmpty fullWidth size="small">
                 <MenuItem value="" disabled><em>选择周</em></MenuItem>
                 {weeks.map((w) => <MenuItem key={w} value={w}>{w}</MenuItem>)}
               </Select>
             </Grid>
             <Grid item xs={12} sm={4}>
-              <Select value={selectedFile} onChange={(e) => setSelectedFile(e.target.value)} displayEmpty fullWidth size="small" sx={selectSx} disabled={!selectedWeek}>
+              <Select value={selectedFile} onChange={(e) => setSelectedFile(e.target.value)} displayEmpty fullWidth size="small" disabled={!selectedWeek}>
                 <MenuItem value="" disabled><em>选择文件</em></MenuItem>
                 {files.map((f) => <MenuItem key={f} value={f}>{f}</MenuItem>)}
               </Select>
             </Grid>
           </Grid>
 
-          {loadingContent && <Box sx={{ textAlign: 'center', py: 3 }}><CircularProgress sx={{ color: '#34d399' }} /></Box>}
-          {error && <Alert severity="error" sx={{ mt: 2, bgcolor: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)' }}>{error}</Alert>}
+          {loadingContent && <Box sx={{ textAlign: 'center', py: 3 }}><CircularProgress /></Box>}
+          {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
 
           {!loadingContent && content && (
             <Box sx={{ mt: 2 }}>
@@ -389,72 +395,72 @@ const Viewer: React.FC = () => {
 
       {/* 对比模式 */}
       {selectedDevice && !loading && compareMode && (
-        <Paper sx={{ p: 2, bgcolor: '#0d121f', border: '1px solid rgba(52,211,153,0.1)', borderRadius: 2, mb: 3 }}>
+        <Paper sx={{ p: 2, mb: 3 }}>
           <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem' }}>
             配置对比 ({selectedDevice})
           </Typography>
           <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid item xs={6} sm={3}>
-              <Typography variant="caption" color="#22d3ee" sx={{ mb: 0.5, display: 'block' }}>较新版本 (左)</Typography>
-              <Select value={compareWeek1} onChange={(e) => setCompareWeek1(e.target.value)} displayEmpty fullWidth size="small" sx={selectSx}>
+              <Typography variant="caption" color="info.main" sx={{ mb: 0.5, display: 'block' }}>较新版本 (左)</Typography>
+              <Select value={compareWeek1} onChange={(e) => setCompareWeek1(e.target.value)} displayEmpty fullWidth size="small">
                 <MenuItem value="" disabled><em>选择周</em></MenuItem>
                 {weeks.map((w) => <MenuItem key={w} value={w}>{w}</MenuItem>)}
               </Select>
             </Grid>
             <Grid item xs={6} sm={3}>
-              <Typography variant="caption" color="#f59e0b" sx={{ mb: 0.5, display: 'block' }}>较旧版本 (右)</Typography>
-              <Select value={compareWeek2} onChange={(e) => setCompareWeek2(e.target.value)} displayEmpty fullWidth size="small" sx={selectSx}>
+              <Typography variant="caption" color="warning.main" sx={{ mb: 0.5, display: 'block' }}>较旧版本 (右)</Typography>
+              <Select value={compareWeek2} onChange={(e) => setCompareWeek2(e.target.value)} displayEmpty fullWidth size="small">
                 <MenuItem value="" disabled><em>选择周</em></MenuItem>
                 {weeks.map((w) => <MenuItem key={w} value={w}>{w}</MenuItem>)}
               </Select>
             </Grid>
             <Grid item xs={12} sm={3}>
-              <Typography variant="caption" sx={{ color: '#94a3b8', mb: 0.5, display: 'block' }}>文件</Typography>
-              <Select value={compareFile} onChange={(e) => setCompareFile(e.target.value)} displayEmpty fullWidth size="small" sx={selectSx}>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>文件</Typography>
+              <Select value={compareFile} onChange={(e) => setCompareFile(e.target.value)} displayEmpty fullWidth size="small">
                 <MenuItem value="" disabled><em>选择文件</em></MenuItem>
                 {(files.length > 0 ? files : ['running-config.raw', 'startup-config.raw', 'logs.raw', 'interface-status.raw', 'version.raw', 'interface-utilization.raw', 'validation.json', 'performance.json', 'change.json', 'summary.txt']).map((f) => <MenuItem key={f} value={f}>{f}</MenuItem>)}
               </Select>
             </Grid>
           </Grid>
 
-          {loadingContent && <Box sx={{ textAlign: 'center', py: 3 }}><CircularProgress sx={{ color: '#34d399' }} /></Box>}
+          {loadingContent && <Box sx={{ textAlign: 'center', py: 3 }}><CircularProgress /></Box>}
           {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
 
           {!loadingContent && compareContent1 && compareContent2 && (
             <Grid container spacing={2}>
               <Grid item xs={6}>
-                <Paper sx={{ p: 2, bgcolor: '#0a0f1a', border: '1px solid rgba(34,211,238,0.4)', borderRadius: 2, height: '70vh', overflow: 'auto' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, pb: 1, borderBottom: '1px solid rgba(34,211,238,0.2)' }}>
-                    <Chip label={`${compareWeek1}`} size="small" sx={{ bgcolor: 'rgba(34,211,238,0.15)', color: '#22d3ee', height: 18, fontSize: '0.6rem' }} />
+                <Paper sx={{ p: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'rgba(59,130,246,0.3)', borderRadius: 1, height: '70vh', overflow: 'auto' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+                    <Chip label={`${compareWeek1}`} size="small" sx={{ bgcolor: 'rgba(59,130,246,0.1)', color: 'info.main', height: 18, fontSize: '0.6rem' }} />
                     <Typography variant="caption" color="text.secondary">较新版本</Typography>
                   </Box>
-                  <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"Fira Code","JetBrains Mono",monospace', margin: 0, fontSize: '0.7rem', lineHeight: 1.6 }}>
+                  <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"JetBrains Mono","Fira Code",monospace', margin: 0, fontSize: '0.7rem', lineHeight: 1.6 }}>
                     {diffLines
                       ? diffLines.map((item, i) => (
                           <div
                             key={i}
                             style={{
-                              backgroundColor: item.type === 'added' ? 'rgba(16, 185, 129, 0.25)' : item.type === 'removed' ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
-                              color: item.type === 'added' ? '#10b981' : item.type === 'removed' ? '#ef4444' : '#e2e8f0',
-                              paddingLeft: 4,
-                              borderLeft: item.type === 'added' ? '3px solid #10b981' : item.type === 'removed' ? '3px solid #ef4444' : '3px solid transparent',
+                              backgroundColor: item.type === 'added' ? 'rgba(34, 197, 94, 0.2)' : item.type === 'removed' ? 'rgba(239, 68, 68, 0.12)' : 'transparent',
+                              color: item.type === 'added' ? '#22C55E' : item.type === 'removed' ? '#EF4444' : '#F8FAFC',
+                              paddingLeft: 16,
+                              borderLeft: item.type === 'added' ? '3px solid #22C55E' : item.type === 'removed' ? '3px solid #EF4444' : '3px solid transparent',
                             }}
                           >
                             {item.text}
                           </div>
                         ))
-                      : compareContent1.split('\n').map((line, i) => <div key={i} style={{ color: '#e2e8f0' }}>{line}</div>)
+                      : compareContent1.split('\n').map((line, i) => <div key={i} style={{ color: '#F8FAFC' }}>{line}</div>)
                     }
                   </pre>
                 </Paper>
               </Grid>
               <Grid item xs={6}>
-                <Paper sx={{ p: 2, bgcolor: '#0a0f1a', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 2, height: '70vh', overflow: 'auto' }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, pb: 1, borderBottom: '1px solid rgba(245,158,11,0.2)' }}>
-                    <Chip label={`${compareWeek2}`} size="small" sx={{ bgcolor: 'rgba(245,158,11,0.15)', color: '#f59e0b', height: 18, fontSize: '0.6rem' }} />
+                <Paper sx={{ p: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'rgba(245,158,11,0.2)', borderRadius: 1, height: '70vh', overflow: 'auto' }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+                    <Chip label={`${compareWeek2}`} size="small" sx={{ bgcolor: 'rgba(245,158,11,0.1)', color: 'warning.main', height: 18, fontSize: '0.6rem' }} />
                     <Typography variant="caption" color="text.secondary">较旧版本</Typography>
                   </Box>
-                  <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"Fira Code","JetBrains Mono",monospace', margin: 0, fontSize: '0.7rem', color: '#94a3b8', lineHeight: 1.6 }}>
+                  <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"JetBrains Mono","Fira Code",monospace', margin: 0, fontSize: '0.7rem', color: '#94A3B8', lineHeight: 1.6 }}>
                     {compareContent2}
                   </pre>
                 </Paper>

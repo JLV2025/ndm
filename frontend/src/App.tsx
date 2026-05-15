@@ -38,7 +38,6 @@ import { sessionManager } from './services/auth'
 
 const DRAWER_WIDTH = 260
 
-// 导航菜单项
 const navItems = [
   { label: 'Dashboard', icon: <DashboardIcon />, path: '/' },
   { label: 'Devices', icon: <Storage />, path: '/devices' },
@@ -77,18 +76,18 @@ function Layout({ children }: { children: React.ReactNode }) {
       onClose={handleProfileMenuClose}
       PaperProps={{
         sx: {
-          bgcolor: '#0d121f',
-          border: '1px solid rgba(52, 211, 153, 0.2)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4), 0 0 24px rgba(52, 211, 153, 0.1)',
+          bgcolor: 'background.paper',
+          border: '1px solid',
+          borderColor: 'divider',
         },
       }}
     >
-      <MenuItem onClick={handleProfileMenuClose} sx={{ color: '#e2e8f0' }}>
-        <AccountIcon sx={{ mr: 1, color: '#34d399' }} />
+      <MenuItem onClick={handleProfileMenuClose}>
+        <AccountIcon sx={{ mr: 1, color: 'primary.main' }} />
         Profile
       </MenuItem>
-      <Divider sx={{ my: 0.5, bgcolor: 'rgba(52, 211, 153, 0.1)' }} />
-      <MenuItem onClick={handleLogout} sx={{ color: '#ef4444' }}>
+      <Divider sx={{ my: 0.5 }} />
+      <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
         <LogoutIcon sx={{ mr: 1 }} />
         Logout
       </MenuItem>
@@ -97,37 +96,36 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* Logo 区域 */}
       <Toolbar sx={{ px: 2, minHeight: '64px !important' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box
             sx={{
-              width: 40,
-              height: 40,
-              borderRadius: 2,
-              bgcolor: 'rgba(52, 211, 153, 0.2)',
-              border: '1px solid rgba(52, 211, 153, 0.3)',
+              width: 36,
+              height: 36,
+              borderRadius: 1.5,
+              bgcolor: 'rgba(34, 197, 94, 0.12)',
+              border: '1px solid',
+              borderColor: 'rgba(34, 197, 94, 0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Storage sx={{ color: '#34d399', fontSize: 24 }} />
+            <Storage sx={{ color: 'primary.main', fontSize: 20 }} />
           </Box>
           <Box>
-            <Typography variant="subtitle2" sx={{ color: '#fff', fontWeight: 700, fontSize: '0.8rem', lineHeight: 1.2 }}>
+            <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 700, fontSize: '0.8rem', lineHeight: 1.2 }}>
               Network
             </Typography>
-            <Typography variant="caption" sx={{ color: '#34d399', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               Engineer Pro
             </Typography>
           </Box>
         </Box>
       </Toolbar>
 
-      <Divider sx={{ bgcolor: 'rgba(52, 211, 153, 0.1)' }} />
+      <Divider />
 
-      {/* 导航菜单 */}
       <List sx={{ px: 1, pt: 2, flex: 1 }}>
         {navItems.map((item) => {
           const isActive = currentPath === item.path || (item.path !== '/' && currentPath.startsWith(item.path))
@@ -137,71 +135,58 @@ function Layout({ children }: { children: React.ReactNode }) {
                 component="a"
                 href={item.path}
                 sx={{
-                  borderRadius: 2,
-                  py: 1.5,
+                  borderRadius: 1.5,
+                  py: 1.3,
                   px: 2,
-                  bgcolor: isActive ? 'rgba(52, 211, 153, 0.1)' : 'transparent',
-                  border: isActive ? '1px solid rgba(52, 211, 153, 0.3)' : '1px solid transparent',
-                  transition: 'all 200ms ease',
+                  bgcolor: isActive ? 'rgba(34, 197, 94, 0.08)' : 'transparent',
+                  border: '1px solid',
+                  borderColor: isActive ? 'rgba(34, 197, 94, 0.2)' : 'transparent',
+                  transition: 'all 150ms ease',
                   '&:hover': {
-                    bgcolor: 'rgba(52, 211, 153, 0.08)',
-                    borderColor: 'rgba(52, 211, 153, 0.2)',
+                    bgcolor: 'rgba(34, 197, 94, 0.06)',
                   },
                 }}
               >
-                <ListItemIcon sx={{ color: isActive ? '#34d399' : '#64748b', minWidth: 40 }}>
+                <ListItemIcon sx={{ color: isActive ? 'primary.main' : 'text.disabled', minWidth: 40 }}>
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText
                   primary={item.label}
                   primaryTypographyProps={{
                     sx: {
-                      color: isActive ? '#e2e8f0' : '#94a3b8',
-                      fontWeight: isActive ? 600 : 500,
+                      color: isActive ? 'text.primary' : 'text.secondary',
+                      fontWeight: isActive ? 600 : 400,
                       fontSize: '0.8rem',
-                      letterSpacing: '0.025em',
                     },
                   }}
                 />
-                {isActive && (
-                  <Box
-                    sx={{
-                      width: 4,
-                      height: 4,
-                      borderRadius: '50%',
-                      bgcolor: '#34d399',
-                      boxShadow: '0 0 8px rgba(52, 211, 153, 0.6)',
-                    }}
-                  />
-                )}
               </ListItemButton>
             </ListItem>
           )
         })}
       </List>
 
-      {/* 底部状态 */}
       <Box sx={{ p: 2 }}>
-        <Divider sx={{ bgcolor: 'rgba(52, 211, 153, 0.1)', mb: 2 }} />
+        <Divider sx={{ mb: 2 }} />
         <Box
           sx={{
             p: 2,
-            bgcolor: 'rgba(52, 211, 153, 0.05)',
-            border: '1px solid rgba(52, 211, 153, 0.1)',
-            borderRadius: 2,
+            bgcolor: 'rgba(34, 197, 94, 0.04)',
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 1.5,
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
             <Box
               sx={{
-                width: 8,
-                height: 8,
+                width: 6,
+                height: 6,
                 borderRadius: '50%',
-                bgcolor: '#10b981',
-                boxShadow: '0 0 8px #10b981',
+                bgcolor: 'success.main',
               }}
             />
-            <Typography variant="caption" sx={{ color: '#10b981', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.05em' }}>
+            <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.05em' }}>
               SYSTEM ONLINE
             </Typography>
           </Box>
@@ -214,17 +199,16 @@ function Layout({ children }: { children: React.ReactNode }) {
   )
 
   return (
-    <Box sx={{ display: 'flex', bgcolor: '#0a0f1a', minHeight: '100vh' }}>
-      {/* AppBar */}
+    <Box sx={{ display: 'flex', bgcolor: 'background.default', minHeight: '100vh' }}>
       <AppBar
         position="fixed"
         sx={{
           width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
           ml: { sm: `${DRAWER_WIDTH}px` },
-          bgcolor: '#0d121f',
-          borderBottom: '1px solid rgba(52, 211, 153, 0.1)',
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.3)',
-          backdropFilter: 'blur(12px)',
+          bgcolor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
+          boxShadow: 'none',
         }}
       >
         <Toolbar sx={{ minHeight: '64px !important' }}>
@@ -232,7 +216,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             color="inherit"
             edge="start"
             onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' }, color: '#34d399' }}
+            sx={{ mr: 2, display: { sm: 'none' }, color: 'primary.main' }}
           >
             <MenuIcon />
           </IconButton>
@@ -244,7 +228,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             sx={{
               flexGrow: 1,
               display: { sm: 'none' },
-              color: '#fff',
+              color: 'text.primary',
               fontWeight: 600,
               fontSize: '0.9rem',
             }}
@@ -254,16 +238,14 @@ function Layout({ children }: { children: React.ReactNode }) {
 
           <Box sx={{ flexGrow: 1 }} />
 
-          {/* 通知图标 */}
           <Tooltip title="Notifications">
-            <IconButton sx={{ color: '#64748b' }}>
+            <IconButton sx={{ color: 'text.disabled' }}>
               <Badge
                 variant="dot"
                 color="error"
                 sx={{
                   '& .MuiBadge-badge': {
-                    bgcolor: '#ef4444',
-                    boxShadow: '0 0 8px rgba(239, 68, 68, 0.6)',
+                    bgcolor: 'error.main',
                   },
                 }}
               >
@@ -272,17 +254,13 @@ function Layout({ children }: { children: React.ReactNode }) {
             </IconButton>
           </Tooltip>
 
-          {/* 用户头像 */}
           <Tooltip title="Account">
             <IconButton size="large" edge="end" onClick={handleProfileMenuOpen}>
               <Avatar
                 sx={{
-                  width: 36,
-                  height: 36,
-                  bgcolor: 'rgba(52, 211, 153, 0.2)',
-                  color: '#34d399',
-                  border: '1px solid rgba(52, 211, 153, 0.3)',
-                  fontSize: '0.875rem',
+                  width: 32,
+                  height: 32,
+                  fontSize: '0.8rem',
                   fontWeight: 600,
                 }}
               >
@@ -293,12 +271,10 @@ function Layout({ children }: { children: React.ReactNode }) {
         </Toolbar>
       </AppBar>
 
-      {/* 侧边栏 */}
       <Box
         component="nav"
         sx={{ width: { sm: DRAWER_WIDTH }, flexShrink: { sm: 0 } }}
       >
-        {/* 移动端临时抽屉 */}
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -309,16 +285,12 @@ function Layout({ children }: { children: React.ReactNode }) {
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: DRAWER_WIDTH,
-              bgcolor: '#0d121f',
-              borderRight: '1px solid rgba(52, 211, 153, 0.1)',
-              boxShadow: '4px 0 24px rgba(0, 0, 0, 0.3)',
             },
           }}
         >
           {drawerContent}
         </Drawer>
 
-        {/* 桌面端固定抽屉 */}
         <Drawer
           variant="permanent"
           sx={{
@@ -326,9 +298,6 @@ function Layout({ children }: { children: React.ReactNode }) {
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: DRAWER_WIDTH,
-              bgcolor: '#0d121f',
-              borderRight: '1px solid rgba(52, 211, 153, 0.1)',
-              boxShadow: '4px 0 24px rgba(0, 0, 0, 0.2)',
             },
           }}
           open
@@ -337,14 +306,13 @@ function Layout({ children }: { children: React.ReactNode }) {
         </Drawer>
       </Box>
 
-      {/* 主内容区 */}
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
           mt: '64px',
-          bgcolor: '#0a0f1a',
+          bgcolor: 'background.default',
           minHeight: 'calc(100vh - 64px)',
         }}
       >
@@ -359,7 +327,6 @@ function Layout({ children }: { children: React.ReactNode }) {
 const App: React.FC = () => {
   const [user, setUser] = useState(sessionManager.getSession())
 
-  // 每次路由变化时重新检查登录状态
   const refreshSession = () => {
     setUser(sessionManager.getSession())
   }

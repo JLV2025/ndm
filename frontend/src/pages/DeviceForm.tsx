@@ -151,68 +151,30 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
   }
 
   return (
-    <Paper
-      sx={{
-        p: 4,
-        height: '100%',
-        bgcolor: '#0d121f',
-        border: '1px solid rgba(52, 211, 153, 0.1)',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {/* 装饰性背景 */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          opacity: 0.02,
-          backgroundImage: `
-            linear-gradient(90deg, transparent 50%, rgba(52, 211, 153, 0.3) 50%),
-            linear-gradient(rgba(52, 211, 153, 0.3) 1px, transparent 1px)
-          `,
-          backgroundSize: '300% 100%, 50px 50px',
-          maskImage: 'linear-gradient(to bottom, transparent, 10%, black, transparent)',
-        }}
-      />
-
-      {/* 装饰性边框 */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 12,
-          left: 12,
-          right: 12,
-          bottom: 12,
-          border: '1px solid rgba(52, 211, 153, 0.15)',
-          pointerEvents: 'none',
-        }}
-      />
-
+    <Paper sx={{ p: 4, height: '100%' }}>
       {/* 顶部标题栏 */}
-      <Box sx={{ mb: 3, position: 'relative', zIndex: 1 }}>
+      <Box sx={{ mb: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
           <Box
             sx={{
               width: 48,
               height: 48,
-              borderRadius: 2,
-              bgcolor: 'rgba(52, 211, 153, 0.2)',
+              borderRadius: 1.5,
+              bgcolor: 'rgba(34, 197, 94, 0.1)',
+              border: '1px solid',
+              borderColor: 'rgba(34, 197, 94, 0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Storage sx={{ color: '#34d399', fontSize: 24 }} />
+            <Storage sx={{ color: 'primary.main', fontSize: 24 }} />
           </Box>
           <Box>
-            <Typography variant="h5" sx={{ color: '#fff', fontWeight: 700 }}>
+            <Typography variant="h5" sx={{ fontWeight: 700 }}>
               {deviceName ? 'Edit Device' : 'Add New Device'}
             </Typography>
-            <Typography variant="subtitle2" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: '0.75rem' }}>
+            <Typography variant="subtitle2" color="text.secondary">
               {deviceName ? 'Update Device Configuration' : 'Enter device information to add a new device'}
             </Typography>
           </Box>
@@ -220,7 +182,7 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
       </Box>
 
       {localError && (
-        <Alert severity="error" sx={{ mb: 2, bgcolor: 'rgba(239, 68, 68, 0.15)', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
           {localError}
         </Alert>
       )}
@@ -242,7 +204,7 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
                 />
               )}
             />
-            <FormHelperText sx={{ mt: 0.5, fontSize: '0.7rem', color: '#64748b' }}>
+            <FormHelperText sx={{ mt: 0.5, fontSize: '0.7rem' }}>
               <Stack spacing={0.5}>
                 <Typography variant="caption" color="text.secondary">
                   Device identifier for referencing in the system
@@ -270,7 +232,7 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
                 />
               )}
             />
-            <FormHelperText sx={{ mt: 0.5, fontSize: '0.7rem', color: '#64748b' }}>
+            <FormHelperText sx={{ mt: 0.5, fontSize: '0.7rem' }}>
               Management IP address of the device
             </FormHelperText>
           </Grid>
@@ -282,10 +244,10 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
               control={methods.control}
               render={({ field }) => (
                 <FormControl fullWidth required sx={{ mt: 0.5 }}>
-                  <InputLabel sx={{ color: '#94a3b8', fontWeight: 600 }}>Device Type</InputLabel>
-                  <Select {...field} label="Device Type" sx={{ bgcolor: '#0d121f' }}>
+                  <InputLabel>Device Type</InputLabel>
+                  <Select {...field} label="Device Type">
                     {deviceTypes.map((type) => (
-                      <MenuItem key={type.value} value={type.value} sx={{ bgcolor: '#0d121f' }}>
+                      <MenuItem key={type.value} value={type.value}>
                         {type.label}
                       </MenuItem>
                     ))}
@@ -302,11 +264,11 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
               control={methods.control}
               render={({ field }) => (
                 <FormControl fullWidth sx={{ mt: 0.5 }}>
-                  <InputLabel sx={{ color: '#94a3b8', fontWeight: 600 }}>Platform Type</InputLabel>
-                  <Select {...field} label="Platform Type" value={field.value || ''} sx={{ bgcolor: '#0d121f' }}>
-                    <MenuItem value="" sx={{ bgcolor: '#0d121f' }}>None</MenuItem>
+                  <InputLabel>Platform Type</InputLabel>
+                  <Select {...field} label="Platform Type" value={field.value || ''}>
+                    <MenuItem value="">None</MenuItem>
                     {platformTypes.map((platform) => (
-                      <MenuItem key={platform.value} value={platform.value} sx={{ bgcolor: '#0d121f' }}>
+                      <MenuItem key={platform.value} value={platform.value}>
                         {platform.label}
                       </MenuItem>
                     ))}
@@ -331,7 +293,7 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
                 />
               )}
             />
-            <FormHelperText sx={{ mt: 0.5, fontSize: '0.7rem', color: '#64748b' }}>
+            <FormHelperText sx={{ mt: 0.5, fontSize: '0.7rem' }}>
               Physical location description
             </FormHelperText>
           </Grid>
@@ -353,62 +315,34 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
                 />
               )}
             />
-            <FormHelperText sx={{ mt: 0.5, fontSize: '0.7rem', color: '#64748b' }}>
+            <FormHelperText sx={{ mt: 0.5, fontSize: '0.7rem' }}>
               Additional device information
             </FormHelperText>
           </Grid>
         </Grid>
 
       {/* 底部操作按钮 */}
-      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end', gap: 2, position: 'relative', zIndex: 1 }}>
+      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
         <Button
           variant="outlined"
           onClick={onCancel}
-          sx={{
-            textTransform: 'none',
-            fontWeight: 600,
-            letterSpacing: '0.025em',
-            border: '1px solid rgba(148, 163, 184, 0.3)',
-            color: '#94a3b8',
-            bgcolor: 'rgba(148, 163, 184, 0.05)',
-            '&:hover': {
-              bgcolor: 'rgba(148, 163, 184, 0.15)',
-              borderColor: '#94a3b8',
-            },
-          }}
+          startIcon={<RefreshIcon />}
         >
-          <RefreshIcon sx={{ mr: 1, fontSize: 18 }} />
           Cancel
         </Button>
         <Button
           variant="contained"
           type="submit"
           disabled={loading}
-          sx={{
-            fontWeight: 700,
-            letterSpacing: '0.025em',
-            textTransform: 'uppercase',
-            bgcolor: '#2563eb',
-            color: '#fff',
-            '&:hover': {
-              bgcolor: '#3b82f6',
-              boxShadow: '0 0 20px rgba(37, 99, 235, 0.4)',
-            },
-            '&:disabled': {
-              bgcolor: '#1e40af',
-            },
-          }}
+          startIcon={loading ? undefined : <SaveIcon />}
         >
           {loading ? (
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <CircularProgress size={20} sx={{ mr: 1, color: '#fff' }} />
-              <Typography variant="body2" color="inherit">Saving...</Typography>
+              <CircularProgress size={20} sx={{ mr: 1, color: 'primary.contrastText' }} />
+              Saving...
             </Box>
           ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <SaveIcon sx={{ mr: 1, fontSize: 18 }} />
-              Save Device
-            </Box>
+            'Save Device'
           )}
         </Button>
       </Box>

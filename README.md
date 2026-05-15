@@ -1,48 +1,73 @@
-# 网络交换机配置收集系统
+# NDM — 网络设备配置管理系统
 
-通过 SSH 登录 Cisco 和 Aruba 交换机，收集配置和日志，保存到本地并进行分析。
+通过 SSH 批量收集 Cisco IOS / Aruba OS 交换机配置与日志，前端可视化查看、对比、分析。
 
 ## 功能特性
 
-- **SSH 连接** - 支持 Cisco IOS 和 Aruba OS 交换机
-- **交互式密码输入** - 用户登录网页后，密码加密存储在浏览器中
-- **软件版本自动提取** - 从 `show version` 输出自动提取版本号
-- **完整收集** - running-config、startup-config、设备日志、版本信息、接口利用率
-- **混合格式** - 原始文本 + JSON 结构化数据
-- **按周归档** - 自动按 YYYY-WW 组织，按设备独立保留最近 10 个版本
-- **基础分析** - 配置验证、性能分析、变更检测、端口流量 Top1
+- **多厂商支持** — Cisco IOS、Cisco IOS XE、Aruba OS、Aruba OS CX
+- **Web 管理面板** — React + MUI OLED Dark 主题，专为网络运维设计
+- **设备管理** — 添加、编辑、删除设备，按类型 / 位置筛选
+- **配置收集** — 一键收集 running-config、startup-config、日志、接口状态、版本信息
+- **在线查看** — 代码高亮查看配置内容，支持版本对比（diff）
+- **基础分析** — 配置完整性验证、接口状态统计、变更检测
+- **按周归档** — `data/设备名/YYYY-WW/` 目录结构，自动保留最近 10 个版本
+- **单一端口部署** — 前端静态文件由 FastAPI 直接托管，一个命令启动
 
 ## 技术栈
 
-- **前端**: React + TypeScript + Material-UI
-- **后端**: FastAPI (Python) + Netmiko
-- **部署**: Docker 容器
+| 层 | 技术 |
+|----|------|
+| 前端 | React 18 + TypeScript + MUI v5 + Vite 5 |
+| 后端 | Python FastAPI + Netmiko (SSH) |
+| 主题 | OLED Dark (#020617 底色, #22C55E 强调色) |
 
-## 安装
+## 快速开始
 
-### 开发环境
+### 环境要求
+
+- Python 3.9+
+- Node.js 18+
+- 可 SSH 访问的目标网络设备
+
+### 安装
 
 ```bash
-# 后端
+# 后端依赖
 cd backend
 pip install -r requirements.txt
 
-# 前端
-cd frontend
+# 前端依赖
+cd ../frontend
 npm install
 ```
 
-### 运行
+### 开发模式
 
 ```bash
-# 后端
+# 终端 1：启动后端 (端口 8002)
 cd backend
 python main.py
 
-# 前端
+# 终端 2：启动前端 (端口 3000，自动代理 /api 到后端)
 cd frontend
 npm run dev
 ```
+
+浏览器访问 `http://localhost:3000`。
+
+### 生产部署
+
+```bash
+# 1. 构建前端
+cd frontend && npm run build
+
+# 2. 启动（前端 + 后端同一端口）
+cd .. && python backend/main.py
+```
+
+浏览器访问 `http://服务器IP:8002`，所有客户端均可使用。
+
+Windows Server 下可直接双击 `start.bat` 启动。
 
 ## 配置
 
@@ -51,80 +76,67 @@ npm run dev
 ```yaml
 devices:
   - name: "BJQD1SWI01"
-    ip: "10.210.255.1"
-    type: "aruba_osswitch"
+    ip: "10.210.255.100"
+    type: "aruba_aoscx"
     platform: "aruba_6300"
-    location: "BJQ"
-    notes: "北京 - 核心交换机 1"
+    location: "北京"
+    notes: "核心交换机"
 ```
 
-### 全局配置 (`config/settings.yaml`)
+### 全局设置 (`config/settings.yaml`)
 
 ```yaml
-data_root: "./data"
-max_versions: 10
-analysis:
-  enable_config_validation: true
-  enable_performance_analysis: true
-  enable_change_detection: true
+data_root: "./data"        # 数据存储目录
+max_versions: 10            # 每设备最大保留周数
+ssh_timeout: 30             # SSH 连接超时（秒）
 ```
 
-## 运行收集
+## 使用流程
 
-1. 编辑设备清单 `config/devices.yaml`
-2. 启动后端：`cd backend && python main.py`
-3. 启动前端：`cd frontend && npm run dev`
-4. 访问 http://localhost:3000
-5. 输入用户名和密码（用于 SSH 登录设备）
-6. 选择设备并收集配置
+1. 在 Web 面板添加设备（名称、IP、类型、位置）
+2. 进入设备详情页，点击「收集配置」
+3. 输入设备的 SSH 用户名和密码
+4. 系统自动通过 SSH 登录设备，收集配置和日志
+5. 在 Viewer 页面查看、对比历史版本
 
-## 数据目录结构
+## 数据目录
 
 ```
 data/
-└── {device-name}/
+└── {设备名称}/
     └── YYYY-WW/
-        ├── running-config.raw      # 原始运行配置
-        ├── startup-config.raw      # 原始启动配置
-        ├── logs.raw                # 原始日志
-        ├── interface-status.raw    # 接口状态
-        ├── interface-utilization.raw # 接口利用率
-        ├── version.raw             # 版本信息
-        ├── validation.json         # 配置验证结果
-        ├── performance.json        # 性能分析结果
-        ├── change.json             # 变更检测结果
-        └── summary.txt             # 易读摘要报告
+        ├── running-config.raw
+        ├── startup-config.raw
+        ├── logs.raw
+        ├── interface-status.raw
+        ├── version.raw
+        ├── validation.json
+        ├── performance.json
+        ├── change.json
+        └── summary.txt
 ```
-
-## 分析功能
-
-### 配置验证
-- 检查配置完整性（是否有截断）
-- 检查关键配置项（VLAN、接口、路由、认证）
-- 检测语法错误
-
-### 性能分析
-- 接口状态摘要（up/down 统计）
-- 错误计数统计（err-disabled、discards、dropped）
-- 带宽信息提取
-
-### 变更检测
-- 对比本周 vs 上周配置
-- 高亮显示新增/删除的配置行
-- 生成变更报告
-
-### 端口流量 Top1
-- Aruba: `show interface utilization`
-- Cisco: `show interface summary`
-
-## Docker 部署
-
-```bash
-docker-compose up -d
-```
-
-访问 http://localhost:8000
 
 ## API 文档
 
-后端启动后访问 http://localhost:8000/docs 查看 Swagger 文档。
+后端运行后访问 `http://localhost:8002/docs` 查看 Swagger 文档。
+
+## 项目结构
+
+```
+ndm/
+├── backend/                 # FastAPI 后端
+│   ├── main.py              # 入口，含前端静态托管及 SPA 回退
+│   ├── api/                 # 路由：设备、收集、数据、认证
+│   ├── services/            # 业务逻辑：SSH 收集、设备管理
+│   ├── analyzers/           # 分析：配置验证、性能、变更检测
+│   ├── collectors/          # Netmiko SSH 连接层
+│   └── utils/               # 存储、密码管理、配置加载
+├── frontend/                # React 前端
+│   └── src/
+│       ├── pages/           # 页面：Dashboard, DeviceList, DeviceDetail, Viewer, Login
+│       ├── services/        # API 调用 + 认证管理
+│       └── components/      # 通用组件
+├── config/                  # YAML 配置文件
+├── data/                    # 收集数据（按周归档）
+└── start.bat                # Windows 一键启动脚本
+```
