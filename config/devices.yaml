@@ -1,80 +1,37 @@
 devices:
-- name: BJQD1SWI01
-  ip: 10.210.255.100  # example
-  type: aruba_aoscx
-  platform: aruba_6300
+- ip: 10.210.255.1
+  last_synced: 05/16/2026 09:27
   location: BJQ
-  notes: 北京 - 核心交换机 1
-  serial_number: ''
-- name: switch-access-01
-  ip: 192.168.1.100  # example
-  type: cisco_ios
-  platform: null
-  location: 办公区
-  notes: 接入交换机
-  serial_number: null
-  version: null
-- name: switch-core-02
-  ip: 192.168.1.200  # example
-  type: cisco_ios
-  platform: null
-  location: null
-  notes: null
-  serial_number: null
-  version: null
-- name: switch-temp-delete
-  ip: 192.168.1.110  # example
-  type: cisco_ios
-  platform: null
-  location: null
-  notes: null
-  serial_number: null
-  version: null
-- name: switch-full-01
-  ip: 192.168.2.100  # example
-  type: cisco_ios
-  platform: cisco_ios
-  location: 数据中心 A 区
-  notes: 完整字段测试设备
-  serial_number: SN123456789
-  version: 15.2(4)M
-- name: switch-minimal-01
-  ip: 192.168.2.200  # example
-  type: aruba_osswitch
-  platform: null
-  location: null
-  notes: null
-  serial_number: null
-  version: null
-- name: switch-temp-delete-01
-  ip: 192.168.3.100  # example
-  type: cisco_ios
-  platform: null
-  location: null
-  notes: null
-  serial_number: null
-  version: null
-- name: switch-test-count-01
-  ip: 192.168.4.100  # example
-  type: cisco_ios
-  platform: null
-  location: null
-  notes: null
-  serial_number: null
-  version: null
-- name: test-device-new
-  ip: 10.1.1.100  # example
-  type: cisco_ios
-  platform: null
-  location: null
-  notes: null
-  serial_number: null
-  version: null
-- name: SZXD1SWI01
-  ip: 10.24.255.100  # example
-  type: cisco_ios
-  platform: cisco_ios
+  name: BJQD1SWI01
+  notes: Core Switch
+  platform: aruba_aoscx
+  serial_number: SG30LMQ17K, SG30LMQ108
+  type: aruba_aoscx
+  version: FL.10.10.1070
+- ip: 10.210.255.2
+  last_synced: 05/16/2026 09:28
+  location: BJQ
+  name: BJQD1SWI02
+  notes: Access Switch
+  platform: aruba_aoscx
+  serial_number: VN30LBB4G9
+  type: aruba_aoscx
+  version: ML.10.11.1021
+- ip: 10.210.255.51
+  last_synced: 05/15/2026 21:07
+  location: BJQ
+  name: BJQD2QIS01
+  notes: Access Switch - Office
+  platform: aruba_aoscx
+  serial_number: VN30LBB4G4
+  type: aruba_aoscx
+  version: ML.10.11.1021
+- ip: 10.24.255.10
+  last_synced: 05/15/2026 21:35
   location: SZX
-  notes: SZX Core Switch
-  serial_number: null
-  version: null
+  name: SZXD1SWI01
+  notes: Core Switch
+  platform: cisco_ios
+  serial_number: FCW2129B3TR, FCW2126A49Z, FCW2126A49U
+  type: cisco_ios
+  version: 15.2(4)

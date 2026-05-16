@@ -8,6 +8,7 @@ import yaml
 import subprocess
 import platform
 import socket
+from utils.settings_loader import get_devices_config_path
 
 router = APIRouter()
 
@@ -53,7 +54,7 @@ async def ping_device(device_name: str) -> Dict:
                         "ip": ip,
                         "detail": f"设备可达（Ping 被拦截，但 TCP 22 端口开放）"
                     }
-            except Exception:
+            except (socket.timeout, ConnectionRefusedError, OSError):
                 pass
 
         return {
@@ -64,17 +65,8 @@ async def ping_device(device_name: str) -> Dict:
     except subprocess.TimeoutExpired:
         return {"reachable": False, "ip": ip, "detail": f"Ping 超时（{ip}）"}
     except Exception as e:
-        return {"reachable": False, "ip": ip, "detail": f"Ping 异常: {str(e)}"}
-
-
-def get_devices_config_path() -> str:
-    """获取设备配置文件的绝对路径"""
-    config_path = os.environ.get("DEVICES_CONFIG_PATH")
-    if config_path:
-        return config_path
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(os.path.dirname(current_dir))
-    return os.path.join(project_root, "config", "devices.yaml")
+        print(f"Ping 异常 ({ip}): {e}")
+        return {"reachable": False, "ip": ip, "detail": "Ping 检测失败"}
 
 
 def find_device_by_name(device_name: str) -> dict | None:
@@ -88,60 +80,6 @@ def find_device_by_name(device_name: str) -> dict | None:
         if device.get("name") == device_name:
             return device
     return None
-
-
-@router.post("/{device_name}")
-async def collect_config(
-    device_name: str,
-    username: str = Form(...),
-    password: str = Form(...)
-) -> Dict:
-    """收集设备配置 — SSH 登录交换机获取 running-config 等数据"""
-    # 查找设备信息
-    device = find_device_by_name(device_name)
-    if not device:
-        raise HTTPException(status_code=404, detail=f"设备 '{device_name}' 不存在")
-
-    print(f"[收集] 设备={device_name}, 用户名={username}, 密码长度={len(password) if password else 0}")
-    if password:
-        pwd_preview = password[:4] + "..." if len(password) > 4 else password
-        print(f"[收集] 密码预览：{pwd_preview}")
-
-    try:
-        from services.collector_service import collect_device
-        from utils.settings_loader import load_settings
-        from models.devices import Device
-
-        # 将 dict 转为 Device 对象
-        device_obj = Device(
-            name=device.get("name", device_name),
-            ip=device.get("ip", ""),
-            device_type=device.get("type", "cisco_ios"),
-        )
-        device_obj.platform = device.get("platform") or ""
-        device_obj.location = device.get("location") or ""
-        device_obj.notes = device.get("notes") or ""
-        device_obj.serial_number = device.get("serial_number") or ""
-        device_obj.username = device.get("username") or ""
-
-        settings = load_settings()
-        result = collect_device(device_obj, username, password, settings)
-
-        if result["status"] == "failed":
-            return {
-                "success": False,
-                "result": result,
-                "detail": result.get("error", "收集失败")
-            }
-
-        return {
-            "success": True,
-            "result": result
-        }
-    except ImportError as e:
-        raise HTTPException(status_code=500, detail=f"模块导入失败: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"收集过程出错: {str(e)}")
 
 
 @router.post("/batch")
@@ -190,3 +128,55 @@ async def collect_batch(request: BatchCollectRequest) -> Dict:
         "failed_count": sum(1 for r in results if r.get("status") != "success"),
         "results": results
     }
+
+
+@router.post("/{device_name}")
+async def collect_config(
+    device_name: str,
+    username: str = Form(...),
+    password: str = Form(...)
+) -> Dict:
+    """收集设备配置 — SSH 登录交换机获取 running-config 等数据"""
+    # 查找设备信息
+    device = find_device_by_name(device_name)
+    if not device:
+        raise HTTPException(status_code=404, detail=f"设备 '{device_name}' 不存在")
+
+    print(f"[收集] 设备={device_name}, 用户名={username}")
+
+    try:
+        from services.collector_service import collect_device
+        from utils.settings_loader import load_settings
+        from models.devices import Device
+
+        # 将 dict 转为 Device 对象
+        device_obj = Device(
+            name=device.get("name", device_name),
+            ip=device.get("ip", ""),
+            device_type=device.get("type", "cisco_ios"),
+        )
+        device_obj.platform = device.get("platform") or ""
+        device_obj.location = device.get("location") or ""
+        device_obj.notes = device.get("notes") or ""
+        device_obj.serial_number = device.get("serial_number") or ""
+        device_obj.username = device.get("username") or ""
+
+        settings = load_settings()
+        result = collect_device(device_obj, username, password, settings)
+
+        if result["status"] == "failed":
+            return {
+                "success": False,
+                "result": result,
+                "detail": result.get("error", "收集失败")
+            }
+
+        return {
+            "success": True,
+            "result": result
+        }
+    except ImportError as e:
+        raise HTTPException(status_code=500, detail=f"模块导入失败: {str(e)}")
+    except Exception as e:
+        print(f"收集过程出错: {e}")
+        raise HTTPException(status_code=500, detail="收集过程出错，请稍后重试")

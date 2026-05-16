@@ -18,15 +18,17 @@ class DeviceConnection:
         self.hostname = device_config.get("name", "unknown")
         self._last_error = ""
         self.configured_device_type = device_config.get("type", "cisco_ios")
+        self.configured_platform = device_config.get("platform", "")
         self.actual_device_type = ""
         self.type_mismatch = False
 
     @staticmethod
     def _resolve_device_type(device_type: str, platform: str) -> str:
-        """根据 platform 字段修正设备类型（Aruba CX 系列需使用 aruba_aoscx 驱动）"""
-        if device_type == "aruba_osswitch" and platform:
-            if any(x in platform.lower() for x in ["6300", "6400", "8320", "8xxx", "cx", "aoscx"]):
-                return "aruba_aoscx"
+        """设备类型直接使用配置值（仅支持 cisco_ios / aruba_aoscx）
+
+        platform 不影响 Netmiko 驱动选择，仅用于命令分发。
+        cisco_ios_xe 使用 cisco_ios 驱动（CLI 兼容）。
+        """
         return device_type
 
     def _do_connect(self, username: str, password: str, device_type: str) -> bool:
@@ -36,7 +38,7 @@ class DeviceConnection:
         timeout = self.config.get("timeout", 30)
 
         print(f"[连接] 设备={self.hostname}, IP={host}:{port}")
-        print(f"[连接] 驱动={device_type}, 用户名={username}, 密码={'*' * len(password) if password else '(空)'}")
+        print(f"[连接] 驱动={device_type}, 用户名={username}")
 
         try:
             self.connection = ConnectHandler(
@@ -93,7 +95,7 @@ class DeviceConnection:
         rt = read_timeout if read_timeout is not None else 120.0
 
         device_type = self.actual_device_type or self.configured_device_type
-        use_timing = device_type in ("aruba_aoscx", "aruba_osswitch")
+        use_timing = device_type == "aruba_aoscx"
 
         if use_timing:
             print(f"[调试] send_command_timing ({device_type}): {command}")
@@ -109,8 +111,8 @@ class DeviceConnection:
                     command,
                     read_timeout=rt,
                 )
-            except Exception:
-                # 回退到 send_command_timing
+            except OSError:
+                # 回退到 send_command_timing（Netmiko 某些驱动不支持 send_command）
                 print(f"[调试] send_command 失败，回退到 send_command_timing")
                 return self.connection.send_command_timing(
                     command_string=command,
@@ -122,6 +124,10 @@ class DeviceConnection:
         """当前实际设备类型"""
         return self.actual_device_type or self.configured_device_type
 
+    def _platform(self) -> str:
+        """当前设备平台类型"""
+        return self.configured_platform or ""
+
     def collect_config(self) -> Tuple[str, str]:
         running = self.send_command("show running-config")
         startup = self.send_command("show startup-config")
@@ -129,7 +135,12 @@ class DeviceConnection:
 
     def collect_logs(self) -> str:
         dt = self._device_type()
-        if dt == "cisco_ios":
+        platform = self._platform()
+        if dt == "cisco_ios" and platform == "cisco_ios_xe":
+            # Cisco IOS XE 支持管道过滤，先启用 terminal shell
+            self.send_command("terminal shell", read_timeout=10)
+            return self.send_command("show logging | tail 100", read_timeout=30)
+        elif dt == "cisco_ios":
             return self.send_command("show logging", read_timeout=30)
         elif dt == "aruba_aoscx":
             return self.send_command("show logging -r -n 100", read_timeout=30)
@@ -161,13 +172,25 @@ class DeviceConnection:
         """收集 VSF 堆叠信息（Aruba CX VSF 成员序列号）"""
         return self.send_command("show vsf detail", read_timeout=15)
 
+    def collect_switch_detail(self) -> str:
+        """收集 Cisco 堆叠信息
+
+        Cisco IOS XE: show switch
+        Cisco IOS:    show switch detail
+        """
+        platform = self._platform()
+        if platform == "cisco_ios_xe":
+            return self.send_command("show switch", read_timeout=30)
+        else:
+            return self.send_command("show switch detail", read_timeout=30)
+
     def disconnect(self) -> None:
         """断开连接"""
         if self.connection is not None:
             try:
                 self.connection.disconnect()
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"断开连接失败: {e}")
             self.connection = None
 
     def __enter__(self):

@@ -20,4 +20,4 @@ root.render(
   </React.StrictMode>
 )
 
-console.log('前端应用已启动')
+

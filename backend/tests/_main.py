@@ -16,7 +16,6 @@ if parent_dir not in sys.path:
     sys.path.insert(0, parent_dir)
 
 from services.collector_service import collect_device
-from services.device_manager import DeviceManager
 from utils.settings_loader import load_settings, load_devices
 from utils.password import password_manager
 from api import devices_router, collector_router, data_router, auth_router
@@ -37,7 +36,6 @@ app.add_middleware(
 )
 
 # 初始化
-device_manager = DeviceManager()
 settings = load_settings()
 data_root = settings.get("data_root", "./data")
 

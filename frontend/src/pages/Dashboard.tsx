@@ -27,9 +27,16 @@ import {
 } from '@mui/icons-material'
 import { deviceApi, collectorApi } from '../services/api'
 import { sessionManager } from '../services/auth'
+import { useI18n } from '../i18n'
+import type { Device } from '../types'
+
+const DevicesLink = React.forwardRef<HTMLAnchorElement, React.HTMLProps<HTMLAnchorElement>>(
+  (props, ref) => <a href="/devices" ref={ref} {...props} />
+)
 
 const Dashboard: React.FC = () => {
-  const [devices, setDevices] = useState<any[]>([])
+  const { t } = useI18n()
+  const [devices, setDevices] = useState<Device[]>([])
   const [stats, setStats] = useState({
     total: 0,
     cisco: 0,
@@ -45,7 +52,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     if (devices.length > 0) {
       const cisco = devices.filter((d) => d.type === 'cisco_ios').length
-      const aruba = devices.filter((d) => d.type === 'aruba_osswitch').length
+      const aruba = devices.filter((d) => d.type === 'aruba_aoscx').length
       setStats({
         total: devices.length,
         cisco,
@@ -59,7 +66,7 @@ const Dashboard: React.FC = () => {
     try {
       const response = await deviceApi.list()
       setDevices(response.data)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('加载设备失败:', error)
     }
   }
@@ -70,7 +77,7 @@ const Dashboard: React.FC = () => {
   const [pinging, setPinging] = useState(false)
   const pingControllerRef = useRef<AbortController | null>(null)
 
-  const sortedDevices = [...devices].sort((a: any, b: any) => {
+  const sortedDevices = [...devices].sort((a: Device, b: Device) => {
     const va = (a[sortField] || '').toString().toLowerCase()
     const vb = (b[sortField] || '').toString().toLowerCase()
     return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
@@ -92,7 +99,7 @@ const Dashboard: React.FC = () => {
     color: sortField === field ? 'primary.main' : 'text.secondary',
   } as const)
 
-  const pingAllDevices = async (deviceList: any[], signal?: AbortSignal) => {
+  const pingAllDevices = async (deviceList: Device[], signal?: AbortSignal) => {
     deviceList.forEach(async (device) => {
       try {
         const result = await collectorApi.ping(device.name, signal)
@@ -100,8 +107,8 @@ const Dashboard: React.FC = () => {
           ...prev,
           [device.name]: result.reachable ? 'online' : 'offline',
         }))
-      } catch (e: any) {
-        if (e?.name === 'AbortError') return
+      } catch (e: unknown) {
+        if (e instanceof DOMException && e.name === 'AbortError') return
         setDeviceStatus((prev) => ({ ...prev, [device.name]: 'offline' }))
       }
     })
@@ -116,6 +123,7 @@ const Dashboard: React.FC = () => {
 
     pingControllerRef.current = new AbortController()
     await pingAllDevices(devices, pingControllerRef.current.signal)
+    await loadDevices()
     setPinging(false)
   }
 
@@ -126,8 +134,8 @@ const Dashboard: React.FC = () => {
   }, [])
 
   const getTypeLabel = (type: string) => {
-    if (type === 'cisco_ios') return 'Cisco IOS'
-    if (type === 'aruba_osswitch') return 'Aruba OS'
+    if (type === 'cisco_ios') return t('dashboard.cisco')
+    if (type === 'aruba_aoscx') return t('dashboard.aruba')
     return type
   }
 
@@ -138,7 +146,7 @@ const Dashboard: React.FC = () => {
       bg: 'rgba(59, 130, 246, 0.12)',
       border: 'rgba(59, 130, 246, 0.25)',
     }
-    if (type === 'aruba_osswitch') return {
+    if (type === 'aruba_aoscx') return {
       primary: '#06B6D4',
       bg: 'rgba(6, 182, 212, 0.12)',
       border: 'rgba(6, 182, 212, 0.25)',
@@ -158,20 +166,18 @@ const Dashboard: React.FC = () => {
             <Server sx={{ fontSize: 64, color: 'text.disabled' }} />
           </Box>
           <Typography variant="h4" sx={{ color: 'text.primary', fontWeight: 700, mb: 1 }}>
-            网络配置管理
+            {t('app.title')}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Cisco & Aruba 设备配置收集系统
+            {t('app.subtitle')}
           </Typography>
           <Button
             variant="contained"
-            component={React.forwardRef<HTMLAnchorElement, React.HTMLProps<HTMLAnchorElement>>(
-              (props, ref) => <a href="/devices" ref={ref} {...props} />
-            )}
+            component={DevicesLink}
             sx={{ px: 4, py: 1.5, fontWeight: 700 }}
           >
             <Server sx={{ mr: 1, fontSize: 18 }} />
-            添加设备
+            {t('dashboard.addDevice')}
           </Button>
         </Paper>
       </Container>
@@ -190,7 +196,7 @@ const Dashboard: React.FC = () => {
               <span style={{ color: '#4ADE80' }}>Pro</span>
             </Typography>
             <Typography variant="subtitle2" color="text.secondary">
-              实时监控 | 配置收集 | 性能分析
+              {t('app.tagline')}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -218,13 +224,13 @@ const Dashboard: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    Total Devices
+                    {t('dashboard.totalDevices')}
                   </Typography>
                   <Typography variant="h3" sx={{ color: '#3B82F6', fontWeight: 700, mt: 0.5 }}>
                     {stats.total}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    Active Monitored
+                    {t('dashboard.activeMonitored')}
                   </Typography>
                 </Box>
                 <Box
@@ -251,13 +257,13 @@ const Dashboard: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    Cisco IOS
+                    {t('dashboard.cisco')}
                   </Typography>
                   <Typography variant="h3" sx={{ color: '#06B6D4', fontWeight: 700, mt: 0.5 }}>
                     {stats.cisco}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    Routers / Switches
+                    {t('dashboard.ciscoDesc')}
                   </Typography>
                 </Box>
                 <Box
@@ -284,13 +290,13 @@ const Dashboard: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    Aruba OS
+                    {t('dashboard.aruba')}
                   </Typography>
                   <Typography variant="h3" sx={{ color: '#10B981', fontWeight: 700, mt: 0.5 }}>
                     {stats.aruba}
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    Switches
+                    {t('dashboard.arubaDesc')}
                   </Typography>
                 </Box>
                 <Box
@@ -316,11 +322,11 @@ const Dashboard: React.FC = () => {
       <Paper sx={{ p: 2 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Device Inventory
+            {t('dashboard.deviceInventory')}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Typography variant="caption" color="text.secondary">
-              Total: {devices.length}
+              {t('dashboard.total')}: {devices.length}
             </Typography>
             <Button
               variant="outlined"
@@ -330,14 +336,14 @@ const Dashboard: React.FC = () => {
               disabled={pinging}
               sx={{ fontWeight: 600, fontSize: '0.75rem' }}
             >
-              {pinging ? '刷新中...' : '刷新状态'}
+              {pinging ? t('dashboard.refreshing') : t('dashboard.refreshStatus')}
             </Button>
           </Box>
         </Box>
 
         {pinging && (
           <Alert severity="info" sx={{ mb: 2, fontSize: '0.75rem' }}>
-            正在 Ping 所有设备，请暂时不要切换页面...
+            {t('dashboard.pinging')}
             <LinearProgress sx={{ mt: 1 }} />
           </Alert>
         )}
@@ -346,7 +352,7 @@ const Dashboard: React.FC = () => {
           <Box sx={{ textAlign: 'center', py: 4 }}>
             <Server sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
             <Typography variant="body1" color="text.secondary">
-              No devices configured
+              {t('dashboard.noDevices')}
             </Typography>
             <Button
               variant="contained"
@@ -355,7 +361,7 @@ const Dashboard: React.FC = () => {
               )}
               sx={{ mt: 2 }}
             >
-              Add Device
+              {t('dashboard.addDevice')}
             </Button>
           </Box>
         ) : (
@@ -364,18 +370,18 @@ const Dashboard: React.FC = () => {
               <TableHead>
                 <TableRow>
                   <TableCell onClick={() => handleSort('name')} sx={sortStyle('name')}>
-                    Device {sortField === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                    {t('dashboard.device')} {sortField === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
                   </TableCell>
                   <TableCell onClick={() => handleSort('type')} sx={sortStyle('type')}>
-                    Type {sortField === 'type' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                    {t('dashboard.type')} {sortField === 'type' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
                   </TableCell>
-                  <TableCell>IP Address</TableCell>
+                  <TableCell>{t('dashboard.ipAddress')}</TableCell>
                   <TableCell onClick={() => handleSort('location')} sx={sortStyle('location')}>
-                    Location {sortField === 'location' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                    {t('dashboard.location')} {sortField === 'location' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
                   </TableCell>
-                  <TableCell>Serial Number</TableCell>
-                  <TableCell>Version</TableCell>
-                  <TableCell>Status</TableCell>
+                  <TableCell>{t('dashboard.serialNumber')}</TableCell>
+                  <TableCell>{t('dashboard.version')}</TableCell>
+                  <TableCell>{t('dashboard.status')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -433,12 +439,12 @@ const Dashboard: React.FC = () => {
                             return <Chip label="-" size="small" sx={{ bgcolor: 'rgba(148,163,184,0.08)', color: 'text.secondary', height: 20, fontSize: '0.65rem' }} />
                           }
                           if (status === 'checking') {
-                            return <Chip label="Checking..." size="small" sx={{ bgcolor: 'rgba(245,158,11,0.12)', color: 'warning.main', height: 20, fontSize: '0.65rem' }} />
+                            return <Chip label={t('dashboard.checking')} size="small" sx={{ bgcolor: 'rgba(245,158,11,0.12)', color: 'warning.main', height: 20, fontSize: '0.65rem' }} />
                           }
                           if (status === 'online') {
-                            return <Chip label="Online" size="small" sx={{ bgcolor: 'rgba(34,197,94,0.12)', color: 'success.main', height: 20, fontSize: '0.65rem' }} />
+                            return <Chip label={t('dashboard.online')} size="small" sx={{ bgcolor: 'rgba(34,197,94,0.12)', color: 'success.main', height: 20, fontSize: '0.65rem' }} />
                           }
-                          return <Chip label="Offline" size="small" sx={{ bgcolor: 'rgba(239,68,68,0.12)', color: 'error.main', height: 20, fontSize: '0.65rem' }} />
+                          return <Chip label={t('dashboard.offline')} size="small" sx={{ bgcolor: 'rgba(239,68,68,0.12)', color: 'error.main', height: 20, fontSize: '0.65rem' }} />
                         })()}
                       </TableCell>
                     </TableRow>

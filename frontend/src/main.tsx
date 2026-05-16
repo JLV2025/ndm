@@ -4,6 +4,16 @@ import { BrowserRouter } from 'react-router-dom'
 import { ThemeProvider, createTheme } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import App from './App'
+import { I18nProvider } from './i18n'
+
+// 字体自托管（打包进 dist，无需外网）
+import '@fontsource/ibm-plex-sans/400.css'
+import '@fontsource/ibm-plex-sans/500.css'
+import '@fontsource/ibm-plex-sans/600.css'
+import '@fontsource/ibm-plex-sans/700.css'
+import '@fontsource/jetbrains-mono/400.css'
+import '@fontsource/jetbrains-mono/500.css'
+import '@fontsource/jetbrains-mono/600.css'
 
 // OLED Dark — 专业网络工具面板主题
 const theme = createTheme({
@@ -334,7 +344,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <CssBaseline />
     <BrowserRouter>
       <ThemeProvider theme={theme}>
-        <App />
+        <I18nProvider>
+          <App />
+        </I18nProvider>
       </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>

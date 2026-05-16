@@ -1,15 +1,20 @@
 """设备清单管理工具"""
 
 import os
+import sys
 import yaml
 from typing import List, Dict, Optional
+
+# 确保 backend 目录在 sys.path 中
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.settings_loader import get_devices_config_path
 
 
 class DeviceManager:
     """设备清单管理器"""
 
     def __init__(self, config_path: str = None):
-        self.config_path = config_path or os.path.join(os.path.dirname(__file__), "..", "config", "devices.yaml")
+        self.config_path = config_path or get_devices_config_path()
         self.devices: List[Dict] = []
         self._load()
 
@@ -29,7 +34,7 @@ class DeviceManager:
             yaml.dump({
                 "devices": self.devices,
                 "format_version": "1.0"
-            }, f, allow_unicode=True, default_flow_style=False)
+            }, f, allow_unicode=True, default_flow_style=False, Dumper=yaml.SafeDumper)
 
     def list_devices(self):
         """列出所有设备"""
@@ -71,12 +76,12 @@ class DeviceManager:
         # 获取设备类型
         print("\n选择设备类型:")
         print("1. cisco_ios    - Cisco IOS/IOS-XE")
-        print("2. aruba_osswitch - Aruba OS Switch")
+        print("2. aruba_aoscx - Aruba OS Switch")
         choice = input("请选择 (1 或 2): ").strip()
         if choice == "1":
             device_type = "cisco_ios"
         elif choice == "2":
-            device_type = "aruba_osswitch"
+            device_type = "aruba_aoscx"
         else:
             device_type = "cisco_ios"
 
@@ -125,12 +130,12 @@ class DeviceManager:
 
         print("\n选择设备类型:")
         print("1. cisco_ios    - Cisco IOS/IOS-XE")
-        print("2. aruba_osswitch - Aruba OS Switch")
+        print("2. aruba_aoscx - Aruba OS Switch")
         type_choice = input(f"当前：{device.get('type')} | 请选择 (1 或 2，留空保持当前): ").strip()
         if type_choice == "1":
             device_type = "cisco_ios"
         elif type_choice == "2":
-            device_type = "aruba_osswitch"
+            device_type = "aruba_aoscx"
         else:
             device_type = device.get("type")
 

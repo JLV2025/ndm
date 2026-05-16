@@ -4,6 +4,8 @@ import os
 import json
 import re
 import sys
+import traceback
+import yaml
 from typing import Dict, List
 from datetime import datetime
 
@@ -14,26 +16,25 @@ def _get_device_connection():
 from analyzers.config_validator import ConfigValidator
 from analyzers.performance import PerformanceAnalyzer
 from analyzers.change_detector import ChangeDetector
-from utils.settings_loader import load_settings, load_devices
+from utils.settings_loader import load_settings, load_devices, get_devices_config_path
 from utils.password import password_manager
 from storage.file_manager import (
-    get_week_dir, create_device_dir, keep_latest_versions_per_device
+    get_week_dir, keep_latest_versions_per_device
 )
 from models.devices import Device
 
 
 def _is_aruba_device(device_type: str) -> bool:
     """判断是否为 Aruba 设备（兼容多种类型名）"""
-    return device_type in ("aruba_osswitch", "aruba_aoscx")
+    return device_type == "aruba_aoscx"
 
 
 def _strip_ansi(text: str) -> str:
     """去除 ANSI 转义码和终端控制字符"""
-    import re as _re
     # ANSI escape sequences: ESC[...m, ESC[...K, etc.
-    text = _re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', text)
+    text = re.sub(r'\x1b\[[0-9;]*[a-zA-Z]', '', text)
     # 其他控制字符 (保留 \r\n)
-    text = _re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', text)
+    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', text)
     return text
 
 
@@ -44,7 +45,7 @@ def extract_software_version(version_output: str, device_type: str) -> str:
 
     if device_type == "cisco_ios":
         for line in lines:
-            match = re.search(r'Version\s+(\d+\.\d+(?:\(\d+\))?)', line, re.IGNORECASE)
+            match = re.search(r'Version\s+(\d+\.\d+(?:\.\d+)?(?:\(\d+\))?)', line, re.IGNORECASE)
             if match:
                 return match.group(1)
     elif _is_aruba_device(device_type):
@@ -77,19 +78,26 @@ def extract_software_version(version_output: str, device_type: str) -> str:
     return "未知"
 
 
-def extract_serial_number(version_output: str, device_type: str, system_output: str = "", vsf_output: str = "") -> str:
+def extract_serial_number(version_output: str, device_type: str, system_output: str = "", vsf_output: str = "", platform: str = "") -> str:
     """从 show version、show system、show vsf 输出中提取设备序列号（VSF/Stack 返回逗号拼接）"""
     version_output = _strip_ansi(version_output)
     lines = version_output.splitlines()
     serials = []
 
     if device_type == "cisco_ios":
-        # 堆叠交换机只取 System serial number，避免混入主板/电源/子板序列号
-        for line in lines:
-            match = re.search(r'System\s+[Ss]erial\s*[Nn]umber[:\s]+([A-Za-z0-9]+)', line)
-            if match and match.group(1) not in serials:
-                serials.append(match.group(1))
-        # 回退：独立交换机可能只有 Processor board ID
+        if platform == "cisco_ios_xe":
+            # Cisco IOS XE：序列号来自 Motherboard Serial Number（每个堆叠成员一个）
+            for line in lines:
+                match = re.search(r'Motherboard\s+[Ss]erial\s*[Nn]umber[:\s]+([A-Za-z0-9]+)', line)
+                if match and match.group(1) not in serials:
+                    serials.append(match.group(1))
+        # 回退：System Serial Number（非 XE 或 XE 无 Motherboard SN 时）
+        if not serials:
+            for line in lines:
+                match = re.search(r'System\s+[Ss]erial\s*[Nn]umber[:\s]+([A-Za-z0-9]+)', line)
+                if match and match.group(1) not in serials:
+                    serials.append(match.group(1))
+        # 回退：Processor board ID（独立交换机）
         if not serials:
             for line in lines:
                 match = re.search(r'Processor\s+board\s+ID[:\s]+([A-Za-z0-9]+)', line, re.IGNORECASE)
@@ -186,7 +194,12 @@ def collect_device(
         print(f"[收集进度] running-config: {len(running_config)} 行, startup-config: {len(startup_config)} 行")
 
         # Cisco IOS 日志无法限制条目数，全量收集太慢，跳过
-        if effective_type == "cisco_ios":
+        # Cisco IOS XE 支持管道过滤（show logging | tail 100），可以收集
+        if device_platform == "cisco_ios_xe":
+            print(f"[收集进度] Cisco IOS XE 收集日志...")
+            logs = _safe_collect(conn.collect_logs, "logs")
+            print(f"[收集进度] logs: {len(logs)} 行")
+        elif effective_type == "cisco_ios":
             print(f"[收集进度] Cisco IOS 跳过日志收集（全量 show logging 太慢）")
             logs = ""
         else:
@@ -204,15 +217,19 @@ def collect_device(
         # Aruba CX show version 不含序列号，需要 show system + show vsf
         system_info = ""
         vsf_info = ""
+        switch_info = ""
         if _is_aruba_device(effective_type):
             print(f"[收集进度] 获取 system info (序列号)...")
             system_info = _safe_collect(conn.collect_system_info, "show system")
             print(f"[收集进度] 获取 vsf info (堆叠成员)...")
             vsf_info = _safe_collect(conn.collect_vsf_info, "show vsf")
+        elif effective_type == "cisco_ios":
+            print(f"[收集进度] 获取 switch detail (堆叠信息)...")
+            switch_info = _safe_collect(conn.collect_switch_detail, "show switch detail")
 
         # 提取版本号和序列号（使用实际设备类型，传入 system + vsf 信息）
         software_version = extract_software_version(version_info, effective_type)
-        serial_number = extract_serial_number(version_info, effective_type, system_info, vsf_info)
+        serial_number = extract_serial_number(version_info, effective_type, system_info, vsf_info, platform=device_platform)
 
         # 查找基准配置路径
         baseline_path = os.path.join(data_root, device_name, "latest", "running-config.raw")
@@ -231,7 +248,7 @@ def collect_device(
             validation_results = "{}"
 
         if settings.get("analysis", {}).get("enable_performance_analysis", True):
-            perf_analyzer = PerformanceAnalyzer(interface_status, running_config)
+            perf_analyzer = PerformanceAnalyzer(interface_status, running_config, effective_type)
             performance_results = json.dumps(perf_analyzer.analyze(), indent=2, ensure_ascii=False)
         else:
             performance_results = "{}"
@@ -248,7 +265,7 @@ def collect_device(
             device_name, device_ip, device_type,
             week, data_root, settings,
             running_config, startup_config, logs,
-            interface_status, version_info, interface_utilization, system_info, vsf_info,
+            interface_status, version_info, interface_utilization, system_info, vsf_info, switch_info,
             validation_results, performance_results, change_results,
             software_version, serial_number
         )
@@ -267,7 +284,6 @@ def collect_device(
 
     except Exception as e:
         print(f"[收集异常] {e}")
-        import traceback
         traceback.print_exc()
         return {
             "name": device_name,
@@ -284,7 +300,7 @@ def _save_data(
     week: str, data_dir: str, settings: Dict,
     running_config: str, startup_config: str,
     logs_raw: str, interface_status: str, version_info: str,
-    interface_utilization: str, system_info: str, vsf_info: str,
+    interface_utilization: str, system_info: str, vsf_info: str, switch_info: str,
     validation_results: str, performance_results: str, change_results: str,
     software_version: str, serial_number: str
 ) -> None:
@@ -323,6 +339,10 @@ def _save_data(
         with open(os.path.join(week_dir, "vsf.raw"), "w", encoding="utf-8") as f:
             f.write(vsf_info)
 
+    if switch_info:
+        with open(os.path.join(week_dir, "switch-detail.raw"), "w", encoding="utf-8") as f:
+            f.write(switch_info)
+
     # 保存分析结果
     with open(os.path.join(week_dir, "validation.json"), "w", encoding="utf-8") as f:
         f.write(validation_results)
@@ -346,9 +366,11 @@ def _save_data(
     max_versions = settings.get("max_versions", 10)
     keep_latest_versions_per_device(data_dir, device_name, max_versions)
 
-    # 更新设备清单中的序列号和最后同步时间
+    # 更新设备清单中的序列号、版本和最后同步时间
     if serial_number and serial_number != "未知":
         _update_device_serial(device_name, serial_number)
+    if software_version and software_version != "未知":
+        _update_device_field(device_name, "version", software_version)
     _update_device_field(device_name, "last_synced", datetime.now().strftime("%m/%d/%Y %H:%M"))
 
 
@@ -360,7 +382,6 @@ def _generate_summary(
     week_dir: str
 ) -> None:
     """生成 summary.txt"""
-    from datetime import datetime
 
     lines = []
     lines.append("=" * 70)
@@ -398,7 +419,6 @@ def _generate_summary(
     lines.append("-" * 70)
     if validation_results:
         try:
-            import json
             validation = json.loads(validation_results)
             summary = validation.get('summary', {})
             lines.append(f"错误数：{summary.get('errors', 0)}")
@@ -410,7 +430,7 @@ def _generate_summary(
                 lines.append("⚠️ 发现配置警告")
             else:
                 lines.append("✓ 配置验证通过")
-        except:
+        except (json.JSONDecodeError, KeyError, ValueError, TypeError):
             lines.append("验证数据解析失败")
     lines.append("")
 
@@ -431,7 +451,7 @@ def _generate_summary(
                 lines.append("错误统计:")
                 for err, count in list(errors.items())[:5]:
                     lines.append(f"  {err}: {count}")
-        except:
+        except (json.JSONDecodeError, KeyError, ValueError, TypeError):
             lines.append("性能数据解析失败")
     lines.append("")
 
@@ -450,7 +470,7 @@ def _generate_summary(
                 lines.append(f"有变更：{change.get('has_changes', False)}")
             else:
                 lines.append("没有基准配置，无法检测变更")
-        except:
+        except (json.JSONDecodeError, KeyError, ValueError, TypeError):
             lines.append("变更数据解析失败")
     lines.append("")
 
@@ -463,15 +483,9 @@ def _generate_summary(
         f.write("\n".join(lines))
 
 
-def _get_devices_yaml_path() -> str:
-    """获取 devices.yaml 的绝对路径"""
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "config", "devices.yaml")
-
-
 def _update_device_field(device_name: str, field: str, value: any) -> None:
     """更新 devices.yaml 中某个设备的字段"""
-    import yaml
-    config_path = _get_devices_yaml_path()
+    config_path = get_devices_config_path()
     if not os.path.exists(config_path):
         return
     with open(config_path, "r", encoding="utf-8") as f:
@@ -480,7 +494,7 @@ def _update_device_field(device_name: str, field: str, value: any) -> None:
         if device.get("name") == device_name:
             device[field] = value
     with open(config_path, "w", encoding="utf-8") as f:
-        yaml.dump(data, f, allow_unicode=True, default_flow_style=False)
+        yaml.dump(data, f, allow_unicode=True, default_flow_style=False, Dumper=yaml.SafeDumper)
 
 
 def _update_device_serial(device_name: str, serial_number: str) -> None:

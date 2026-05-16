@@ -7,7 +7,7 @@ import json
 import difflib
 import re
 from typing import Dict, List, Any
-from datetime import datetime
+from analyzers._helpers import extract_device_name, get_iso_timestamp
 
 
 class ChangeDetector:
@@ -94,7 +94,7 @@ class ChangeDetector:
         """没有基准线的报告"""
         return {
             "device": "unknown",
-            "timestamp": datetime.now().isoformat(),
+            "timestamp": get_iso_timestamp(),
             "baseline": None,
             "changes": [],
             "summary": {
@@ -121,17 +121,10 @@ class ChangeDetector:
                 summary["removed"] += len(change.get("lines", []))
 
         return {
-            "device": self._get_device_name(),
-            "timestamp": datetime.now().isoformat(),
+            "device": extract_device_name(self.new_config),
+            "timestamp": get_iso_timestamp(),
             "changes": self.changes,
             "summary": summary,
             "has_changes": summary["added"] > 0 or summary["removed"] > 0
         }
 
-    def _get_device_name(self) -> str:
-        """从配置中提取设备名"""
-        for pattern in [r"^Router\s+(.+)", r"^Switch\s+(.+)"]:
-            match = re.search(pattern, self.new_config, re.MULTILINE)
-            if match:
-                return match.group(1)
-        return "unknown"

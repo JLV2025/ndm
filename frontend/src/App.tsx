@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import ErrorBoundary from './components/ErrorBoundary'
 import {
   Box,
   CssBaseline,
@@ -19,6 +20,7 @@ import {
   ListItemIcon,
   ListItemText,
   Tooltip,
+  Button,
 } from '@mui/material'
 import {
   Menu as MenuIcon,
@@ -35,37 +37,38 @@ import DeviceDetail from './pages/DeviceDetail'
 import Dashboard from './pages/Dashboard'
 import Viewer from './pages/Viewer'
 import { sessionManager } from './services/auth'
+import { useI18n } from './i18n'
 
 const DRAWER_WIDTH = 260
 
-const navItems = [
-  { label: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-  { label: 'Devices', icon: <Storage />, path: '/devices' },
-  { label: 'Viewer', icon: <Terminal />, path: '/viewer' },
-]
-
 function Layout({ children }: { children: React.ReactNode }) {
+  const { t, lang, setLang } = useI18n()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const user = sessionManager.getSession()
-  const currentPath = window.location.pathname
+  const location = useLocation()
+  const currentPath = location.pathname
 
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen)
-  }
+  const navItems = [
+    { label: t('nav.dashboard'), icon: <DashboardIcon />, path: '/' },
+    { label: t('nav.devices'), icon: <Storage />, path: '/devices' },
+    { label: t('nav.viewer'), icon: <Terminal />, path: '/viewer' },
+  ]
+
+  const handleDrawerToggle = () => setMobileOpen(!mobileOpen)
 
   const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget)
   }
 
-  const handleProfileMenuClose = () => {
-    setAnchorEl(null)
-  }
+  const handleProfileMenuClose = () => setAnchorEl(null)
 
   const handleLogout = () => {
     sessionManager.logout()
     handleProfileMenuClose()
   }
+
+  const toggleLang = () => setLang(lang === 'zh' ? 'en' : 'zh')
 
   const renderMenu = (
     <Menu
@@ -84,12 +87,12 @@ function Layout({ children }: { children: React.ReactNode }) {
     >
       <MenuItem onClick={handleProfileMenuClose}>
         <AccountIcon sx={{ mr: 1, color: 'primary.main' }} />
-        Profile
+        {t('dashboard.status', 'Profile')}
       </MenuItem>
       <Divider sx={{ my: 0.5 }} />
       <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
         <LogoutIcon sx={{ mr: 1 }} />
-        Logout
+        {t('login.logout')}
       </MenuItem>
     </Menu>
   )
@@ -115,7 +118,7 @@ function Layout({ children }: { children: React.ReactNode }) {
           </Box>
           <Box>
             <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 700, fontSize: '0.8rem', lineHeight: 1.2 }}>
-              Network
+              NDM
             </Typography>
             <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
               Engineer Pro
@@ -167,6 +170,31 @@ function Layout({ children }: { children: React.ReactNode }) {
       </List>
 
       <Box sx={{ p: 2 }}>
+        {/* 语言切换 */}
+        <Button
+          onClick={toggleLang}
+          size="small"
+          sx={{
+            mb: 1.5,
+            width: '100%',
+            borderRadius: 1.5,
+            border: '1px solid',
+            borderColor: 'divider',
+            color: 'text.secondary',
+            fontSize: '0.7rem',
+            fontWeight: 600,
+            letterSpacing: '0.03em',
+            textTransform: 'none',
+            '&:hover': {
+              borderColor: 'primary.main',
+              color: 'primary.main',
+              bgcolor: 'rgba(34, 197, 94, 0.04)',
+            },
+          }}
+        >
+          {t('lang.switch')}
+        </Button>
+
         <Divider sx={{ mb: 2 }} />
         <Box
           sx={{
@@ -187,11 +215,11 @@ function Layout({ children }: { children: React.ReactNode }) {
               }}
             />
             <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.05em' }}>
-              SYSTEM ONLINE
+              {t('app.systemOnline')}
             </Typography>
           </Box>
           <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-            {user?.username || 'Not logged in'}
+            {user?.username || t('login.subtitle')}
           </Typography>
         </Box>
       </Box>
@@ -233,10 +261,32 @@ function Layout({ children }: { children: React.ReactNode }) {
               fontSize: '0.9rem',
             }}
           >
-            Network Engineer Pro
+            NDM Engineer Pro
           </Typography>
 
           <Box sx={{ flexGrow: 1 }} />
+
+          <Tooltip title={t('lang.label')}>
+            <Button
+              onClick={toggleLang}
+              size="small"
+              sx={{
+                mr: 1,
+                minWidth: 40,
+                borderRadius: 1,
+                border: '1px solid',
+                borderColor: 'divider',
+                color: 'text.secondary',
+                fontSize: '0.65rem',
+                fontWeight: 700,
+                letterSpacing: '0.03em',
+                textTransform: 'none',
+                '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
+              }}
+            >
+              {t('lang.switch')}
+            </Button>
+          </Tooltip>
 
           <Tooltip title="Notifications">
             <IconButton sx={{ color: 'text.disabled' }}>
@@ -334,6 +384,7 @@ const App: React.FC = () => {
   return (
     <>
       <CssBaseline />
+      <ErrorBoundary>
       <Routes>
         <Route path="/login" element={<Login onLogin={refreshSession} />} />
         <Route path="/" element={user ? <Layout><Dashboard /></Layout> : <Navigate to="/login" />} />
@@ -342,6 +393,7 @@ const App: React.FC = () => {
         <Route path="/dashboard" element={user ? <Layout><Dashboard /></Layout> : <Navigate to="/login" />} />
         <Route path="/viewer" element={user ? <Layout><Viewer /></Layout> : <Navigate to="/login" />} />
       </Routes>
+      </ErrorBoundary>
     </>
   )
 }

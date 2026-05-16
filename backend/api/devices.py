@@ -7,6 +7,7 @@ import os
 import yaml
 import json
 import re
+from utils.settings_loader import get_devices_config_path
 
 router = APIRouter()
 
@@ -54,9 +55,9 @@ class DeviceCreate(BaseModel):
     @field_validator('type', 'platform')
     @classmethod
     def validate_type(cls, v: str) -> str:
-        """验证设备类型"""
-        if v not in ['cisco_ios', 'aruba_osswitch']:
-            raise ValueError('不支持的设备类型，仅支持 cisco_ios 和 aruba_osswitch')
+        """验证设备类型（platform 可为空）"""
+        if v and v not in ['cisco_ios', 'cisco_ios_xe', 'aruba_aoscx']:
+            raise ValueError('不支持的设备类型，仅支持 cisco_ios / cisco_ios_xe / aruba_aoscx')
         return v
 
 
@@ -101,10 +102,10 @@ class DeviceUpdate(BaseModel):
 
     @field_validator('type', 'platform')
     @classmethod
-    def validate_type(cls, v: Optional[str]) -> Optional[str]:
-        """验证设备类型"""
-        if v is not None and v not in ['cisco_ios', 'aruba_osswitch']:
-            raise ValueError('不支持的设备类型，仅支持 cisco_ios 和 aruba_osswitch')
+    def validate_type_update(cls, v: Optional[str]) -> Optional[str]:
+        """验证设备类型（platform 可为空）"""
+        if v and v not in ['cisco_ios', 'cisco_ios_xe', 'aruba_aoscx']:
+            raise ValueError('不支持的设备类型，仅支持 cisco_ios / cisco_ios_xe / aruba_aoscx')
         return v
 
 
@@ -117,24 +118,12 @@ class DeviceResponse(BaseModel):
     notes: Optional[str] = None
     serial_number: Optional[str] = None
     version: Optional[str] = None
+    last_synced: Optional[str] = None
     username: Optional[str] = None
 
 
 class DevicesConfig(BaseModel):
     devices: List[dict]
-
-
-def get_devices_config_path():
-    """获取设备配置文件的绝对路径"""
-    # 支持环境变量覆盖配置路径（用于测试）
-    config_path = os.environ.get("DEVICES_CONFIG_PATH")
-    if config_path:
-        return config_path
-
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(os.path.dirname(current_dir))
-    config_path = os.path.join(project_root, "config", "devices.yaml")
-    return config_path
 
 
 def load_devices_from_yaml() -> List[dict]:
@@ -212,7 +201,7 @@ def delete_device_from_yaml(device_name: str) -> bool:
 
         if len(data["devices"]) < original_len:
             with open(config_path, "w", encoding="utf-8") as f:
-                yaml.dump(data, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+                yaml.dump(data, f, allow_unicode=True, default_flow_style=False, sort_keys=False, Dumper=yaml.SafeDumper)
             return True
         return False
     except Exception as e:

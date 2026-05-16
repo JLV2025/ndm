@@ -32,15 +32,15 @@ import {
 } from '@mui/icons-material'
 import { deviceApi, collectorApi } from '../services/api'
 import { sessionManager } from '../services/auth'
-
+import type { Device, CollectResult } from '../types'
 const DeviceDetail: React.FC = () => {
   const { name } = useParams()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
-  const [device, setDevice] = useState<any>(null)
+  const [device, setDevice] = useState<Device | null>(null)
   const [collecting, setCollecting] = useState(false)
-  const [collectResult, setCollectResult] = useState<any>(null)
-  const [formData, setFormData] = useState<any>({})
+  const [collectResult, setCollectResult] = useState<CollectResult | null>(null)
+  const [formData, setFormData] = useState<Partial<Device>>({})
   const [showCollect, setShowCollect] = useState(false)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -66,8 +66,8 @@ const DeviceDetail: React.FC = () => {
       const response = await deviceApi.get(name)
       setDevice(response.data)
       setFormData(response.data)
-    } catch (error: any) {
-      console.error('加载设备详情失败:', error)
+    } catch (error: unknown) {
+      console.error('加载设备详情失败:', error instanceof Error ? error.message : error)
     } finally {
       setLoading(false)
     }
@@ -78,8 +78,8 @@ const DeviceDetail: React.FC = () => {
       try {
         await deviceApi.delete(name!)
         navigate('/devices')
-      } catch (error: any) {
-        alert(error.message || '删除失败')
+      } catch (error: unknown) {
+        alert(error instanceof Error ? error.message : '删除失败')
       }
     }
   }
@@ -89,7 +89,7 @@ const DeviceDetail: React.FC = () => {
     if (!session) {
       setCollectError('请先登录或重新登录')
       alert('请先登录')
-      window.location.href = '/login'
+      navigate('/login')
       return
     }
 
@@ -101,8 +101,8 @@ const DeviceDetail: React.FC = () => {
       setCollectResult(data.result)
       setCollectError('')
       setShowCollect(true)
-    } catch (error: any) {
-      const errorMsg = error.message || '收集失败'
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : '收集失败'
       setCollectError(errorMsg)
       alert(errorMsg)
     } finally {
@@ -118,7 +118,7 @@ const DeviceDetail: React.FC = () => {
         border: 'rgba(59, 130, 246, 0.25)',
       }
     }
-    if (type === 'aruba_osswitch') {
+    if (type === 'aruba_aoscx') {
       return {
         primary: '#06B6D4',
         bg: 'rgba(6, 182, 212, 0.1)',
@@ -223,7 +223,7 @@ const DeviceDetail: React.FC = () => {
         </Typography>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6}>
-            <InfoCard icon={<NetworkWifi sx={{ color: 'primary.main', fontSize: 18 }} />} label="IP Address" value={formData.ip} />
+            <InfoCard icon={<NetworkWifi sx={{ color: 'primary.main', fontSize: 18 }} />} label="IP Address" value={formData.ip || 'N/A'} />
           </Grid>
           <Grid item xs={12} sm={6}>
             <InfoCard icon={<Description sx={{ color: 'primary.main', fontSize: 18 }} />} label="Platform" value={formData.platform || 'N/A'} />

@@ -46,17 +46,20 @@ export type DeviceFormValues = z.infer<typeof deviceSchema>
 
 // 设备类型选项
 const deviceTypes = [
+  { value: 'aruba_aoscx', label: 'Aruba CX' },
   { value: 'cisco_ios', label: 'Cisco IOS' },
-  { value: 'aruba_osswitch', label: 'Aruba OS Switch' },
 ]
 
-// 平台类型选项
-const platformTypes = [
-  { value: 'cisco_ios_xe', label: 'Cisco IOS XE' },
-  { value: 'cisco_ios', label: 'Cisco IOS' },
-  { value: 'aruba_osswitch', label: 'Aruba OS Switch' },
-  { value: 'aruba_os', label: 'Aruba OS' },
-]
+// 平台类型选项（按设备类型分组，动态联动）
+const platformOptionsMap: Record<string, { value: string; label: string }[]> = {
+  aruba_aoscx: [
+    { value: 'aruba_aoscx', label: 'Aruba AOS-CX' },
+  ],
+  cisco_ios: [
+    { value: 'cisco_ios', label: 'Cisco IOS' },
+    { value: 'cisco_ios_xe', label: 'Cisco IOS XE' },
+  ],
+}
 
 interface DeviceFormProps {
   deviceName?: string | null
@@ -81,12 +84,19 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
     defaultValues: {
       name: '',
       ip: '',
-      type: 'cisco_ios',
+      type: 'aruba_aoscx',
       platform: null,
       location: null,
       notes: null,
     },
   })
+
+  const selectedType = methods.watch('type')
+
+  // 设备类型变更时，重置平台选项
+  useEffect(() => {
+    methods.setValue('platform', null)
+  }, [selectedType])
 
   // 加载设备数据
   useEffect(() => {
@@ -111,28 +121,35 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
         location: data.location || '',
         notes: data.notes || '',
       })
-    } catch (error: any) {
-      console.error('Load device details failed:', error)
-      setLocalError(error.message || 'Failed to load device information')
+    } catch (error: unknown) {
+      console.error('Load device details failed:', error instanceof Error ? error.message : error)
+      setLocalError(error instanceof Error ? error.message : 'Failed to load device information')
     }
   }
 
   // 提交处理
   const handleSubmit: SubmitHandler<DeviceFormValues> = async (data) => {
     try {
+      // 将 null 转为 undefined 以匹配 Device 接口类型
+      const payload = {
+        ...data,
+        platform: data.platform ?? undefined,
+        location: data.location ?? undefined,
+        notes: data.notes ?? undefined,
+      }
       // 使用 deviceData 判断是编辑还是添加
       if (deviceData && deviceData.name) {
         // Update existing device
-        await deviceApi.update(deviceData.name, data)
+        await deviceApi.update(deviceData.name, payload)
       } else {
         // Add new device
-        await deviceApi.add(data)
+        await deviceApi.add(payload)
       }
       onSubmit(data)
       handleReset()
-    } catch (error: any) {
-      console.error('Save device failed:', error)
-      setLocalError(error.message || 'Failed to save device information')
+    } catch (error: unknown) {
+      console.error('Save device failed:', error instanceof Error ? error.message : error)
+      setLocalError(error instanceof Error ? error.message : 'Failed to save device information')
     }
   }
 
@@ -141,7 +158,7 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
     methods.reset({
       name: '',
       ip: '',
-      type: 'cisco_ios',
+      type: 'aruba_aoscx',
       platform: '',
       location: '',
       notes: '',
@@ -267,7 +284,7 @@ const DeviceForm: React.FC<DeviceFormProps> = ({
                   <InputLabel>Platform Type</InputLabel>
                   <Select {...field} label="Platform Type" value={field.value || ''}>
                     <MenuItem value="">None</MenuItem>
-                    {platformTypes.map((platform) => (
+                    {(platformOptionsMap[selectedType] || []).map((platform) => (
                       <MenuItem key={platform.value} value={platform.value}>
                         {platform.label}
                       </MenuItem>

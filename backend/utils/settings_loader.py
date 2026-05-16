@@ -24,3 +24,11 @@ def load_devices(config_path: str = None) -> Dict:
         config_path = str(_CONFIG_DIR / "devices.yaml")
     with open(config_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def get_devices_config_path() -> str:
+    """获取 devices.yaml 的绝对路径，支持环境变量覆盖"""
+    config_path = os.environ.get("DEVICES_CONFIG_PATH")
+    if config_path:
+        return config_path
+    return str(_CONFIG_DIR / "devices.yaml")

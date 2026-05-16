@@ -1,4 +1,5 @@
 import axios from 'axios'
+import type { Device } from '../types'
 
 const API_BASE = '/api'
 
@@ -14,10 +15,10 @@ const apiJson = axios.create({
 export const deviceApi = {
   list: () => apiJson.get('/devices'),
   get: (name: string) => apiJson.get(`/devices/${name}`),
-  add: (device: any) => apiJson.post('/devices', device),
+  add: (device: Device) => apiJson.post('/devices', device),
   delete: (name: string) => apiJson.delete(`/devices/${name}`),
-  update: (name: string, updates: any) => apiJson.patch(`/devices/${name}`, updates),
-  search: (params: any) => apiJson.get('/devices/search', { params }),
+  update: (name: string, updates: Partial<Device>) => apiJson.patch(`/devices/${name}`, updates),
+  search: (params: Record<string, string>) => apiJson.get('/devices/search', { params }),
 }
 
 // 配置收集 — 使用 FormData 发送凭据（需时较长，可能 10-30 秒）

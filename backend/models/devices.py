@@ -81,7 +81,7 @@ class DeviceList:
             yaml.dump({
                 "devices": [d.to_dict() for d in self.devices],
                 "format_version": "1.0"
-            }, f, allow_unicode=True, default_flow_style=False)
+            }, f, allow_unicode=True, default_flow_style=False, Dumper=yaml.SafeDumper)
 
     def list_devices(self) -> List[Device]:
         """返回设备列表"""

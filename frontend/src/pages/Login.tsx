@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import {
   Box,
   TextField,
@@ -12,11 +12,13 @@ import {
   IconButton,
   Fade,
 } from '@mui/material'
-import { Lock, Key, Shield, Terminal, Memory, NetworkWifi } from '@mui/icons-material'
+import { Lock, Key, Shield, Terminal, Memory, NetworkWifi, Visibility, VisibilityOff } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { sessionManager } from '../services/auth'
+import { useI18n } from '../i18n'
 
 const Login = ({ onLogin }: { onLogin?: () => void }) => {
+  const { t } = useI18n()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -27,7 +29,7 @@ const Login = ({ onLogin }: { onLogin?: () => void }) => {
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault()
     if (!username || !password) {
-      setError('请输入账号和密码')
+      setError(t('login.usernameRequired') + ' / ' + t('login.passwordRequired'))
       return
     }
     setLoading(true)
@@ -104,7 +106,7 @@ const Login = ({ onLogin }: { onLogin?: () => void }) => {
               color: 'primary.main',
             }}
           >
-            Cisco & Aruba Configuration Management
+            {t('app.subtitle')}
           </Typography>
         </Box>
 
@@ -120,7 +122,7 @@ const Login = ({ onLogin }: { onLogin?: () => void }) => {
               }}
             />
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-              SYSTEM ONLINE
+              {t('app.systemOnline')}
             </Typography>
           </Box>
         </Box>
@@ -129,7 +131,7 @@ const Login = ({ onLogin }: { onLogin?: () => void }) => {
         {error && (
           <Fade in={true}>
             <Alert severity="error" sx={{ mb: 2 }}>
-              <AlertTitle>Authentication Failed</AlertTitle>
+              <AlertTitle>{t('login.failed')}</AlertTitle>
               {error}
             </Alert>
           </Fade>
@@ -142,7 +144,7 @@ const Login = ({ onLogin }: { onLogin?: () => void }) => {
             required
             fullWidth
             id="username"
-            label="管理员账号"
+            label={t('login.username')}
             name="username"
             autoComplete="username"
             autoFocus
@@ -160,7 +162,7 @@ const Login = ({ onLogin }: { onLogin?: () => void }) => {
             required
             fullWidth
             name="password"
-            label="密码"
+            label={t('login.password')}
             type={showPassword ? 'text' : 'password'}
             id="password"
             autoComplete="current-password"
@@ -176,7 +178,7 @@ const Login = ({ onLogin }: { onLogin?: () => void }) => {
                     onClick={() => setShowPassword(!showPassword)}
                     sx={{ p: 0, color: 'text.disabled' }}
                   >
-                    {showPassword ? 'Hide' : 'Show'}
+                    {showPassword ? <VisibilityOff sx={{ fontSize: 18 }} /> : <Visibility sx={{ fontSize: 18 }} />}
                   </IconButton>
                 </InputAdornment>
               ),
@@ -201,12 +203,12 @@ const Login = ({ onLogin }: { onLogin?: () => void }) => {
             {loading ? (
               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 <CircularProgress size={20} sx={{ mr: 1, color: 'primary.contrastText' }} />
-                <Typography variant="body2" color="inherit">Authenticating...</Typography>
+                <Typography variant="body2" color="inherit">{t('login.loggingIn')}</Typography>
               </Box>
             ) : (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Terminal sx={{ fontSize: 18 }} />
-                <span>Connect to Network</span>
+                <span>{t('login.login')}</span>
               </Box>
             )}
           </Button>

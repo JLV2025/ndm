@@ -6,6 +6,7 @@
 """
 
 import json
+from analyzers._helpers import extract_device_name, get_iso_timestamp
 import re
 from typing import Dict, List, Any
 
@@ -110,8 +111,8 @@ class ConfigValidator:
     def _build_report(self) -> Dict[str, Any]:
         """构建验证报告"""
         return {
-            "device": self._get_device_name(),
-            "timestamp": self._get_timestamp(),
+            "device": extract_device_name(self.config_text),
+            "timestamp": get_iso_timestamp(),
             "config_lines": len(self.config_lines),
             "summary": {
                 "errors": len(self.errors),
@@ -123,16 +124,3 @@ class ConfigValidator:
             "info": self.info
         }
 
-    def _get_device_name(self) -> str:
-        """从配置中提取设备名"""
-        # 匹配 "Router <name>" (Cisco) 或 "Switch <name>" (Aruba)
-        for pattern in [r"^Router\s+(.+)", r"^Switch\s+(.+)"]:
-            match = re.search(pattern, self.config_text, re.MULTILINE)
-            if match:
-                return match.group(1)
-        return "unknown"
-
-    def _get_timestamp(self) -> str:
-        """获取时间戳"""
-        from datetime import datetime
-        return datetime.now().isoformat()

@@ -18,7 +18,6 @@ FRONTEND_DIST = os.path.join(BASE_DIR, "frontend", "dist")
 sys.path.insert(0, _BACKEND_DIR)
 
 from services.collector_service import collect_device
-from services.device_manager import DeviceManager
 from utils.settings_loader import load_settings, load_devices
 from utils.password import password_manager
 from api import devices_router, collector_router, data_router, auth_router
@@ -32,14 +31,13 @@ app = FastAPI(
 # CORS 配置
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # 初始化
-device_manager = DeviceManager()
 settings = load_settings()
 data_root = settings.get("data_root", "./data")
 
