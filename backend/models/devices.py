@@ -5,7 +5,7 @@ import yaml
 import hashlib
 import base64
 import json
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from pathlib import Path
 from datetime import datetime
 from enum import Enum
@@ -24,6 +24,7 @@ class Device:
         self.serial_number = ""
         self.username = ""
         self.password = ""
+        self.uplink_ports: List[str] = []
 
     def to_dict(self) -> Dict:
         """转换为字典"""
@@ -36,7 +37,8 @@ class Device:
             "notes": self.notes,
             "serial_number": self.serial_number,
             "username": self.username,
-            "password": self.password
+            "password": self.password,
+            "uplink_ports": self.uplink_ports
         }
 
     @classmethod
@@ -53,6 +55,7 @@ class Device:
         device.serial_number = data.get("serial_number", "")
         device.username = data.get("username", "")
         device.password = data.get("password", "")
+        device.uplink_ports = data.get("uplink_ports", []) or []
         return device
 
 

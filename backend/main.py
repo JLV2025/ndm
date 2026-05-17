@@ -20,7 +20,7 @@ sys.path.insert(0, _BACKEND_DIR)
 from services.collector_service import collect_device
 from utils.settings_loader import load_settings, load_devices
 from utils.password import password_manager
-from api import devices_router, collector_router, data_router, auth_router
+from api import devices_router, collector_router, data_router, auth_router, stats_router
 
 app = FastAPI(
     title="网络交换机配置收集系统",
@@ -50,6 +50,7 @@ app.include_router(devices_router, prefix="/api/devices", tags=["devices"])
 app.include_router(collector_router, prefix="/api/collect", tags=["collection"])
 app.include_router(data_router, prefix="/api/data", tags=["data"])
 app.include_router(auth_router, prefix="/api/auth", tags=["authentication"])
+app.include_router(stats_router, prefix="/api/stats", tags=["stats"])
 
 # ============ 健康检查 ============
 

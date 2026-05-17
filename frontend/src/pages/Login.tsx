@@ -39,7 +39,7 @@ const Login = ({ onLogin }: { onLogin?: () => void }) => {
       onLogin?.()
       navigate('/')
     } catch (err) {
-      setError(err instanceof Error ? err.message : '保存凭据失败')
+      setError(err instanceof Error ? err.message : t('login.failed'))
     } finally {
       setLoading(false)
     }

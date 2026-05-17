@@ -21,6 +21,7 @@ class DeviceCreate(BaseModel):
     notes: Optional[str] = None
     serial_number: Optional[str] = None
     version: Optional[str] = None
+    uplink_ports: Optional[List[str]] = None
 
     @field_validator('name')
     @classmethod
@@ -70,6 +71,7 @@ class DeviceUpdate(BaseModel):
     notes: Optional[str] = None
     serial_number: Optional[str] = None
     version: Optional[str] = None
+    uplink_ports: Optional[List[str]] = None
 
     @field_validator('name')
     @classmethod
@@ -120,6 +122,7 @@ class DeviceResponse(BaseModel):
     version: Optional[str] = None
     last_synced: Optional[str] = None
     username: Optional[str] = None
+    uplink_ports: Optional[list] = None
 
 
 class DevicesConfig(BaseModel):

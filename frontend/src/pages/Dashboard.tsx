@@ -21,9 +21,10 @@ import {
 } from '@mui/material'
 import {
   Storage as Server,
-  CloudDownload,
-  Security as SecurityIcon,
   Wifi as WifiIcon,
+  CheckCircle,
+  PauseCircle,
+  ErrorOutline,
 } from '@mui/icons-material'
 import { deviceApi, collectorApi } from '../services/api'
 import { sessionManager } from '../services/auth'
@@ -34,6 +35,22 @@ const DevicesLink = React.forwardRef<HTMLAnchorElement, React.HTMLProps<HTMLAnch
   (props, ref) => <a href="/devices" ref={ref} {...props} />
 )
 
+interface DashboardStats {
+  device_count: number
+  device_types: Record<string, number>
+  port_stats: { total: number; up: number; down: number; disabled: number }
+  error_ports: number
+  top_traffic: Array<{
+    device: string
+    port: string
+    total_mbps: number
+    rx_mbps: number
+    tx_mbps: number
+  }>
+  last_collection: string
+  locations: string[]
+}
+
 const Dashboard: React.FC = () => {
   const { t } = useI18n()
   const [devices, setDevices] = useState<Device[]>([])
@@ -43,10 +60,12 @@ const Dashboard: React.FC = () => {
     aruba: 0,
     collectedToday: 0,
   })
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null)
   const user = sessionManager.getSession()
 
   useEffect(() => {
     loadDevices()
+    loadDashboardStats()
   }, [])
 
   useEffect(() => {
@@ -68,6 +87,17 @@ const Dashboard: React.FC = () => {
       setDevices(response.data)
     } catch (error: unknown) {
       console.error('加载设备失败:', error)
+    }
+  }
+
+  const loadDashboardStats = async () => {
+    try {
+      const response = await fetch('/api/stats/overview')
+      if (response.ok) {
+        setDashboardStats(await response.json())
+      }
+    } catch (error: unknown) {
+      console.error('加载统计失败:', error)
     }
   }
 
@@ -139,7 +169,6 @@ const Dashboard: React.FC = () => {
     return type
   }
 
-  // 设备类型色系
   const getDeviceColors = (type: string) => {
     if (type === 'cisco_ios') return {
       primary: '#3B82F6',
@@ -156,6 +185,18 @@ const Dashboard: React.FC = () => {
       bg: 'rgba(148, 163, 184, 0.08)',
       border: 'rgba(148, 163, 184, 0.15)',
     }
+  }
+
+  const formatRelativeTime = (isoStr: string) => {
+    if (!isoStr) return '-'
+    const diff = Date.now() - new Date(isoStr).getTime()
+    const mins = Math.floor(diff / 60000)
+    if (mins < 1) return t('common.relTimeJustNow')
+    if (mins < 60) return t('common.relTimeMinutesAgo').replace('{n}', String(mins))
+    const hours = Math.floor(mins / 60)
+    if (hours < 24) return t('common.relTimeHoursAgo').replace('{n}', String(hours))
+    const days = Math.floor(hours / 24)
+    return t('common.relTimeDaysAgo').replace('{n}', String(days))
   }
 
   if (devices.length === 0) {
@@ -200,6 +241,16 @@ const Dashboard: React.FC = () => {
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {dashboardStats && (
+              <>
+                <Typography variant="caption" color="text.secondary">
+                  {t('dashboard.lastCollection')}: {formatRelativeTime(dashboardStats.last_collection)}
+                </Typography>
+                {dashboardStats.locations.map((loc) => (
+                  <Chip key={loc} label={loc} size="small" sx={{ bgcolor: 'rgba(34,197,94,0.1)', color: 'success.main', height: 20, fontSize: '0.65rem' }} />
+                ))}
+              </>
+            )}
             {user && (
               <Chip
                 label={user.username}
@@ -218,32 +269,19 @@ const Dashboard: React.FC = () => {
 
       {/* 统计卡片 */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    {t('dashboard.totalDevices')}
+                    {t('dashboard.totalDevicesCard')}
                   </Typography>
                   <Typography variant="h3" sx={{ color: '#3B82F6', fontWeight: 700, mt: 0.5 }}>
-                    {stats.total}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    {t('dashboard.activeMonitored')}
+                    {dashboardStats?.device_count ?? stats.total}
                   </Typography>
                 </Box>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 1.5,
-                    bgcolor: 'rgba(59, 130, 246, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
+                <Box sx={{ width: 48, height: 48, borderRadius: 1.5, bgcolor: 'rgba(59, 130, 246, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Server sx={{ color: '#3B82F6', fontSize: 24 }} />
                 </Box>
               </Box>
@@ -251,72 +289,114 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    {t('dashboard.cisco')}
+                    {t('dashboard.activePorts')}
                   </Typography>
-                  <Typography variant="h3" sx={{ color: '#06B6D4', fontWeight: 700, mt: 0.5 }}>
-                    {stats.cisco}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    {t('dashboard.ciscoDesc')}
+                  <Typography variant="h3" sx={{ color: '#22C55E', fontWeight: 700, mt: 0.5 }}>
+                    {dashboardStats?.port_stats.up ?? 0}
                   </Typography>
                 </Box>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 1.5,
-                    bgcolor: 'rgba(6, 182, 212, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <CloudDownload sx={{ color: '#06B6D4', fontSize: 24 }} />
+                <Box sx={{ width: 48, height: 48, borderRadius: 1.5, bgcolor: 'rgba(34, 197, 94, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <CheckCircle sx={{ color: '#22C55E', fontSize: 24 }} />
                 </Box>
               </Box>
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={6} md={3}>
           <Card sx={{ height: '100%' }}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    {t('dashboard.aruba')}
+                    {t('dashboard.idlePorts')}
                   </Typography>
-                  <Typography variant="h3" sx={{ color: '#10B981', fontWeight: 700, mt: 0.5 }}>
-                    {stats.aruba}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    {t('dashboard.arubaDesc')}
+                  <Typography variant="h3" sx={{ color: '#94A3B8', fontWeight: 700, mt: 0.5 }}>
+                    {(dashboardStats?.port_stats.down ?? 0) + (dashboardStats?.port_stats.disabled ?? 0)}
                   </Typography>
                 </Box>
-                <Box
-                  sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 1.5,
-                    bgcolor: 'rgba(16, 185, 129, 0.1)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <SecurityIcon sx={{ color: '#10B981', fontSize: 24 }} />
+                <Box sx={{ width: 48, height: 48, borderRadius: 1.5, bgcolor: 'rgba(148, 163, 184, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <PauseCircle sx={{ color: '#94A3B8', fontSize: 24 }} />
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} sm={6} md={3}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    {t('dashboard.errorPorts')}
+                  </Typography>
+                  <Typography variant="h3" sx={{ color: dashboardStats?.error_ports ? '#EF4444' : '#22C55E', fontWeight: 700, mt: 0.5 }}>
+                    {dashboardStats?.error_ports ?? 0}
+                  </Typography>
+                </Box>
+                <Box sx={{ width: 48, height: 48, borderRadius: 1.5, bgcolor: 'rgba(239, 68, 68, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ErrorOutline sx={{ color: dashboardStats?.error_ports ? '#EF4444' : '#22C55E', fontSize: 24 }} />
                 </Box>
               </Box>
             </CardContent>
           </Card>
         </Grid>
       </Grid>
+
+      {/* 上行流量 Top 10 */}
+      {dashboardStats && dashboardStats.top_traffic.length > 0 && (
+        <Paper sx={{ p: 3, mb: 3 }}>
+          <Typography variant="h6" sx={{ fontWeight: 600, mb: 2 }}>{t('dashboard.topTraffic')}</Typography>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell sx={{ fontWeight: 600 }}>#</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>设备</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>端口</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>RX Mbps</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>TX Mbps</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>总 Mbps</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {dashboardStats.top_traffic.map((item, idx) => (
+                  <TableRow key={`${item.device}-${item.port}`} hover>
+                    <TableCell sx={{ color: 'text.secondary', fontWeight: 600 }}>{idx + 1}</TableCell>
+                    <TableCell>
+                      <Typography variant="body2" component="a" href={`/devices/${item.device}`} sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>
+                        {item.device}
+                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem' }}>{item.port}</TableCell>
+                    <TableCell sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem' }}>{item.rx_mbps.toFixed(2)}</TableCell>
+                    <TableCell sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem' }}>{item.tx_mbps.toFixed(2)}</TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" sx={{ fontFamily: '"JetBrains Mono", monospace', fontWeight: 600, color: 'success.main' }}>
+                          {item.total_mbps.toFixed(2)}
+                        </Typography>
+                        <LinearProgress
+                          variant="determinate"
+                          value={Math.min((item.total_mbps / (dashboardStats.top_traffic[0]?.total_mbps || 1)) * 100, 100)}
+                          sx={{ flex: 1, height: 6, borderRadius: 3, bgcolor: 'rgba(34,197,94,0.1)', '& .MuiLinearProgress-bar': { bgcolor: '#22C55E' } }}
+                        />
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      )}
 
       {/* 设备表格 */}
       <Paper sx={{ p: 2 }}>
@@ -348,112 +428,94 @@ const Dashboard: React.FC = () => {
           </Alert>
         )}
 
-        {devices.length === 0 ? (
-          <Box sx={{ textAlign: 'center', py: 4 }}>
-            <Server sx={{ fontSize: 60, color: 'text.disabled', mb: 2 }} />
-            <Typography variant="body1" color="text.secondary">
-              {t('dashboard.noDevices')}
-            </Typography>
-            <Button
-              variant="contained"
-              component={React.forwardRef<HTMLAnchorElement, React.HTMLProps<HTMLAnchorElement>>(
-                (props, ref) => <a href="/devices" ref={ref} {...props} />
-              )}
-              sx={{ mt: 2 }}
-            >
-              {t('dashboard.addDevice')}
-            </Button>
-          </Box>
-        ) : (
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell onClick={() => handleSort('name')} sx={sortStyle('name')}>
-                    {t('dashboard.device')} {sortField === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-                  </TableCell>
-                  <TableCell onClick={() => handleSort('type')} sx={sortStyle('type')}>
-                    {t('dashboard.type')} {sortField === 'type' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-                  </TableCell>
-                  <TableCell>{t('dashboard.ipAddress')}</TableCell>
-                  <TableCell onClick={() => handleSort('location')} sx={sortStyle('location')}>
-                    {t('dashboard.location')} {sortField === 'location' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
-                  </TableCell>
-                  <TableCell>{t('dashboard.serialNumber')}</TableCell>
-                  <TableCell>{t('dashboard.version')}</TableCell>
-                  <TableCell>{t('dashboard.status')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {sortedDevices.map((device) => {
-                  const colors = getDeviceColors(device.type)
-                  return (
-                    <TableRow key={device.name} hover>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Avatar
-                            sx={{
-                              bgcolor: colors.bg,
-                              color: colors.primary,
-                              mr: 1,
-                              width: 28,
-                              height: 28,
-                              border: '1px solid',
-                              borderColor: colors.border,
-                            }}
-                          >
-                            <Server sx={{ fontSize: 14 }} />
-                          </Avatar>
-                          <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>
-                            {device.name}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          label={getTypeLabel(device.type)}
-                          size="small"
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell onClick={() => handleSort('name')} sx={sortStyle('name')}>
+                  {t('dashboard.device')} {sortField === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                </TableCell>
+                <TableCell onClick={() => handleSort('type')} sx={sortStyle('type')}>
+                  {t('dashboard.type')} {sortField === 'type' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                </TableCell>
+                <TableCell>{t('dashboard.ipAddress')}</TableCell>
+                <TableCell onClick={() => handleSort('location')} sx={sortStyle('location')}>
+                  {t('dashboard.location')} {sortField === 'location' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+                </TableCell>
+                <TableCell>{t('dashboard.serialNumber')}</TableCell>
+                <TableCell>{t('dashboard.version')}</TableCell>
+                <TableCell>{t('dashboard.status')}</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {sortedDevices.map((device) => {
+                const colors = getDeviceColors(device.type)
+                return (
+                  <TableRow key={device.name} hover>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Avatar
                           sx={{
                             bgcolor: colors.bg,
                             color: colors.primary,
+                            mr: 1,
+                            width: 28,
+                            height: 28,
                             border: '1px solid',
                             borderColor: colors.border,
-                            fontWeight: 500,
-                            height: 20,
-                            fontSize: '0.65rem',
                           }}
-                        />
-                      </TableCell>
-                      <TableCell>{device.ip}</TableCell>
-                      <TableCell sx={{ color: 'text.secondary' }}>{device.location || '-'}</TableCell>
-                      <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: '"JetBrains Mono", monospace' }}>
-                        {device.serial_number || '-'}
-                      </TableCell>
-                      <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: '"JetBrains Mono", monospace' }}>
-                        {device.version || '-'}
-                      </TableCell>
-                      <TableCell>
-                        {(() => {
-                          const status = deviceStatus[device.name]
-                          if (!status) {
-                            return <Chip label="-" size="small" sx={{ bgcolor: 'rgba(148,163,184,0.08)', color: 'text.secondary', height: 20, fontSize: '0.65rem' }} />
-                          }
-                          if (status === 'checking') {
-                            return <Chip label={t('dashboard.checking')} size="small" sx={{ bgcolor: 'rgba(245,158,11,0.12)', color: 'warning.main', height: 20, fontSize: '0.65rem' }} />
-                          }
-                          if (status === 'online') {
-                            return <Chip label={t('dashboard.online')} size="small" sx={{ bgcolor: 'rgba(34,197,94,0.12)', color: 'success.main', height: 20, fontSize: '0.65rem' }} />
-                          }
-                          return <Chip label={t('dashboard.offline')} size="small" sx={{ bgcolor: 'rgba(239,68,68,0.12)', color: 'error.main', height: 20, fontSize: '0.65rem' }} />
-                        })()}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+                        >
+                          <Server sx={{ fontSize: 14 }} />
+                        </Avatar>
+                        <Typography variant="body2" component="a" href={`/devices/${device.name}`} sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}>
+                          {device.name}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={getTypeLabel(device.type)}
+                        size="small"
+                        sx={{
+                          bgcolor: colors.bg,
+                          color: colors.primary,
+                          border: '1px solid',
+                          borderColor: colors.border,
+                          fontWeight: 500,
+                          height: 20,
+                          fontSize: '0.65rem',
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell>{device.ip}</TableCell>
+                    <TableCell sx={{ color: 'text.secondary' }}>{device.location || '-'}</TableCell>
+                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: '"JetBrains Mono", monospace' }}>
+                      {device.serial_number || '-'}
+                    </TableCell>
+                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: '"JetBrains Mono", monospace' }}>
+                      {device.version || '-'}
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        const status = deviceStatus[device.name]
+                        if (!status) {
+                          return <Chip label="-" size="small" sx={{ bgcolor: 'rgba(148,163,184,0.08)', color: 'text.secondary', height: 20, fontSize: '0.65rem' }} />
+                        }
+                        if (status === 'checking') {
+                          return <Chip label={t('dashboard.checking')} size="small" sx={{ bgcolor: 'rgba(245,158,11,0.12)', color: 'warning.main', height: 20, fontSize: '0.65rem' }} />
+                        }
+                        if (status === 'online') {
+                          return <Chip label={t('dashboard.online')} size="small" sx={{ bgcolor: 'rgba(34,197,94,0.12)', color: 'success.main', height: 20, fontSize: '0.65rem' }} />
+                        }
+                        return <Chip label={t('dashboard.offline')} size="small" sx={{ bgcolor: 'rgba(239,68,68,0.12)', color: 'error.main', height: 20, fontSize: '0.65rem' }} />
+                      })()}
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
       </Paper>
     </Container>
   )

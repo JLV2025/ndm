@@ -11,7 +11,8 @@ export interface Device {
   password?: string
   last_synced?: string
   last_collected?: string
-  [key: string]: string | undefined
+  uplink_ports?: string[]
+  [key: string]: unknown
 }
 
 export interface CollectResult {
@@ -38,4 +39,32 @@ export interface Session {
   password: string
   deviceIp: string
   expiresAt: number
+}
+
+export interface PortInfo {
+  name: string
+  status: string
+  status_up: boolean
+  speed?: string
+  mode?: string
+  type?: string
+  description?: string
+  is_uplink: boolean
+  uplink_type?: string
+  rx_mbps?: number
+  tx_mbps?: number
+  total_mbps?: number
+  rx_util_pct?: number
+  tx_util_pct?: number
+  total_util_pct?: number
+}
+
+export interface FrontPanelData {
+  device_name: string
+  ports: PortInfo[]
+  total_ports: number
+  up_ports: number
+  down_ports: number
+  disabled_ports: number
+  error_ports: number
 }

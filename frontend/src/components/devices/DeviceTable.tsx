@@ -36,7 +36,7 @@ const DeviceTable: React.FC<DeviceTableProps> = React.memo(({
     <Paper sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.875rem' }}>
-          Device Inventory
+          {t('devices.inventory')}
         </Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {selectedDevices.size > 0 && (
@@ -47,11 +47,11 @@ const DeviceTable: React.FC<DeviceTableProps> = React.memo(({
               onClick={onBatchCollect}
               sx={{ fontWeight: 600, fontSize: '0.75rem' }}
             >
-              批量收集 ({selectedDevices.size})
+              {t('devices.batchCollectCount').replace('{count}', String(selectedDevices.size))}
             </Button>
           )}
           <Typography variant="caption" color="text.secondary">
-            Total: {totalCount}
+            {t('devices.total').replace('{count}', String(totalCount))}
           </Typography>
         </Box>
       </Box>
@@ -106,10 +106,10 @@ const DeviceTable: React.FC<DeviceTableProps> = React.memo(({
                         <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 500 }}>{device.name}</Typography>
                         {bs && (
                           <Chip
-                            label={bs.status === 'success' ? 'OK' : bs.status === 'failed' ? '失败' : bs.status}
+                            label={bs.status === 'success' ? t('collect.success') : bs.status === 'failed' ? t('collect.failed') : bs.status}
                             size="small"
                             sx={{
-                              height: 16, fontSize: '0.6rem', mt: 0.25,
+                              height: 16, fontSize: '0.65rem', mt: 0.25,
                               bgcolor: bs.status === 'success' ? 'rgba(34,197,94,0.1)' : bs.status === 'failed' ? 'rgba(239,68,68,0.1)' : 'rgba(148,163,184,0.06)',
                               color: bs.status === 'success' ? 'success.main' : bs.status === 'failed' ? 'error.main' : 'text.secondary',
                             }}
@@ -139,13 +139,13 @@ const DeviceTable: React.FC<DeviceTableProps> = React.memo(({
                   </TableCell>
                   <TableCell align="right">
                     <Box sx={{ display: 'flex', gap: 0.5 }}>
-                      <Tooltip title="Collect">
+                      <Tooltip title={t('devices.collectTooltip')}>
                         <IconButton size="small" onClick={() => onCollect(device)} disabled={collecting}
                           sx={{ color: colors.primary, '&:hover': { bgcolor: colors.secondary } }}>
                           <CloudUpload fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Delete">
+                      <Tooltip title={t('devices.deleteTooltip')}>
                         <IconButton size="small" onClick={() => onDelete(device)}
                           sx={{ color: 'error.main', '&:hover': { bgcolor: 'rgba(239,68,68,0.08)' } }}>
                           <Delete fontSize="small" />

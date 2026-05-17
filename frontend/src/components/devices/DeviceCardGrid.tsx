@@ -22,7 +22,7 @@ const DeviceCardGrid: React.FC<DeviceCardGridProps> = React.memo(({ devices, sel
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12}>
           <Paper sx={{ p: 3, textAlign: 'center' }}>
-            <Typography color="text.secondary">该位置 ({selectedLocation}) 下没有设备</Typography>
+            <Typography color="text.secondary">{t('devices.noDeviceAtLocation').replace('{location}', selectedLocation)}</Typography>
           </Paper>
         </Grid>
       </Grid>
@@ -100,28 +100,28 @@ const DeviceCardGrid: React.FC<DeviceCardGridProps> = React.memo(({ devices, sel
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {device.platform || 'Unknown'}
+                    {device.platform || t('common.unknown')}
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    <Tooltip title={collecting ? '正在收集...' : 'Collect Configuration'}>
+                    <Tooltip title={collecting ? t('devices.collecting') : t('devices.collectTooltip')}>
                       <IconButton size="small" onClick={() => onCollect(device)} disabled={collecting}
                         sx={{ color: colors.primary, '&:hover': { bgcolor: colors.secondary } }}>
                         <CloudUpload fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="View Details">
+                    <Tooltip title={t('devices.viewDetailsTooltip')}>
                       <IconButton size="small" component="a" href={`/devices/${device.name}`}
                         sx={{ color: 'primary.main', '&:hover': { bgcolor: 'rgba(34,197,94,0.08)' } }}>
                         <RefreshIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Edit">
+                    <Tooltip title={t('devices.editTooltip')}>
                       <IconButton size="small" onClick={() => onEdit(device)}
                         sx={{ color: 'warning.main', '&:hover': { bgcolor: 'rgba(245,158,11,0.08)' } }}>
                         <Edit fontSize="small" />
                       </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete">
+                    <Tooltip title={t('devices.deleteTooltip')}>
                       <IconButton size="small" onClick={() => onDelete(device)}
                         sx={{ color: 'error.main', '&:hover': { bgcolor: 'rgba(239,68,68,0.08)' } }}>
                         <Delete fontSize="small" />

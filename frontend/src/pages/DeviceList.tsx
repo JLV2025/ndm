@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Box,
@@ -96,14 +96,14 @@ const DeviceList: React.FC = () => {
       loadDevices()
       setOpenConfirm(false)
     } catch (error: unknown) {
-      alert(error instanceof Error ? error.message : '删除失败')
+      alert(error instanceof Error ? error.message : t('common.deleteFailed'))
     }
   }
 
   const handleCollect = async (device: Device) => {
     const session = sessionManager.getSession()
     if (!session) {
-      alert('请先登录')
+      alert(t('common.pleaseLogin'))
       navigate('/login')
       return
     }
@@ -116,7 +116,7 @@ const DeviceList: React.FC = () => {
     try {
       const pingResult = await collectorApi.ping(device.name)
       if (!pingResult.reachable) {
-        setCollectError(`设备不可达：${pingResult.detail}`)
+        setCollectError(`${t('devices.pinging')}: ${pingResult.detail}`)
         return
       }
 
@@ -126,7 +126,7 @@ const DeviceList: React.FC = () => {
       setOpenCollect(true)
       await loadDevices()
     } catch (error: unknown) {
-      setCollectError(error instanceof Error ? error.message : '收集失败')
+      setCollectError(error instanceof Error ? error.message : t('common.collectFailed'))
     } finally {
       setCollecting(false)
       setCollectPhase(null)
@@ -134,11 +134,14 @@ const DeviceList: React.FC = () => {
   }
 
   const handleSelectAll = (checked: boolean) => {
+    const visibleNames = sortedDevices.map((d) => d.name)
+    const next = new Set(selectedDevices)
     if (checked) {
-      setSelectedDevices(new Set(devices.map((d) => d.name)))
+      visibleNames.forEach((n) => next.add(n))
     } else {
-      setSelectedDevices(new Set())
+      visibleNames.forEach((n) => next.delete(n))
     }
+    setSelectedDevices(next)
   }
 
   const handleSelectOne = (name: string, checked: boolean) => {
@@ -153,10 +156,10 @@ const DeviceList: React.FC = () => {
 
   const handleBatchCollect = async () => {
     const session = sessionManager.getSession()
-    if (!session) { alert('请先登录'); navigate('/login'); return }
+    if (!session) { alert(t('common.pleaseLogin')); navigate('/login'); return }
 
     const deviceNames = Array.from(selectedDevices)
-    if (deviceNames.length === 0) { alert('请先选择设备'); return }
+    if (deviceNames.length === 0) { alert(t('common.pleaseSelectDevice')); return }
 
     setBatchRunning(true)
     const initial: Record<string, BatchItemStatus> = {}
@@ -202,6 +205,8 @@ const DeviceList: React.FC = () => {
     color: sortField === field ? 'primary.main' : 'text.secondary',
   } as const)
 
+  const uniqueLocations: string[] = useMemo(() => [...new Set(devices.map(d => d.location).filter((l): l is string => !!l))].sort(), [devices])
+
   const filteredDevices = selectedLocation
     ? devices.filter((d) => (d.location || '').toUpperCase() === selectedLocation.toUpperCase())
     : devices
@@ -212,8 +217,8 @@ const DeviceList: React.FC = () => {
     return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
   })
 
-  const allSelected = devices.length > 0 && selectedDevices.size === devices.length
-  const someSelected = selectedDevices.size > 0 && selectedDevices.size < devices.length
+  const allSelected = sortedDevices.length > 0 && sortedDevices.every((d) => selectedDevices.has(d.name))
+  const someSelected = sortedDevices.some((d) => selectedDevices.has(d.name)) && !allSelected
 
   if (loading) {
     return (
@@ -240,7 +245,7 @@ const DeviceList: React.FC = () => {
             {t('devices.addDevice')}
           </Button>
         </Box>
-        <LocationFilter selectedLocation={selectedLocation} onChange={setSelectedLocation} />
+        <LocationFilter selectedLocation={selectedLocation} onChange={setSelectedLocation} locations={uniqueLocations} />
       </Paper>
 
       {/* 单设备收集进度 */}
@@ -306,7 +311,7 @@ const DeviceList: React.FC = () => {
         collecting={collecting}
         allSelected={allSelected}
         someSelected={someSelected}
-        totalCount={devices.length}
+        totalCount={sortedDevices.length}
         batchRunning={batchRunning}
         onSelectAll={handleSelectAll}
         onSelectOne={handleSelectOne}

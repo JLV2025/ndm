@@ -248,7 +248,10 @@ def collect_device(
             validation_results = "{}"
 
         if settings.get("analysis", {}).get("enable_performance_analysis", True):
-            perf_analyzer = PerformanceAnalyzer(interface_status, running_config, effective_type)
+            perf_analyzer = PerformanceAnalyzer(
+                interface_status, running_config, effective_type,
+                interface_utilization, uplink_ports=device.uplink_ports
+            )
             performance_results = json.dumps(perf_analyzer.analyze(), indent=2, ensure_ascii=False)
         else:
             performance_results = "{}"
@@ -440,7 +443,6 @@ def _generate_summary(
     lines.append("-" * 70)
     if performance_results:
         try:
-            import json
             perf = json.loads(performance_results)
             iface_summary = perf.get('interface_summary', {})
             lines.append(f"接口总数：{iface_summary.get('total', 0)}")
@@ -461,7 +463,6 @@ def _generate_summary(
     lines.append("-" * 70)
     if change_results:
         try:
-            import json
             change = json.loads(change_results)
             summary = change.get('summary', {})
             if summary:

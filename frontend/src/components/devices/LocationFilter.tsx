@@ -1,15 +1,15 @@
 import React from 'react'
 import { Box, Typography, ToggleButton, ToggleButtonGroup } from '@mui/material'
 
-const LOCATIONS_ROW1 = ['BJD', 'BJQ', 'DZN', 'PVG', 'SHA', 'SZX', 'ZGN', 'ITM']
-const LOCATIONS_ROW2 = ['PEK', 'DEZ', 'UCD', 'SJY']
-
 interface LocationFilterProps {
   selectedLocation: string | null
   onChange: (v: string | null) => void
+  locations: string[]
 }
 
-const LocationFilter: React.FC<LocationFilterProps> = React.memo(({ selectedLocation, onChange }) => {
+const LocationFilter: React.FC<LocationFilterProps> = React.memo(({ selectedLocation, onChange, locations }) => {
+  if (locations.length === 0) return null
+
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
       <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em', mr: 0.5 }}>
@@ -36,13 +36,9 @@ const LocationFilter: React.FC<LocationFilterProps> = React.memo(({ selectedLoca
           },
         }}
       >
-        {[...LOCATIONS_ROW1, '/', ...LOCATIONS_ROW2].map((loc) =>
-          loc === '/' ? (
-            <Typography key="sep" variant="caption" sx={{ color: 'text.disabled', alignSelf: 'center', mx: 0.25, fontSize: '0.7rem' }}>/</Typography>
-          ) : (
-            <ToggleButton key={loc} value={loc}>{loc}</ToggleButton>
-          )
-        )}
+        {locations.map((loc) => (
+          <ToggleButton key={loc} value={loc}>{loc}</ToggleButton>
+        ))}
       </ToggleButtonGroup>
     </Box>
   )

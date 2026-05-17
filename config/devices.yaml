@@ -1,37 +1,70 @@
 devices:
 - ip: 10.210.255.1
-  last_synced: 05/16/2026 09:27
+  last_synced: 05/17/2026 19:29
   location: BJQ
   name: BJQD1SWI01
   notes: Core Switch
   platform: aruba_aoscx
   serial_number: SG30LMQ17K, SG30LMQ108
   type: aruba_aoscx
+  uplink_ports:
+  - 1/1/49
+  - 1/1/50
+  - lag1
   version: FL.10.10.1070
 - ip: 10.210.255.2
-  last_synced: 05/16/2026 09:28
+  last_synced: 05/17/2026 19:30
   location: BJQ
   name: BJQD1SWI02
   notes: Access Switch
   platform: aruba_aoscx
   serial_number: VN30LBB4G9
   type: aruba_aoscx
+  uplink_ports:
+  - 1/1/49
+  - 1/1/50
   version: ML.10.11.1021
 - ip: 10.210.255.51
-  last_synced: 05/15/2026 21:07
+  last_synced: 05/17/2026 19:32
   location: BJQ
   name: BJQD2QIS01
   notes: Access Switch - Office
   platform: aruba_aoscx
   serial_number: VN30LBB4G4
   type: aruba_aoscx
+  uplink_ports:
+  - 1/1/49
+  - 1/1/50
   version: ML.10.11.1021
 - ip: 10.24.255.10
-  last_synced: 05/15/2026 21:35
+  last_synced: 05/17/2026 19:33
   location: SZX
   name: SZXD1SWI01
   notes: Core Switch
   platform: cisco_ios
   serial_number: FCW2129B3TR, FCW2126A49Z, FCW2126A49U
   type: cisco_ios
+  uplink_ports:
+  - Te3/0/1
+  - Te3/0/2
   version: 15.2(4)
+- ip: 10.67.255.1
+  last_synced: 05/17/2026 19:34
+  location: SHA
+  name: SHAD1SWI01
+  notes: Core Switch - 5F
+  platform: cisco_ios_xe
+  serial_number: CAT2322L0L4, CAT2319L3WX
+  type: cisco_ios
+  uplink_ports: null
+  version: 16.09.03
+- ip: 10.67.255.2
+  last_synced: 05/17/2026 19:35
+  location: SHA
+  name: SHAD1SWI02
+  notes: Access Switch, 5F
+  platform: aruba_aoscx
+  serial_number: SG33KW7279, SG33KW72N0
+  type: aruba_aoscx
+  uplink_ports: null
+  version: ML.10.10.1030

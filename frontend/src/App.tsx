@@ -1,34 +1,25 @@
 import { useState } from 'react'
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, Link, Outlet } from 'react-router-dom'
 import ErrorBoundary from './components/ErrorBoundary'
 import {
   Box,
   CssBaseline,
   Drawer,
-  AppBar,
   Toolbar,
   Typography,
-  IconButton,
   Divider,
-  Badge,
-  Menu,
-  MenuItem,
   Avatar,
   List,
   ListItem,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Tooltip,
   Button,
 } from '@mui/material'
 import {
-  Menu as MenuIcon,
-  Notifications as NotificationsIcon,
   AccountCircle as AccountIcon,
   Dashboard as DashboardIcon,
   Storage,
-  ExitToApp as LogoutIcon,
   Terminal,
 } from '@mui/icons-material'
 import Login from './pages/Login'
@@ -36,15 +27,15 @@ import DeviceList from './pages/DeviceList'
 import DeviceDetail from './pages/DeviceDetail'
 import Dashboard from './pages/Dashboard'
 import Viewer from './pages/Viewer'
+import MatrixRain from './components/MatrixRain'
 import { sessionManager } from './services/auth'
 import { useI18n } from './i18n'
 
 const DRAWER_WIDTH = 260
 
-function Layout({ children }: { children: React.ReactNode }) {
+function Layout() {
   const { t, lang, setLang } = useI18n()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
   const user = sessionManager.getSession()
   const location = useLocation()
   const currentPath = location.pathname
@@ -57,49 +48,17 @@ function Layout({ children }: { children: React.ReactNode }) {
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen)
 
-  const handleProfileMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget)
-  }
-
-  const handleProfileMenuClose = () => setAnchorEl(null)
-
   const handleLogout = () => {
     sessionManager.logout()
-    handleProfileMenuClose()
   }
 
   const toggleLang = () => setLang(lang === 'zh' ? 'en' : 'zh')
 
-  const renderMenu = (
-    <Menu
-      anchorEl={anchorEl}
-      anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-      open={Boolean(anchorEl)}
-      onClose={handleProfileMenuClose}
-      PaperProps={{
-        sx: {
-          bgcolor: 'background.paper',
-          border: '1px solid',
-          borderColor: 'divider',
-        },
-      }}
-    >
-      <MenuItem onClick={handleProfileMenuClose}>
-        <AccountIcon sx={{ mr: 1, color: 'primary.main' }} />
-        {t('dashboard.status', 'Profile')}
-      </MenuItem>
-      <Divider sx={{ my: 0.5 }} />
-      <MenuItem onClick={handleLogout} sx={{ color: 'error.main' }}>
-        <LogoutIcon sx={{ mr: 1 }} />
-        {t('login.logout')}
-      </MenuItem>
-    </Menu>
-  )
-
   const drawerContent = (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Toolbar sx={{ px: 2, minHeight: '64px !important' }}>
+    <Box sx={{ position: 'relative', overflow: 'hidden', height: '100%' }}>
+      <MatrixRain />
+      <Box sx={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <Toolbar sx={{ px: 2, minHeight: '64px !important' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <Box
             sx={{
@@ -135,8 +94,8 @@ function Layout({ children }: { children: React.ReactNode }) {
           return (
             <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
-                component="a"
-                href={item.path}
+                component={Link}
+                to={item.path}
                 sx={{
                   borderRadius: 1.5,
                   py: 1.3,
@@ -198,129 +157,47 @@ function Layout({ children }: { children: React.ReactNode }) {
         <Divider sx={{ mb: 2 }} />
         <Box
           sx={{
-            p: 2,
+            p: 1.5,
             bgcolor: 'rgba(34, 197, 94, 0.04)',
             border: '1px solid',
             borderColor: 'divider',
             borderRadius: 1.5,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-            <Box
-              sx={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                bgcolor: 'success.main',
-              }}
-            />
-            <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.05em' }}>
-              {t('app.systemOnline')}
+          <Avatar
+            sx={{
+              width: 32,
+              height: 32,
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              bgcolor: 'primary.main',
+            }}
+          >
+            {user?.username?.charAt(0).toUpperCase() || <AccountIcon />}
+          </Avatar>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography variant="caption" sx={{ color: 'text.primary', fontWeight: 600, fontSize: '0.75rem', display: 'block' }}>
+              {user?.username || 'User'}
+            </Typography>
+            <Typography
+              variant="caption"
+              sx={{ color: 'text.secondary', fontSize: '0.65rem', cursor: 'pointer', '&:hover': { color: 'error.main' } }}
+              onClick={handleLogout}
+            >
+              {t('login.logout')}
             </Typography>
           </Box>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-            {user?.username || t('login.subtitle')}
-          </Typography>
         </Box>
+      </Box>
       </Box>
     </Box>
   )
 
   return (
     <Box sx={{ display: 'flex', bgcolor: 'background.default', minHeight: '100vh' }}>
-      <AppBar
-        position="fixed"
-        sx={{
-          width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
-          ml: { sm: `${DRAWER_WIDTH}px` },
-          bgcolor: 'background.paper',
-          borderBottom: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-        }}
-      >
-        <Toolbar sx={{ minHeight: '64px !important' }}>
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' }, color: 'primary.main' }}
-          >
-            <MenuIcon />
-          </IconButton>
-
-          <Typography
-            variant="h6"
-            noWrap
-            component="div"
-            sx={{
-              flexGrow: 1,
-              display: { sm: 'none' },
-              color: 'text.primary',
-              fontWeight: 600,
-              fontSize: '0.9rem',
-            }}
-          >
-            NDM Engineer Pro
-          </Typography>
-
-          <Box sx={{ flexGrow: 1 }} />
-
-          <Tooltip title={t('lang.label')}>
-            <Button
-              onClick={toggleLang}
-              size="small"
-              sx={{
-                mr: 1,
-                minWidth: 40,
-                borderRadius: 1,
-                border: '1px solid',
-                borderColor: 'divider',
-                color: 'text.secondary',
-                fontSize: '0.65rem',
-                fontWeight: 700,
-                letterSpacing: '0.03em',
-                textTransform: 'none',
-                '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
-              }}
-            >
-              {t('lang.switch')}
-            </Button>
-          </Tooltip>
-
-          <Tooltip title="Notifications">
-            <IconButton sx={{ color: 'text.disabled' }}>
-              <Badge
-                variant="dot"
-                color="error"
-                sx={{
-                  '& .MuiBadge-badge': {
-                    bgcolor: 'error.main',
-                  },
-                }}
-              >
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
-          </Tooltip>
-
-          <Tooltip title="Account">
-            <IconButton size="large" edge="end" onClick={handleProfileMenuOpen}>
-              <Avatar
-                sx={{
-                  width: 32,
-                  height: 32,
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                }}
-              >
-                {user?.username?.charAt(0).toUpperCase() || <AccountIcon />}
-              </Avatar>
-            </IconButton>
-          </Tooltip>
-        </Toolbar>
-      </AppBar>
-
       <Box
         component="nav"
         sx={{ width: { sm: DRAWER_WIDTH }, flexShrink: { sm: 0 } }}
@@ -335,6 +212,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: DRAWER_WIDTH,
+              overflow: 'hidden',
             },
           }}
         >
@@ -348,6 +226,7 @@ function Layout({ children }: { children: React.ReactNode }) {
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
               width: DRAWER_WIDTH,
+              overflow: 'hidden',
             },
           }}
           open
@@ -361,15 +240,13 @@ function Layout({ children }: { children: React.ReactNode }) {
         sx={{
           flexGrow: 1,
           width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
-          mt: '64px',
           bgcolor: 'background.default',
-          minHeight: 'calc(100vh - 64px)',
+          minHeight: '100vh',
         }}
       >
-        {children}
+        <Outlet />
       </Box>
 
-      {renderMenu}
     </Box>
   )
 }
@@ -387,11 +264,13 @@ const App: React.FC = () => {
       <ErrorBoundary>
       <Routes>
         <Route path="/login" element={<Login onLogin={refreshSession} />} />
-        <Route path="/" element={user ? <Layout><Dashboard /></Layout> : <Navigate to="/login" />} />
-        <Route path="/devices" element={user ? <Layout><DeviceList /></Layout> : <Navigate to="/login" />} />
-        <Route path="/devices/:name" element={user ? <Layout><DeviceDetail /></Layout> : <Navigate to="/login" />} />
-        <Route path="/dashboard" element={user ? <Layout><Dashboard /></Layout> : <Navigate to="/login" />} />
-        <Route path="/viewer" element={user ? <Layout><Viewer /></Layout> : <Navigate to="/login" />} />
+        <Route element={user ? <Layout /> : <Navigate to="/login" replace />}>
+          <Route index element={<Dashboard />} />
+          <Route path="devices" element={<DeviceList />} />
+          <Route path="devices/:name" element={<DeviceDetail />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="viewer" element={<Viewer />} />
+        </Route>
       </Routes>
       </ErrorBoundary>
     </>

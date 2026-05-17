@@ -1,6 +1,17 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { Box, Paper, Typography, Button } from '@mui/material'
 import { ErrorOutline } from '@mui/icons-material'
+import zhDict from '../i18n/zh'
+import enDict from '../i18n/en'
+
+const dictionaries = { zh: zhDict, en: enDict }
+
+function getLang(): 'zh' | 'en' {
+  const saved = localStorage.getItem('ndm-lang')
+  if (saved === 'zh' || saved === 'en') return saved
+  const nav = navigator.language || ''
+  return nav.toLowerCase().startsWith('zh') ? 'zh' : 'en'
+}
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -22,7 +33,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('ErrorBoundary 捕获到错误:', error, info.componentStack)
+    console.error('ErrorBoundary caught:', error, info.componentStack)
   }
 
   handleReset = () => {
@@ -31,25 +42,27 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
   render() {
     if (this.state.hasError) {
+      const lang = getLang()
+      const t = (key: string) => dictionaries[lang][key] ?? key
       return (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', p: 3 }}>
           <Paper sx={{ p: 4, maxWidth: 500, textAlign: 'center' }}>
             <ErrorOutline color="error" sx={{ fontSize: 64, mb: 2 }} />
             <Typography variant="h5" sx={{ fontWeight: 600, mb: 1 }}>
-              应用发生错误
+              {t('common.appError')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              {this.state.error?.message || '未知错误'}
+              {this.state.error?.message || t('common.unknownError')}
             </Typography>
             <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 3 }}>
-              请尝试刷新页面，或联系管理员
+              {t('common.errorHint')}
             </Typography>
             <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
               <Button variant="outlined" onClick={this.handleReset}>
-                重试
+                {t('common.retry')}
               </Button>
               <Button variant="contained" onClick={() => window.location.reload()}>
-                刷新页面
+                {t('common.refreshPage')}
               </Button>
             </Box>
           </Paper>

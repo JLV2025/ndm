@@ -101,6 +101,49 @@ async def get_device_weeks(device_name: str):
     return {"weeks": weeks}
 
 
+@router.get("/{device_name}/ports/latest")
+async def get_device_ports(device_name: str):
+    """获取设备最新端口状态和流量数据"""
+    import json
+    from utils.settings_loader import load_settings
+
+    safe_device_name = sanitize_device_name(device_name)
+    settings = load_settings()
+    data_root_path = settings.get("data_root", os.path.join(os.path.dirname(__file__), "..", "data"))
+
+    device_dir = os.path.join(data_root_path, safe_device_name)
+    if not os.path.exists(device_dir):
+        raise HTTPException(status_code=404, detail="设备数据不存在")
+
+    weeks = sorted(
+        [d for d in os.listdir(device_dir)
+         if os.path.isdir(os.path.join(device_dir, d)) and "-" in d],
+        reverse=True
+    )
+    if not weeks:
+        raise HTTPException(status_code=404, detail="无数据周")
+
+    perf_path = os.path.join(device_dir, weeks[0], "performance.json")
+    if not os.path.exists(perf_path):
+        raise HTTPException(status_code=404, detail="无性能数据")
+
+    with open(perf_path, "r", encoding="utf-8") as f:
+        perf = json.load(f)
+
+    iface_summary = perf.get("interface_summary", {})
+    details = iface_summary.get("details", [])
+
+    return {
+        "device_name": perf.get("device", safe_device_name),
+        "ports": details,
+        "total_ports": iface_summary.get("total", 0),
+        "up_ports": iface_summary.get("up", 0),
+        "down_ports": iface_summary.get("down", 0),
+        "disabled_ports": iface_summary.get("disabled", 0),
+        "error_ports": 0
+    }
+
+
 @router.get("/{device_name}/{week}/files")
 async def get_files_list(device_name: str, week: str):
     """获取文件列表 - 添加输入验证"""

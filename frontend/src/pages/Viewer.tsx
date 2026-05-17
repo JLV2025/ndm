@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
   Box, Container, Paper, Typography, Grid, Tabs, Tab, Chip, Alert,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -14,42 +14,51 @@ import { dataApi, deviceApi } from '../services/api'
 import { sessionManager } from '../services/auth'
 
 import type { Device } from '../types'
+import LocationFilter from '../components/devices/LocationFilter'
+import { useI18n } from '../i18n'
 
-const LOCATIONS_ROW1 = ['BJD', 'BJQ', 'DZN', 'PVG', 'SHA', 'SZX', 'ZGN', 'ITM']
-const LOCATIONS_ROW2 = ['PEK', 'DEZ', 'UCD', 'SJY']
+/** 语义颜色常量 — 对应 MUI OLED Dark 主题 */
+const DIFF_COLORS = {
+  added: { bg: 'rgba(34, 197, 94, 0.15)', text: '#4ADE80', border: '#22C55E' },
+  removed: { bg: 'rgba(239, 68, 68, 0.12)', text: '#F87171', border: '#EF4444' },
+  same: { text: '#94A3B8' },
+  info: { text: '#F8FAFC' },
+} as const
 
-function computeDiff(oldLines: string[], newLines: string[]): { type: 'same' | 'added' | 'removed'; text: string }[] {
-  const result: { type: 'same' | 'added' | 'removed'; text: string }[] = []
-  const oldSet = new Set(oldLines)
-  const newSet = new Set(newLines)
-
-  let oi = 0
-  let ni = 0
-  while (oi < oldLines.length || ni < newLines.length) {
-    if (oi >= oldLines.length) {
-      result.push({ type: 'added', text: newLines[ni] })
-      ni++
-    } else if (ni >= newLines.length) {
-      result.push({ type: 'removed', text: oldLines[oi] })
-      oi++
-    } else if (oldLines[oi] === newLines[ni]) {
-      result.push({ type: 'same', text: oldLines[oi] })
-      oi++; ni++
-    } else if (newSet.has(oldLines[oi]) && !oldSet.has(newLines[ni])) {
-      result.push({ type: 'added', text: newLines[ni] })
-      ni++
-    } else if (!newSet.has(oldLines[oi]) && oldSet.has(newLines[ni])) {
-      result.push({ type: 'removed', text: oldLines[oi] })
-      oi++
-    } else {
-      result.push({ type: 'removed', text: oldLines[oi] })
-      oi++
+function computeLCS(oldLines: string[], newLines: string[]): { type: 'same' | 'added' | 'removed'; text: string }[] {
+  const m = oldLines.length
+  const n = newLines.length
+  // 构建 LCS DP 表
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0))
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      if (oldLines[i - 1] === newLines[j - 1]) {
+        dp[i][j] = dp[i - 1][j - 1] + 1
+      } else {
+        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1])
+      }
     }
   }
-  return result
+  // 回溯构建 diff 序列
+  const result: { type: 'same' | 'added' | 'removed'; text: string }[] = []
+  let i = m, j = n
+  while (i > 0 || j > 0) {
+    if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
+      result.push({ type: 'same', text: oldLines[i - 1] })
+      i--; j--
+    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+      result.push({ type: 'added', text: newLines[j - 1] })
+      j--
+    } else {
+      result.push({ type: 'removed', text: oldLines[i - 1] })
+      i--
+    }
+  }
+  return result.reverse()
 }
 
 const Viewer: React.FC = () => {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const initialDevice = searchParams.get('device') || ''
@@ -100,7 +109,7 @@ const Viewer: React.FC = () => {
 
   useEffect(() => {
     if (!sessionManager.getSession()) { navigate('/login'); return }
-    deviceApi.list().then((res: AxiosResponse<Device[]>) => setDevices(res.data)).catch(() => setError('加载设备列表失败'))
+    deviceApi.list().then((res: AxiosResponse<Device[]>) => setDevices(res.data)).catch(() => setError(t('common.loadDeviceListFailed')))
   }, [])
 
   useEffect(() => {
@@ -117,7 +126,7 @@ const Viewer: React.FC = () => {
     setError('')
     dataApi.getFile(selectedDevice, selectedWeek, selectedFile).then((res: AxiosResponse<{ content: string }>) => {
       setContent(res.data?.content || '')
-    }).catch(() => setError('加载文件失败')).finally(() => setLoadingContent(false))
+    }).catch(() => setError(t('common.loadFileFailed'))).finally(() => setLoadingContent(false))
   }, [selectedDevice, selectedWeek, selectedFile, compareMode])
 
   useEffect(() => {
@@ -137,12 +146,24 @@ const Viewer: React.FC = () => {
     ]).then(([r1, r2]) => {
       setCompareContent1(r1.data?.content || '')
       setCompareContent2(r2.data?.content || '')
-    }).catch(() => setError('加载对比文件失败')).finally(() => setLoadingContent(false))
+    }).catch(() => setError(t('common.loadCompareFailed'))).finally(() => setLoadingContent(false))
   }, [compareMode, selectedDevice, compareWeek1, compareWeek2, compareFile])
+
+  const uniqueLocations: string[] = useMemo(() => [...new Set(devices.map(d => d.location).filter((l): l is string => !!l))].sort(), [devices])
 
   const filteredDevices = selectedLocation
     ? devices.filter((d) => (d.location || '').toUpperCase() === selectedLocation.toUpperCase())
     : devices
+
+  const handleLocationChange = (v: string | null) => {
+    setSelectedLocation(v)
+    if (v && selectedDevice) {
+      const device = devices.find(d => d.name === selectedDevice)
+      if (!device || (device.location || '').toUpperCase() !== v.toUpperCase()) {
+        setSelectedDevice('')
+      }
+    }
+  }
 
   useEffect(() => {
     if (initialDevice && !selectedDevice && devices.length > 0) {
@@ -156,11 +177,35 @@ const Viewer: React.FC = () => {
 
   const diffLines = useMemo(() => {
     if (!compareContent1 || !compareContent2) return null
-    return computeDiff(
+    return computeLCS(
       compareContent2.split('\n'),
       compareContent1.split('\n'),
     )
   }, [compareContent1, compareContent2])
+
+  // 双面板同步滚动
+  const leftPanelRef = useRef<HTMLDivElement>(null)
+  const rightPanelRef = useRef<HTMLDivElement>(null)
+  const syncingLeft = useRef(false)
+  const syncingRight = useRef(false)
+
+  const handleLeftScroll = useCallback(() => {
+    if (syncingRight.current) return
+    syncingLeft.current = true
+    if (rightPanelRef.current && leftPanelRef.current) {
+      rightPanelRef.current.scrollTop = leftPanelRef.current.scrollTop
+    }
+    requestAnimationFrame(() => { syncingLeft.current = false })
+  }, [])
+
+  const handleRightScroll = useCallback(() => {
+    if (syncingLeft.current) return
+    syncingRight.current = true
+    if (leftPanelRef.current && rightPanelRef.current) {
+      leftPanelRef.current.scrollTop = rightPanelRef.current.scrollTop
+    }
+    requestAnimationFrame(() => { syncingRight.current = false })
+  }, [])
 
   const toggleGroupSx = {
     '& .MuiToggleButton-root': {
@@ -252,7 +297,7 @@ const Viewer: React.FC = () => {
                           <Chip label={d.status} size="small" sx={{
                             bgcolor: d.status_up ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
                             color: d.status_up ? 'success.main' : 'error.main',
-                            height: 18, fontSize: '0.6rem',
+                            height: 18, fontSize: '0.65rem',
                           }} />
                         </TableCell>
                       </TableRow>
@@ -297,7 +342,7 @@ const Viewer: React.FC = () => {
                           <Chip label={err.severity} size="small" sx={{
                             bgcolor: err.severity === 'error' ? 'rgba(239,68,68,0.1)' : err.severity === 'warning' ? 'rgba(245,158,11,0.1)' : 'rgba(59,130,246,0.1)',
                             color: err.severity === 'error' ? 'error.main' : err.severity === 'warning' ? 'warning.main' : 'info.main',
-                            fontWeight: 500, height: 18, fontSize: '0.6rem',
+                            fontWeight: 500, height: 18, fontSize: '0.65rem',
                           }} />
                         </TableCell>
                       </TableRow>
@@ -359,22 +404,12 @@ const Viewer: React.FC = () => {
 
       {/* 筛选面板 */}
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', mb: 1 }}>Filter by Location</Typography>
-        <ToggleButtonGroup value={selectedLocation} exclusive onChange={(_, v) => { setSelectedLocation(v); setSelectedDevice(''); }} size="small"
-          sx={{ mb: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5, ...toggleGroupSx }}>
-          {[...LOCATIONS_ROW1, '/', ...LOCATIONS_ROW2].map((loc) =>
-            loc === '/' ? (
-              <Typography key="sep" variant="caption" sx={{ color: 'text.disabled', alignSelf: 'center', mx: 0.25, fontSize: '0.7rem' }}>/</Typography>
-            ) : (
-              <ToggleButton key={loc} value={loc}>{loc}</ToggleButton>
-            )
-          )}
-        </ToggleButtonGroup>
+        <LocationFilter selectedLocation={selectedLocation} onChange={handleLocationChange} locations={uniqueLocations} />
 
         <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
-          <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>设备:</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>{t('viewer.deviceLabel')}</Typography>
           <Select value={selectedDevice} onChange={(e) => setSelectedDevice(e.target.value)} displayEmpty fullWidth size="small">
-            <MenuItem value="" disabled><em>选择设备</em></MenuItem>
+            <MenuItem value="" disabled><em>{t('viewer.selectDevice')}</em></MenuItem>
             {filteredDevices.map((d: Device) => (
               <MenuItem key={d.name} value={d.name}>{d.name} ({d.ip})</MenuItem>
             ))}
@@ -386,7 +421,7 @@ const Viewer: React.FC = () => {
       {!selectedDevice && (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <Storage sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
-          <Typography color="text.secondary">选择 Location 和设备后查看配置历史</Typography>
+          <Typography color="text.secondary">{t('viewer.selectHint')}</Typography>
         </Paper>
       )}
 
@@ -399,18 +434,18 @@ const Viewer: React.FC = () => {
       {selectedDevice && !loading && !compareMode && (
         <Paper sx={{ p: 2, mb: 3 }}>
           <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem' }}>
-            历史配置版本 ({selectedDevice})
+            {t('viewer.configHistory')} ({selectedDevice})
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={4}>
               <Select value={selectedWeek} onChange={(e) => { setSelectedWeek(e.target.value); setSelectedFile(''); }} displayEmpty fullWidth size="small">
-                <MenuItem value="" disabled><em>选择周</em></MenuItem>
+                <MenuItem value="" disabled><em>{t('viewer.selectWeek')}</em></MenuItem>
                 {weeks.map((w) => <MenuItem key={w} value={w}>{w}</MenuItem>)}
               </Select>
             </Grid>
             <Grid item xs={12} sm={4}>
               <Select value={selectedFile} onChange={(e) => setSelectedFile(e.target.value)} displayEmpty fullWidth size="small" disabled={!selectedWeek}>
-                <MenuItem value="" disabled><em>选择文件</em></MenuItem>
+                <MenuItem value="" disabled><em>{t('viewer.selectFile')}</em></MenuItem>
                 {files.map((f) => <MenuItem key={f} value={f}>{f}</MenuItem>)}
               </Select>
             </Grid>
@@ -431,27 +466,27 @@ const Viewer: React.FC = () => {
       {selectedDevice && !loading && compareMode && (
         <Paper sx={{ p: 2, mb: 3 }}>
           <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem' }}>
-            配置对比 ({selectedDevice})
+            {t('viewer.configCompare')} ({selectedDevice})
           </Typography>
           <Grid container spacing={2} sx={{ mb: 2 }}>
             <Grid item xs={6} sm={3}>
-              <Typography variant="caption" color="info.main" sx={{ mb: 0.5, display: 'block' }}>较新版本 (左)</Typography>
+              <Typography variant="caption" color="info.main" sx={{ mb: 0.5, display: 'block' }}>{t('viewer.newerVersion')} ({t('viewer.previous')})</Typography>
               <Select value={compareWeek1} onChange={(e) => setCompareWeek1(e.target.value)} displayEmpty fullWidth size="small">
-                <MenuItem value="" disabled><em>选择周</em></MenuItem>
+                <MenuItem value="" disabled><em>{t('viewer.selectWeek')}</em></MenuItem>
                 {weeks.map((w) => <MenuItem key={w} value={w}>{w}</MenuItem>)}
               </Select>
             </Grid>
             <Grid item xs={6} sm={3}>
-              <Typography variant="caption" color="warning.main" sx={{ mb: 0.5, display: 'block' }}>较旧版本 (右)</Typography>
+              <Typography variant="caption" color="warning.main" sx={{ mb: 0.5, display: 'block' }}>{t('viewer.olderVersion')} ({t('viewer.next')})</Typography>
               <Select value={compareWeek2} onChange={(e) => setCompareWeek2(e.target.value)} displayEmpty fullWidth size="small">
-                <MenuItem value="" disabled><em>选择周</em></MenuItem>
+                <MenuItem value="" disabled><em>{t('viewer.selectWeek')}</em></MenuItem>
                 {weeks.map((w) => <MenuItem key={w} value={w}>{w}</MenuItem>)}
               </Select>
             </Grid>
             <Grid item xs={12} sm={3}>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>文件</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>{t('viewer.fileLabel')}</Typography>
               <Select value={compareFile} onChange={(e) => setCompareFile(e.target.value)} displayEmpty fullWidth size="small">
-                <MenuItem value="" disabled><em>选择文件</em></MenuItem>
+                <MenuItem value="" disabled><em>{t('viewer.selectFile')}</em></MenuItem>
                 {availableFiles.map((f) => <MenuItem key={f} value={f}>{f}</MenuItem>)}
               </Select>
             </Grid>
@@ -463,10 +498,10 @@ const Viewer: React.FC = () => {
           {!loadingContent && compareContent1 && compareContent2 && (
             <Grid container spacing={2}>
               <Grid item xs={6}>
-                <Paper sx={{ p: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'rgba(59,130,246,0.3)', borderRadius: 1, height: '70vh', overflow: 'auto' }}>
+                <Paper sx={{ p: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'rgba(59,130,246,0.3)', borderRadius: 1, height: '70vh', overflow: 'auto' }} ref={leftPanelRef} onScroll={handleLeftScroll}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
-                    <Chip label={`${compareWeek1}`} size="small" sx={{ bgcolor: 'rgba(59,130,246,0.1)', color: 'info.main', height: 18, fontSize: '0.6rem' }} />
-                    <Typography variant="caption" color="text.secondary">较新版本</Typography>
+                    <Chip label={`${compareWeek1}`} size="small" sx={{ bgcolor: 'rgba(59,130,246,0.1)', color: 'info.main', height: 18, fontSize: '0.65rem' }} />
+                    <Typography variant="caption" color="text.secondary">{t('viewer.newerVersion')}</Typography>
                   </Box>
                   <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"JetBrains Mono","Fira Code",monospace', margin: 0, fontSize: '0.7rem', lineHeight: 1.6 }}>
                     {diffLines
@@ -474,28 +509,47 @@ const Viewer: React.FC = () => {
                           <div
                             key={i}
                             style={{
-                              backgroundColor: item.type === 'added' ? 'rgba(34, 197, 94, 0.2)' : item.type === 'removed' ? 'rgba(239, 68, 68, 0.12)' : 'transparent',
-                              color: item.type === 'added' ? '#22C55E' : item.type === 'removed' ? '#EF4444' : '#F8FAFC',
+                              backgroundColor: item.type === 'added' ? DIFF_COLORS.added.bg : item.type === 'removed' ? 'transparent' : 'transparent',
+                              color: item.type === 'added' ? DIFF_COLORS.added.text : item.type === 'removed' ? DIFF_COLORS.removed.text : DIFF_COLORS.info.text,
+                              opacity: item.type === 'removed' ? 0.4 : 1,
                               paddingLeft: 16,
-                              borderLeft: item.type === 'added' ? '3px solid #22C55E' : item.type === 'removed' ? '3px solid #EF4444' : '3px solid transparent',
+                              borderLeft: item.type === 'added' ? `3px solid ${DIFF_COLORS.added.border}` : item.type === 'removed' ? `3px solid ${DIFF_COLORS.removed.border}` : '3px solid transparent',
+                              minHeight: '1.6em',
                             }}
                           >
-                            {item.text}
+                            {item.type === 'added' && '+ '}{item.type === 'removed' && '- '}{item.text}
                           </div>
                         ))
-                      : compareContent1.split('\n').map((line, i) => <div key={i} style={{ color: '#F8FAFC' }}>{line}</div>)
+                      : compareContent1.split('\n').map((line, i) => <div key={i} style={{ color: DIFF_COLORS.info.text }}>{line}</div>)
                     }
                   </pre>
                 </Paper>
               </Grid>
               <Grid item xs={6}>
-                <Paper sx={{ p: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'rgba(245,158,11,0.2)', borderRadius: 1, height: '70vh', overflow: 'auto' }}>
+                <Paper sx={{ p: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'rgba(245,158,11,0.2)', borderRadius: 1, height: '70vh', overflow: 'auto' }} ref={rightPanelRef} onScroll={handleRightScroll}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
-                    <Chip label={`${compareWeek2}`} size="small" sx={{ bgcolor: 'rgba(245,158,11,0.1)', color: 'warning.main', height: 18, fontSize: '0.6rem' }} />
-                    <Typography variant="caption" color="text.secondary">较旧版本</Typography>
+                    <Chip label={`${compareWeek2}`} size="small" sx={{ bgcolor: 'rgba(245,158,11,0.1)', color: 'warning.main', height: 18, fontSize: '0.65rem' }} />
+                    <Typography variant="caption" color="text.secondary">{t('viewer.olderVersion')}</Typography>
                   </Box>
-                  <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"JetBrains Mono","Fira Code",monospace', margin: 0, fontSize: '0.7rem', color: '#94A3B8', lineHeight: 1.6 }}>
-                    {compareContent2}
+                  <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"JetBrains Mono","Fira Code",monospace', margin: 0, fontSize: '0.7rem', lineHeight: 1.6 }}>
+                    {diffLines
+                      ? diffLines.map((item, i) => (
+                          <div
+                            key={i}
+                            style={{
+                              backgroundColor: item.type === 'removed' ? DIFF_COLORS.removed.bg : item.type === 'added' ? 'transparent' : 'transparent',
+                              color: item.type === 'removed' ? DIFF_COLORS.removed.text : item.type === 'added' ? DIFF_COLORS.added.text : DIFF_COLORS.same.text,
+                              opacity: item.type === 'added' ? 0.4 : 1,
+                              paddingLeft: 16,
+                              borderLeft: item.type === 'removed' ? `3px solid ${DIFF_COLORS.removed.border}` : item.type === 'added' ? `3px solid ${DIFF_COLORS.added.border}` : '3px solid transparent',
+                              minHeight: '1.6em',
+                            }}
+                          >
+                            {item.type === 'added' && '+ '}{item.type === 'removed' && '- '}{item.text}
+                          </div>
+                        ))
+                      : compareContent2.split('\n').map((line, i) => <div key={i} style={{ color: DIFF_COLORS.same.text }}>{line}</div>)
+                    }
                   </pre>
                 </Paper>
               </Grid>

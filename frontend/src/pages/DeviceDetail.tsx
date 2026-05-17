@@ -18,6 +18,15 @@ import {
   DialogActions,
   Card,
   Avatar,
+  Tabs,
+  Tab,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
 } from '@mui/material'
 import {
   Delete,
@@ -29,11 +38,18 @@ import {
   NetworkWifi,
   Description,
   LocationOn,
+  ViewModule,
+  TableChart,
+  Info,
 } from '@mui/icons-material'
 import { deviceApi, collectorApi } from '../services/api'
 import { sessionManager } from '../services/auth'
-import type { Device, CollectResult } from '../types'
+import FrontPanel from '../components/devices/FrontPanel'
+import type { Device, CollectResult, FrontPanelData, PortInfo } from '../types'
+import { useI18n } from '../i18n'
+
 const DeviceDetail: React.FC = () => {
+  const { t } = useI18n()
   const { name } = useParams()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
@@ -45,6 +61,12 @@ const DeviceDetail: React.FC = () => {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [collectError, setCollectError] = useState('')
+  const [tabIndex, setTabIndex] = useState(0)
+  const [frontPanelData, setFrontPanelData] = useState<FrontPanelData | null>(null)
+  const [frontPanelLoading, setFrontPanelLoading] = useState(false)
+  const [portSearch, setPortSearch] = useState('')
+  const [portSortField, setPortSortField] = useState<string>('name')
+  const [portSortDir, setPortSortDir] = useState<'asc' | 'desc'>('asc')
 
   useEffect(() => {
     loadDevice()
@@ -73,13 +95,28 @@ const DeviceDetail: React.FC = () => {
     }
   }
 
+  const loadFrontPanel = async () => {
+    if (!name) return
+    setFrontPanelLoading(true)
+    try {
+      const response = await fetch(`/api/data/${encodeURIComponent(name)}/ports/latest`)
+      if (response.ok) {
+        setFrontPanelData(await response.json())
+      }
+    } catch (error: unknown) {
+      console.error('加载前面板数据失败:', error)
+    } finally {
+      setFrontPanelLoading(false)
+    }
+  }
+
   const handleDelete = async () => {
     if (window.confirm(`确定要删除设备 "${name}" 吗？`)) {
       try {
         await deviceApi.delete(name!)
         navigate('/devices')
       } catch (error: unknown) {
-        alert(error instanceof Error ? error.message : '删除失败')
+        alert(error instanceof Error ? error.message : t('common.deleteFailed'))
       }
     }
   }
@@ -87,8 +124,8 @@ const DeviceDetail: React.FC = () => {
   const handleCollect = async () => {
     const session = sessionManager.getSession()
     if (!session) {
-      setCollectError('请先登录或重新登录')
-      alert('请先登录')
+      setCollectError(t('common.reLoginRequired'))
+      alert(t('common.pleaseLogin'))
       navigate('/login')
       return
     }
@@ -102,11 +139,18 @@ const DeviceDetail: React.FC = () => {
       setCollectError('')
       setShowCollect(true)
     } catch (error: unknown) {
-      const errorMsg = error instanceof Error ? error.message : '收集失败'
+      const errorMsg = error instanceof Error ? error.message : t('common.collectFailed')
       setCollectError(errorMsg)
       alert(errorMsg)
     } finally {
       setCollecting(false)
+    }
+  }
+
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    setTabIndex(newValue)
+    if (newValue === 1 && !frontPanelData) {
+      loadFrontPanel()
     }
   }
 
@@ -132,12 +176,24 @@ const DeviceDetail: React.FC = () => {
     }
   }
 
+  const getPortSortValue = (port: PortInfo, field: string): string | number => {
+    switch (field) {
+      case 'name': return port.name
+      case 'status': return port.status
+      case 'speed': return parseInt(port.speed || '0')
+      case 'rx_mbps': return port.rx_mbps || 0
+      case 'tx_mbps': return port.tx_mbps || 0
+      case 'total_mbps': return (port.rx_mbps || 0) + (port.tx_mbps || 0)
+      default: return ''
+    }
+  }
+
   if (loading) {
     return (
       <Container>
         <Paper sx={{ p: 4, textAlign: 'center' }}>
           <CircularProgress />
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>Loading device information...</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>{t('detail.loading')}</Typography>
         </Paper>
       </Container>
     )
@@ -147,9 +203,9 @@ const DeviceDetail: React.FC = () => {
     return (
       <Container>
         <Paper sx={{ p: 4, textAlign: 'center' }}>
-          <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>Device Not Found</Typography>
+          <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>{t('detail.notFound')}</Typography>
           <Button variant="contained" onClick={() => navigate('/devices')} startIcon={<Refresh />}>
-            Back to Device List
+            {t('detail.backToList')}
           </Button>
         </Paper>
       </Container>
@@ -174,6 +230,235 @@ const DeviceDetail: React.FC = () => {
         </Box>
       </Box>
     </Card>
+  )
+
+  const overviewTab = (
+    <Box>
+      {/* 基本信息 */}
+      <Paper sx={{ p: 2, mb: 3 }}>
+        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
+          {t('detail.deviceInfo')}
+        </Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
+            <InfoCard icon={<NetworkWifi sx={{ color: 'primary.main', fontSize: 18 }} />} label={t('detail.ipAddress')} value={formData.ip || 'N/A'} />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <InfoCard icon={<Description sx={{ color: 'primary.main', fontSize: 18 }} />} label={t('detail.platform')} value={formData.platform || 'N/A'} />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <InfoCard icon={<LocationOn sx={{ color: 'primary.main', fontSize: 18 }} />} label={t('detail.location')} value={formData.location || 'N/A'} />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <InfoCard icon={<Storage sx={{ color: 'primary.main', fontSize: 18 }} />} label={t('detail.serialNumber')} value={formData.serial_number || 'N/A'} />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <InfoCard icon={<Description sx={{ color: 'primary.main', fontSize: 18 }} />} label={t('detail.softwareVersion')} value={formData.version || 'N/A'} />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <InfoCard icon={<Description sx={{ color: 'primary.main', fontSize: 18 }} />} label={t('detail.notes')} value={formData.notes || 'N/A'} />
+          </Grid>
+          {device.uplink_ports && device.uplink_ports.length > 0 && (
+            <Grid item xs={12}>
+              <InfoCard icon={<NetworkWifi sx={{ color: 'primary.main', fontSize: 18 }} />} label={t('detail.uplinkPorts')} value={device.uplink_ports.join(', ')} />
+            </Grid>
+          )}
+        </Grid>
+      </Paper>
+
+      {/* 收集结果 */}
+      {collectResult && (
+        <Paper sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.875rem' }}>
+              {t('detail.collectionResult')}
+            </Typography>
+            <Chip label={collectResult.status === 'success' ? t('detail.success') : t('detail.failed')} color={collectResult.status === 'success' ? 'success' : 'error'} sx={{ fontWeight: 600 }} />
+          </Box>
+
+          {collectResult.status === 'success' && (
+            <Card sx={{ p: 2, bgcolor: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', mb: 2 }}>
+              <Typography variant="body1" color="success.main" gutterBottom>
+                <CheckCircle sx={{ mr: 1, fontSize: 18, verticalAlign: 'middle' }} />
+                {t('detail.runningLines')}: {collectResult.running_lines}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: '0.75rem' }}>
+                {t('detail.softwareVersion')}: {collectResult.software_version}
+              </Typography>
+            </Card>
+          )}
+
+          {collectError && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {collectError}
+            </Alert>
+          )}
+        </Paper>
+      )}
+    </Box>
+  )
+
+  const frontPanelTab = (
+    <Box>
+      {frontPanelLoading ? (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <CircularProgress size={24} />
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>{t('detail.loadPortDataHint')}</Typography>
+        </Paper>
+      ) : frontPanelData ? (
+        <Box>
+          {/* 汇总卡片 */}
+          <Grid container spacing={2} sx={{ mb: 3 }}>
+            <Grid item xs={6} sm={3}>
+              <Card sx={{ p: 2, textAlign: 'center', bgcolor: 'rgba(59,130,246,0.06)' }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: '#3B82F6' }}>{frontPanelData.total_ports}</Typography>
+                <Typography variant="caption" color="text.secondary">{t('detail.totalPorts')}</Typography>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Card sx={{ p: 2, textAlign: 'center', bgcolor: 'rgba(34,197,94,0.06)' }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: '#22C55E' }}>{frontPanelData.up_ports}</Typography>
+                <Typography variant="caption" color="text.secondary">{t('detail.up')}</Typography>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Card sx={{ p: 2, textAlign: 'center', bgcolor: 'rgba(148,163,184,0.06)' }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: '#94A3B8' }}>{frontPanelData.down_ports}</Typography>
+                <Typography variant="caption" color="text.secondary">{t('detail.down')}</Typography>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Card sx={{ p: 2, textAlign: 'center', bgcolor: 'rgba(239,68,68,0.06)' }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: frontPanelData.error_ports > 0 ? '#EF4444' : '#22C55E' }}>{frontPanelData.error_ports}</Typography>
+                <Typography variant="caption" color="text.secondary">{t('detail.error')}</Typography>
+              </Card>
+            </Grid>
+          </Grid>
+          <FrontPanel ports={frontPanelData.ports} deviceName={device.name} deviceType={device.type} />
+        </Box>
+      ) : (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography color="text.secondary">{t('detail.noPortData')}</Typography>
+        </Paper>
+      )}
+    </Box>
+  )
+
+  const sortedPorts = frontPanelData ? [...frontPanelData.ports].sort((a, b) => {
+    const va = getPortSortValue(a, portSortField)
+    const vb = getPortSortValue(b, portSortField)
+    if (typeof va === 'number' && typeof vb === 'number') {
+      return portSortDir === 'asc' ? va - vb : vb - va
+    }
+    return portSortDir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va))
+  }) : []
+
+  const filteredPorts = portSearch
+    ? sortedPorts.filter((p) => p.name.toLowerCase().includes(portSearch.toLowerCase()) || (p.description || '').toLowerCase().includes(portSearch.toLowerCase()))
+    : sortedPorts
+
+  const handlePortSort = (field: string) => {
+    if (portSortField === field) {
+      setPortSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setPortSortField(field)
+      setPortSortDir('asc')
+    }
+  }
+
+  const portSortStyle = (field: string) => ({
+    cursor: 'pointer',
+    userSelect: 'none',
+    '&:hover': { color: 'primary.main' },
+    color: portSortField === field ? 'primary.main' : 'text.secondary',
+  } as const)
+
+  const portListTab = (
+    <Box>
+      {frontPanelLoading ? (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <CircularProgress size={24} />
+        </Paper>
+      ) : frontPanelData ? (
+        <Paper sx={{ p: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="subtitle2" color="text.secondary">
+              {t('detail.portCount').replace('{count}', String(frontPanelData.ports.length))}
+            </Typography>
+            <TextField
+              size="small"
+              placeholder={t('detail.searchPort')}
+              value={portSearch}
+              onChange={(e) => setPortSearch(e.target.value)}
+              sx={{ width: 250, '& .MuiInputBase-root': { fontSize: '0.75rem' } }}
+            />
+          </Box>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell onClick={() => handlePortSort('name')} sx={portSortStyle('name')}>
+                    {t('detail.portName')} {portSortField === 'name' ? (portSortDir === 'asc' ? '▲' : '▼') : ''}
+                  </TableCell>
+                  <TableCell onClick={() => handlePortSort('status')} sx={portSortStyle('status')}>
+                    {t('detail.portStatus')} {portSortField === 'status' ? (portSortDir === 'asc' ? '▲' : '▼') : ''}
+                  </TableCell>
+                  <TableCell>{t('detail.portMode')}</TableCell>
+                  <TableCell>{t('detail.portSpeed')}</TableCell>
+                  <TableCell>{t('detail.portDesc')}</TableCell>
+                  <TableCell onClick={() => handlePortSort('rx_mbps')} sx={portSortStyle('rx_mbps')}>
+                    {t('detail.portRx')} {portSortField === 'rx_mbps' ? (portSortDir === 'asc' ? '▲' : '▼') : ''}
+                  </TableCell>
+                  <TableCell onClick={() => handlePortSort('tx_mbps')} sx={portSortStyle('tx_mbps')}>
+                    {t('detail.portTx')} {portSortField === 'tx_mbps' ? (portSortDir === 'asc' ? '▲' : '▼') : ''}
+                  </TableCell>
+                  <TableCell>{t('detail.portUplink')}</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredPorts.map((port) => (
+                  <TableRow key={port.name} hover>
+                    <TableCell sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem', fontWeight: 500 }}>
+                      {port.name}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={port.status}
+                        size="small"
+                        sx={{
+                          bgcolor: port.status_up ? 'rgba(34,197,94,0.12)' : 'rgba(148,163,184,0.08)',
+                          color: port.status_up ? 'success.main' : 'text.secondary',
+                          height: 20,
+                          fontSize: '0.65rem',
+                        }}
+                      />
+                    </TableCell>
+                    <TableCell sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{port.mode || '-'}</TableCell>
+                    <TableCell sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{port.speed || '-'}</TableCell>
+                    <TableCell sx={{ fontSize: '0.75rem', color: 'text.secondary', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {port.description || '-'}
+                    </TableCell>
+                    <TableCell sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.7rem' }}>
+                      {port.rx_mbps !== undefined ? port.rx_mbps.toFixed(2) : '-'}
+                    </TableCell>
+                    <TableCell sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.7rem' }}>
+                      {port.tx_mbps !== undefined ? port.tx_mbps.toFixed(2) : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {port.is_uplink ? <Chip label="Uplink" size="small" sx={{ bgcolor: 'rgba(245,158,11,0.12)', color: 'warning.main', height: 20, fontSize: '0.65rem' }} /> : '-'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      ) : (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography color="text.secondary">{t('detail.loadPortData')}</Typography>
+        </Paper>
+      )}
+    </Box>
   )
 
   return (
@@ -216,62 +501,18 @@ const DeviceDetail: React.FC = () => {
         </Box>
       </Paper>
 
-      {/* 基本信息 */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2 }}>
-          Device Information
-        </Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} sm={6}>
-            <InfoCard icon={<NetworkWifi sx={{ color: 'primary.main', fontSize: 18 }} />} label="IP Address" value={formData.ip || 'N/A'} />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <InfoCard icon={<Description sx={{ color: 'primary.main', fontSize: 18 }} />} label="Platform" value={formData.platform || 'N/A'} />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <InfoCard icon={<LocationOn sx={{ color: 'primary.main', fontSize: 18 }} />} label="Location" value={formData.location || 'N/A'} />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <InfoCard icon={<Storage sx={{ color: 'primary.main', fontSize: 18 }} />} label="Serial Number (SN)" value={formData.serial_number || 'N/A'} />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <InfoCard icon={<Description sx={{ color: 'primary.main', fontSize: 18 }} />} label="Software Version" value={formData.version || 'N/A'} />
-          </Grid>
-          <Grid item xs={12} sm={6}>
-            <InfoCard icon={<Description sx={{ color: 'primary.main', fontSize: 18 }} />} label="Notes" value={formData.notes || 'N/A'} />
-          </Grid>
-        </Grid>
+      {/* Tabs */}
+      <Paper sx={{ mb: 3 }}>
+        <Tabs value={tabIndex} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider', px: 1 }}>
+          <Tab icon={<Info />} iconPosition="start" label={t('detail.tabOverview')} />
+          <Tab icon={<ViewModule />} iconPosition="start" label={t('detail.tabFrontPanel')} />
+          <Tab icon={<TableChart />} iconPosition="start" label={t('detail.tabPortList')} />
+        </Tabs>
       </Paper>
 
-      {/* 收集结果 */}
-      {collectResult && (
-        <Paper sx={{ p: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.875rem' }}>
-              Collection Result
-            </Typography>
-            <Chip label={collectResult.status === 'success' ? 'Success' : 'Failed'} color={collectResult.status === 'success' ? 'success' : 'error'} sx={{ fontWeight: 600 }} />
-          </Box>
-
-          {collectResult.status === 'success' && (
-            <Card sx={{ p: 2, bgcolor: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', mb: 2 }}>
-              <Typography variant="body1" color="success.main" gutterBottom>
-                <CheckCircle sx={{ mr: 1, fontSize: 18, verticalAlign: 'middle' }} />
-                Running Config Lines: {collectResult.running_lines}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 1, fontSize: '0.75rem' }}>
-                Software Version: {collectResult.software_version}
-              </Typography>
-            </Card>
-          )}
-
-          {collectError && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {collectError}
-            </Alert>
-          )}
-        </Paper>
-      )}
+      {tabIndex === 0 && overviewTab}
+      {tabIndex === 1 && frontPanelTab}
+      {tabIndex === 2 && portListTab}
 
       {/* 收集结果弹窗 */}
       {showCollect && collectResult?.status === 'success' && (

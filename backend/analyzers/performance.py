@@ -2,36 +2,47 @@
 性能分析模块
 - 接口状态分析
 - 错误计数统计
-- 利用率趋势
+- 利用率解析
 """
 
 import json
-from analyzers._helpers import extract_device_name, get_iso_timestamp
 import re
-from typing import Dict, List, Any
+from analyzers._helpers import extract_device_name, get_iso_timestamp
+from typing import Dict, List, Any, Optional
 from collections import defaultdict
 
 
 class PerformanceAnalyzer:
     """性能分析器"""
 
-    def __init__(self, interface_status: str, config: str = "", device_type: str = ""):
+    def __init__(self, interface_status: str, config: str = "", device_type: str = "",
+                 interface_utilization: str = "", uplink_ports: Optional[List[str]] = None):
         self.interface_status = interface_status
         self.config = config
         self.device_type = device_type
+        self.interface_utilization = interface_utilization
+        self.uplink_ports = set(uplink_ports or [])
         self.interface_lines = [l for l in interface_status.splitlines() if l.strip()]
 
     def analyze(self) -> Dict[str, Any]:
         """执行所有分析"""
+        interface_summary = self._analyze_interfaces()
+        utilization_data = self._analyze_utilization()
+        details = interface_summary.get("details", [])
+        self._enrich_port_details(details, utilization_data)
+
         results = {
             "device": extract_device_name(self.config),
             "timestamp": get_iso_timestamp(),
-            "interface_summary": self._analyze_interfaces(),
+            "interface_summary": interface_summary,
             "errors": self._analyze_errors(),
-            "utilization": self._analyze_utilization()
+            "utilization": self._build_utilization_summary(details)
         }
         return results
 
+    # =========================================================================
+    # 接口状态解析
+    # =========================================================================
 
     def _analyze_interfaces(self) -> Dict[str, Any]:
         """根据设备类型分析接口状态"""
@@ -41,15 +52,18 @@ class PerformanceAnalyzer:
         if self.device_type == "cisco_ios":
             return self._parse_cisco_ios()
         elif self.device_type == "aruba_aoscx":
-            return self._parse_aruba()
+            return self._parse_aruba_cx()
         else:
             return self._parse_generic()
 
     def _parse_cisco_ios(self) -> Dict[str, Any]:
-        """Cisco IOS show interface status 格式
-        Port      Name               Status       Vlan       Duplex Speed Type
-        Gi1/0/1                      connected    1          a-full a-1000 10/100/1000BaseTX
-        Gi1/0/2   Uplink to Core     notconnect   1          auto   auto   10/100/1000BaseTX
+        """Cisco IOS show interface status
+
+        Cisco show interface status 列:
+          Port  Name  Status  Vlan  Duplex  Speed  Type
+
+        Name列可为空，导致后续列左移。解析策略：找到Status值后，
+        以相对偏移取Speed/Type，避免列偏移问题。
         """
         up_statuses = {"connected", "up"}
         down_statuses = {"notconnect", "disabled", "err-disabled", "down", "inactive", "monitoring"}
@@ -63,109 +77,196 @@ class PerformanceAnalyzer:
             if len(parts) < 2:
                 continue
 
-            # 跳过表头行
             if parts[0].lower() in ("port", "interface"):
                 continue
 
             name = parts[0]
-            # Cisco IOS status 通常在位置 1（名称列为空时）或根据内容推断
-            # 检查 parts 中是否有已知状态值
-            status = parts[1] if len(parts) >= 2 else ""
+            if name.lower().startswith("vlan") or name.lower().startswith("loopback"):
+                continue
+
+            # 找到Status列位置（通过关键字匹配）
+            status_pos = None
             found_status = None
-            for p in parts[1:5]:
+            for i, p in enumerate(parts[1:], start=1):
                 p_lower = p.lower().rstrip(",")
                 if p_lower in up_statuses or p_lower in down_statuses:
+                    status_pos = i
                     found_status = p_lower
                     break
 
-            if found_status:
-                status = found_status
-                if status in up_statuses:
-                    up_count += 1
-                elif status in down_statuses:
-                    down_count += 1
+            if not found_status:
+                found_status = parts[1] if len(parts) > 1 else "unknown"
+                status_pos = 1
+
+            # 描述: Port之后、Status之前的所有字段
+            if status_pos > 2:
+                description = " ".join(parts[1:status_pos])
+            elif status_pos == 2:
+                description = parts[1] if parts[1] != found_status else None
             else:
-                # 无法识别状态，仍记录
-                status = parts[1]
+                description = None
 
-            details.append({
-                "name": name,
-                "status": status,
-                "status_up": status in up_statuses
-            })
+            # Speed: Status之后第2列 (跳过Vlan, Duplex)
+            speed_raw = parts[status_pos + 3] if status_pos + 3 < len(parts) else None
+            speed = self._normalize_cisco_speed(speed_raw)
 
-        return {
-            "total": len(self.interface_lines),
-            "up": up_count,
-            "down": down_count,
-            "details": details[:20]
-        }
+            # Type: Status之后第3列
+            port_type = parts[status_pos + 4] if status_pos + 4 < len(parts) else None
 
-    def _parse_aruba(self) -> Dict[str, Any]:
-        """Aruba show interface brief / show interfaces brief 格式
-        Port        Type           Speed    Mode    Status
-        1/1/1       1000BASE-T     auto     auto    up
+            is_up = found_status in up_statuses
+            if is_up:
+                up_count += 1
+            elif found_status in down_statuses:
+                down_count += 1
 
-        或 Aruba CX:
-        Port        Type           Speed    Mode    Status  Flow Ctrl  MDI
-        -------------------------------------------------------------------
-        1/1/1       1000BASE-T     auto     auto    up      off        auto
+            details.append(self._build_port_detail(name, found_status, is_up, speed, None, port_type, description))
 
-        或 Aruba OS show interfaces brief:
-        Status and Counters - Port Status
-        Port  Type        ... Status Mode ...
-        1     1000BASE-T   ... Up     1000FDx ...
+        return {"total": len(details), "up": up_count, "down": down_count, "details": details}
+
+    @staticmethod
+    def _normalize_cisco_speed(raw: Optional[str]) -> Optional[str]:
+        """规范化Cisco speed值: a-1000→1000, 10G→10000, auto/Not Present→None"""
+        if not raw:
+            return None
+        raw = raw.rstrip(",")
+        # a-1000 → 1000, a-100 → 100
+        m = re.match(r'^a-(\d+)$', raw)
+        if m:
+            return m.group(1)
+        # 10G → 10000
+        m = re.match(r'^(\d+)G$', raw)
+        if m:
+            return str(int(m.group(1)) * 1000)
+        # 纯数字
+        if raw.isdigit():
+            return raw
+        # auto, Not Present, -- 等
+        if raw.lower() in ("auto", "not present", "--", ""):
+            return None
+        return raw
+
+    def _parse_aruba_cx(self) -> Dict[str, Any]:
+        """Aruba CX show interface brief
+
+        列: Port | Native_VLAN | Mode | Type | Enabled | Status | [Reason] | Speed | Description
+        Reason列在status=up时为空，导致后续列向左偏移。
+        策略：找到Status列后，如果下一列为非纯数字文本则跳过。
         """
         up_count = 0
         down_count = 0
+        disabled_count = 0
         details = []
-        status_col_index = None
+        header_parsed = False
+        col_index = {}
 
         for line in self.interface_lines:
             parts = line.split()
             if len(parts) < 2:
                 continue
 
-            # 检测表头行，找到 Status 列位置
-            headers = [p.lower().rstrip(",") for p in parts]
-            if "status" in headers:
-                status_col_index = headers.index("status")
-                continue
-
-            # 跳过分隔线
             if all(c in "- " for c in line.strip()):
                 continue
 
+            headers_lower = [p.lower().rstrip(",") for p in parts]
+
+            if not header_parsed:
+                if "status" in headers_lower and ("port" in headers_lower or "interface" in headers_lower):
+                    for i, h in enumerate(headers_lower):
+                        if h in ("port",):
+                            col_index["port"] = i
+                        elif h in ("vlan", "native"):
+                            col_index["native_vlan"] = i
+                        elif h in ("mode",):
+                            col_index["mode"] = i
+                        elif h in ("type",):
+                            col_index["type"] = i
+                        elif h in ("enabled",):
+                            col_index["enabled"] = i
+                        elif h in ("status",):
+                            col_index["status"] = i
+                        elif h in ("speed",):
+                            col_index["speed"] = i
+                        elif h in ("description",):
+                            col_index["description"] = i
+                    header_parsed = True
+                continue
+
+            if parts[0].lower().startswith("vlan") or parts[0].lower().startswith("loopback"):
+                continue
+
             name = parts[0]
-            status = "unknown"
 
-            if status_col_index is not None and status_col_index < len(parts):
-                status = parts[status_col_index].lower()
-            else:
-                # 回退：查找包含 up/down 的部分
+            # 通过header索引取列
+            def _col(key):
+                idx = col_index.get(key)
+                return parts[idx] if idx is not None and idx < len(parts) else None
+
+            # status 始终在 header 定义的索引处
+            status = _col("status")
+            if status is None:
                 for p in parts[1:]:
-                    p_lower = p.lower()
-                    if p_lower in ("up", "down", "administratively"):
-                        status = p_lower
+                    pl = p.lower()
+                    if pl in ("up", "down", "administratively"):
+                        status = pl
                         break
+                if status is None:
+                    status = "unknown"
 
-            is_up = status == "up"
+            status_lower = status.lower() if status else "unknown"
+            is_up = status_lower == "up"
+
             if is_up:
                 up_count += 1
-            elif status in ("down", "administratively"):
-                down_count += 1
+            elif status_lower in ("down", "administratively"):
+                if status_lower == "administratively":
+                    disabled_count += 1
+                else:
+                    down_count += 1
 
-            details.append({
-                "name": name,
-                "status": status,
-                "status_up": is_up
-            })
+            # 提取 speed/mode/type/description
+            # 找到 status 的实际位置（可能不等于 header 索引）
+            status_pos = None
+            for i, p in enumerate(parts):
+                if p.lower() == status_lower:
+                    status_pos = i
+                    break
+
+            # speed: Description总是最后一列，speed在Description之前
+            # 从后向前扫描，找到第一个匹配数字或"--"的字段
+            speed = None
+            for i in range(len(parts) - 1, status_pos, -1):
+                p = parts[i]
+                if re.match(r'^[\d,]+$', p) or p == '--':
+                    speed = p
+                    break
+
+            # 如果header索引的speed有效则优先使用
+            header_speed = _col("speed")
+            if header_speed and re.match(r'^[\d,]+$', header_speed):
+                speed = header_speed
+
+            mode = _col("mode")
+            port_type = _col("type")
+            desc = None
+            # 描述通常在最后
+            if len(parts) > 6:
+                last = parts[-1]
+                if last not in (speed, mode, port_type):
+                    desc = last
+
+            native_vlan = _col("native_vlan")
+
+            detail = self._build_port_detail(
+                name, status_lower, is_up, speed, mode, port_type, desc,
+                native_vlan=native_vlan
+            )
+            details.append(detail)
 
         return {
-            "total": len(self.interface_lines),
+            "total": len(details),
             "up": up_count,
-            "down": down_count,
-            "details": details[:20]
+            "down": down_count + disabled_count,
+            "details": details
         }
 
     def _parse_generic(self) -> Dict[str, Any]:
@@ -194,50 +295,272 @@ class PerformanceAnalyzer:
                     down_count += 1
                     break
 
-            details.append({
-                "name": name,
-                "status": status,
-                "status_up": "up" in status.lower() or "connected" in status.lower()
-            })
+            is_up = "up" in status.lower() or "connected" in status.lower()
+            details.append(self._build_port_detail(name, status, is_up))
 
-        return {
-            "total": len(self.interface_lines),
-            "up": up_count,
-            "down": down_count,
-            "details": details[:20]
+        return {"total": len(details), "up": up_count, "down": down_count, "details": details}
+
+    # =========================================================================
+    # 端口详情构建
+    # =========================================================================
+
+    def _build_port_detail(self, name: str, status: str, is_up: bool,
+                           speed: Optional[str] = None, mode: Optional[str] = None,
+                           port_type: Optional[str] = None, description: Optional[str] = None,
+                           native_vlan: Optional[str] = None) -> Dict[str, Any]:
+        """构建单个端口详情"""
+        is_uplink = name in self.uplink_ports
+
+        detail = {
+            "name": name,
+            "status": status,
+            "status_up": is_up,
+            "is_uplink": is_uplink,
         }
+        if speed is not None and speed != "--":
+            detail["speed"] = speed
+        if mode is not None and mode != "--":
+            detail["mode"] = mode
+        if port_type is not None and port_type != "--":
+            detail["type"] = port_type
+        if description is not None and description != "--":
+            detail["description"] = description.strip()
+        if native_vlan is not None and native_vlan != "--":
+            detail["native_vlan"] = native_vlan
+
+        return detail
+
+    # =========================================================================
+    # 错误分析
+    # =========================================================================
 
     def _analyze_errors(self) -> Dict[str, Any]:
-        """分析错误"""
+        """分析接口错误"""
         error_counts = defaultdict(int)
+        error_ports = defaultdict(list)
 
         for line in self.interface_lines:
-            if "err-disabled" in line.lower():
+            parts = line.split()
+            if len(parts) < 2:
+                continue
+            port_name = parts[0]
+
+            line_lower = line.lower()
+            if "err-disabled" in line_lower:
                 error_counts["err-disabled"] += 1
-            if "discards" in line.lower():
+                error_ports["err-disabled"].append(port_name)
+            if "discards" in line_lower:
                 error_counts["discards"] += 1
-            if "dropped" in line.lower():
+                error_ports["discards"].append(port_name)
+            if "dropped" in line_lower:
                 error_counts["dropped"] += 1
-            if "overruns" in line.lower():
+                error_ports["dropped"].append(port_name)
+            if "overruns" in line_lower:
                 error_counts["overruns"] += 1
+                error_ports["overruns"].append(port_name)
 
-        return dict(error_counts)
+        return {"counts": dict(error_counts), "ports": dict(error_ports)}
 
-    def _analyze_utilization(self) -> Dict[str, Any]:
-        """分析利用率（从配置中估算）"""
-        utilization = {}
+    # =========================================================================
+    # 利用率解析
+    # =========================================================================
 
-        # 从配置中提取接口负载信息
-        load_matches = re.findall(r"load\s+average\s+:\s+\S+\s+(\d+\.?\d*)", self.config)
-        if load_matches:
-            utilization["load_averages"] = load_matches[:10]
+    def _analyze_utilization(self) -> Dict[str, Dict[str, Any]]:
+        """解析 interface-utilization.raw 获取每端口流量数据
 
-        # 从配置中提取带宽信息
-        bandwidth_info = re.findall(r"Bandwidth\s+(\d+)", self.config)
-        if bandwidth_info:
-            utilization["bandwidth_range"] = {
-                "min": min(bandwidth_info),
-                "max": max(bandwidth_info)
+        Returns:
+            { port_name: { rx_mbps, tx_mbps, total_mbps, rx_util_pct, ... } }
+        """
+        if not self.interface_utilization:
+            return {}
+
+        if self.device_type == "aruba_aoscx":
+            return self._parse_aruba_utilization()
+        elif self.device_type == "cisco_ios":
+            return self._parse_cisco_utilization()
+        return {}
+
+    def _parse_aruba_utilization(self) -> Dict[str, Dict[str, Any]]:
+        """解析 Aruba CX show interface utilization 表格"""
+        result = {}
+        header_lines_seen = 0
+
+        for line in self.interface_utilization.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+
+            # 跳过分隔线
+            if all(c in "- " for c in stripped):
+                continue
+
+            # 检测并跳过表头行（跨两行: "RX|TX|Total" + "Mbps|KPkt/s|Util%"）
+            if header_lines_seen < 2:
+                is_header = (
+                    ("RX" in stripped and "TX" in stripped) or
+                    ("Mbps" in stripped and "Util%" in stripped) or
+                    ("Interface" in stripped and "Interval" in stripped)
+                )
+                if is_header:
+                    header_lines_seen += 1
+                    continue
+
+            parts = stripped.split()
+            if len(parts) < 11:
+                continue
+
+            # 端口名：第一个字段，最多跟一个 LAG 标记
+            # 如: "1/1/1" 或 "1/1/5" + "- lag1" 格式（parts[0]="1/1/5", parts[1]="-", parts[2]="lag1"）
+            port_name = parts[0]
+            data_offset = 1
+
+            # 处理 "1/1/5  - lag1" 格式：跳过 "-" 和 "lagN" 标记
+            if len(parts) > 2 and parts[1] == "-" and parts[2].startswith("lag"):
+                port_name = parts[0]  # 主端口名
+                data_offset = 3
+
+            data = parts[data_offset:]
+
+            # 至少需要: interval, rx_mbps, rx_kpps, rx_util, tx_mbps, tx_kpps, tx_util, total_mbps, total_kpps, total_util
+            if len(data) < 10:
+                continue
+
+            try:
+                result[port_name] = {
+                    "interval_sec": int(data[0]),
+                    "rx_mbps": float(data[1]),
+                    "rx_kpps": float(data[2]),
+                    "rx_util_pct": float(data[3]),
+                    "tx_mbps": float(data[4]),
+                    "tx_kpps": float(data[5]),
+                    "tx_util_pct": float(data[6]),
+                    "total_mbps": float(data[7]),
+                    "total_kpps": float(data[8]),
+                    "total_util_pct": float(data[9]),
+                }
+            except (ValueError, IndexError):
+                continue
+
+        return result
+
+    def _parse_cisco_utilization(self) -> Dict[str, Dict[str, Any]]:
+        """解析 Cisco IOS show interfaces | include rate|load|packets 输出
+
+        每个接口输出块:
+            reliability 255/255, txload 1/255, rxload 1/255
+            5 minute input rate 7000 bits/sec, 7 packets/sec
+            5 minute output rate 12000 bits/sec, 6 packets/sec
+
+        Cisco输出不含接口名，这里只能按块顺序存储（与interface-status顺序对齐）。
+        由于不确定性高，此解析为基本实现。
+        """
+        result = {}
+        blocks = []
+        current_block = None
+
+        for line in self.interface_utilization.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+
+            # reliability行标志新接口块开始
+            if stripped.startswith("reliability"):
+                if current_block:
+                    blocks.append(current_block)
+                current_block = {"input_rate_bps": 0, "input_rate_pps": 0,
+                                 "output_rate_bps": 0, "output_rate_pps": 0}
+                # 解析 rxload/txload
+                m = re.search(r'rxload\s+(\d+)/255', stripped)
+                if m:
+                    current_block["rxload"] = int(m.group(1))
+                m = re.search(r'txload\s+(\d+)/255', stripped)
+                if m:
+                    current_block["txload"] = int(m.group(1))
+                continue
+
+            if current_block is None:
+                continue
+
+            # 5 minute input rate
+            m = re.search(r'5 minute input rate\s+(\d+)\s+bits/sec,\s+(\d+)\s+packets/sec', stripped)
+            if m:
+                current_block["input_rate_bps"] = int(m.group(1))
+                current_block["input_rate_pps"] = int(m.group(2))
+                continue
+
+            # 5 minute output rate
+            m = re.search(r'5 minute output rate\s+(\d+)\s+bits/sec,\s+(\d+)\s+packets/sec', stripped)
+            if m:
+                current_block["output_rate_bps"] = int(m.group(1))
+                current_block["output_rate_pps"] = int(m.group(2))
+                continue
+
+        if current_block:
+            blocks.append(current_block)
+
+        # 按索引存储，后续通过_enrich_port_details与status列表对齐
+        for i, block in enumerate(blocks):
+            result[f"_cisco_block_{i}"] = {
+                "rx_mbps": round(block["input_rate_bps"] / 1_000_000, 4),
+                "rx_pps": block["input_rate_pps"],
+                "tx_mbps": round(block["output_rate_bps"] / 1_000_000, 4),
+                "tx_pps": block["output_rate_pps"],
+                "rxload": block.get("rxload", 0),
+                "txload": block.get("txload", 0),
             }
 
-        return utilization
+        return result
+
+    # =========================================================================
+    # 数据合并
+    # =========================================================================
+
+    def _enrich_port_details(self, details: List[Dict[str, Any]],
+                             utilization_data: Dict[str, Dict[str, Any]]):
+        """将利用率数据合并到端口详情中"""
+        for i, detail in enumerate(details):
+            port_name = detail.get("name", "")
+
+            util = utilization_data.get(port_name)
+
+            # Cisco设备按索引对齐
+            if util is None and self.device_type == "cisco_ios":
+                block_key = f"_cisco_block_{i}"
+                util = utilization_data.get(block_key)
+
+            if util:
+                for key in ("rx_mbps", "tx_mbps", "total_mbps",
+                            "rx_util_pct", "tx_util_pct", "total_util_pct",
+                            "rx_kpps", "tx_kpps", "total_kpps",
+                            "rx_pps", "tx_pps", "rxload", "txload",
+                            "interval_sec"):
+                    if key in util:
+                        detail[key] = util[key]
+
+    def _build_utilization_summary(self, details: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """从已合并的端口详情中构建利用率汇总"""
+        if not details:
+            return {}
+
+        total_rx_mbps = 0.0
+        total_tx_mbps = 0.0
+        max_util_port = None
+        max_util = 0
+
+        for detail in details:
+            rx = detail.get("rx_mbps", 0) or 0
+            tx = detail.get("tx_mbps", 0) or 0
+            total_rx_mbps += rx
+            total_tx_mbps += tx
+            pct = detail.get("total_util_pct", 0) or (rx + tx)
+            if pct > max_util:
+                max_util = pct
+                max_util_port = detail.get("name")
+
+        return {
+            "total_rx_mbps": round(total_rx_mbps, 2),
+            "total_tx_mbps": round(total_tx_mbps, 2),
+            "max_util_port": max_util_port,
+            "max_util_pct": max_util,
+            "port_count_with_traffic": sum(1 for d in details if (d.get("rx_mbps") or 0) > 0 or (d.get("tx_mbps") or 0) > 0)
+        }
