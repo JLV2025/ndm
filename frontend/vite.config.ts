@@ -9,7 +9,16 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:8002',
-        changeOrigin: true
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('proxyRes', (proxyRes) => {
+            if (proxyRes.headers.location) {
+              proxyRes.headers.location = proxyRes.headers.location.replace(
+                'http://localhost:8002', 'http://localhost:3000'
+              )
+            }
+          })
+        }
       },
       '/data': {
         target: 'http://127.0.0.1:8001',
