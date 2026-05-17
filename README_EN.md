@@ -9,6 +9,7 @@ SSH-based configuration and log collection for Cisco IOS and Aruba OS switches, 
 - **Device Management** — Add, edit, delete devices; filter by type and location
 - **Config Collection** — One-click retrieval of running-config, startup-config, logs, interface status, and version info
 - **Online Viewer** — Syntax-highlighted config viewer with version diff comparison
+- **Front Panel Visualization** — Port status front panel diagram with stack support and uplink port auto-detection
 - **Basic Analysis** — Config completeness validation, interface status summary, change detection
 - **Weekly Archival** — `data/{device}/YYYY-WW/` directory structure, retains last 10 weeks
 - **Single-Port Deployment** — Frontend static files served directly by FastAPI
@@ -126,7 +127,7 @@ Once the backend is running, visit `http://localhost:8002/docs` for the Swagger 
 ndm/
 ├── backend/                 # FastAPI backend
 │   ├── main.py              # Entry point, includes frontend hosting & SPA fallback
-│   ├── api/                 # Routers: devices, collection, data, auth
+│   ├── api/                 # Routers: devices, collection, data, auth, stats
 │   ├── services/            # Business logic: SSH collection, device management
 │   ├── analyzers/           # Analysis: config validation, performance, change detection
 │   ├── collectors/          # Netmiko SSH connection layer
@@ -135,7 +136,7 @@ ndm/
 │   └── src/
 │       ├── pages/           # Pages: Dashboard, DeviceList, DeviceDetail, Viewer, Login
 │       ├── services/        # API calls + auth management
-│       └── components/      # Shared components
+│       └── components/      # Shared components (MatrixRain bg, FrontPanel etc.)
 ├── config/                  # YAML configuration files
 ├── data/                    # Collected data (weekly archival)
 └── start.bat                # Windows one-click launcher

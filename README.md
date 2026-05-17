@@ -9,6 +9,7 @@
 - **设备管理** — 添加、编辑、删除设备，按类型 / 位置筛选
 - **配置收集** — 一键收集 running-config、startup-config、日志、接口状态、版本信息
 - **在线查看** — 代码高亮查看配置内容，支持版本对比（diff）
+- **前面板可视化** — 交换机端口状态前面板示意图，支持堆叠设备、上行端口自动识别
 - **基础分析** — 配置完整性验证、接口状态统计、变更检测
 - **按周归档** — `data/设备名/YYYY-WW/` 目录结构，自动保留最近 10 个版本
 - **单一端口部署** — 前端静态文件由 FastAPI 直接托管，一个命令启动
@@ -126,7 +127,7 @@ data/
 ndm/
 ├── backend/                 # FastAPI 后端
 │   ├── main.py              # 入口，含前端静态托管及 SPA 回退
-│   ├── api/                 # 路由：设备、收集、数据、认证
+│   ├── api/                 # 路由：设备、收集、数据、认证、统计
 │   ├── services/            # 业务逻辑：SSH 收集、设备管理
 │   ├── analyzers/           # 分析：配置验证、性能、变更检测
 │   ├── collectors/          # Netmiko SSH 连接层
@@ -135,7 +136,7 @@ ndm/
 │   └── src/
 │       ├── pages/           # 页面：Dashboard, DeviceList, DeviceDetail, Viewer, Login
 │       ├── services/        # API 调用 + 认证管理
-│       └── components/      # 通用组件
+│       └── components/      # 通用组件（MatrixRain 背景、FrontPanel 前面板等）
 ├── config/                  # YAML 配置文件
 ├── data/                    # 收集数据（按周归档）
 └── start.bat                # Windows 一键启动脚本
