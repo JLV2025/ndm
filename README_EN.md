@@ -26,32 +26,43 @@ SSH-based configuration and log collection for Cisco IOS and Aruba OS switches, 
 
 ### Prerequisites
 
-- Python 3.9+
+- Python 3.9+ (`python3` on some systems)
 - Node.js 18+
 - Network devices accessible via SSH
 
 ### Install
 
-```bash
-# Backend dependencies
-cd backend
-pip install -r requirements.txt
+> **Note:** Run all commands from the project root directory (`ndm/`).
 
-# Frontend dependencies
-cd ../frontend
-npm install
+```bash
+# 1. Create a Python virtual environment (avoids system-wide conflicts)
+python3 -m venv venv
+
+# 2. Activate the virtual environment
+# Linux / macOS:
+source venv/bin/activate
+# Windows (CMD):
+venv\Scripts\activate
+# Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
+
+# 3. Install backend dependencies
+pip install -r backend/requirements.txt
+
+# 4. Install frontend dependencies
+cd frontend && npm install && cd ..
 ```
 
 ### Development
 
 ```bash
+# Make sure the virtual environment is activated, run from project root
+
 # Terminal 1: Start backend (port 8002)
-cd backend
-python main.py
+python backend/main.py
 
 # Terminal 2: Start frontend (port 3000, proxies /api to backend)
-cd frontend
-npm run dev
+cd frontend && npm run dev
 ```
 
 Open `http://localhost:3000` in browser.
@@ -59,16 +70,18 @@ Open `http://localhost:3000` in browser.
 ### Production Deployment
 
 ```bash
+# Make sure the virtual environment is activated, run from project root
+
 # 1. Build frontend
-cd frontend && npm run build
+cd frontend && npm run build && cd ..
 
 # 2. Start (frontend + backend on single port)
-cd .. && python backend/main.py
+python backend/main.py
 ```
 
-Open `http://<server-ip>:8002` — all clients on the network can access it.
+Open `http://localhost:8002` — all clients on the LAN can access it.
 
-On Windows Server, double-click `start.bat` to launch.
+On Windows, double-click `start.bat` to launch. It auto-builds the frontend if not yet built.
 
 ## Configuration
 

@@ -40,10 +40,13 @@ app.add_middleware(
 # 初始化
 settings = load_settings()
 data_root = settings.get("data_root", "./data")
+# 相对路径基于项目根目录解析，确保不依赖 CWD
+if not os.path.isabs(data_root):
+    data_root = os.path.join(BASE_DIR, data_root)
 
-# 挂载数据目录
-if os.path.exists(data_root):
-    app.mount("/data", StaticFiles(directory=data_root), name="data")
+# 挂载数据目录（自动创建 data/ 目录）
+os.makedirs(data_root, exist_ok=True)
+app.mount("/data", StaticFiles(directory=data_root), name="data")
 
 # 注册 API 路由
 app.include_router(devices_router, prefix="/api/devices", tags=["devices"])

@@ -15,7 +15,14 @@ def load_settings(config_path: str = None) -> Dict:
     if config_path is None:
         config_path = str(_CONFIG_DIR / "settings.yaml")
     with open(config_path, "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        settings = yaml.safe_load(f)
+
+    # 将相对路径的 data_root 解析为绝对路径（基于项目根目录）
+    data_root = settings.get("data_root", "./data")
+    if not os.path.isabs(data_root):
+        settings["data_root"] = str(_CONFIG_DIR.parent / data_root)
+
+    return settings
 
 
 def load_devices(config_path: str = None) -> Dict:
