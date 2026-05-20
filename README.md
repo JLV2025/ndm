@@ -83,6 +83,21 @@ python backend/main.py
 
 Windows 下可直接双击 `start.bat`，脚本会自动构建前端（如未构建）并启动后端。
 
+### 卸载
+
+项目完全自包含，不写入注册表、不安装系统服务、不创建计划任务。完整卸载只需删除项目文件夹：
+
+```bash
+# 删除整个项目目录即可
+# Windows (资源管理器): 右键删除 ndm/ 文件夹
+# Windows (CMD):
+rmdir /s /q ndm
+# Linux / macOS:
+rm -rf ndm/
+```
+
+> 如果专门为此项目安装了 Python 或 Node.js，可在系统"应用和功能"中单独卸载。
+
 ## 配置
 
 ### 设备清单 (`config/devices.yaml`)
