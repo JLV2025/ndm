@@ -8,8 +8,13 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.exceptions import HTTPException as StarletteHTTPException
+import mimetypes
 import os
 import sys
+
+# 修复 Windows 上 .js 文件 MIME 类型被错误识别为 text/plain 的问题
+# Python mimetypes 在 Windows 上依赖注册表，部分系统 .js 映射为 text/plain
+mimetypes.add_type("text/javascript", ".js")
 
 # 项目根目录和 backend 目录
 _BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
