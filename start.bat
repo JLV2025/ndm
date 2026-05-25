@@ -25,31 +25,36 @@ if exist "venv\Scripts\activate.bat" (
 
 REM 检查前端是否已构建
 if not exist "frontend\dist\index.html" (
+    if not exist "frontend" (
+        echo [错误] 未找到 frontend 目录。请确认部署包完整。
+        pause
+        exit /b 1
+    )
     echo [1/2] 正在构建前端...
 
     REM 检查前端依赖是否安装
     if not exist "frontend\node_modules" (
         echo   正在安装前端依赖...
-        cd frontend
+        pushd frontend
         call npm install
         if %ERRORLEVEL% neq 0 (
             echo [错误] 前端依赖安装失败。请检查 Node.js 版本和网络连接。
-            cd ..
+            popd
             pause
             exit /b 1
         )
-        cd ..
+        popd
     )
 
-    cd frontend
+    pushd frontend
     call npm run build
     if %ERRORLEVEL% neq 0 (
         echo [错误] 前端构建失败。请检查上方错误信息。
-        cd ..
+        popd
         pause
         exit /b 1
     )
-    cd ..
+    popd
 
     if not exist "frontend\dist\index.html" (
         echo [错误] 前端构建完成但未生成 dist/index.html，请检查构建输出。

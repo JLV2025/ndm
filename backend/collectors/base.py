@@ -24,11 +24,13 @@ class DeviceConnection:
 
     @staticmethod
     def _resolve_device_type(device_type: str, platform: str) -> str:
-        """设备类型直接使用配置值（仅支持 cisco_ios / aruba_aoscx）
+        """设备类型映射到 Netmiko 驱动
 
         platform 不影响 Netmiko 驱动选择，仅用于命令分发。
-        cisco_ios_xe 使用 cisco_ios 驱动（CLI 兼容）。
+        cisco_ios_router / cisco_ios_xe 使用 cisco_ios 驱动（CLI 兼容）。
         """
+        if device_type == "cisco_ios_router":
+            return "cisco_ios"
         return device_type
 
     def _do_connect(self, username: str, password: str, device_type: str) -> bool:
@@ -137,22 +139,20 @@ class DeviceConnection:
         dt = self._device_type()
         platform = self._platform()
         if dt == "cisco_ios" and platform == "cisco_ios_xe":
-            # Cisco IOS XE 支持管道过滤，先启用 terminal shell
             self.send_command("terminal shell", read_timeout=10)
             return self.send_command("show logging | tail 100", read_timeout=30)
-        elif dt == "cisco_ios":
-            return self.send_command("show logging", read_timeout=30)
-        elif dt == "aruba_aoscx":
+        if dt == "cisco_ios":
+            read_timeout = 60 if self.configured_device_type == "cisco_ios_router" else 30
+            return self.send_command("show logging", read_timeout=read_timeout)
+        if dt == "aruba_aoscx":
             return self.send_command("show logging -r -n 100", read_timeout=30)
-        else:
-            return self.send_command("show log", read_timeout=30)
+        return self.send_command("show log", read_timeout=30)
 
     def collect_interface_status(self) -> str:
         dt = self._device_type()
         if dt == "aruba_aoscx":
             return self.send_command("show interface brief", read_timeout=30)
-        else:
-            return self.send_command("show interface status", read_timeout=30)
+        return self.send_command("show interface status", read_timeout=30)
 
     def collect_show_version(self) -> str:
         return self.send_command("show version", read_timeout=30)
@@ -161,8 +161,7 @@ class DeviceConnection:
         dt = self._device_type()
         if dt == "cisco_ios":
             return self.send_command("show interfaces | include rate|load|packets", read_timeout=30)
-        else:
-            return self.send_command("show interface utilization", read_timeout=30)
+        return self.send_command("show interface utilization", read_timeout=30)
 
     def collect_system_info(self) -> str:
         """收集系统信息（Aruba CX 用于获取序列号和型号）"""
@@ -177,12 +176,17 @@ class DeviceConnection:
 
         Cisco IOS XE: show switch
         Cisco IOS:    show switch detail
+        路由器不适用，返回空字符串。
         """
-        platform = self._platform()
-        if platform == "cisco_ios_xe":
+        if self.configured_device_type == "cisco_ios_router":
+            return ""
+        if self._platform() == "cisco_ios_xe":
             return self.send_command("show switch", read_timeout=30)
-        else:
-            return self.send_command("show switch detail", read_timeout=30)
+        return self.send_command("show switch detail", read_timeout=30)
+
+    def collect_routing_table(self) -> str:
+        """收集路由表（Cisco IOS 路由器）"""
+        return self.send_command("show ip route", read_timeout=45)
 
     def disconnect(self) -> None:
         """断开连接"""

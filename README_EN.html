@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NDM — Network Device Manager</title>
+<style>
+  :root {
+    --bg: #020617; --surface: #0a0f1f; --border: #1e293b;
+    --primary: #22C55E; --text: #f1f5f9; --muted: #94a3b8;
+    --code-bg: #0f172a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+    background: var(--bg); color: var(--text); line-height: 1.7;
+    max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem;
+  }
+  h1 { font-size: 2rem; color: var(--primary); margin-bottom: .25rem; }
+  h1 + p { color: var(--muted); margin-bottom: 2rem; font-size: .95rem; }
+  h2 {
+    font-size: 1.25rem; color: var(--primary); margin: 2.5rem 0 1rem;
+    padding-bottom: .5rem; border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 1rem; color: var(--text); margin: 1.5rem 0 .5rem; }
+  p { margin: .5rem 0; color: var(--muted); }
+  ul, ol { margin: .5rem 0 .5rem 1.5rem; color: var(--muted); }
+  li { margin: .25rem 0; }
+  strong { color: var(--text); }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+  th, td {
+    text-align: left; padding: .5rem .75rem; border: 1px solid var(--border);
+    font-size: .85rem;
+  }
+  th { background: var(--surface); color: var(--primary); font-weight: 600; }
+  td { color: var(--muted); }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 1rem 1.25rem; overflow-x: auto;
+    margin: .75rem 0; font-size: .82rem; line-height: 1.6;
+  }
+  code { font-family: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace; font-size: .85rem; }
+  pre code { background: none; padding: 0; }
+  blockquote {
+    border-left: 3px solid var(--primary); padding: .5rem 1rem;
+    margin: .75rem 0; color: var(--muted); background: var(--surface);
+    border-radius: 0 6px 6px 0; font-size: .9rem;
+  }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+</style>
+</head>
+<body>
+
+<h1>NDM</h1>
+<p>Network Device Manager — SSH-based configuration and log collection for Cisco IOS and Aruba OS switches and routers, with a web dashboard for viewing, diffing, and analysis.</p>
+
+<h2>Features</h2>
+<ul>
+  <li><strong>Multi-vendor</strong> — Cisco IOS, Cisco IOS XE, Cisco IOS Router, Aruba OS, Aruba OS CX</li>
+  <li><strong>Web Dashboard</strong> — React + MUI OLED Dark theme, purpose-built for network operations</li>
+  <li><strong>Device Management</strong> — Add, edit, delete devices; filter by type and location</li>
+  <li><strong>Config Collection</strong> — One-click retrieval of running-config, startup-config, logs, interface status, routing table, and version info</li>
+  <li><strong>Online Viewer</strong> — Syntax-highlighted config viewer with version diff comparison</li>
+  <li><strong>Front Panel Visualization</strong> — Switch port status panel + router interface hierarchy tree, with stack support and sub-interface indentation</li>
+  <li><strong>Basic Analysis</strong> — Config completeness validation, interface status summary, utilization analysis, change detection</li>
+  <li><strong>Weekly Archival</strong> — <code>data/{device}/YYYY-WW/</code> directory structure, retains last 10 weeks</li>
+  <li><strong>Bilingual UI</strong> — English / Chinese one-click toggle</li>
+  <li><strong>Single-Port Deployment</strong> — Frontend static files served directly by FastAPI</li>
+</ul>
+
+<h2>Tech Stack</h2>
+<table>
+  <tr><th>Layer</th><th>Technology</th></tr>
+  <tr><td>Frontend</td><td>React 18 + TypeScript + MUI v5 + Vite 5</td></tr>
+  <tr><td>Backend</td><td>Python FastAPI + Netmiko (SSH)</td></tr>
+  <tr><td>Theme</td><td>OLED Dark (#020617 background, #22C55E accent)</td></tr>
+  <tr><td>i18n</td><td>React Context i18n (zh / en)</td></tr>
+</table>
+
+<h2>Quick Start</h2>
+
+<h3>Prerequisites</h3>
+<ul>
+  <li>Python 3.9+ (<code>python3</code> on some systems)</li>
+  <li>Node.js 18+</li>
+  <li>Network devices accessible via SSH</li>
+</ul>
+
+<h3>Install</h3>
+<blockquote>Run all commands from the project root directory (<code>ndm/</code>).</blockquote>
+
+<pre><code># 1. Create a Python virtual environment (avoids system-wide conflicts)
+python3 -m venv venv
+
+# 2. Activate the virtual environment
+# Linux / macOS:
+source venv/bin/activate
+# Windows (CMD):
+venv\Scripts\activate
+# Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
+
+# 3. Install backend dependencies
+pip install -r backend/requirements.txt
+
+# 4. Install frontend dependencies
+cd frontend && npm install && cd ..</code></pre>
+
+<h3>Development</h3>
+<pre><code># Make sure the virtual environment is activated, run from project root
+
+# Terminal 1: Start backend (port 8002)
+python backend/main.py
+
+# Terminal 2: Start frontend (port 3000, proxies /api to backend)
+cd frontend && npm run dev</code></pre>
+<p>Open <code>http://localhost:3000</code> in browser.</p>
+
+<h3>Production Deployment</h3>
+<pre><code># Make sure the virtual environment is activated, run from project root
+
+# 1. Build frontend
+cd frontend && npm run build && cd ..
+
+# 2. Start (frontend + backend on single port)
+python backend/main.py</code></pre>
+<p>Open <code>http://localhost:8002</code> — all clients on the LAN can access it.</p>
+<p>On Windows, double-click <code>start.bat</code> to launch. It auto-builds the frontend if not yet built.</p>
+
+<h3>Uninstall</h3>
+<p>The project is fully self-contained — no registry entries, no system services, no scheduled tasks. To uninstall completely, delete the project folder:</p>
+<pre><code># Windows (CMD):
+rmdir /s /q ndm
+# Linux / macOS:
+rm -rf ndm/</code></pre>
+<blockquote>If Python or Node.js was installed specifically for this project, uninstall them separately via system settings.</blockquote>
+
+<h2>Configuration</h2>
+
+<h3>Device Inventory (<code>config/devices.yaml</code>)</h3>
+<pre><code>devices:
+  # Cisco IOS switch example
+  - name: "BJQD1SWI01"
+    ip: "10.210.255.100"
+    type: "cisco_ios"
+    platform: "cisco_ios"
+    location: "Beijing"
+    notes: "Core switch"
+
+  # Aruba CX switch example
+  - name: "BJQD1SWI02"
+    ip: "10.210.255.101"
+    type: "aruba_aoscx"
+    platform: "aruba_6300"
+    location: "Beijing"
+    notes: "Aggregation switch"
+
+  # Cisco IOS router example
+  - name: "BJQD1RTW01"
+    ip: "10.0.0.1"
+    type: "cisco_ios_router"
+    platform: "cisco_ios_router"
+    location: "Beijing"
+    notes: "WAN Router"</code></pre>
+
+<h3>Device Types</h3>
+<table>
+  <tr><th>type</th><th>Description</th><th>Suitable For</th></tr>
+  <tr><td><code>cisco_ios</code></td><td>Cisco IOS switch</td><td>Catalyst 2960/3560/3750 etc.</td></tr>
+  <tr><td><code>cisco_ios_xe</code></td><td>Cisco IOS XE</td><td>Catalyst 9200/9300/9500 etc.</td></tr>
+  <tr><td><code>cisco_ios_router</code></td><td>Cisco IOS router</td><td>ISR 1900/2900/4300, ASR etc.</td></tr>
+  <tr><td><code>aruba_aoscx</code></td><td>Aruba CX</td><td>CX 6100/6200/6300/6400 etc.</td></tr>
+</table>
+
+<h3>Global Settings (<code>config/settings.yaml</code>)</h3>
+<pre><code>data_root: "./data"        # Data storage directory
+max_versions: 10            # Max weekly versions retained per device
+ssh_timeout: 30             # SSH connection timeout (seconds)</code></pre>
+
+<h2>Workflow</h2>
+<ol>
+  <li>Add devices via the web panel (name, IP, type, location)</li>
+  <li>Open device detail page, click "Collect Configuration"</li>
+  <li>Enter the device's SSH username and password</li>
+  <li>System SSHs into the device and collects configs, logs, and routing table</li>
+  <li>View and compare historical versions in the Viewer page</li>
+</ol>
+
+<h2>Data Directory</h2>
+<pre><code>data/
+└── {device-name}/
+    └── YYYY-WW/
+        ├── running-config.raw
+        ├── startup-config.raw
+        ├── logs.raw
+        ├── interface-status.raw
+        ├── interface-utilization.raw
+        ├── version.raw
+        ├── routing-table.raw       # Routers only
+        ├── validation.json
+        ├── performance.json
+        ├── change.json
+        └── summary.txt</code></pre>
+
+<h2>API Documentation</h2>
+<p>Once the backend is running, visit <a href="http://localhost:8002/docs">http://localhost:8002/docs</a> for the Swagger UI.</p>
+
+<h2>Project Structure</h2>
+<pre><code>ndm/
+├── backend/                 # FastAPI backend
+│   ├── main.py              # Entry point, includes frontend hosting & SPA fallback
+│   ├── api/                 # Routers: devices, collection, data, auth, stats
+│   ├── services/            # Business logic: SSH collection, device management
+│   ├── analyzers/           # Analysis: config validation, performance, change detection
+│   ├── collectors/          # Netmiko SSH connection layer
+│   └── utils/               # Storage, password management, config loading
+├── frontend/                # React frontend
+│   └── src/
+│       ├── pages/           # Pages
+│       ├── services/        # API calls + auth management
+│       ├── components/      # Shared components
+│       └── i18n/            # i18n translations (zh / en)
+├── config/                  # YAML configuration files
+├── data/                    # Collected data (weekly archival)
+├── start.bat                # Windows one-click launcher
+└── README.md</code></pre>
+
+<hr>
+<p style="text-align:center; color: var(--muted); font-size: .8rem;">For internal network operations use only</p>
+
+</body>
+</html>

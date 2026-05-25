@@ -1,17 +1,18 @@
 # NDM — 网络设备配置管理系统
 
-通过 SSH 批量收集 Cisco IOS / Aruba OS 交换机配置与日志，前端可视化查看、对比、分析。
+通过 SSH 批量收集 Cisco IOS / Aruba OS 交换机与路由器配置和日志，Web 前端可视化查看、对比、分析。
 
 ## 功能特性
 
-- **多厂商支持** — Cisco IOS、Cisco IOS XE、Aruba OS、Aruba OS CX
+- **多厂商支持** — Cisco IOS、Cisco IOS XE、Cisco IOS Router、Aruba OS、Aruba OS CX
 - **Web 管理面板** — React + MUI OLED Dark 主题，专为网络运维设计
 - **设备管理** — 添加、编辑、删除设备，按类型 / 位置筛选
-- **配置收集** — 一键收集 running-config、startup-config、日志、接口状态、版本信息
+- **配置收集** — 一键收集 running-config、startup-config、日志、接口状态、路由表、版本信息
 - **在线查看** — 代码高亮查看配置内容，支持版本对比（diff）
-- **前面板可视化** — 交换机端口状态前面板示意图，支持堆叠设备、上行端口自动识别
-- **基础分析** — 配置完整性验证、接口状态统计、变更检测
+- **前面板可视化** — 交换机端口状态前面板 + 路由器接口层级树，支持堆叠设备、子接口缩进
+- **基础分析** — 配置完整性验证、接口状态统计、利用率分析、变更检测
 - **按周归档** — `data/设备名/YYYY-WW/` 目录结构，自动保留最近 10 个版本
+- **双语文案** — 中 / 英文界面一键切换
 - **单一端口部署** — 前端静态文件由 FastAPI 直接托管，一个命令启动
 
 ## 技术栈
@@ -21,6 +22,7 @@
 | 前端 | React 18 + TypeScript + MUI v5 + Vite 5 |
 | 后端 | Python FastAPI + Netmiko (SSH) |
 | 主题 | OLED Dark (#020617 底色, #22C55E 强调色) |
+| 多语言 | React Context i18n (zh / en) |
 
 ## 快速开始
 
@@ -104,13 +106,39 @@ rm -rf ndm/
 
 ```yaml
 devices:
+  # Cisco IOS 交换机示例
   - name: "BJQD1SWI01"
     ip: "10.210.255.100"
+    type: "cisco_ios"
+    platform: "cisco_ios"
+    location: "北京"
+    notes: "核心交换机"
+
+  # Aruba CX 交换机示例
+  - name: "BJQD1SWI02"
+    ip: "10.210.255.101"
     type: "aruba_aoscx"
     platform: "aruba_6300"
     location: "北京"
-    notes: "核心交换机"
+    notes: "汇聚交换机"
+
+  # Cisco IOS 路由器示例
+  - name: "BJQD1RTW01"
+    ip: "10.0.0.1"
+    type: "cisco_ios_router"
+    platform: "cisco_ios_router"
+    location: "北京"
+    notes: "WAN 路由器"
 ```
+
+### 设备类型说明
+
+| type | 说明 | 适用设备 |
+|------|------|----------|
+| `cisco_ios` | Cisco IOS 交换机 | Catalyst 2960/3560/3750 等 |
+| `cisco_ios_xe` | Cisco IOS XE | Catalyst 9200/9300/9500 等 |
+| `cisco_ios_router` | Cisco IOS 路由器 | ISR 1900/2900/4300、ASR 等 |
+| `aruba_aoscx` | Aruba CX | CX 6100/6200/6300/6400 等 |
 
 ### 全局设置 (`config/settings.yaml`)
 
@@ -138,7 +166,9 @@ data/
         ├── startup-config.raw
         ├── logs.raw
         ├── interface-status.raw
+        ├── interface-utilization.raw
         ├── version.raw
+        ├── routing-table.raw       # 仅路由器
         ├── validation.json
         ├── performance.json
         ├── change.json
@@ -164,8 +194,14 @@ ndm/
 │   └── src/
 │       ├── pages/           # 页面：Dashboard, DeviceList, DeviceDetail, Viewer, Login
 │       ├── services/        # API 调用 + 认证管理
-│       └── components/      # 通用组件（MatrixRain 背景、FrontPanel 前面板等）
+│       ├── components/      # 通用组件（MatrixRain 背景、FrontPanel 前面板等）
+│       └── i18n/            # 多语言文案（zh / en）
 ├── config/                  # YAML 配置文件
 ├── data/                    # 收集数据（按周归档）
-└── start.bat                # Windows 一键启动脚本
+├── start.bat                # Windows 一键启动脚本
+└── README.md
 ```
+
+## 许可证
+
+本项目仅供内部网络运维使用。

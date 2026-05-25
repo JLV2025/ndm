@@ -68,3 +68,10 @@ devices:
   type: aruba_aoscx
   uplink_ports: null
   version: ML.10.10.1030
+# Cisco IOS 路由器模板：
+# - ip: 10.0.0.1
+#   location: XXX
+#   name: XXXD1RTW01
+#   notes: WAN Router
+#   platform: cisco_ios_router
+#   type: cisco_ios_router

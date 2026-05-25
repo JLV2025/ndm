@@ -12,6 +12,13 @@ const PORT_SIZE = 28
 const PORT_GAP = 4
 const SFP_GAP = 16
 
+const LEGEND_ITEMS = [
+  { color: '#22C55E', label: 'UP' },
+  { color: '#F59E0B', label: 'UP (>80% Util)' },
+  { color: '#EF4444', label: 'Error/Down' },
+  { color: '#1E293B', label: 'Down/Disabled' },
+] as const
+
 /** 端口状态 → 颜色映射 */
 function getPortColor(port: PortInfo): string {
   if (port.status === 'err-disabled' || port.status === 'error') return '#EF4444'
@@ -158,16 +165,194 @@ const PortRow: React.FC<{
 
 PortRow.displayName = 'PortRow'
 
+// ============ 路由器端口树 ============
+
+interface RouterPortGroup {
+  baseName: string
+  parent: PortInfo | null
+  children: PortInfo[]
+}
+
+/** 构建路由器接口层级树：子端口（.255 / :15）缩进在父接口下方 */
+function buildRouterPortTree(ports: PortInfo[]): RouterPortGroup[] {
+  const filtered = ports.filter(p => !/^service-engine/i.test(p.name))
+  const groups = new Map<string, { parent: PortInfo | null; children: PortInfo[] }>()
+
+  for (const port of filtered) {
+    const m = port.name.match(/^(.+?)[.:]\d+$/)
+    const baseName = m ? m[1] : port.name
+
+    if (!groups.has(baseName)) {
+      groups.set(baseName, { parent: null, children: [] })
+    }
+
+    const group = groups.get(baseName)!
+    if (m) {
+      group.children.push(port)
+    } else {
+      group.parent = port
+    }
+  }
+
+  return [...groups.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([name, g]) => ({
+      baseName: name,
+      parent: g.parent,
+      children: g.children.sort((a, b) => a.name.localeCompare(b.name)),
+    }))
+}
+
 // ============ 主组件 ============
 
 const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName, deviceType }) => {
   const [hoveredPort, setHoveredPort] = useState<PortInfo | null>(null)
   const groups = useMemo(() => groupPortsBySlot(ports), [ports])
   const lagPorts = useMemo(() => ports.filter((p) => /^lag/i.test(p.name)), [ports])
+  const routerTree = useMemo(
+    () => (deviceType === 'cisco_ios_router' ? buildRouterPortTree(ports) : null),
+    [ports, deviceType],
+  )
 
   const handleHover = useCallback((port: PortInfo | null) => {
     setHoveredPort(port)
   }, [])
+
+  // ========== 路由器面板 ==========
+  if (deviceType === 'cisco_ios_router' && routerTree) {
+    if (routerTree.length === 0) {
+      return (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography color="text.secondary">无接口数据</Typography>
+        </Paper>
+      )
+    }
+
+    return (
+      <Box>
+        {/* 图例 */}
+        <Paper sx={{ p: 1.5, mb: 2, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, mr: 1 }}>
+            图例:
+          </Typography>
+          {LEGEND_ITEMS.map((item) => (
+            <Box key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Box sx={{ width: 14, height: 14, borderRadius: 0.5, bgcolor: item.color, border: '1px solid rgba(255,255,255,0.1)' }} />
+              <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>{item.label}</Typography>
+            </Box>
+          ))}
+        </Paper>
+
+        {/* 端口详情栏 */}
+        <Paper
+          sx={{
+            p: 1.5,
+            mb: 2,
+            minHeight: 52,
+            display: 'flex',
+            gap: 2,
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            bgcolor: hoveredPort ? 'rgba(34,197,94,0.05)' : 'rgba(148,163,184,0.03)',
+            transition: 'background-color 0.2s',
+          }}
+        >
+          {hoveredPort ? (
+            <>
+              <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>
+                {hoveredPort.name}
+              </Typography>
+              <Chip label={hoveredPort.status} size="small" sx={{ bgcolor: hoveredPort.status_up ? 'rgba(34,197,94,0.12)' : 'rgba(148,163,184,0.08)', color: hoveredPort.status_up ? 'success.main' : 'text.secondary', height: 20, fontSize: '0.65rem' }} />
+              {hoveredPort.speed && <Typography variant="caption" color="text.secondary">{hoveredPort.speed} Mbps</Typography>}
+              {hoveredPort.type && <Typography variant="caption" color="text.secondary">{hoveredPort.type}</Typography>}
+              {hoveredPort.description && <Typography variant="caption" color="text.secondary">{hoveredPort.description}</Typography>}
+              {(hoveredPort.rx_mbps !== undefined || hoveredPort.tx_mbps !== undefined) && (
+                <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: 'success.main' }}>
+                  RX: {((hoveredPort.rx_mbps ?? 0)).toFixed(2)} / TX: {((hoveredPort.tx_mbps ?? 0)).toFixed(2)} Mbps
+                </Typography>
+              )}
+            </>
+          ) : (
+            <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.7rem' }}>
+              鼠标悬停端口查看详情
+            </Typography>
+          )}
+        </Paper>
+
+        {/* 接口层级列表 */}
+        {routerTree.map((group) => (
+          <Paper key={group.baseName} sx={{ p: 1.5, mb: 1 }}>
+            {/* 父接口 */}
+            {group.parent && (
+              <Box
+                onMouseEnter={() => handleHover(group.parent)}
+                onMouseLeave={() => handleHover(null)}
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 1, py: 0.5, px: 1,
+                  borderRadius: 1, cursor: 'pointer',
+                  '&:hover': { bgcolor: 'rgba(34,197,94,0.08)' },
+                }}
+              >
+                <Box sx={{
+                  width: 12, height: 12, borderRadius: 0.5, flexShrink: 0,
+                  bgcolor: getPortColor(group.parent),
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }} />
+                <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem', fontWeight: 600, flex: 1 }}>
+                  {group.parent.name}
+                </Typography>
+                <Chip label={group.parent.status} size="small"
+                  sx={{
+                    height: 18, fontSize: '0.6rem',
+                    bgcolor: group.parent.status_up ? 'rgba(34,197,94,0.12)' : 'rgba(148,163,184,0.08)',
+                    color: group.parent.status_up ? 'success.main' : 'text.secondary',
+                  }}
+                />
+                {group.parent.speed && <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.secondary' }}>{group.parent.speed} Mbps</Typography>}
+                {group.parent.type && <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'text.disabled' }}>{group.parent.type}</Typography>}
+              </Box>
+            )}
+            {/* 子接口 */}
+            {group.children.map((child) => (
+              <Box
+                key={child.name}
+                onMouseEnter={() => handleHover(child)}
+                onMouseLeave={() => handleHover(null)}
+                sx={{
+                  display: 'flex', alignItems: 'center', gap: 1, py: 0.5, px: 1, pl: 4,
+                  borderRadius: 1, cursor: 'pointer',
+                  '&:hover': { bgcolor: 'rgba(34,197,94,0.08)' },
+                }}
+              >
+                <Box sx={{
+                  width: 10, height: 10, borderRadius: 0.5, flexShrink: 0,
+                  bgcolor: getPortColor(child),
+                  border: '1px solid rgba(255,255,255,0.1)',
+                }} />
+                <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.7rem', flex: 1, color: 'text.secondary' }}>
+                  {child.name}
+                </Typography>
+                <Chip label={child.status} size="small"
+                  sx={{
+                    height: 16, fontSize: '0.55rem',
+                    bgcolor: child.status_up ? 'rgba(34,197,94,0.12)' : 'rgba(148,163,184,0.08)',
+                    color: child.status_up ? 'success.main' : 'text.secondary',
+                  }}
+                />
+                {child.speed && <Typography variant="caption" sx={{ fontSize: '0.6rem', color: 'text.secondary' }}>{child.speed} Mbps</Typography>}
+              </Box>
+            ))}
+            {/* 无父接口：显示占位 */}
+            {!group.parent && group.children.length === 0 && (
+              <Typography variant="caption" color="text.disabled" sx={{ pl: 1 }}>{group.baseName}（无状态数据）</Typography>
+            )}
+          </Paper>
+        ))}
+      </Box>
+    )
+  }
+
+  // ========== 交换机面板（原有逻辑） ==========
 
   if (groups.size === 0) {
     return (
@@ -184,12 +369,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
         <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, mr: 1 }}>
           图例:
         </Typography>
-        {[
-          { color: '#22C55E', label: 'UP' },
-          { color: '#F59E0B', label: 'UP (>80% Util)' },
-          { color: '#EF4444', label: 'Error/Err-Disabled' },
-          { color: '#1E293B', label: 'Down/Disabled' },
-        ].map((item) => (
+        {LEGEND_ITEMS.map((item) => (
           <Box key={item.label} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
             <Box sx={{ width: 14, height: 14, borderRadius: 0.5, bgcolor: item.color, border: '1px solid rgba(255,255,255,0.1)' }} />
             <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>{item.label}</Typography>

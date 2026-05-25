@@ -4,6 +4,8 @@ const zh: Record<string, string> = {
   'app.subtitle': 'Cisco & Aruba 设备配置收集系统',
   'app.tagline': '实时监控 | 配置收集 | 性能分析',
   'app.systemOnline': '系统运行正常',
+  'app.checking': '检测中...',
+  'app.backendOffline': '后端服务不可用',
 
   // 导航
   'nav.dashboard': '仪表盘',

@@ -231,10 +231,8 @@ const Dashboard: React.FC = () => {
       <Paper sx={{ p: 3, mb: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Box>
-            <Typography variant="h4" sx={{ fontWeight: 700, mb: 1 }}>
-              <span style={{ color: '#22C55E' }}>Network</span>
-              <span style={{ color: '#F8FAFC' }}>Engineer</span>
-              <span style={{ color: '#4ADE80' }}>Pro</span>
+            <Typography variant="h4" sx={{ fontWeight: 700, mb: 1, color: 'primary.main', letterSpacing: '0.05em' }}>
+              Network Device Management
             </Typography>
             <Typography variant="subtitle2" color="text.secondary">
               {t('app.tagline')}

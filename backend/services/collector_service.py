@@ -29,6 +29,11 @@ def _is_aruba_device(device_type: str) -> bool:
     return device_type == "aruba_aoscx"
 
 
+def _is_router_device(device_type: str) -> bool:
+    """判断是否为 Cisco IOS 路由器"""
+    return device_type == "cisco_ios_router"
+
+
 def _strip_ansi(text: str) -> str:
     """去除 ANSI 转义码和终端控制字符"""
     # ANSI escape sequences: ESC[...m, ESC[...K, etc.
@@ -43,7 +48,7 @@ def extract_software_version(version_output: str, device_type: str) -> str:
     version_output = _strip_ansi(version_output)
     lines = version_output.splitlines()
 
-    if device_type == "cisco_ios":
+    if device_type in ("cisco_ios", "cisco_ios_router"):
         for line in lines:
             match = re.search(r'Version\s+(\d+\.\d+(?:\.\d+)?(?:\(\d+\))?)', line, re.IGNORECASE)
             if match:
@@ -84,7 +89,7 @@ def extract_serial_number(version_output: str, device_type: str, system_output: 
     lines = version_output.splitlines()
     serials = []
 
-    if device_type == "cisco_ios":
+    if device_type in ("cisco_ios", "cisco_ios_router"):
         if platform == "cisco_ios_xe":
             # Cisco IOS XE：序列号来自 Motherboard Serial Number（每个堆叠成员一个）
             for line in lines:
@@ -97,7 +102,7 @@ def extract_serial_number(version_output: str, device_type: str, system_output: 
                 match = re.search(r'System\s+[Ss]erial\s*[Nn]umber[:\s]+([A-Za-z0-9]+)', line)
                 if match and match.group(1) not in serials:
                     serials.append(match.group(1))
-        # 回退：Processor board ID（独立交换机）
+        # 回退：Processor board ID（独立交换机/路由器）
         if not serials:
             for line in lines:
                 match = re.search(r'Processor\s+board\s+ID[:\s]+([A-Za-z0-9]+)', line, re.IGNORECASE)
@@ -199,7 +204,7 @@ def collect_device(
             print(f"[收集进度] Cisco IOS XE 收集日志...")
             logs = _safe_collect(conn.collect_logs, "logs")
             print(f"[收集进度] logs: {len(logs)} 行")
-        elif effective_type == "cisco_ios":
+        elif effective_type == "cisco_ios" and not _is_router_device(device_type):
             print(f"[收集进度] Cisco IOS 跳过日志收集（全量 show logging 太慢）")
             logs = ""
         else:
@@ -223,9 +228,15 @@ def collect_device(
             system_info = _safe_collect(conn.collect_system_info, "show system")
             print(f"[收集进度] 获取 vsf info (堆叠成员)...")
             vsf_info = _safe_collect(conn.collect_vsf_info, "show vsf")
-        elif effective_type == "cisco_ios":
+        elif effective_type == "cisco_ios" and not _is_router_device(device_type):
             print(f"[收集进度] 获取 switch detail (堆叠信息)...")
             switch_info = _safe_collect(conn.collect_switch_detail, "show switch detail")
+
+        # 路由器专属：收集路由表
+        route_info = ""
+        if _is_router_device(device_type):
+            print(f"[收集进度] 获取 routing table...")
+            route_info = _safe_collect(conn.collect_routing_table, "show ip route")
 
         # 提取版本号和序列号（使用实际设备类型，传入 system + vsf 信息）
         software_version = extract_software_version(version_info, effective_type)
@@ -249,7 +260,7 @@ def collect_device(
 
         if settings.get("analysis", {}).get("enable_performance_analysis", True):
             perf_analyzer = PerformanceAnalyzer(
-                interface_status, running_config, effective_type,
+                interface_status, running_config, device_type,
                 interface_utilization, uplink_ports=device.uplink_ports
             )
             performance_results = json.dumps(perf_analyzer.analyze(), indent=2, ensure_ascii=False)
@@ -268,7 +279,7 @@ def collect_device(
             device_name, device_ip, device_type,
             week, data_root, settings,
             running_config, startup_config, logs,
-            interface_status, version_info, interface_utilization, system_info, vsf_info, switch_info,
+            interface_status, version_info, interface_utilization, system_info, vsf_info, switch_info, route_info,
             validation_results, performance_results, change_results,
             software_version, serial_number
         )
@@ -303,13 +314,12 @@ def _save_data(
     week: str, data_dir: str, settings: Dict,
     running_config: str, startup_config: str,
     logs_raw: str, interface_status: str, version_info: str,
-    interface_utilization: str, system_info: str, vsf_info: str, switch_info: str,
+    interface_utilization: str, system_info: str, vsf_info: str, switch_info: str, route_info: str,
     validation_results: str, performance_results: str, change_results: str,
     software_version: str, serial_number: str
 ) -> None:
     """保存数据到本地"""
 
-    display_name = serial_number if serial_number else device_name
     device_base_dir = os.path.join(data_dir, device_name)
     week_dir = os.path.join(device_base_dir, week)
     os.makedirs(week_dir, exist_ok=True)
@@ -345,6 +355,10 @@ def _save_data(
     if switch_info:
         with open(os.path.join(week_dir, "switch-detail.raw"), "w", encoding="utf-8") as f:
             f.write(switch_info)
+
+    if route_info:
+        with open(os.path.join(week_dir, "routing-table.raw"), "w", encoding="utf-8") as f:
+            f.write(route_info)
 
     # 保存分析结果
     with open(os.path.join(week_dir, "validation.json"), "w", encoding="utf-8") as f:
@@ -412,7 +426,7 @@ def _generate_summary(
     lines.append("接口状态摘要")
     lines.append("-" * 70)
     interface_lines = [l for l in startup_config.splitlines()
-                      if ('interface' in l.lower() and ('Gi' in l or 'Ve' in l or 'Fa' in l))]
+                      if ('interface' in l.lower() and ('Gi' in l or 'Ve' in l or 'Fa' in l or 'Se' in l or 'Te' in l or 'Lo' in l))]
     lines.append(f"接口配置条目：{len(interface_lines)}")
     lines.append("")
 

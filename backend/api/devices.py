@@ -57,8 +57,8 @@ class DeviceCreate(BaseModel):
     @classmethod
     def validate_type(cls, v: str) -> str:
         """验证设备类型（platform 可为空）"""
-        if v and v not in ['cisco_ios', 'cisco_ios_xe', 'aruba_aoscx']:
-            raise ValueError('不支持的设备类型，仅支持 cisco_ios / cisco_ios_xe / aruba_aoscx')
+        if v and v not in ['cisco_ios', 'cisco_ios_xe', 'cisco_ios_router', 'aruba_aoscx']:
+            raise ValueError('不支持的设备类型，仅支持 cisco_ios / cisco_ios_xe / cisco_ios_router / aruba_aoscx')
         return v
 
 
@@ -106,8 +106,8 @@ class DeviceUpdate(BaseModel):
     @classmethod
     def validate_type_update(cls, v: Optional[str]) -> Optional[str]:
         """验证设备类型（platform 可为空）"""
-        if v and v not in ['cisco_ios', 'cisco_ios_xe', 'aruba_aoscx']:
-            raise ValueError('不支持的设备类型，仅支持 cisco_ios / cisco_ios_xe / aruba_aoscx')
+        if v and v not in ['cisco_ios', 'cisco_ios_xe', 'cisco_ios_router', 'aruba_aoscx']:
+            raise ValueError('不支持的设备类型，仅支持 cisco_ios / cisco_ios_xe / cisco_ios_router / aruba_aoscx')
         return v
 
 

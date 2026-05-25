@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NDM — 网络设备配置管理系统</title>
+<style>
+  :root {
+    --bg: #020617; --surface: #0a0f1f; --border: #1e293b;
+    --primary: #22C55E; --text: #f1f5f9; --muted: #94a3b8;
+    --code-bg: #0f172a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+    background: var(--bg); color: var(--text); line-height: 1.7;
+    max-width: 900px; margin: 0 auto; padding: 2rem 1.5rem;
+  }
+  h1 { font-size: 2rem; color: var(--primary); margin-bottom: .25rem; }
+  h1 + p { color: var(--muted); margin-bottom: 2rem; font-size: .95rem; }
+  h2 {
+    font-size: 1.25rem; color: var(--primary); margin: 2.5rem 0 1rem;
+    padding-bottom: .5rem; border-bottom: 1px solid var(--border);
+  }
+  h3 { font-size: 1rem; color: var(--text); margin: 1.5rem 0 .5rem; }
+  p { margin: .5rem 0; color: var(--muted); }
+  ul { margin: .5rem 0 .5rem 1.5rem; color: var(--muted); }
+  li { margin: .25rem 0; }
+  strong { color: var(--text); }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+  th, td {
+    text-align: left; padding: .5rem .75rem; border: 1px solid var(--border);
+    font-size: .85rem;
+  }
+  th { background: var(--surface); color: var(--primary); font-weight: 600; }
+  td { color: var(--muted); }
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 1rem 1.25rem; overflow-x: auto;
+    margin: .75rem 0; font-size: .82rem; line-height: 1.6;
+  }
+  code { font-family: 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace; font-size: .85rem; }
+  pre code { background: none; padding: 0; }
+  blockquote {
+    border-left: 3px solid var(--primary); padding: .5rem 1rem;
+    margin: .75rem 0; color: var(--muted); background: var(--surface);
+    border-radius: 0 6px 6px 0; font-size: .9rem;
+  }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+  .badge {
+    display: inline-block; padding: .15em .6em; border-radius: 4px;
+    font-size: .75rem; font-weight: 600; background: rgba(34,197,94,.12);
+    color: var(--primary); margin-right: .5rem;
+  }
+</style>
+</head>
+<body>
+
+<h1>NDM</h1>
+<p>网络设备配置管理系统 — 通过 SSH 批量收集 Cisco IOS / Aruba OS 交换机与路由器配置和日志，Web 前端可视化查看、对比、分析。</p>
+
+<h2>功能特性</h2>
+<ul>
+  <li><strong>多厂商支持</strong> — Cisco IOS、Cisco IOS XE、Cisco IOS Router、Aruba OS、Aruba OS CX</li>
+  <li><strong>Web 管理面板</strong> — React + MUI OLED Dark 主题，专为网络运维设计</li>
+  <li><strong>设备管理</strong> — 添加、编辑、删除设备，按类型 / 位置筛选</li>
+  <li><strong>配置收集</strong> — 一键收集 running-config、startup-config、日志、接口状态、路由表、版本信息</li>
+  <li><strong>在线查看</strong> — 代码高亮查看配置内容，支持版本对比（diff）</li>
+  <li><strong>前面板可视化</strong> — 交换机端口状态前面板 + 路由器接口层级树，支持堆叠设备、子接口缩进</li>
+  <li><strong>基础分析</strong> — 配置完整性验证、接口状态统计、利用率分析、变更检测</li>
+  <li><strong>按周归档</strong> — <code>data/设备名/YYYY-WW/</code> 目录结构，自动保留最近 10 个版本</li>
+  <li><strong>双语文案</strong> — 中 / 英文界面一键切换</li>
+  <li><strong>单一端口部署</strong> — 前端静态文件由 FastAPI 直接托管，一个命令启动</li>
+</ul>
+
+<h2>技术栈</h2>
+<table>
+  <tr><th>层</th><th>技术</th></tr>
+  <tr><td>前端</td><td>React 18 + TypeScript + MUI v5 + Vite 5</td></tr>
+  <tr><td>后端</td><td>Python FastAPI + Netmiko (SSH)</td></tr>
+  <tr><td>主题</td><td>OLED Dark (#020617 底色, #22C55E 强调色)</td></tr>
+  <tr><td>多语言</td><td>React Context i18n (zh / en)</td></tr>
+</table>
+
+<h2>快速开始</h2>
+
+<h3>环境要求</h3>
+<ul>
+  <li>Python 3.9+（部分系统命令为 <code>python3</code>）</li>
+  <li>Node.js 18+</li>
+  <li>可 SSH 访问的目标网络设备</li>
+</ul>
+
+<h3>安装</h3>
+<blockquote>所有命令在项目根目录下执行。GitHub 克隆后文件夹名为 <code>ndm-master</code>，建议重命名为 <code>ndm</code>（或直接进入该目录操作）。</blockquote>
+
+<pre><code># 1. 创建 Python 虚拟环境（避免系统级安装冲突）
+python3 -m venv venv
+
+# 2. 激活虚拟环境
+# Linux / macOS:
+source venv/bin/activate
+# Windows (CMD):
+venv\Scripts\activate
+# Windows (PowerShell):
+.\venv\Scripts\Activate.ps1
+
+# 3. 安装后端依赖
+pip install -r backend/requirements.txt
+
+# 4. 安装前端依赖
+cd frontend && npm install && cd ..</code></pre>
+
+<h3>开发模式</h3>
+<pre><code># 确保虚拟环境已激活，在项目根目录执行
+
+# 终端 1：启动后端 (端口 8002)
+python backend/main.py
+
+# 终端 2：启动前端 (端口 3000，自动代理 /api 到后端)
+cd frontend && npm run dev</code></pre>
+<p>浏览器访问 <code>http://localhost:3000</code>。</p>
+
+<h3>生产部署</h3>
+<pre><code># 确保虚拟环境已激活，在项目根目录执行
+
+# 1. 构建前端
+cd frontend && npm run build && cd ..
+
+# 2. 启动（前端 + 后端同一端口）
+python backend/main.py</code></pre>
+<p>浏览器访问 <code>http://localhost:8002</code>，局域网内均可使用。</p>
+<p>Windows 下可直接双击 <code>start.bat</code>，脚本会自动构建前端（如未构建）并启动后端。</p>
+
+<h3>卸载</h3>
+<p>项目完全自包含，不写入注册表、不安装系统服务、不创建计划任务。完整卸载只需删除项目文件夹：</p>
+<pre><code># Windows (CMD):
+rmdir /s /q ndm
+# Linux / macOS:
+rm -rf ndm/</code></pre>
+<blockquote>如果专门为此项目安装了 Python 或 Node.js，可在系统"应用和功能"中单独卸载。</blockquote>
+
+<h2>配置</h2>
+
+<h3>设备清单 (<code>config/devices.yaml</code>)</h3>
+<pre><code>devices:
+  # Cisco IOS 交换机示例
+  - name: "BJQD1SWI01"
+    ip: "10.210.255.100"
+    type: "cisco_ios"
+    platform: "cisco_ios"
+    location: "北京"
+    notes: "核心交换机"
+
+  # Aruba CX 交换机示例
+  - name: "BJQD1SWI02"
+    ip: "10.210.255.101"
+    type: "aruba_aoscx"
+    platform: "aruba_6300"
+    location: "北京"
+    notes: "汇聚交换机"
+
+  # Cisco IOS 路由器示例
+  - name: "BJQD1RTW01"
+    ip: "10.0.0.1"
+    type: "cisco_ios_router"
+    platform: "cisco_ios_router"
+    location: "北京"
+    notes: "WAN 路由器"</code></pre>
+
+<h3>设备类型说明</h3>
+<table>
+  <tr><th>type</th><th>说明</th><th>适用设备</th></tr>
+  <tr><td><code>cisco_ios</code></td><td>Cisco IOS 交换机</td><td>Catalyst 2960/3560/3750 等</td></tr>
+  <tr><td><code>cisco_ios_xe</code></td><td>Cisco IOS XE</td><td>Catalyst 9200/9300/9500 等</td></tr>
+  <tr><td><code>cisco_ios_router</code></td><td>Cisco IOS 路由器</td><td>ISR 1900/2900/4300、ASR 等</td></tr>
+  <tr><td><code>aruba_aoscx</code></td><td>Aruba CX</td><td>CX 6100/6200/6300/6400 等</td></tr>
+</table>
+
+<h3>全局设置 (<code>config/settings.yaml</code>)</h3>
+<pre><code>data_root: "./data"        # 数据存储目录
+max_versions: 10            # 每设备最大保留周数
+ssh_timeout: 30             # SSH 连接超时（秒）</code></pre>
+
+<h2>使用流程</h2>
+<ol>
+  <li>在 Web 面板添加设备（名称、IP、类型、位置）</li>
+  <li>进入设备详情页，点击「收集配置」</li>
+  <li>输入设备的 SSH 用户名和密码</li>
+  <li>系统自动通过 SSH 登录设备，收集配置和日志</li>
+  <li>在 Viewer 页面查看、对比历史版本</li>
+</ol>
+
+<h2>数据目录</h2>
+<pre><code>data/
+└── {设备名称}/
+    └── YYYY-WW/
+        ├── running-config.raw
+        ├── startup-config.raw
+        ├── logs.raw
+        ├── interface-status.raw
+        ├── interface-utilization.raw
+        ├── version.raw
+        ├── routing-table.raw       # 仅路由器
+        ├── validation.json
+        ├── performance.json
+        ├── change.json
+        └── summary.txt</code></pre>
+
+<h2>API 文档</h2>
+<p>后端运行后访问 <a href="http://localhost:8002/docs">http://localhost:8002/docs</a> 查看 Swagger 文档。</p>
+
+<h2>项目结构</h2>
+<pre><code>ndm/
+├── backend/                 # FastAPI 后端
+│   ├── main.py              # 入口，含前端静态托管及 SPA 回退
+│   ├── api/                 # 路由：设备、收集、数据、认证、统计
+│   ├── services/            # 业务逻辑：SSH 收集、设备管理
+│   ├── analyzers/           # 分析：配置验证、性能、变更检测
+│   ├── collectors/          # Netmiko SSH 连接层
+│   └── utils/               # 存储、密码管理、配置加载
+├── frontend/                # React 前端
+│   └── src/
+│       ├── pages/           # 页面
+│       ├── services/        # API 调用 + 认证管理
+│       ├── components/      # 通用组件
+│       └── i18n/            # 多语言文案（zh / en）
+├── config/                  # YAML 配置文件
+├── data/                    # 收集数据（按周归档）
+├── start.bat                # Windows 一键启动脚本
+└── README.md</code></pre>
+
+<hr>
+<p style="text-align:center; color: var(--muted); font-size: .8rem;">仅供内部网络运维使用</p>
+
+</body>
+</html>

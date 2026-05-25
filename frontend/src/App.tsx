@@ -79,8 +79,8 @@ function Layout() {
             <Typography variant="subtitle2" sx={{ color: 'text.primary', fontWeight: 700, fontSize: '0.8rem', lineHeight: 1.2 }}>
               NDM
             </Typography>
-            <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-              Engineer Pro
+            <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600, fontSize: '0.65rem', letterSpacing: '0.05em' }}>
+              网络设备管理
             </Typography>
           </Box>
         </Box>

@@ -279,10 +279,10 @@ const DeviceList: React.FC = () => {
         <Paper sx={{ p: 4, textAlign: 'center', mb: 4 }}>
           <NetworkWifi sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
           <Typography variant="body1" color="text.secondary" sx={{ mb: 0.5 }}>
-            点击上方位置按钮筛选设备
+            {t('devices.clickLocationHint')}
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            选择 Office Location 后，对应位置的设备卡片将在此处显示
+            {t('devices.selectLocationHint')}
           </Typography>
         </Paper>
       )}

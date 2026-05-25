@@ -50,6 +50,7 @@ export type DeviceFormValues = z.infer<typeof deviceSchema>
 const deviceTypes = [
   { value: 'aruba_aoscx', label: 'Aruba CX' },
   { value: 'cisco_ios', label: 'Cisco IOS' },
+  { value: 'cisco_ios_router', label: 'Cisco IOS Router' },
 ]
 
 // 平台类型选项（按设备类型分组，动态联动）
@@ -60,6 +61,9 @@ const platformOptionsMap: Record<string, { value: string; label: string }[]> = {
   cisco_ios: [
     { value: 'cisco_ios', label: 'Cisco IOS' },
     { value: 'cisco_ios_xe', label: 'Cisco IOS XE' },
+  ],
+  cisco_ios_router: [
+    { value: 'cisco_ios_router', label: 'Cisco IOS Router' },
   ],
 }
 

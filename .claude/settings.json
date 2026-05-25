@@ -1,4 +1,10 @@
 {
+  "env": {
+    "CAVEMAN_DEFAULT_MODE": "full",
+    "TEMP": "F:\\temp",
+    "TMP": "F:\\temp",
+    "VIRTUAL_ENV": "F:\\projects\\ndm\\venv"
+  },
   "hooks": {
     "SessionStart": [
       {

@@ -49,24 +49,23 @@ class PerformanceAnalyzer:
         if not self.interface_lines:
             return {"total": 0, "up": 0, "down": 0, "details": []}
 
-        if self.device_type == "cisco_ios":
+        if self.device_type == "cisco_ios_router":
+            return self._parse_cisco_ios_router()
+        elif self.device_type == "cisco_ios":
             return self._parse_cisco_ios()
         elif self.device_type == "aruba_aoscx":
             return self._parse_aruba_cx()
         else:
             return self._parse_generic()
 
-    def _parse_cisco_ios(self) -> Dict[str, Any]:
-        """Cisco IOS show interface status
+    def _parse_cisco_interface_status(self, skip_prefixes: tuple[str, ...], speed_offset: int) -> Dict[str, Any]:
+        """Cisco IOS show interface status 通用解析
 
-        Cisco show interface status 列:
-          Port  Name  Status  Vlan  Duplex  Speed  Type
-
-        Name列可为空，导致后续列左移。解析策略：找到Status值后，
-        以相对偏移取Speed/Type，避免列偏移问题。
+        speed_offset: Status 列到 Speed 列的偏移（路由器5列格式=1，交换机7列格式=3）
+        skip_prefixes: 跳过的接口名前缀（如 ("vlan", "loopback")）
         """
         up_statuses = {"connected", "up"}
-        down_statuses = {"notconnect", "disabled", "err-disabled", "down", "inactive", "monitoring"}
+        down_statuses = {"notconnect", "disabled", "err-disabled", "down", "inactive", "monitoring", "admin"}
 
         up_count = 0
         down_count = 0
@@ -81,10 +80,10 @@ class PerformanceAnalyzer:
                 continue
 
             name = parts[0]
-            if name.lower().startswith("vlan") or name.lower().startswith("loopback"):
+            if any(name.lower().startswith(p) for p in skip_prefixes):
                 continue
 
-            # 找到Status列位置（通过关键字匹配）
+            # 找到 Status 列位置（通过关键字匹配）
             status_pos = None
             found_status = None
             for i, p in enumerate(parts[1:], start=1):
@@ -98,7 +97,7 @@ class PerformanceAnalyzer:
                 found_status = parts[1] if len(parts) > 1 else "unknown"
                 status_pos = 1
 
-            # 描述: Port之后、Status之前的所有字段
+            # 描述: Port 之后、Status 之前的所有字段
             if status_pos > 2:
                 description = " ".join(parts[1:status_pos])
             elif status_pos == 2:
@@ -106,22 +105,42 @@ class PerformanceAnalyzer:
             else:
                 description = None
 
-            # Speed: Status之后第2列 (跳过Vlan, Duplex)
-            speed_raw = parts[status_pos + 3] if status_pos + 3 < len(parts) else None
+            # Speed 按偏移量取列
+            speed_raw = parts[status_pos + speed_offset] if status_pos + speed_offset < len(parts) else None
             speed = self._normalize_cisco_speed(speed_raw)
 
-            # Type: Status之后第3列
-            port_type = parts[status_pos + 4] if status_pos + 4 < len(parts) else None
+            # Type: Speed 的下一列
+            port_type = parts[status_pos + speed_offset + 1] if status_pos + speed_offset + 1 < len(parts) else None
 
             is_up = found_status in up_statuses
             if is_up:
                 up_count += 1
-            elif found_status in down_statuses:
+            elif found_status.lower() in down_statuses:
                 down_count += 1
 
             details.append(self._build_port_detail(name, found_status, is_up, speed, None, port_type, description))
 
         return {"total": len(details), "up": up_count, "down": down_count, "details": details}
+
+    def _parse_cisco_ios(self) -> Dict[str, Any]:
+        """Cisco IOS 交换机 show interface status（7 列格式）
+
+        列: Port  Name  Status  Vlan  Duplex  Speed  Type
+        """
+        return self._parse_cisco_interface_status(
+            skip_prefixes=("vlan", "loopback"),
+            speed_offset=3,
+        )
+
+    def _parse_cisco_ios_router(self) -> Dict[str, Any]:
+        """Cisco IOS 路由器 show interface status（5 列格式）
+
+        列: Port  Name  Status  Speed  Type
+        """
+        return self._parse_cisco_interface_status(
+            skip_prefixes=("service-engine",),
+            speed_offset=1,
+        )
 
     @staticmethod
     def _normalize_cisco_speed(raw: Optional[str]) -> Optional[str]:
@@ -376,7 +395,7 @@ class PerformanceAnalyzer:
 
         if self.device_type == "aruba_aoscx":
             return self._parse_aruba_utilization()
-        elif self.device_type == "cisco_ios":
+        if self.device_type in ("cisco_ios", "cisco_ios_router"):
             return self._parse_cisco_utilization()
         return {}
 
@@ -524,7 +543,7 @@ class PerformanceAnalyzer:
             util = utilization_data.get(port_name)
 
             # Cisco设备按索引对齐
-            if util is None and self.device_type == "cisco_ios":
+            if util is None and self.device_type in ("cisco_ios", "cisco_ios_router"):
                 block_key = f"_cisco_block_{i}"
                 util = utilization_data.get(block_key)
 

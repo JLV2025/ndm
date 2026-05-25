@@ -1,5 +1,6 @@
 import React from 'react'
 import { Box, Typography, ToggleButton, ToggleButtonGroup } from '@mui/material'
+import { useI18n } from '../../i18n'
 
 interface LocationFilterProps {
   selectedLocation: string | null
@@ -8,12 +9,13 @@ interface LocationFilterProps {
 }
 
 const LocationFilter: React.FC<LocationFilterProps> = React.memo(({ selectedLocation, onChange, locations }) => {
+  const { t } = useI18n()
   if (locations.length === 0) return null
 
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
       <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.08em', mr: 0.5 }}>
-        Filter by Location:
+        {t('devices.filterByLocation')}:
       </Typography>
       <ToggleButtonGroup
         value={selectedLocation}

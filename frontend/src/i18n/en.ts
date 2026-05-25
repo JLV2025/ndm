@@ -4,6 +4,8 @@ const en: Record<string, string> = {
   'app.subtitle': 'Cisco & Aruba Device Configuration Collection',
   'app.tagline': 'Real-time Monitoring | Config Collection | Performance Analysis',
   'app.systemOnline': 'System Online',
+  'app.checking': 'Checking...',
+  'app.backendOffline': 'Backend unavailable',
 
   // Navigation
   'nav.dashboard': 'Dashboard',

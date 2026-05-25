@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
 
-const MATRIX_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()_+-=[]{}|;:\',.<>?/`吕京网络妮二宝娟'
-const FONT_SIZE = 14
-const FADE_ALPHA = 0.035
+const MATRIX_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!@#$%^&*()_+-=[]{}|;:\',.<>?/`ABCDEFabcdef0123456789吕京网络妮二宝娟'
+const FONT_SIZE = 12
+const FADE_ALPHA = 0.025
 
 const HEAD_COLOR = '#FFFFFF'
 const BRIGHT_COLOR = '#00FF41'
@@ -53,7 +53,7 @@ export default function MatrixRain() {
 
       ctx.font = `${FONT_SIZE}px "JetBrains Mono", monospace`
 
-      const advance = frameCount % 6 === 0
+      const advance = frameCount % 2 === 0
 
       for (let i = 0; i < drops.length; i++) {
         const x = i * FONT_SIZE
@@ -77,7 +77,7 @@ export default function MatrixRain() {
           drops[i]++
         }
 
-        if (y > canvas.height && Math.random() > 0.975) {
+        if (y > canvas.height && Math.random() > 0.95) {
           drops[i] = 0
         }
       }

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import {
   Box,
   TextField,
@@ -24,7 +24,21 @@ const Login = ({ onLogin }: { onLogin?: () => void }) => {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [backendOnline, setBackendOnline] = useState<boolean | null>(null)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 5000)
+    fetch('/health', { signal: controller.signal })
+      .then((r) => setBackendOnline(r.ok))
+      .catch(() => setBackendOnline(false))
+      .finally(() => clearTimeout(timeout))
+    return () => {
+      clearTimeout(timeout)
+      controller.abort()
+    }
+  }, [])
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault()
@@ -86,10 +100,11 @@ const Login = ({ onLogin }: { onLogin?: () => void }) => {
             <Shield sx={{ fontSize: 36, color: 'primary.main' }} />
           </Box>
 
-          <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700 }}>
-            <span style={{ color: '#22C55E' }}>Network</span>
-            <span style={{ color: '#F8FAFC' }}>Engineer</span>
-            <span style={{ color: '#4ADE80' }}>Pro</span>
+          <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 700, color: 'primary.main', letterSpacing: '0.05em' }}>
+            NDM
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+            Network Device Management
           </Typography>
           <Typography
             variant="subtitle2"
@@ -113,16 +128,24 @@ const Login = ({ onLogin }: { onLogin?: () => void }) => {
         {/* 状态指示器 */}
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box
-              sx={{
-                width: 6,
-                height: 6,
-                borderRadius: '50%',
-                bgcolor: 'success.main',
-              }}
-            />
+            {backendOnline === null ? (
+              <CircularProgress size={10} sx={{ color: 'warning.main' }} />
+            ) : (
+              <Box
+                sx={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  bgcolor: backendOnline ? 'success.main' : 'error.main',
+                }}
+              />
+            )}
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-              {t('app.systemOnline')}
+              {backendOnline === null
+                ? t('app.checking')
+                : backendOnline
+                ? t('app.systemOnline')
+                : t('app.backendOffline')}
             </Typography>
           </Box>
         </Box>

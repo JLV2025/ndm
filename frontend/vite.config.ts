@@ -20,6 +20,10 @@ export default defineConfig({
           })
         }
       },
+      '/health': {
+        target: 'http://localhost:8002',
+        changeOrigin: true
+      },
       '/data': {
         target: 'http://127.0.0.1:8001',
         changeOrigin: true
