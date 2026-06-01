@@ -6,6 +6,7 @@ interface FrontPanelProps {
   ports: PortInfo[]
   deviceName: string
   deviceType?: string
+  devicePlatform?: string
 }
 
 const PORT_SIZE = 28
@@ -75,6 +76,12 @@ function isUplinkPort(port: PortInfo, allSlotPorts: PortInfo[]): boolean {
   return false
 }
 
+/** 判断端口是否为 10Gb */
+function isTenGbPort(port: PortInfo, allSlotPorts: PortInfo[], platform?: string): boolean {
+  if (platform && /C9500/i.test(platform)) return true
+  return isUplinkPort(port, allSlotPorts)
+}
+
 /** 将端口列表拆分为奇偶两行 */
 function splitOddEven(ports: PortInfo[]): [PortInfo[], PortInfo[]] {
   const odd: PortInfo[] = []
@@ -91,12 +98,14 @@ function splitOddEven(ports: PortInfo[]): [PortInfo[], PortInfo[]] {
 interface PortBlockProps {
   port: PortInfo
   onHover: (port: PortInfo | null) => void
+  tenGbPorts?: Set<string>
 }
 
-const PortBlock = React.memo<PortBlockProps>(({ port, onHover }) => {
+const PortBlock = React.memo<PortBlockProps>(({ port, onHover, tenGbPorts }) => {
   const color = getPortColor(port)
   const label = getPortLabel(port)
   const isUp = port.status_up
+  const isTenGb = tenGbPorts?.has(port.name) ?? false
 
   return (
     <Tooltip
@@ -138,7 +147,7 @@ const PortBlock = React.memo<PortBlockProps>(({ port, onHover }) => {
           },
         }}
       >
-        <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: isUp ? '#000' : '#64748B', lineHeight: 1, userSelect: 'none' }}>
+        <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: isTenGb ? '#EF4444' : (isUp ? '#000' : '#64748B'), lineHeight: 1, userSelect: 'none' }}>
           {label}
         </Typography>
       </Box>
@@ -153,11 +162,12 @@ PortBlock.displayName = 'PortBlock'
 const PortRow: React.FC<{
   ports: PortInfo[]
   onHover: (port: PortInfo | null) => void
-}> = React.memo(({ ports, onHover }) => (
+  tenGbPorts?: Set<string>
+}> = React.memo(({ ports, onHover, tenGbPorts }) => (
   <>
     {ports.map((port) => (
       <td key={port.name} style={{ width: PORT_SIZE, height: PORT_SIZE, padding: 0, lineHeight: 0 }}>
-        <PortBlock port={port} onHover={onHover} />
+        <PortBlock port={port} onHover={onHover} tenGbPorts={tenGbPorts} />
       </td>
     ))}
   </>
@@ -205,7 +215,7 @@ function buildRouterPortTree(ports: PortInfo[]): RouterPortGroup[] {
 
 // ============ 主组件 ============
 
-const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName, deviceType }) => {
+const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName, deviceType, devicePlatform }) => {
   const [hoveredPort, setHoveredPort] = useState<PortInfo | null>(null)
   const groups = useMemo(() => groupPortsBySlot(ports), [ports])
   const lagPorts = useMemo(() => ports.filter((p) => /^lag/i.test(p.name)), [ports])
@@ -213,6 +223,19 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
     () => (deviceType === 'cisco_ios_router' ? buildRouterPortTree(ports) : null),
     [ports, deviceType],
   )
+
+  /** 10Gb 端口名称集合（红色数字） */
+  const tenGbPorts = useMemo(() => {
+    const s = new Set<string>()
+    for (const [_, slotPorts] of groups) {
+      for (const port of slotPorts) {
+        if (isTenGbPort(port, slotPorts, devicePlatform)) {
+          s.add(port.name)
+        }
+      }
+    }
+    return s
+  }, [groups, devicePlatform])
 
   const handleHover = useCallback((port: PortInfo | null) => {
     setHoveredPort(port)
@@ -379,6 +402,10 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
           <Box sx={{ width: 14, height: 14, borderRadius: 0.5, bgcolor: '#22C55E', border: '2px solid #F59E0B', boxShadow: '0 0 4px #F59E0B' }} />
           <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>上行链路</Typography>
         </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Typography variant="caption" sx={{ fontSize: '0.65rem', color: '#EF4444', fontWeight: 700 }}>49</Typography>
+          <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>10Gb 端口</Typography>
+        </Box>
       </Paper>
 
       {/* 端口详情栏 — 固定高度，始终渲染，避免布局偏移导致闪烁 */}
@@ -448,17 +475,17 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
                 {/* 奇数行（上排） */}
                 {(regOdd.length > 0 || sfpOdd.length > 0) && (
                   <tr>
-                    <PortRow ports={regOdd} onHover={handleHover} />
+                    <PortRow ports={regOdd} onHover={handleHover} tenGbPorts={tenGbPorts} />
                     {hasSfp && <td style={{ width: SFP_GAP - PORT_GAP, padding: 0 }} />}
-                    <PortRow ports={sfpOdd} onHover={handleHover} />
+                    <PortRow ports={sfpOdd} onHover={handleHover} tenGbPorts={tenGbPorts} />
                   </tr>
                 )}
                 {/* 偶数行（下排） */}
                 {(regEven.length > 0 || sfpEven.length > 0) && (
                   <tr>
-                    <PortRow ports={regEven} onHover={handleHover} />
+                    <PortRow ports={regEven} onHover={handleHover} tenGbPorts={tenGbPorts} />
                     {hasSfp && <td style={{ width: SFP_GAP - PORT_GAP, padding: 0 }} />}
-                    <PortRow ports={sfpEven} onHover={handleHover} />
+                    <PortRow ports={sfpEven} onHover={handleHover} tenGbPorts={tenGbPorts} />
                   </tr>
                 )}
               </tbody>

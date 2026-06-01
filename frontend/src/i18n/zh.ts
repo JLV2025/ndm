@@ -215,6 +215,7 @@ const zh: Record<string, string> = {
   'dashboard.errorPorts': '错误端口',
   'dashboard.topTraffic': '上行链路 Top 10 流量排行',
   'dashboard.lastCollection': '最近采集',
+  'detail.dataBasedOn': '端口数据基于 {date} 采集，如需最新数据请点击上方收集按钮',
 
   // 前面板
   'frontpanel.noPorts': '无物理端口数据',

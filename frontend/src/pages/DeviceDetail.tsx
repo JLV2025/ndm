@@ -334,7 +334,7 @@ const DeviceDetail: React.FC = () => {
               </Card>
             </Grid>
           </Grid>
-          <FrontPanel ports={frontPanelData.ports} deviceName={device.name} deviceType={device.type} />
+          <FrontPanel ports={frontPanelData.ports} deviceName={device.name} deviceType={device.type} devicePlatform={device.platform} />
         </Box>
       ) : (
         <Paper sx={{ p: 4, textAlign: 'center' }}>
@@ -478,6 +478,11 @@ const DeviceDetail: React.FC = () => {
                     <Chip label={device.location} sx={{ bgcolor: 'rgba(148,163,184,0.08)', color: 'text.secondary', border: '1px solid', borderColor: 'divider', fontWeight: 500, fontSize: '0.75rem' }} />
                   )}
                 </Box>
+                {device.last_synced && (
+                  <Typography variant="caption" color="warning.main" sx={{ mt: 0.5, fontWeight: 500 }}>
+                    {t('detail.dataBasedOn').replace('{date}', device.last_synced)}
+                  </Typography>
+                )}
               </Box>
             </Box>
           </Box>

@@ -38,6 +38,7 @@ const LocationFilter: React.FC<LocationFilterProps> = React.memo(({ selectedLoca
           },
         }}
       >
+        <ToggleButton key="all" value={null}>ALL</ToggleButton>
         {locations.map((loc) => (
           <ToggleButton key={loc} value={loc}>{loc}</ToggleButton>
         ))}
