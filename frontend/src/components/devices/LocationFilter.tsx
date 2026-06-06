@@ -31,10 +31,10 @@ const LocationFilter: React.FC<LocationFilterProps> = React.memo(({ selectedLoca
             textTransform: 'none', borderRadius: '6px !important',
             '&.Mui-selected': {
               color: 'primary.main',
-              bgcolor: 'rgba(34, 197, 94, 0.1)',
-              borderColor: 'rgba(34, 197, 94, 0.3)',
+              bgcolor: 'rgba(45, 212, 110, 0.1)',
+              borderColor: 'rgba(45, 212, 110, 0.3)',
             },
-            '&:hover': { bgcolor: 'rgba(34, 197, 94, 0.06)' },
+            '&:hover': { bgcolor: 'rgba(45, 212, 110, 0.06)' },
           },
         }}
       >

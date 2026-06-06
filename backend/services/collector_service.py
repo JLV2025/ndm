@@ -6,6 +6,7 @@ import re
 import sys
 import traceback
 import yaml
+import threading
 from typing import Dict, List
 from datetime import datetime
 
@@ -22,6 +23,33 @@ from storage.file_manager import (
     get_week_dir, keep_latest_versions_per_device
 )
 from models.devices import Device
+
+
+# 全局收集进度追踪
+_progress_lock = threading.Lock()
+_collection_progress: Dict[str, Dict] = {}
+
+
+def get_collection_progress(device_name: str) -> Dict | None:
+    """获取设备收集进度（线程安全）"""
+    with _progress_lock:
+        return _collection_progress.get(device_name)
+
+
+def _set_progress(device_name: str, step: str, error: str = ""):
+    """设置设备收集进度（线程安全）"""
+    with _progress_lock:
+        _collection_progress[device_name] = {
+            "step": step,
+            "started_at": datetime.now().isoformat(),
+            "error": error,
+        }
+
+
+def _clear_progress(device_name: str):
+    """清除设备收集进度"""
+    with _progress_lock:
+        _collection_progress.pop(device_name, None)
 
 
 def _is_aruba_device(device_type: str) -> bool:
@@ -154,6 +182,8 @@ def collect_device(
     device_platform = getattr(device, 'platform', '') or ''
     data_root = settings.get("data_root", "./data")
 
+    _set_progress(device_name, "connecting")
+
     conn = _get_device_connection()({
         "name": device_name,
         "ip": device_ip,
@@ -166,6 +196,7 @@ def collect_device(
     if not conn.connect(username, password):
         error_msg = getattr(conn, '_last_error', '') or 'SSH 连接失败'
         print(f"[收集失败] 连接失败: {error_msg}")
+        _set_progress(device_name, "failed", error_msg)
         return {
             "name": device_name,
             "ip": device_ip,
@@ -174,6 +205,7 @@ def collect_device(
         }
 
     print(f"[收集进度] SSH 连接成功，开始收集数据...")
+    _set_progress(device_name, "collecting_config")
 
     # 使用实际探测到的设备类型（可能与配置不同）
     effective_type = conn.actual_device_type or device_type
@@ -197,6 +229,7 @@ def collect_device(
             running_config = f"% 收集失败: {str(e)}"
             startup_config = running_config
         print(f"[收集进度] running-config: {len(running_config)} 行, startup-config: {len(startup_config)} 行")
+        _set_progress(device_name, "collecting_logs")
 
         # Cisco IOS 日志无法限制条目数，全量收集太慢，跳过
         # Cisco IOS XE 支持管道过滤（show logging | tail 100），可以收集
@@ -214,8 +247,11 @@ def collect_device(
 
         print(f"[收集进度] 获取 interface status...")
         interface_status = _safe_collect(conn.collect_interface_status, "interface status")
+        _set_progress(device_name, "collecting_logs")
+
         print(f"[收集进度] 获取 version...")
         version_info = _safe_collect(conn.collect_show_version, "version")
+        _set_progress(device_name, "collecting_interface")
         print(f"[收集进度] 获取 interface utilization...")
         interface_utilization = _safe_collect(conn.collect_show_interface_utilization, "interface utilization")
 
@@ -252,6 +288,7 @@ def collect_device(
             pass
 
         # 运行分析
+        _set_progress(device_name, "analyzing")
         if settings.get("analysis", {}).get("enable_config_validation", True):
             validator = ConfigValidator(running_config)
             validation_results = json.dumps(validator.validate(), indent=2, ensure_ascii=False)
@@ -274,6 +311,7 @@ def collect_device(
             change_results = "{}"
 
         # 保存数据
+        _set_progress(device_name, "saving")
         week = get_week_dir(data_root)
         _save_data(
             device_name, device_ip, device_type,
@@ -284,6 +322,7 @@ def collect_device(
             software_version, serial_number
         )
 
+        _clear_progress(device_name)
         return {
             "name": device_name,
             "ip": device_ip,
@@ -299,6 +338,7 @@ def collect_device(
     except Exception as e:
         print(f"[收集异常] {e}")
         traceback.print_exc()
+        _set_progress(device_name, "failed", str(e))
         return {
             "name": device_name,
             "ip": device_ip,

@@ -138,3 +138,73 @@ async def get_overview():
         "last_collection": last_collection,
         "locations": sorted(locations)
     }
+
+
+@router.get("/config-history")
+async def get_config_history():
+    """每设备每周的配置行数时间序列，用于配置变更趋势图"""
+    settings = load_settings()
+    data_root = settings.get("data_root", "./data")
+    yaml_data = load_devices()
+    devices_list = yaml_data.get("devices", [])
+
+    weeks_set = set()
+    device_data: dict = {}
+
+    for dev in devices_list:
+        device_name = dev.get("name", "")
+        device_dir = os.path.join(data_root, device_name)
+        if not os.path.exists(device_dir):
+            continue
+
+        week_dirs = sorted([
+            d for d in os.listdir(device_dir)
+            if os.path.isdir(os.path.join(device_dir, d)) and "-" in d
+        ])
+
+        for week in week_dirs:
+            val_path = os.path.join(device_dir, week, "validation.json")
+            if not os.path.exists(val_path):
+                continue
+
+            try:
+                with open(val_path, "r", encoding="utf-8") as f:
+                    val = json.load(f)
+            except (json.JSONDecodeError, IOError):
+                continue
+
+            config_lines = val.get("config_lines", 0)
+            ts = val.get("timestamp", "")
+
+            weeks_set.add(week)
+            if device_name not in device_data:
+                device_data[device_name] = {}
+            device_data[device_name][week] = {
+                "config_lines": config_lines,
+                "timestamp": ts,
+            }
+
+    sorted_weeks = sorted(weeks_set)
+
+    # 构建每设备的时序数据
+    series = []
+    for device_name, week_map in device_data.items():
+        data_points = []
+        for week in sorted_weeks:
+            entry = week_map.get(week)
+            if entry:
+                data_points.append({
+                    "week": week,
+                    "config_lines": entry["config_lines"],
+                    "timestamp": entry["timestamp"],
+                })
+        if data_points:
+            series.append({
+                "device": device_name,
+                "data": data_points,
+            })
+
+    return {
+        "weeks": sorted_weeks,
+        "series": series,
+    }

@@ -110,17 +110,17 @@ const DeviceList: React.FC = () => {
 
     setSelectedDevice(device)
     setCollecting(true)
-    setCollectPhase('ping')
+    setCollectPhase('collect')
     setCollectError('')
 
     try {
+      // Ping 预检：不可达设备提前拒绝，避免等待 SSH 超时
       const pingResult = await collectorApi.ping(device.name)
       if (!pingResult.reachable) {
-        setCollectError(`${t('devices.pinging')}: ${pingResult.detail}`)
+        setCollectError(pingResult.detail || t('devices.pinging'))
         return
       }
 
-      setCollectPhase('collect')
       const data = await collectorApi.collect(device.name, session.username, session.password)
       setCollectResult(data.result)
       setOpenCollect(true)
@@ -162,27 +162,59 @@ const DeviceList: React.FC = () => {
     if (deviceNames.length === 0) { alert(t('common.pleaseSelectDevice')); return }
 
     setBatchRunning(true)
-    const initial: Record<string, BatchItemStatus> = {}
-    deviceNames.forEach((n) => { initial[n] = { status: 'pending' } })
-    setBatchStatus(initial)
-
     try {
-      const data = await collectorApi.batchCollect(deviceNames, session.username, session.password)
-      const updated: Record<string, BatchItemStatus> = {}
-      for (const r of data.results) {
-        const errStr = typeof r.error === 'string' ? r.error : (r.error ? JSON.stringify(r.error) : '')
-        updated[r.device || r.name] = {
-          status: r.status === 'success' ? 'success' : 'failed',
-          error: errStr || r.detail || '',
-          result: r,
+      const deviceMap = new Map<string, Device>()
+      devices.forEach(d => deviceMap.set(d.name, d))
+
+      const initial: Record<string, BatchItemStatus> = {}
+      deviceNames.forEach((n) => { initial[n] = { status: 'pending' } })
+      setBatchStatus(initial)
+
+      for (const deviceName of deviceNames) {
+        const dev = deviceMap.get(deviceName)
+        if (!dev) {
+          setBatchStatus(prev => ({
+            ...prev,
+            [deviceName]: { status: 'failed', error: t('form.loadFailed') },
+          }))
+          continue
+        }
+
+        // Ping first
+        setBatchStatus(prev => ({ ...prev, [deviceName]: { status: 'pinging' } }))
+        try {
+          const pingResult = await collectorApi.ping(deviceName)
+          if (!pingResult.reachable) {
+            setBatchStatus(prev => ({
+              ...prev,
+              [deviceName]: { status: 'failed', error: pingResult.detail },
+            }))
+            continue
+          }
+        } catch (e) {
+          setBatchStatus(prev => ({
+            ...prev,
+            [deviceName]: { status: 'failed', error: t('devices.pinging') },
+          }))
+          continue
+        }
+
+        // Collect
+        setBatchStatus(prev => ({ ...prev, [deviceName]: { status: 'collecting' } }))
+        try {
+          const data = await collectorApi.collect(deviceName, session.username, session.password)
+          setBatchStatus(prev => ({
+            ...prev,
+            [deviceName]: { status: 'success', result: data.result },
+          }))
+        } catch (error: unknown) {
+          const errMsg = error instanceof Error ? error.message : t('common.collectFailed')
+          setBatchStatus(prev => ({
+            ...prev,
+            [deviceName]: { status: 'failed', error: errMsg },
+          }))
         }
       }
-      setBatchStatus((prev) => ({ ...prev, ...updated }))
-    } catch (error: unknown) {
-      const errMsg = error instanceof Error ? error.message : (typeof error === 'string' ? error : JSON.stringify(error))
-      const failed: Record<string, BatchItemStatus> = {}
-      deviceNames.forEach((n) => { failed[n] = { status: 'failed', error: errMsg } })
-      setBatchStatus((prev) => ({ ...prev, ...failed }))
     } finally {
       setBatchRunning(false)
       loadDevices()
@@ -250,7 +282,19 @@ const DeviceList: React.FC = () => {
 
       {/* 单设备收集进度 */}
       {collecting && selectedDevice && (
-        <CollectionProgress phase={collectPhase} device={selectedDevice} />
+        <CollectionProgress
+          deviceName={selectedDevice.name}
+          deviceIp={selectedDevice.ip}
+          onComplete={() => {
+            setCollecting(false)
+            setCollectPhase(null)
+          }}
+          onError={(msg) => {
+            setCollectError(msg)
+            setCollecting(false)
+            setCollectPhase(null)
+          }}
+        />
       )}
 
       {collectError && !collecting && (

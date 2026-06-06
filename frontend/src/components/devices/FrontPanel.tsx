@@ -14,7 +14,7 @@ const PORT_GAP = 4
 const SFP_GAP = 16
 
 const LEGEND_ITEMS = [
-  { color: '#22C55E', label: 'UP' },
+  { color: '#2DD46E', label: 'UP' },
   { color: '#F59E0B', label: 'UP (>80% Util)' },
   { color: '#EF4444', label: 'Error/Down' },
   { color: '#1E293B', label: 'Down/Disabled' },
@@ -26,7 +26,7 @@ function getPortColor(port: PortInfo): string {
   if (!port.status_up) return '#1E293B'
   const util = port.total_util_pct ?? ((port.rx_mbps ?? 0) + (port.tx_mbps ?? 0))
   if (util > 80) return '#F59E0B'
-  return '#22C55E'
+  return '#2DD46E'
 }
 
 /** 简化端口标签 */
@@ -276,7 +276,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
             gap: 2,
             flexWrap: 'wrap',
             alignItems: 'center',
-            bgcolor: hoveredPort ? 'rgba(34,197,94,0.05)' : 'rgba(148,163,184,0.03)',
+            bgcolor: hoveredPort ? 'rgba(45,212,110,0.05)' : 'rgba(148,163,184,0.03)',
             transition: 'background-color 0.2s',
           }}
         >
@@ -285,7 +285,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
               <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>
                 {hoveredPort.name}
               </Typography>
-              <Chip label={hoveredPort.status} size="small" sx={{ bgcolor: hoveredPort.status_up ? 'rgba(34,197,94,0.12)' : 'rgba(148,163,184,0.08)', color: hoveredPort.status_up ? 'success.main' : 'text.secondary', height: 20, fontSize: '0.65rem' }} />
+              <Chip label={hoveredPort.status} size="small" sx={{ bgcolor: hoveredPort.status_up ? 'rgba(45,212,110,0.12)' : 'rgba(148,163,184,0.08)', color: hoveredPort.status_up ? 'success.main' : 'text.secondary', height: 20, fontSize: '0.65rem' }} />
               {hoveredPort.speed && <Typography variant="caption" color="text.secondary">{hoveredPort.speed} Mbps</Typography>}
               {hoveredPort.type && <Typography variant="caption" color="text.secondary">{hoveredPort.type}</Typography>}
               {hoveredPort.description && <Typography variant="caption" color="text.secondary">{hoveredPort.description}</Typography>}
@@ -313,7 +313,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
                 sx={{
                   display: 'flex', alignItems: 'center', gap: 1, py: 0.5, px: 1,
                   borderRadius: 1, cursor: 'pointer',
-                  '&:hover': { bgcolor: 'rgba(34,197,94,0.08)' },
+                  '&:hover': { bgcolor: 'rgba(45,212,110,0.08)' },
                 }}
               >
                 <Box sx={{
@@ -327,7 +327,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
                 <Chip label={group.parent.status} size="small"
                   sx={{
                     height: 18, fontSize: '0.6rem',
-                    bgcolor: group.parent.status_up ? 'rgba(34,197,94,0.12)' : 'rgba(148,163,184,0.08)',
+                    bgcolor: group.parent.status_up ? 'rgba(45,212,110,0.12)' : 'rgba(148,163,184,0.08)',
                     color: group.parent.status_up ? 'success.main' : 'text.secondary',
                   }}
                 />
@@ -344,7 +344,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
                 sx={{
                   display: 'flex', alignItems: 'center', gap: 1, py: 0.5, px: 1, pl: 4,
                   borderRadius: 1, cursor: 'pointer',
-                  '&:hover': { bgcolor: 'rgba(34,197,94,0.08)' },
+                  '&:hover': { bgcolor: 'rgba(45,212,110,0.08)' },
                 }}
               >
                 <Box sx={{
@@ -358,7 +358,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
                 <Chip label={child.status} size="small"
                   sx={{
                     height: 16, fontSize: '0.55rem',
-                    bgcolor: child.status_up ? 'rgba(34,197,94,0.12)' : 'rgba(148,163,184,0.08)',
+                    bgcolor: child.status_up ? 'rgba(45,212,110,0.12)' : 'rgba(148,163,184,0.08)',
                     color: child.status_up ? 'success.main' : 'text.secondary',
                   }}
                 />
@@ -399,7 +399,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
           </Box>
         ))}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1 }}>
-          <Box sx={{ width: 14, height: 14, borderRadius: 0.5, bgcolor: '#22C55E', border: '2px solid #F59E0B', boxShadow: '0 0 4px #F59E0B' }} />
+          <Box sx={{ width: 14, height: 14, borderRadius: 0.5, bgcolor: '#2DD46E', border: '2px solid #F59E0B', boxShadow: '0 0 4px #F59E0B' }} />
           <Typography variant="caption" sx={{ fontSize: '0.65rem' }}>上行链路</Typography>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -418,7 +418,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
           gap: 2,
           flexWrap: 'wrap',
           alignItems: 'center',
-          bgcolor: hoveredPort ? 'rgba(34,197,94,0.05)' : 'rgba(148,163,184,0.03)',
+          bgcolor: hoveredPort ? 'rgba(45,212,110,0.05)' : 'rgba(148,163,184,0.03)',
           transition: 'background-color 0.2s',
         }}
       >
@@ -427,7 +427,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
             <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>
               {hoveredPort.name}
             </Typography>
-            <Chip label={hoveredPort.status} size="small" sx={{ bgcolor: hoveredPort.status_up ? 'rgba(34,197,94,0.12)' : 'rgba(148,163,184,0.08)', color: hoveredPort.status_up ? 'success.main' : 'text.secondary', height: 20, fontSize: '0.65rem' }} />
+            <Chip label={hoveredPort.status} size="small" sx={{ bgcolor: hoveredPort.status_up ? 'rgba(45,212,110,0.12)' : 'rgba(148,163,184,0.08)', color: hoveredPort.status_up ? 'success.main' : 'text.secondary', height: 20, fontSize: '0.65rem' }} />
             {hoveredPort.speed && <Typography variant="caption" color="text.secondary">{hoveredPort.speed} Mbps</Typography>}
             {hoveredPort.mode && <Typography variant="caption" color="text.secondary">{hoveredPort.mode}</Typography>}
             {hoveredPort.type && <Typography variant="caption" color="text.secondary">{hoveredPort.type}</Typography>}

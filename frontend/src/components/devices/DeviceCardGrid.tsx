@@ -111,7 +111,7 @@ const DeviceCardGrid: React.FC<DeviceCardGridProps> = React.memo(({ devices, sel
                     </Tooltip>
                     <Tooltip title={t('devices.viewDetailsTooltip')}>
                       <IconButton size="small" component="a" href={`/devices/${device.name}`}
-                        sx={{ color: 'primary.main', '&:hover': { bgcolor: 'rgba(34,197,94,0.08)' } }}>
+                        sx={{ color: 'primary.main', '&:hover': { bgcolor: 'rgba(45,212,110,0.08)' } }}>
                         <RefreshIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>

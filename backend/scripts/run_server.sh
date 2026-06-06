@@ -1,4 +1,4 @@
 #!/bin/bash
-echo "启动后端服务..."
+echo "Starting backend service..."
 cd "$(dirname "$0")/.."
 python main.py

@@ -41,26 +41,26 @@ const CollectResultDialog: React.FC<CollectResultDialogProps> = React.memo(({ op
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         {result?.status === 'success' && (
           <Box sx={{ p: 2 }}>
-            <Box sx={{ p: 2, bgcolor: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 1, mb: 2 }}>
+            <Box sx={{ p: 2, bgcolor: 'rgba(45,212,110,0.06)', border: '1px solid rgba(45,212,110,0.2)', borderRadius: 1, mb: 2 }}>
               <Typography variant="body1" gutterBottom>
-                <strong style={{ color: '#22C55E' }}>{t('collect.deviceLabel')}:</strong>{' '}
+                <strong style={{ color: '#2DD46E' }}>{t('collect.deviceLabel')}:</strong>{' '}
                 <span>{result.name}</span>
               </Typography>
               <Typography variant="body1">
-                <strong style={{ color: '#22C55E' }}>{t('collect.ipLabel')}:</strong>{' '}
+                <strong style={{ color: '#2DD46E' }}>{t('collect.ipLabel')}:</strong>{' '}
                 <span>{result.ip}</span>
               </Typography>
               <Typography variant="body1">
-                <strong style={{ color: '#22C55E' }}>{t('collect.softwareVersion')}:</strong>{' '}
+                <strong style={{ color: '#2DD46E' }}>{t('collect.softwareVersion')}:</strong>{' '}
                 <span>{result.software_version}</span>
               </Typography>
               <Typography variant="body1">
-                <strong style={{ color: '#22C55E' }}>{t('collect.serialNumber')}:</strong>{' '}
+                <strong style={{ color: '#2DD46E' }}>{t('collect.serialNumber')}:</strong>{' '}
                 <span>{result.serial_number || t('collect.unknown')}</span>
               </Typography>
               <Typography variant="body1" sx={{ mt: 1, fontWeight: 500 }}>
-                <strong style={{ color: '#22C55E' }}>{t('collect.runningLines')}:</strong>{' '}
-                <span style={{ color: '#4ADE80' }}>{result.running_lines}</span>
+                <strong style={{ color: '#2DD46E' }}>{t('collect.runningLines')}:</strong>{' '}
+                <span style={{ color: '#5CE68C' }}>{result.running_lines}</span>
               </Typography>
             </Box>
             {result.type_mismatch && (

@@ -110,7 +110,7 @@ const DeviceTable: React.FC<DeviceTableProps> = React.memo(({
                             size="small"
                             sx={{
                               height: 16, fontSize: '0.65rem', mt: 0.25,
-                              bgcolor: bs.status === 'success' ? 'rgba(34,197,94,0.1)' : bs.status === 'failed' ? 'rgba(239,68,68,0.1)' : 'rgba(148,163,184,0.06)',
+                              bgcolor: bs.status === 'success' ? 'rgba(45,212,110,0.1)' : bs.status === 'failed' ? 'rgba(239,68,68,0.1)' : 'rgba(148,163,184,0.06)',
                               color: bs.status === 'success' ? 'success.main' : bs.status === 'failed' ? 'error.main' : 'text.secondary',
                             }}
                           />

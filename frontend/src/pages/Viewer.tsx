@@ -19,7 +19,7 @@ import { useI18n } from '../i18n'
 
 /** 语义颜色常量 — 对应 MUI OLED Dark 主题 */
 const DIFF_COLORS = {
-  added: { bg: 'rgba(34, 197, 94, 0.15)', text: '#4ADE80', border: '#22C55E' },
+  added: { bg: 'rgba(45, 212, 110, 0.15)', text: '#5CE68C', border: '#2DD46E' },
   removed: { bg: 'rgba(239, 68, 68, 0.12)', text: '#F87171', border: '#EF4444' },
   same: { text: '#94A3B8' },
   info: { text: '#F8FAFC' },
@@ -215,10 +215,10 @@ const Viewer: React.FC = () => {
       textTransform: 'none', borderRadius: '6px !important',
       '&.Mui-selected': {
         color: 'primary.main',
-        bgcolor: 'rgba(34,197,94,0.1)',
-        borderColor: 'rgba(34,197,94,0.3)',
+        bgcolor: 'rgba(45,212,110,0.1)',
+        borderColor: 'rgba(45,212,110,0.3)',
       },
-      '&:hover': { bgcolor: 'rgba(34,197,94,0.06)' },
+      '&:hover': { bgcolor: 'rgba(45,212,110,0.06)' },
     },
   }
 
@@ -272,7 +272,7 @@ const Viewer: React.FC = () => {
             <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Performance Analysis</Typography>
               <Grid container spacing={2} sx={{ mb: 2 }}>
-                {[{ label: 'Total', value: json.interface_summary.total, color: '#3B82F6' }, { label: 'UP', value: json.interface_summary.up, color: '#22C55E' }, { label: 'DOWN', value: json.interface_summary.down, color: '#EF4444' }].map((item) => (
+                {[{ label: 'Total', value: json.interface_summary.total, color: '#3B82F6' }, { label: 'UP', value: json.interface_summary.up, color: '#2DD46E' }, { label: 'DOWN', value: json.interface_summary.down, color: '#EF4444' }].map((item) => (
                   <Grid item xs={4} key={item.label}>
                     <Box sx={{ p: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1, textAlign: 'center' }}>
                       <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>{item.label}</Typography>
@@ -295,7 +295,7 @@ const Viewer: React.FC = () => {
                         <TableCell sx={{ fontSize: '0.75rem' }}>{d.name}</TableCell>
                         <TableCell>
                           <Chip label={d.status} size="small" sx={{
-                            bgcolor: d.status_up ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                            bgcolor: d.status_up ? 'rgba(45,212,110,0.1)' : 'rgba(239,68,68,0.1)',
                             color: d.status_up ? 'success.main' : 'error.main',
                             height: 18, fontSize: '0.65rem',
                           }} />
@@ -360,7 +360,7 @@ const Viewer: React.FC = () => {
             <Paper sx={{ p: 2 }}>
               <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Change Detection</Typography>
               <Grid container spacing={2}>
-                {[{ label: 'Added', value: json.summary.added, color: '#22C55E' }, { label: 'Removed', value: json.summary.removed, color: '#EF4444' }, { label: 'Has Changes', value: json.has_changes ? 'Yes' : 'No', color: json.has_changes ? '#F59E0B' : '#3B82F6' }].map((item) => (
+                {[{ label: 'Added', value: json.summary.added, color: '#2DD46E' }, { label: 'Removed', value: json.summary.removed, color: '#EF4444' }, { label: 'Has Changes', value: json.has_changes ? 'Yes' : 'No', color: json.has_changes ? '#F59E0B' : '#3B82F6' }].map((item) => (
                   <Grid item xs={4} key={item.label}>
                     <Box sx={{ p: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1, textAlign: 'center' }}>
                       <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>{item.label}</Typography>
@@ -384,7 +384,7 @@ const Viewer: React.FC = () => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 700 }}>
-              <span style={{ color: '#22C55E' }}>Data</span>
+              <span style={{ color: '#2DD46E' }}>Data</span>
               <span style={{ color: '#F8FAFC' }}> Viewer</span>
             </Typography>
             <Typography variant="subtitle2" color="text.secondary">

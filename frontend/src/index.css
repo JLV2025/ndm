@@ -5,11 +5,16 @@
 }
 
 body {
-  font-family: 'IBM Plex Sans', 'Inter', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #020617;
+  background-image:
+    repeating-linear-gradient(0deg, transparent, transparent 1px, rgba(45, 212, 110, 0.012) 1px, rgba(45, 212, 110, 0.012) 2px),
+    repeating-linear-gradient(90deg, transparent, transparent 1px, rgba(45, 212, 110, 0.012) 1px, rgba(45, 212, 110, 0.012) 2px);
+  background-size: 40px 40px;
 }
 
 code, pre, .mono, [class*="mono"] {
-  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }

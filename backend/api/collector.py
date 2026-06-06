@@ -13,6 +13,16 @@ from utils.settings_loader import get_devices_config_path
 router = APIRouter()
 
 
+@router.get("/progress/{device_name}")
+async def get_collect_progress(device_name: str) -> dict:
+    """查询设备收集进度（前端轮询用）"""
+    from services.collector_service import get_collection_progress
+    progress = get_collection_progress(device_name)
+    if progress is None:
+        return {"step": "idle", "error": ""}
+    return {"step": progress.get("step", "unknown"), "error": progress.get("error", "")}
+
+
 class BatchCollectRequest(BaseModel):
     devices: List[str]
     username: str

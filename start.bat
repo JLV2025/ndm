@@ -1,44 +1,44 @@
 @echo off
 chcp 65001 >nul
-title NDM 网络设备配置管理系统
+title NDM - Network Device Manager
 
 cd /d %~dp0
 
 echo ========================================
-echo   NDM - 网络设备配置管理系统
+echo   NDM - Network Device Manager
 echo ========================================
 echo.
 
-REM 检查 Node.js
+REM Check Node.js
 where npm >nul 2>&1
 if %ERRORLEVEL% neq 0 (
-    echo [错误] 未找到 npm。请安装 Node.js 18+ 后重试。
+    echo [ERROR] npm not found. Please install Node.js 18+ and retry.
     pause
     exit /b 1
 )
 
-REM 尝试激活虚拟环境
+REM Activate virtual environment if present
 if exist "venv\Scripts\activate.bat" (
     call venv\Scripts\activate.bat
-    echo [0/2] 已激活虚拟环境
+    echo [0/2] Virtual environment activated
 )
 
-REM 检查前端是否已构建
+REM Check if frontend is already built
 if not exist "frontend\dist\index.html" (
     if not exist "frontend" (
-        echo [错误] 未找到 frontend 目录。请确认部署包完整。
+        echo [ERROR] frontend directory not found. Please verify the deployment package.
         pause
         exit /b 1
     )
-    echo [1/2] 正在构建前端...
+    echo [1/2] Building frontend...
 
-    REM 检查前端依赖是否安装
+    REM Install frontend dependencies if missing
     if not exist "frontend\node_modules" (
-        echo   正在安装前端依赖...
+        echo   Installing frontend dependencies...
         pushd frontend
         call npm install
         if %ERRORLEVEL% neq 0 (
-            echo [错误] 前端依赖安装失败。请检查 Node.js 版本和网络连接。
+            echo [ERROR] Frontend dependency install failed. Check Node.js version and network.
             popd
             pause
             exit /b 1
@@ -49,7 +49,7 @@ if not exist "frontend\dist\index.html" (
     pushd frontend
     call npm run build
     if %ERRORLEVEL% neq 0 (
-        echo [错误] 前端构建失败。请检查上方错误信息。
+        echo [ERROR] Frontend build failed. Check error messages above.
         popd
         pause
         exit /b 1
@@ -57,25 +57,25 @@ if not exist "frontend\dist\index.html" (
     popd
 
     if not exist "frontend\dist\index.html" (
-        echo [错误] 前端构建完成但未生成 dist/index.html，请检查构建输出。
+        echo [ERROR] Build completed but dist/index.html not generated. Check build output.
         pause
         exit /b 1
     )
-    echo   前端构建成功
+    echo   Frontend build successful
 ) else (
-    echo [1/2] 前端已构建，跳过
+    echo [1/2] Frontend already built, skipping
 )
 
-echo [2/2] 启动后端服务...
+echo [2/2] Starting backend service...
 echo.
-echo   访问地址: http://localhost:8002
-echo   按 Ctrl+C 停止服务
+echo   URL: http://localhost:8002
+echo   Press Ctrl+C to stop
 echo.
 
 python backend\main.py
 if %ERRORLEVEL% neq 0 (
     echo.
-    echo [错误] 后端启动失败。请确认已运行 pip install -r backend/requirements.txt
+    echo [ERROR] Backend failed to start. Please run: pip install -r backend/requirements.txt
     pause
     exit /b 1
 )

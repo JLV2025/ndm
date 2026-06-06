@@ -216,6 +216,16 @@ const en: Record<string, string> = {
   'dashboard.topTraffic': 'Uplink Top 10 Traffic',
   'dashboard.lastCollection': 'Last Collection',
 
+  // Dashboard Charts
+  'dashboard.chartDeviceTypes': 'Device Types',
+  'dashboard.chartPortStatus': 'Port Status',
+  'dashboard.chartTrafficRank': 'Traffic Top 10',
+  'dashboard.chartRx': 'RX',
+  'dashboard.chartTx': 'TX',
+  'dashboard.chartConfigHistory': 'Config Trend',
+  'dashboard.chartHeatmap': 'Config Change Heatmap',
+  'dashboard.chartHeatmapNodata': 'No data',
+
   // Front Panel
   'frontpanel.noPorts': 'No physical port data',
   'frontpanel.legend': 'Legend',
@@ -228,6 +238,18 @@ const en: Record<string, string> = {
   'detail.tabOverview': 'Overview',
   'detail.tabFrontPanel': 'Front Panel',
   'detail.tabPortList': 'Port List',
+  // Collection Progress Steps
+  'collect.stepConnecting': 'Connecting via SSH...',
+  'collect.stepCollectingConfig': 'Fetching running-config...',
+  'collect.stepCollectingLogs': 'Collecting logs...',
+  'collect.stepCollectingInterface': 'Fetching interface status...',
+  'collect.stepAnalyzing': 'Analyzing config data...',
+  'collect.stepSaving': 'Saving data...',
+  'collect.stepFailed': 'Collection failed',
+  'collect.stepIdle': 'Waiting to start',
+  'collect.singleTitle': 'Collecting',
+  'collect.batchCollecting': 'Collecting {name} ({ip}) ...',
+
   'detail.uplinkPorts': 'Uplink Ports',
 
   // Port Panel

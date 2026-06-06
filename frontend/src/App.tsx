@@ -65,9 +65,9 @@ function Layout() {
               width: 36,
               height: 36,
               borderRadius: 1.5,
-              bgcolor: 'rgba(34, 197, 94, 0.12)',
+              bgcolor: 'rgba(45, 212, 110, 0.12)',
               border: '1px solid',
-              borderColor: 'rgba(34, 197, 94, 0.2)',
+              borderColor: 'rgba(45, 212, 110, 0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -100,12 +100,12 @@ function Layout() {
                   borderRadius: 1.5,
                   py: 1.3,
                   px: 2,
-                  bgcolor: isActive ? 'rgba(34, 197, 94, 0.08)' : 'transparent',
+                  bgcolor: isActive ? 'rgba(45, 212, 110, 0.08)' : 'transparent',
                   border: '1px solid',
-                  borderColor: isActive ? 'rgba(34, 197, 94, 0.2)' : 'transparent',
+                  borderColor: isActive ? 'rgba(45, 212, 110, 0.2)' : 'transparent',
                   transition: 'all 150ms ease',
                   '&:hover': {
-                    bgcolor: 'rgba(34, 197, 94, 0.06)',
+                    bgcolor: 'rgba(45, 212, 110, 0.06)',
                   },
                 }}
               >
@@ -147,7 +147,7 @@ function Layout() {
             '&:hover': {
               borderColor: 'primary.main',
               color: 'primary.main',
-              bgcolor: 'rgba(34, 197, 94, 0.04)',
+              bgcolor: 'rgba(45, 212, 110, 0.04)',
             },
           }}
         >
@@ -158,7 +158,7 @@ function Layout() {
         <Box
           sx={{
             p: 1.5,
-            bgcolor: 'rgba(34, 197, 94, 0.04)',
+            bgcolor: 'rgba(45, 212, 110, 0.04)',
             border: '1px solid',
             borderColor: 'divider',
             borderRadius: 1.5,

@@ -215,6 +215,17 @@ const zh: Record<string, string> = {
   'dashboard.errorPorts': '错误端口',
   'dashboard.topTraffic': '上行链路 Top 10 流量排行',
   'dashboard.lastCollection': '最近采集',
+
+  // Dashboard 图表
+  'dashboard.chartDeviceTypes': '设备类型',
+  'dashboard.chartPortStatus': '端口状态',
+  'dashboard.chartTrafficRank': '流量排行 Top 10',
+  'dashboard.chartRx': '下行',
+  'dashboard.chartTx': '上行',
+  'dashboard.chartConfigHistory': '配置变更趋势',
+  'dashboard.chartHeatmap': '配置变更热力图',
+  'dashboard.chartHeatmapNodata': '无数据',
+
   'detail.dataBasedOn': '端口数据基于 {date} 采集，如需最新数据请点击上方收集按钮',
 
   // 前面板
@@ -229,6 +240,18 @@ const zh: Record<string, string> = {
   'detail.tabOverview': '概览',
   'detail.tabFrontPanel': '前面板',
   'detail.tabPortList': '端口列表',
+  // 收集进度步骤
+  'collect.stepConnecting': 'SSH 连接中...',
+  'collect.stepCollectingConfig': '获取运行配置...',
+  'collect.stepCollectingLogs': '获取日志...',
+  'collect.stepCollectingInterface': '获取接口状态...',
+  'collect.stepAnalyzing': '分析配置数据...',
+  'collect.stepSaving': '保存数据...',
+  'collect.stepFailed': '收集失败',
+  'collect.stepIdle': '等待开始',
+  'collect.singleTitle': '正在收集',
+  'collect.batchCollecting': '正在收集 {name} ({ip}) ...',
+
   'detail.uplinkPorts': '上联端口',
 
   // 端口面板

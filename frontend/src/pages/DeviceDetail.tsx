@@ -217,7 +217,7 @@ const DeviceDetail: React.FC = () => {
   const InfoCard = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
     <Card sx={{ p: 2, bgcolor: 'rgba(148,163,184,0.04)', border: '1px solid', borderColor: 'divider', transition: 'border-color 200ms ease', '&:hover': { borderColor: 'text.secondary' } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: 'rgba(34,197,94,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: 'rgba(45,212,110,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {icon}
         </Box>
         <Box sx={{ flex: 1 }}>
@@ -277,7 +277,7 @@ const DeviceDetail: React.FC = () => {
           </Box>
 
           {collectResult.status === 'success' && (
-            <Card sx={{ p: 2, bgcolor: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', mb: 2 }}>
+            <Card sx={{ p: 2, bgcolor: 'rgba(45,212,110,0.06)', border: '1px solid rgba(45,212,110,0.2)', mb: 2 }}>
               <Typography variant="body1" color="success.main" gutterBottom>
                 <CheckCircle sx={{ mr: 1, fontSize: 18, verticalAlign: 'middle' }} />
                 {t('detail.runningLines')}: {collectResult.running_lines}
@@ -316,8 +316,8 @@ const DeviceDetail: React.FC = () => {
               </Card>
             </Grid>
             <Grid item xs={6} sm={3}>
-              <Card sx={{ p: 2, textAlign: 'center', bgcolor: 'rgba(34,197,94,0.06)' }}>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: '#22C55E' }}>{frontPanelData.up_ports}</Typography>
+              <Card sx={{ p: 2, textAlign: 'center', bgcolor: 'rgba(45,212,110,0.06)' }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: '#2DD46E' }}>{frontPanelData.up_ports}</Typography>
                 <Typography variant="caption" color="text.secondary">{t('detail.up')}</Typography>
               </Card>
             </Grid>
@@ -329,7 +329,7 @@ const DeviceDetail: React.FC = () => {
             </Grid>
             <Grid item xs={6} sm={3}>
               <Card sx={{ p: 2, textAlign: 'center', bgcolor: 'rgba(239,68,68,0.06)' }}>
-                <Typography variant="h5" sx={{ fontWeight: 700, color: frontPanelData.error_ports > 0 ? '#EF4444' : '#22C55E' }}>{frontPanelData.error_ports}</Typography>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: frontPanelData.error_ports > 0 ? '#EF4444' : '#2DD46E' }}>{frontPanelData.error_ports}</Typography>
                 <Typography variant="caption" color="text.secondary">{t('detail.error')}</Typography>
               </Card>
             </Grid>
@@ -426,7 +426,7 @@ const DeviceDetail: React.FC = () => {
                         label={port.status}
                         size="small"
                         sx={{
-                          bgcolor: port.status_up ? 'rgba(34,197,94,0.12)' : 'rgba(148,163,184,0.08)',
+                          bgcolor: port.status_up ? 'rgba(45,212,110,0.12)' : 'rgba(148,163,184,0.08)',
                           color: port.status_up ? 'success.main' : 'text.secondary',
                           height: 20,
                           fontSize: '0.65rem',
@@ -532,7 +532,7 @@ const DeviceDetail: React.FC = () => {
             </Box>
           </DialogTitle>
           <DialogContent dividers>
-            <Box sx={{ p: 2, bgcolor: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 1 }}>
+            <Box sx={{ p: 2, bgcolor: 'rgba(45,212,110,0.06)', border: '1px solid rgba(45,212,110,0.2)', borderRadius: 1 }}>
               <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 2 }}>
                 <Box>
                   <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem' }}>Device Name</Typography>

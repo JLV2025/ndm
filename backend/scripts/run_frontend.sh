@@ -1,4 +1,4 @@
 #!/bin/bash
-echo "启动前端服务..."
+echo "Starting frontend dev server..."
 cd "$(dirname "$0")/../frontend"
 npm run dev

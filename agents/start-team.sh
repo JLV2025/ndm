@@ -1,75 +1,75 @@
 #!/bin/bash
-# 子代理团队启动脚本
-# 启动所有开发代理和测试代理
+# Start sub-agent development team
+# Launch all dev and test agents
 
 echo "========================================"
-echo "  启动开发团队代理"
+echo "  Start Development Team Agents"
 echo "========================================"
 echo ""
 
-# 当前项目路径
+# Current project path
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# 启动集成管理器（协调所有代理）
-echo "启动 integration-manager (集成管理器)..."
-echo "职责：协调所有开发代理，分配任务，跟踪进度"
+# Start integration manager (coordinates all agents)
+echo "Starting integration-manager..."
+echo "  Role: Coordinate all dev agents, assign tasks, track progress"
 echo ""
 
-# 启动前端开发代理
-echo "启动 frontend-dev (前端开发代理)..."
-echo "职责：编写 React/Next.js 前端代码，实现 UI 组件和页面"
+# Start frontend dev agent
+echo "Starting frontend-dev..."
+echo "  Role: Write React/Next.js frontend code, implement UI components & pages"
 echo ""
 
-# 启动后端开发代理
-echo "启动 backend-dev (后端开发代理)..."
-echo "职责：编写 Python 后端代码，API 端点和数据库操作"
+# Start backend dev agent
+echo "Starting backend-dev..."
+echo "  Role: Write Python backend code, API endpoints & DB operations"
 echo ""
 
-# 启动安全审查代理
-echo "启动 security-reviewer (安全审查代理)..."
-echo "职责：审查代码安全漏洞，确保最佳实践"
+# Start security reviewer agent
+echo "Starting security-reviewer..."
+echo "  Role: Review code for security vulnerabilities, enforce best practices"
 echo ""
 
-# 启动 QA 测试代理
-echo "启动 qa-tester (QA 测试代理)..."
-echo "职责：编写和运行测试，验证功能"
+# Start QA test agent
+echo "Starting qa-tester..."
+echo "  Role: Write and run tests, verify functionality"
 echo ""
 
-# 启动构建错误解决代理
-echo "启动 build-error-resolver (构建错误解决代理)..."
-echo "职责：修复构建和类型错误"
+# Start build error resolver agent
+echo "Starting build-error-resolver..."
+echo "  Role: Fix build and type errors"
 echo ""
 
-# 启动代码审查代理
-echo "启动 code-reviewer (代码审查代理)..."
-echo "职责：审查代码质量，检查 bug 和问题"
+# Start code reviewer agent
+echo "Starting code-reviewer..."
+echo "  Role: Review code quality, check for bugs & issues"
 echo ""
 
-# 启动架构设计代理
-echo "启动 code-architect (架构设计代理)..."
-echo "职责：设计功能架构，规划文件结构"
+# Start code architect agent
+echo "Starting code-architect..."
+echo "  Role: Design feature architecture, plan file structure"
 echo ""
 
-# 启动规划代理
-echo "启动 planner (规划代理)..."
-echo "职责：创建实施计划，分解复杂功能"
+# Start planner agent
+echo "Starting planner..."
+echo "  Role: Create implementation plans, decompose complex features"
 echo ""
 
 echo "========================================"
-echo "  团队已启动"
+echo "  Team Ready"
 echo "========================================"
 echo ""
-echo "可用命令："
-echo "  /agent integration-manager   - 启动集成管理器"
-echo "  /agent frontend-dev          - 启动前端开发代理"
-echo "  /agent backend-dev           - 启动后端开发代理"
-echo "  /agent security-reviewer     - 启动安全审查代理"
-echo "  /agent qa-tester             - 启动 QA 测试代理"
-echo "  /agent build-error-resolver  - 启动构建错误解决代理"
-echo "  /agent code-reviewer         - 启动代码审查代理"
-echo "  /agent code-architect        - 启动架构设计代理"
-echo "  /agent planner               - 启动规划代理"
+echo "Available commands:"
+echo "  /agent integration-manager   - Start integration manager"
+echo "  /agent frontend-dev          - Start frontend dev agent"
+echo "  /agent backend-dev           - Start backend dev agent"
+echo "  /agent security-reviewer     - Start security reviewer agent"
+echo "  /agent qa-tester             - Start QA test agent"
+echo "  /agent build-error-resolver  - Start build error resolver"
+echo "  /agent code-reviewer         - Start code reviewer agent"
+echo "  /agent code-architect        - Start code architect agent"
+echo "  /agent planner               - Start planner agent"
 echo ""
-echo "提示：使用 /agent 命令启动特定代理"
-echo "      集成管理器将自动协调所有任务"
+echo "Tip: Use /agent command to launch a specific agent"
+echo "     The integration manager auto-coordinates all tasks"
 echo ""
