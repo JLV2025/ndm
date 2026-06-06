@@ -9,6 +9,7 @@
 - **设备管理** — 添加、编辑、删除设备，按类型 / 位置筛选
 - **配置收集** — 一键收集 running-config、startup-config、日志、接口状态、路由表、版本信息
 - **在线查看** — 代码高亮查看配置内容，支持版本对比（diff）
+- **Dashboard 图表** — Recharts 可视化：设备类型环形图、端口状态柱状图、流量 Top 10 排行、配置变更趋势折线图 + 热力图
 - **前面板可视化** — 交换机端口状态前面板 + 路由器接口层级树，支持堆叠设备、子接口缩进，10Gb 端口红色数字标识
 - **基础分析** — 配置完整性验证、接口状态统计、利用率分析、变更检测
 - **按周归档** — `data/设备名/YYYY-WW/` 目录结构，自动保留最近 10 个版本
@@ -19,9 +20,9 @@
 
 | 层 | 技术 |
 |----|------|
-| 前端 | React 18 + TypeScript + MUI v5 + Vite 5 |
+| 前端 | React 18 + TypeScript + MUI v5 + Recharts + Vite 8 |
 | 后端 | Python FastAPI + Netmiko (SSH) |
-| 主题 | OLED Dark (#020617 底色, #22C55E 强调色) |
+| 主题 | OLED Dark (#020617 底色, #2DD46E 强调色)，IBM Plex Sans + JetBrains Mono 字体 |
 | 多语言 | React Context i18n (zh / en) |
 
 ## 快速开始

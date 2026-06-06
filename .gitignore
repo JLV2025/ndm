@@ -69,6 +69,11 @@ security-review-report.md
 # OpenWolf
 .wolf/
 
+# Playwright / Design QC temp files
+.playwright-mcp/
+*.png
+*.jpg
+
 # Local IDE / Tool config (may contain secrets)
 .claude/
 .vscode/

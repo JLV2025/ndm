@@ -9,6 +9,7 @@ SSH-based configuration and log collection for Cisco IOS and Aruba OS switches a
 - **Device Management** — Add, edit, delete devices; filter by type and location
 - **Config Collection** — One-click retrieval of running-config, startup-config, logs, interface status, routing table, and version info
 - **Online Viewer** — Syntax-highlighted config viewer with version diff comparison
+- **Dashboard Charts** — Recharts visualization: device-type donut chart, port-status stacked bar chart, traffic Top 10 ranking, config-change trend line chart + heatmap
 - **Front Panel Visualization** — Switch port status panel + router interface hierarchy tree, with stack support and sub-interface indentation
 - **Basic Analysis** — Config completeness validation, interface status summary, utilization analysis, change detection
 - **Weekly Archival** — `data/{device}/YYYY-WW/` directory structure, retains last 10 weeks
@@ -19,9 +20,9 @@ SSH-based configuration and log collection for Cisco IOS and Aruba OS switches a
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React 18 + TypeScript + MUI v5 + Vite 5 |
+| Frontend | React 18 + TypeScript + MUI v5 + Recharts + Vite 8 |
 | Backend | Python FastAPI + Netmiko (SSH) |
-| Theme | OLED Dark (#020617 background, #22C55E accent) |
+| Theme | OLED Dark (#020617 background, #2DD46E accent), IBM Plex Sans + JetBrains Mono font |
 | i18n | React Context i18n (zh / en) |
 
 ## Quick Start
