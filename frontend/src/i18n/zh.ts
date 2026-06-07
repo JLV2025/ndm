@@ -11,7 +11,7 @@ const zh: Record<string, string> = {
   'nav.dashboard': '仪表盘',
   'nav.devices': '设备管理',
   'nav.viewer': '配置查看器',
-  'nav.topology': '拓扑图',
+  'nav.topology': '端口连接图',
   'nav.login': '登录',
 
   // 仪表盘
@@ -288,6 +288,10 @@ const zh: Record<string, string> = {
   'topology.description': '通过 LLDP 拓扑数据展示交换机端口连接关系',
   'topology.selectDevice': '选择设备',
   'topology.empty': '请选择一个设备查看端口连接图',
+  'topology.selectLocationHint': '请先选择位置',
+  'topology.selectLocationDesc': '在上方选择设备所在位置（机房/数据中心）',
+  'topology.selectDeviceHint': '请选择设备',
+  'topology.selectDeviceDesc': '选择要查看端口连接拓扑的目标设备',
   'topology.noNeighbors': '未发现邻居设备',
   'topology.legend': '图例',
   'topology.localPort': '本地端口',

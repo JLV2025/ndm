@@ -1,11 +1,15 @@
 import axios from 'axios'
 import type { Device } from '../types'
 
-const API_BASE = '/api'
+const API_BASE = import.meta.env.PROD ? 'http://localhost:8002/api' : '/api'
+
+// fetch 用绝对路径（preview 模式不代理）
+const apiUrl = (path: string) => `${API_BASE}${path}`
 
 // 创建 JSON 实例
 const apiJson = axios.create({
   baseURL: API_BASE,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -25,7 +29,7 @@ export const deviceApi = {
 export const collectorApi = {
   // Ping 设备检查可达性
   ping: async (deviceName: string, signal?: AbortSignal) => {
-    const res = await fetch(`/api/collect/ping/${deviceName}`, { method: 'POST', signal })
+    const res = await fetch(apiUrl(`/collect/ping/${deviceName}`), { method: 'POST', signal, credentials: 'include' })
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}))
       throw new Error(errData.detail || `Ping 失败 (${res.status})`)
@@ -38,9 +42,10 @@ export const collectorApi = {
     const formData = new FormData()
     formData.append('username', username)
     formData.append('password', password)
-    const res = await fetch(`/api/collect/${deviceName}`, {
+    const res = await fetch(apiUrl(`/collect/${deviceName}`), {
       method: 'POST',
       body: formData,
+      credentials: 'include',
     })
     const data = await res.json()
     // 后端返回 success: false 表示收集失败
@@ -52,10 +57,11 @@ export const collectorApi = {
 
   // 批量收集设备配置
   batchCollect: async (deviceNames: string[], username: string, password: string) => {
-    const res = await fetch('/api/collect/batch', {
+    const res = await fetch(apiUrl('/collect/batch'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ devices: deviceNames, username, password }),
+      credentials: 'include',
     })
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}))
@@ -79,12 +85,13 @@ export const dataApi = {
 export const authApi = {
   login: (username: string, password: string) => {
     const params = new URLSearchParams({ username, password })
-    return fetch('/api/auth/login', {
+    return fetch(apiUrl('/auth/login'), {
       method: 'POST',
       body: params,
+      credentials: 'include',
     }).then(res => res.json())
   },
-  logout: () => fetch('/api/auth/logout', { method: 'POST' }).then(res => res.json()),
+  logout: () => fetch(apiUrl('/auth/logout'), { method: 'POST', credentials: 'include' }).then(res => res.json()),
 }
 
 // 拓扑图

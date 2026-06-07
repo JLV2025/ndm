@@ -11,7 +11,7 @@ const en: Record<string, string> = {
   'nav.dashboard': 'Dashboard',
   'nav.devices': 'Devices',
   'nav.viewer': 'Viewer',
-  'nav.topology': 'Topology',
+  'nav.topology': 'Port Map',
   'nav.login': 'Login',
 
   // Dashboard
@@ -286,6 +286,10 @@ const en: Record<string, string> = {
   'topology.description': 'Switch port connections via LLDP topology data',
   'topology.selectDevice': 'Select Device',
   'topology.empty': 'Select a device to view port connections',
+  'topology.selectLocationHint': 'Select a Location First',
+  'topology.selectLocationDesc': 'Choose the target location (site/datacenter) above',
+  'topology.selectDeviceHint': 'Select a Device',
+  'topology.selectDeviceDesc': 'Choose a device to view its port connection topology',
   'topology.noNeighbors': 'No neighbors discovered',
   'topology.legend': 'Legend',
   'topology.localPort': 'Local Port',

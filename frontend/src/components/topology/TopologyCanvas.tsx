@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import {
-  ReactFlow, Node, Edge, Background, Controls, MiniMap, MarkerType, type NodeTypes,
+  ReactFlow, Node, Edge, Background, Controls, MarkerType, type NodeTypes,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { Box, Typography } from '@mui/material'
+import { Box, Typography, keyframes } from '@mui/material'
 import { useI18n } from '../../i18n'
 import type { NeighborNode } from '../../types/topology'
 import FrontPanelNode, { getPortParity } from './FrontPanelNode'
@@ -19,17 +19,23 @@ const STACK_KEYWORDS = ['VSF', 'stackwise']
 function isStackLink(desc: string): boolean { return STACK_KEYWORDS.some((kw) => desc.toLowerCase().includes(kw.toLowerCase())) }
 const nodeTypes: NodeTypes = { frontPanel: FrontPanelNode }
 
+const canvasFadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`
+
 // ====== 尺寸常量 ======
 const CENTER_W = 620
-const CENTER_H = 182
+const CENTER_BODY_H = 118
+const CENTER_LABEL_H = 32
 const NEIGHBOR_W = 240
 const NEIGHBOR_H = 140
 const COMPACT_W = 200
 const COMPACT_H = 58
-const H_GAP = 60        // 水平间距
-const V_GAP = 160       // 交换机上下到第一行邻居的距离
-const ROW_GAP = 110     // 邻居行间距
-const MAX_PER_ROW = 5   // 每行最多设备数
+const H_GAP = 60
+const V_GAP = 160
+const ROW_GAP = 110
+const MAX_PER_ROW = 5
 
 const ENDPOINT_PREFIXES = [
   { prefix: 'Phone-', label: '电话', labelEn: 'Phones' },
@@ -136,14 +142,20 @@ export default function TopologyCanvas({ deviceName, neighbors, stackMembers, me
   }, [topRows, bottomRows, switchesW])
 
   // ====== 中心 Y 计算 ======
+  const centerFullH = CENTER_LABEL_H * 2 + CENTER_BODY_H
   const centerY = useMemo(() => {
     const topH = topRows.length * NEIGHBOR_H + Math.max(topRows.length - 1, 0) * ROW_GAP
     const bottomH = bottomRows.length * NEIGHBOR_H + Math.max(bottomRows.length - 1, 0) * ROW_GAP
-    const total = topH + V_GAP + CENTER_H + V_GAP + bottomH + 200
+    const total = topH + V_GAP + centerFullH + V_GAP + bottomH + 200
     return total / 2 + 80
   }, [topRows, bottomRows])
 
   const SWITCH_Y = centerY
+
+  const switchPosY = (hasTop: boolean) => {
+    const bodyTop = hasTop ? CENTER_LABEL_H : 0
+    return SWITCH_Y - bodyTop - CENTER_BODY_H / 2
+  }
 
   // ====== 构建节点 & 边 ======
   const { nodes, edges } = useMemo(() => {
@@ -162,9 +174,10 @@ export default function TopologyCanvas({ deviceName, neighbors, stackMembers, me
           color: getDeviceColor(n.device_type), neighborName: n.device_name,
           connected: true, direction: getPortParity(n.interface) === 'odd' ? 'top' : 'bottom',
         }))
+        const hasTopP = ports.some((p: PortData) => p.direction === 'top')
         nodes.push({
           id: `center-${mid}`, type: 'frontPanel',
-          position: { x: switchStartX + i * (CENTER_W + H_GAP), y: SWITCH_Y - CENTER_H / 2 },
+          position: { x: switchStartX + i * (CENTER_W + H_GAP), y: switchPosY(hasTopP) },
           data: { label: name, deviceType: 'switch', color: cc, isCenter: true, ports, memberLabel: `Member ${mid}` },
         })
       })
@@ -184,9 +197,10 @@ export default function TopologyCanvas({ deviceName, neighbors, stackMembers, me
         color: getDeviceColor(n.device_type), neighborName: n.device_name,
         connected: true, direction: getPortParity(n.interface) === 'odd' ? 'top' : 'bottom',
       }))
+      const hasTopS = ports.some((p: PortData) => p.direction === 'top')
       nodes.push({
         id: 'center', type: 'frontPanel',
-        position: { x: switchStartX, y: SWITCH_Y - CENTER_H / 2 },
+        position: { x: switchStartX, y: switchPosY(hasTopS) },
         data: { label: deviceName, deviceType: 'switch', color: cc, isCenter: true, ports, memberLabel: t('topology.centerDevice') },
       })
     }
@@ -213,13 +227,15 @@ export default function TopologyCanvas({ deviceName, neighbors, stackMembers, me
     }
 
     // --- 上行区域（交换机上方）---
-    const topRowStartY = SWITCH_Y - CENTER_H / 2 - V_GAP
+    const topRowEdgeY = SWITCH_Y - CENTER_LABEL_H - CENTER_BODY_H / 2
+    const topRowStartY = topRowEdgeY - V_GAP
     topRows.forEach((row, ri) => {
       layRow(row, topRowStartY - ri * (NEIGHBOR_H + ROW_GAP))
     })
 
     // --- 下行区域（交换机下方）---
-    const bottomRowStartY = SWITCH_Y + CENTER_H / 2 + V_GAP
+    const bottomRowEdgeY = SWITCH_Y + CENTER_LABEL_H + CENTER_BODY_H / 2
+    const bottomRowStartY = bottomRowEdgeY + V_GAP
     bottomRows.forEach((row, ri) => {
       layRow(row, bottomRowStartY + ri * (NEIGHBOR_H + ROW_GAP))
     })
@@ -241,7 +257,7 @@ export default function TopologyCanvas({ deviceName, neighbors, stackMembers, me
             strokeWidth: ep ? 3 : 4.5,
             opacity: ep ? 0.5 : 1,
           },
-          markerEnd: { type: MarkerType.ArrowClosed, color: dev.color, width: 16, height: 16 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: ep ? '#64748b' : dev.color, width: 10, height: 10 },
           label: dev.entries.length <= 1 ? undefined : e.interface,
           labelStyle: { fontSize: 11, fill: '#cbd5e1', fontWeight: 500 },
           labelBgStyle: { fill: '#0f172a', fillOpacity: 0.9 },
@@ -252,18 +268,85 @@ export default function TopologyCanvas({ deviceName, neighbors, stackMembers, me
     return { nodes, edges }
   }, [topDevs, bottomDevs, topRows, bottomRows, maxW, centerY, hasStack, members, memberNeighbors, stackLinks, externalNeighbors, deviceName, t, memberCount, switchesW])
 
+  // ====== 点击高亮 ======
+  const [selectedTarget, setSelectedTarget] = useState<string | null>(null)
+
+  const onNodeClick = useCallback((_event: React.MouseEvent, n: Node) => {
+    if (!n.id.startsWith('center')) setSelectedTarget(p => p === n.id ? null : n.id)
+  }, [])
+
+  const onEdgeClick = useCallback((_event: React.MouseEvent, e: Edge) => {
+    if (e.target && !e.target.startsWith('center') && !e.id.startsWith('stack-')) {
+      setSelectedTarget(p => p === e.target ? null : e.target)
+    }
+  }, [])
+
+  const onPaneClick = useCallback(() => setSelectedTarget(null), [])
+
+  // ====== 偏移状态 ======
+  const [offsets, setOffsets] = useState<Record<string, { dx: number; dy: number }>>({})
+
+  const positionedNodes = useMemo(() =>
+    nodes.map(n => {
+      const off = offsets[n.id]; if (!off) return n
+      return { ...n, position: { x: n.position.x + off.dx, y: n.position.y + off.dy } }
+    }), [nodes, offsets])
+
+  const finalNodes = useMemo(() => {
+    if (!selectedTarget) return positionedNodes
+    return positionedNodes.map(n => {
+      if (n.id.startsWith('center')) return n
+      return n.id === selectedTarget
+        ? { ...n, data: { ...n.data, highlighted: true }, selected: true }
+        : { ...n, style: { opacity: 0.2 } }
+    })
+  }, [positionedNodes, selectedTarget])
+
+  const finalEdges = useMemo(() => {
+    if (!selectedTarget) return edges
+    return edges.map(e => {
+      const isStack = e.id.startsWith('stack-')
+      if (isStack) return e
+      return e.target === selectedTarget
+        ? { ...e, style: { ...e.style, strokeWidth: 5, opacity: 1 }, animated: true }
+        : { ...e, style: { ...e.style, opacity: 0.06 }, markerEnd: undefined }
+    })
+  }, [edges, selectedTarget])
+
   if (validNeighbors.length === 0) {
     return <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 500, color: 'text.secondary' }}><Typography sx={{ fontSize: '1.1rem' }}>{t('topology.noNeighbors')}</Typography></Box>
   }
 
   return (
-    <Box sx={{ width: '100%', height: 'calc(100vh - 280px)', minHeight: 650, borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
-      <style>{`.react-flow__controls-button{background:#1e293b!important;border:1px solid #334155!important;fill:#e2e8f0!important;width:32px!important;height:32px!important}.react-flow__controls-button svg{fill:#e2e8f0!important;max-width:16px!important;max-height:16px!important}.react-flow__controls-button:hover{background:#334155!important}.react-flow__controls{background:#0f172a!important;border:1px solid #1e293b!important;border-radius:8px!important;overflow:hidden!important}`}</style>
-      <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.25 }} minZoom={0.06} maxZoom={3} nodesDraggable nodesConnectable={false} elementsSelectable defaultEdgeOptions={{ type: 'smoothstep' }} proOptions={{ hideAttribution: true }}>
+    <Box sx={{ width: '100%', height: '100%', minHeight: 650, borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider', bgcolor: '#0a0e1a', animation: `${canvasFadeIn} 0.5s ease`, position: 'relative' }}>
+      <style>{`.react-flow__controls-button{background:#1e293b!important;border:1px solid #334155!important;fill:#e2e8f0!important;width:32px!important;height:32px!important}.react-flow__controls-button svg{fill:#e2e8f0!important;max-width:16px!important;max-height:16px!important}.react-flow__controls-button:hover{background:#334155!important}.react-flow__controls{background:#0f172a!important;border:1px solid #1e293b!important;border-radius:8px!important;overflow:hidden!important}.react-flow__edge{cursor:pointer!important}`}</style>
+      <ReactFlow nodes={finalNodes} edges={finalEdges} nodeTypes={nodeTypes}
+        fitView fitViewOptions={{ padding: 0.3 }}
+        minZoom={0.06} maxZoom={3}
+        nodesConnectable={false} elementsSelectable nodesFocusable={false}
+        defaultEdgeOptions={{ type: 'smoothstep' }}
+        proOptions={{ hideAttribution: true }}
+        onNodeClick={onNodeClick} onEdgeClick={onEdgeClick} onPaneClick={onPaneClick}
+      >
         <Background color="#1e293b" gap={24} />
         <Controls />
-        <MiniMap style={{ background: '#0f172a', border: '1px solid #1e293b' }} nodeColor={(node) => { if (node.id.startsWith('center')) return '#2DD46E'; const d = node.data as any; return d?.color || '#475569' }} />
       </ReactFlow>
+
+      {/* 方向键盘 */}
+      {selectedTarget && (
+        <Box sx={{ position: 'absolute', left: 16, bottom: 160, zIndex: 10, display: 'grid', gridTemplateColumns: 'repeat(3,30px)', gridTemplateRows: 'repeat(2,30px)', gap: '4px' }}>
+          <Box /><Box onClick={() => setOffsets(p => ({...p,[selectedTarget]:{dx:(p[selectedTarget]?.dx||0),dy:(p[selectedTarget]?.dy||0)-40}}))}
+            sx={btnSx}>▲</Box><Box />
+          <Box onClick={() => setOffsets(p => ({...p,[selectedTarget]:{dx:(p[selectedTarget]?.dx||0)-40,dy:(p[selectedTarget]?.dy||0)}}))}
+            sx={btnSx}>◀</Box>
+          <Box onClick={() => setOffsets(p => ({...p,[selectedTarget]:{dx:(p[selectedTarget]?.dx||0),dy:(p[selectedTarget]?.dy||0)+40}}))}
+            sx={btnSx}>▼</Box>
+          <Box onClick={() => setOffsets(p => ({...p,[selectedTarget]:{dx:(p[selectedTarget]?.dx||0)+40,dy:(p[selectedTarget]?.dy||0)}}))}
+            sx={btnSx}>▶</Box>
+        </Box>
+      )}
     </Box>
   )
 }
+
+const btnSx = { display:'flex',alignItems:'center',justifyContent:'center',borderRadius:1,bgcolor:'#1e293b',border:'1px solid #334155',cursor:'pointer',color:'#94a3b8',fontSize:'0.75rem',userSelect:'none','&:hover':{bgcolor:'#334155',color:'#e2e8f0'} } as const
