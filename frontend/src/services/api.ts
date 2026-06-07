@@ -87,4 +87,10 @@ export const authApi = {
   logout: () => fetch('/api/auth/logout', { method: 'POST' }).then(res => res.json()),
 }
 
+// 拓扑图
+export const topologyApi = {
+  getTopology: (deviceName: string): Promise<{ device_name: string; neighbors: any[]; endpoints: any[]; network_devices: any[] }> =>
+    apiJson.get(`/topology/${encodeURIComponent(deviceName)}`).then(res => res.data),
+}
+
 export default apiJson

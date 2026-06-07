@@ -68,3 +68,5 @@ export interface FrontPanelData {
   disabled_ports: number
   error_ports: number
 }
+
+export type { NeighborNode, TopologyData } from './topology'

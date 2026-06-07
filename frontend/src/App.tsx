@@ -21,12 +21,14 @@ import {
   Dashboard as DashboardIcon,
   Storage,
   Terminal,
+  Hub as HubIcon,
 } from '@mui/icons-material'
 import Login from './pages/Login'
 import DeviceList from './pages/DeviceList'
 import DeviceDetail from './pages/DeviceDetail'
 import Dashboard from './pages/Dashboard'
 import Viewer from './pages/Viewer'
+import Topology from './pages/Topology'
 import MatrixRain from './components/MatrixRain'
 import { sessionManager } from './services/auth'
 import { useI18n } from './i18n'
@@ -43,6 +45,7 @@ function Layout() {
   const navItems = [
     { label: t('nav.dashboard'), icon: <DashboardIcon />, path: '/' },
     { label: t('nav.devices'), icon: <Storage />, path: '/devices' },
+    { label: t('nav.topology'), icon: <HubIcon />, path: '/topology' },
     { label: t('nav.viewer'), icon: <Terminal />, path: '/viewer' },
   ]
 
@@ -270,6 +273,7 @@ const App: React.FC = () => {
           <Route path="devices/:name" element={<DeviceDetail />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="viewer" element={<Viewer />} />
+          <Route path="topology" element={<Topology />} />
         </Route>
       </Routes>
       </ErrorBoundary>
