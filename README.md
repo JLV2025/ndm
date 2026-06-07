@@ -10,7 +10,8 @@
 - **配置收集** — 一键收集 running-config、startup-config、日志、接口状态、路由表、版本信息
 - **在线查看** — 代码高亮查看配置内容，支持版本对比（diff）
 - **Dashboard 图表** — Recharts 可视化：设备类型环形图、端口状态柱状图、流量 Top 10 排行、配置变更趋势折线图 + 热力图
-- **前面板可视化** — 交换机端口状态前面板 + 路由器接口层级树，支持堆叠设备、子接口缩进，10Gb 端口红色数字标识
+- **前端面板可视化** — 交换机端口状态前面板 + 路由器接口层级树，支持堆叠设备、子接口缩进，10Gb 端口红色数字标识
+- **设备端口连接图** — 从 running-config description 正则提取邻居设备，React Flow 拓扑画布，前面板矩形节点 + 奇偶端口上下分行 + 端点聚合
 - **基础分析** — 配置完整性验证、接口状态统计、利用率分析、变更检测
 - **按周归档** — `data/设备名/YYYY-WW/` 目录结构，自动保留最近 10 个版本
 - **双语文案** — 中 / 英文界面一键切换
@@ -20,7 +21,7 @@
 
 | 层 | 技术 |
 |----|------|
-| 前端 | React 18 + TypeScript + MUI v5 + Recharts + Vite 8 |
+| 前端 | React 18 + TypeScript + MUI v5 + Recharts + React Flow (@xyflow/react) + Vite 8 |
 | 后端 | Python FastAPI + Netmiko (SSH) |
 | 主题 | OLED Dark (#020617 底色, #2DD46E 强调色)，IBM Plex Sans + JetBrains Mono 字体 |
 | 多语言 | React Context i18n (zh / en) |
@@ -188,14 +189,14 @@ ndm/
 │   ├── main.py              # 入口，含前端静态托管及 SPA 回退
 │   ├── api/                 # 路由：设备、收集、数据、认证、统计
 │   ├── services/            # 业务逻辑：SSH 收集、设备管理
-│   ├── analyzers/           # 分析：配置验证、性能、变更检测
+│   ├── analyzers/           # 分析：配置验证、性能、变更检测、端口解析
 │   ├── collectors/          # Netmiko SSH 连接层
 │   └── utils/               # 存储、密码管理、配置加载
 ├── frontend/                # React 前端
 │   └── src/
-│       ├── pages/           # 页面：Dashboard, DeviceList, DeviceDetail, Viewer, Login
+│       ├── pages/           # 页面：Dashboard, DeviceList, DeviceDetail, Viewer, Login, Topology
 │       ├── services/        # API 调用 + 认证管理
-│       ├── components/      # 通用组件（MatrixRain 背景、FrontPanel 前面板等）
+│       ├── components/      # 通用组件（MatrixRain 背景、FrontPanel 前面板、TopologyCanvas 等）
 │       └── i18n/            # 多语言文案（zh / en）
 ├── config/                  # YAML 配置文件
 ├── data/                    # 收集数据（按周归档）
