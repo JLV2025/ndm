@@ -96,8 +96,11 @@ export const authApi = {
 
 // 拓扑图
 export const topologyApi = {
-  getTopology: (deviceName: string): Promise<{ device_name: string; neighbors: any[]; endpoints: any[]; network_devices: any[] }> =>
+  getTopology: (deviceName: string): Promise<{ device_name: string; neighbors: any[]; endpoints: any[]; network_devices: any[]; stack_members?: string[]; member_neighbors?: Record<string, any[]> }> =>
     apiJson.get(`/topology/${encodeURIComponent(deviceName)}`).then(res => res.data),
+
+  getLocationTopology: (location: string): Promise<import('../types/topology').LocationTopologyData> =>
+    apiJson.get(`/topology/location/${encodeURIComponent(location)}`).then(res => res.data),
 }
 
 export default apiJson
