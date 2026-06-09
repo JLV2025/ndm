@@ -3,11 +3,14 @@ import {
   ReactFlow, Node, Edge, Background, Controls, MarkerType, type NodeTypes,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { Box, Typography, keyframes } from '@mui/material'
+import { Box, Typography, IconButton, Stack, Tooltip, Paper, keyframes } from '@mui/material'
+import { Image as ImageIcon, AccountTree as VisioIcon } from '@mui/icons-material'
+import { toPng } from 'html-to-image'
 import { useI18n } from '../../i18n'
 import type { NeighborNode } from '../../types/topology'
 import FrontPanelNode, { getPortParity } from './FrontPanelNode'
 import type { PortData } from './FrontPanelNode'
+import DirectionPad from './DirectionPad'
 
 const TYPE_COLORS: Record<string, string> = {
   switch: '#3B82F6', router: '#F59E0B', firewall: '#EF4444',
@@ -334,19 +337,59 @@ export default function TopologyCanvas({ deviceName, neighbors, stackMembers, me
 
       {/* 方向键盘 */}
       {selectedTarget && (
-        <Box sx={{ position: 'absolute', left: 16, bottom: 160, zIndex: 10, display: 'grid', gridTemplateColumns: 'repeat(3,30px)', gridTemplateRows: 'repeat(2,30px)', gap: '4px' }}>
-          <Box /><Box onClick={() => setOffsets(p => ({...p,[selectedTarget]:{dx:(p[selectedTarget]?.dx||0),dy:(p[selectedTarget]?.dy||0)-40}}))}
-            sx={btnSx}>▲</Box><Box />
-          <Box onClick={() => setOffsets(p => ({...p,[selectedTarget]:{dx:(p[selectedTarget]?.dx||0)-40,dy:(p[selectedTarget]?.dy||0)}}))}
-            sx={btnSx}>◀</Box>
-          <Box onClick={() => setOffsets(p => ({...p,[selectedTarget]:{dx:(p[selectedTarget]?.dx||0),dy:(p[selectedTarget]?.dy||0)+40}}))}
-            sx={btnSx}>▼</Box>
-          <Box onClick={() => setOffsets(p => ({...p,[selectedTarget]:{dx:(p[selectedTarget]?.dx||0)+40,dy:(p[selectedTarget]?.dy||0)}}))}
-            sx={btnSx}>▶</Box>
+        <Box sx={{ position: 'absolute', bottom: 250, left: 16, zIndex: 20 }}>
+          <DirectionPad
+            step={40}
+            onUp={() => setOffsets(p => ({...p,[selectedTarget]:{dx:(p[selectedTarget]?.dx||0),dy:(p[selectedTarget]?.dy||0)-40}}))}
+            onDown={() => setOffsets(p => ({...p,[selectedTarget]:{dx:(p[selectedTarget]?.dx||0),dy:(p[selectedTarget]?.dy||0)+40}}))}
+            onLeft={() => setOffsets(p => ({...p,[selectedTarget]:{dx:(p[selectedTarget]?.dx||0)-40,dy:(p[selectedTarget]?.dy||0)}}))}
+            onRight={() => setOffsets(p => ({...p,[selectedTarget]:{dx:(p[selectedTarget]?.dx||0)+40,dy:(p[selectedTarget]?.dy||0)}}))}
+            onReset={() => setOffsets({})}
+          />
         </Box>
+      )}
+
+      {/* 导出按钮 */}
+      {neighbors.length > 0 && (
+        <Paper
+          sx={{
+            position: 'absolute', top: 16, right: 16, zIndex: 20,
+            borderRadius: 2, bgcolor: 'rgba(15, 18, 35, 0.85)', backdropFilter: 'blur(8px)',
+            border: '1px solid #334155', px: 0.5, py: 0.3,
+          }}
+        >
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Tooltip title="Export PNG">
+              <IconButton size="small" onClick={() => {
+                const el = document.querySelector('.react-flow') as HTMLElement
+                if (el) toPng(el, { backgroundColor: '#0f1223', pixelRatio: 2 }).then((u: string) => {
+                  const a = document.createElement('a'); a.download = `port-topology-${deviceName}.png`; a.href = u; a.click()
+                })
+              }} sx={{ color: '#94a3b8', '&:hover': { color: '#2DD46E' }, p: 0.5 }}>
+                <ImageIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Export Visio">
+              <IconButton size="small" onClick={() => {
+                const apiBase = (import.meta as any).env?.PROD ? 'http://localhost:8002/api' : '/api'
+                const exportData = {
+                  nodes: finalNodes.map(n => ({ id: n.id, label: n.data.label, type: n.data.deviceType, platform: n.data.platform || '' })),
+                  edges: finalEdges.map(e => ({ source: e.source, target: e.target, source_interface: e.data?.label || e.label || '' })),
+                }
+                fetch(`${apiBase}/topology/export/visio`, {
+                  method: 'POST', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(exportData),
+                }).then(r => r.blob()).then(b => {
+                  const u = URL.createObjectURL(b); const a = document.createElement('a')
+                  a.download = `port-topology-${deviceName}.vdx`; a.href = u; a.click()
+                })
+              }} sx={{ color: '#94a3b8', '&:hover': { color: '#8B5CF6' }, p: 0.5 }}>
+                <VisioIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        </Paper>
       )}
     </Box>
   )
 }
-
-const btnSx = { display:'flex',alignItems:'center',justifyContent:'center',borderRadius:1,bgcolor:'#1e293b',border:'1px solid #334155',cursor:'pointer',color:'#94a3b8',fontSize:'0.75rem',userSelect:'none','&:hover':{bgcolor:'#334155',color:'#e2e8f0'} } as const

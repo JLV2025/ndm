@@ -11,7 +11,8 @@ const en: Record<string, string> = {
   'nav.dashboard': 'Dashboard',
   'nav.devices': 'Devices',
   'nav.viewer': 'Viewer',
-  'nav.topology': 'Port Map',
+  'nav.topology': 'Network Topology',
+  'nav.portTopology': 'Port Map',
   'nav.login': 'Login',
 
   // Dashboard
@@ -296,6 +297,16 @@ const en: Record<string, string> = {
   'topology.remotePort': 'Remote Port',
   'topology.centerDevice': 'Current Device',
   'topology.ports': 'ports',
+
+  // Multi-device Topology
+  'topology.networkTitle': 'Network Topology',
+  'topology.networkDesc': 'Interconnection map of all network devices in a location via CDP/LLDP',
+  'topology.wanTier': 'WAN',
+  'topology.coreTier': 'Core',
+  'topology.accessTier': 'Access',
+  'topology.noConnections': 'No inter-device connections found',
+  'topology.exportPng': 'Export PNG',
+  'topology.exportVisio': 'Export Visio',
 
   // Language
   'lang.switch': '中',

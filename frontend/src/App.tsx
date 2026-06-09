@@ -28,7 +28,8 @@ import DeviceList from './pages/DeviceList'
 import DeviceDetail from './pages/DeviceDetail'
 import Dashboard from './pages/Dashboard'
 import Viewer from './pages/Viewer'
-import Topology from './pages/Topology'
+import Topology from './pages/PortTopology'
+import NetworkTopology from './pages/NetworkTopology'
 import MatrixRain from './components/MatrixRain'
 import { sessionManager } from './services/auth'
 import { useI18n } from './i18n'
@@ -45,7 +46,8 @@ function Layout() {
   const navItems = [
     { label: t('nav.dashboard'), icon: <DashboardIcon />, path: '/' },
     { label: t('nav.devices'), icon: <Storage />, path: '/devices' },
-    { label: t('nav.topology'), icon: <HubIcon />, path: '/topology' },
+    { label: t('nav.topology'), icon: <HubIcon />, path: '/network-topology' },
+    { label: t('nav.portTopology'), icon: <HubIcon />, path: '/port-topology' },
     { label: t('nav.viewer'), icon: <Terminal />, path: '/viewer' },
   ]
 
@@ -274,6 +276,8 @@ const App: React.FC = () => {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="viewer" element={<Viewer />} />
           <Route path="topology" element={<Topology />} />
+          <Route path="port-topology" element={<Topology />} />
+          <Route path="network-topology" element={<NetworkTopology />} />
         </Route>
       </Routes>
       </ErrorBoundary>

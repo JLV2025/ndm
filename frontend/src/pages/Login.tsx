@@ -12,7 +12,7 @@ import {
   IconButton,
   Fade,
 } from '@mui/material'
-import { Lock, Key, Shield, Terminal, Memory, NetworkWifi, Visibility, VisibilityOff } from '@mui/icons-material'
+import { Lock, Key, Shield, Terminal, Visibility, VisibilityOff } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { sessionManager } from '../services/auth'
 import { useI18n } from '../i18n'
@@ -238,31 +238,10 @@ const Login = ({ onLogin }: { onLogin?: () => void }) => {
         </Box>
 
         {/* 底部信息 */}
-        <Box
-          sx={{
-            mt: 2,
-            p: 2,
-            bgcolor: 'rgba(45, 212, 110, 0.04)',
-            borderRadius: 1.5,
-            border: '1px solid',
-            borderColor: 'divider',
-          }}
-        >
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 2,
-              flexWrap: 'wrap',
-            }}
-          >
-            <NetworkWifi sx={{ fontSize: 16, color: 'text.disabled' }} />
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-              v2.0.0 | Secure SSH Access | Encrypted Transmission
-            </Typography>
-            <Memory sx={{ fontSize: 16, color: 'text.disabled' }} />
-          </Box>
+        <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.68rem' }}>
+            v2.0.0 · Secure SSH · Encrypted Transmission
+          </Typography>
         </Box>
       </Paper>
     </Box>

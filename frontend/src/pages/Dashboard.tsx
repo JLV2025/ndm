@@ -346,49 +346,28 @@ const Dashboard: React.FC = () => {
     return `rgb(${r},0,0)`
   }
 
-  // 4 张 statCards 纵向排列：描述左、数字右，水平居中
+  // 4 张统计卡片：配置数组驱动，消除复制粘贴
+  const statCardDefs = useMemo(() => [
+    { accent: '#3B82F6', label: t('dashboard.totalDevicesCard'), value: dashboardStats?.device_count ?? stats.total },
+    { accent: '#2DD46E', label: t('dashboard.activePorts'), value: dashboardStats?.port_stats.up ?? 0 },
+    { accent: '#94A3B8', label: t('dashboard.idlePorts'), value: (dashboardStats?.port_stats.down ?? 0) + (dashboardStats?.port_stats.disabled ?? 0) },
+    { accent: '#EF4444', label: t('dashboard.errorPorts'), value: dashboardStats?.error_ports ?? 0, danger: true },
+  ], [dashboardStats, stats.total, t])
+
   const statCardsColumn = (
-    <Box sx={{ width: 220, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 0.5, height: '100%' }}>
-      <Card sx={{ flex: 1, display: 'flex', bgcolor: 'rgba(59, 130, 246, 0.06)', border: '1px solid rgba(59, 130, 246, 0.15)' }}>
-        <CardContent sx={{ p: '4px 10px !important', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', '&:last-child': { pb: '4px !important' } }}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', lineHeight: 1.3 }}>
-            {t('dashboard.totalDevicesCard')}
-          </Typography>
-          <Typography sx={{ color: '#3B82F6', fontWeight: 700, fontSize: '1.4rem', lineHeight: 1.2 }}>
-            {dashboardStats?.device_count ?? stats.total}
-          </Typography>
-        </CardContent>
-      </Card>
-      <Card sx={{ flex: 1, display: 'flex', bgcolor: 'rgba(45, 212, 110, 0.06)', border: '1px solid rgba(45, 212, 110, 0.15)' }}>
-        <CardContent sx={{ p: '4px 10px !important', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', '&:last-child': { pb: '4px !important' } }}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', lineHeight: 1.3 }}>
-            {t('dashboard.activePorts')}
-          </Typography>
-          <Typography sx={{ color: '#2DD46E', fontWeight: 700, fontSize: '1.4rem', lineHeight: 1.2 }}>
-            {dashboardStats?.port_stats.up ?? 0}
-          </Typography>
-        </CardContent>
-      </Card>
-      <Card sx={{ flex: 1, display: 'flex', bgcolor: 'rgba(148, 163, 184, 0.06)', border: '1px solid rgba(148, 163, 184, 0.15)' }}>
-        <CardContent sx={{ p: '4px 10px !important', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', '&:last-child': { pb: '4px !important' } }}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', lineHeight: 1.3 }}>
-            {t('dashboard.idlePorts')}
-          </Typography>
-          <Typography sx={{ color: '#94A3B8', fontWeight: 700, fontSize: '1.4rem', lineHeight: 1.2 }}>
-            {(dashboardStats?.port_stats.down ?? 0) + (dashboardStats?.port_stats.disabled ?? 0)}
-          </Typography>
-        </CardContent>
-      </Card>
-      <Card sx={{ flex: 1, display: 'flex', bgcolor: 'rgba(239, 68, 68, 0.06)', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
-        <CardContent sx={{ p: '4px 10px !important', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', '&:last-child': { pb: '4px !important' } }}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', lineHeight: 1.3 }}>
-            {t('dashboard.errorPorts')}
-          </Typography>
-          <Typography sx={{ color: dashboardStats?.error_ports ? '#EF4444' : '#2DD46E', fontWeight: 700, fontSize: '1.4rem', lineHeight: 1.2 }}>
-            {dashboardStats?.error_ports ?? 0}
-          </Typography>
-        </CardContent>
-      </Card>
+    <Box sx={{ width: 240, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 0.5, height: '100%' }}>
+      {statCardDefs.map((def, i) => (
+        <Card key={i} sx={{ flex: 1, display: 'flex', bgcolor: `${def.accent}0F`, border: `1px solid ${def.accent}26` }}>
+          <CardContent sx={{ p: '8px 12px !important', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', '&:last-child': { pb: '8px !important' } }}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', lineHeight: 1.3 }}>
+              {def.label}
+            </Typography>
+            <Typography sx={{ color: def.danger && def.value > 0 ? '#EF4444' : def.accent, fontWeight: 700, fontSize: '1.4rem', lineHeight: 1.2 }}>
+              {def.value}
+            </Typography>
+          </CardContent>
+        </Card>
+      ))}
     </Box>
   )
 
@@ -509,38 +488,44 @@ const Dashboard: React.FC = () => {
 
   return (
     <Container maxWidth={false} sx={{ py: 2 }}>
-      {/* 标题栏 */}
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main', letterSpacing: '0.05em' }}>
-              Network Device Management
-            </Typography>
+      {/* 页面头部 — 左侧绿色装饰条 */}
+      <Box sx={{ mb: 2, display: 'flex', alignItems: 'flex-start', gap: 2, flexShrink: 0 }}>
+        <Box
+          sx={{
+            width: 4, height: 48, borderRadius: 2,
+            bgcolor: 'primary.main',
+            boxShadow: '0 0 12px rgba(45, 212, 110, 0.35)',
+            flexShrink: 0, mt: 0.5,
+          }}
+        />
+        <Box sx={{ flex: 1 }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 0.25, letterSpacing: '-0.01em' }}>
+            NDM Dashboard
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.85rem', ml: 0.5 }}>
+            {t('app.tagline')}
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {dashboardStats && (
             <Typography variant="caption" color="text.secondary">
-              {t('app.tagline')}
+              {t('dashboard.lastCollection')}: {formatRelativeTime(dashboardStats.last_collection)}
             </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            {dashboardStats && (
-              <Typography variant="caption" color="text.secondary">
-                {t('dashboard.lastCollection')}: {formatRelativeTime(dashboardStats.last_collection)}
-              </Typography>
-            )}
-            {user && (
-              <Chip
-                label={user.username}
-                avatar={
-                  <Avatar sx={{ bgcolor: 'info.main', width: 28, height: 28 }}>
-                    {user.username.charAt(0).toUpperCase()}
-                  </Avatar>
-                }
-                size="small"
-                sx={{ bgcolor: 'rgba(59, 130, 246, 0.12)', color: 'info.main' }}
+          )}
+          {user && (
+            <Chip
+              label={user.username}
+              avatar={
+                <Avatar sx={{ bgcolor: 'info.main', width: 28, height: 28 }}>
+                  {user.username.charAt(0).toUpperCase()}
+                </Avatar>
+              }
+              size="small"
+              sx={{ bgcolor: 'rgba(59, 130, 246, 0.12)', color: 'info.main' }}
               />
             )}
-          </Box>
         </Box>
-      </Paper>
+      </Box>
 
       {/* 行1: 统计卡片 + 三图表并排 */}
       <Box sx={{ display: 'flex', gap: 2, mb: 2, height: 300 }}>

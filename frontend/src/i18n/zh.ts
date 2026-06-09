@@ -11,7 +11,8 @@ const zh: Record<string, string> = {
   'nav.dashboard': '仪表盘',
   'nav.devices': '设备管理',
   'nav.viewer': '配置查看器',
-  'nav.topology': '端口连接图',
+  'nav.topology': '拓扑图',
+  'nav.portTopology': '端口连接图',
   'nav.login': '登录',
 
   // 仪表盘
@@ -298,6 +299,16 @@ const zh: Record<string, string> = {
   'topology.remotePort': '远端端口',
   'topology.centerDevice': '当前设备',
   'topology.ports': '端口',
+
+  // 多设备拓扑图
+  'topology.networkTitle': '网络拓扑图',
+  'topology.networkDesc': '基于 CDP/LLDP 邻居数据展示机房内所有网络设备互联关系',
+  'topology.wanTier': 'WAN层',
+  'topology.coreTier': '核心层',
+  'topology.accessTier': '接入层',
+  'topology.noConnections': '未发现设备间连接',
+  'topology.exportPng': '导出 PNG',
+  'topology.exportVisio': '导出 Visio',
 
   // 语言
   'lang.switch': 'EN',
