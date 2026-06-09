@@ -163,6 +163,14 @@ class DeviceConnection:
             return self.send_command("show interfaces | include rate|load|packets", read_timeout=30)
         return self.send_command("show interface utilization", read_timeout=30)
 
+    def collect_cdp_neighbors(self) -> str:
+        """收集 CDP 邻居信息"""
+        return self.send_command("show cdp nei", read_timeout=60)
+
+    def collect_lldp_neighbors(self) -> str:
+        """收集 LLDP 邻居信息"""
+        return self.send_command("show lldp nei", read_timeout=60)
+
     def collect_system_info(self) -> str:
         """收集系统信息（Aruba CX 用于获取序列号和型号）"""
         return self.send_command("show system", read_timeout=15)

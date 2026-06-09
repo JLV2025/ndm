@@ -274,6 +274,12 @@ def collect_device(
             print(f"[收集进度] 获取 routing table...")
             route_info = _safe_collect(conn.collect_routing_table, "show ip route")
 
+        # 收集 CDP / LLDP 邻居信息 (所有设备类型)
+        print(f"[收集进度] 获取 CDP neighbors...")
+        cdp_neighbors_raw = _safe_collect(conn.collect_cdp_neighbors, "show cdp nei")
+        print(f"[收集进度] 获取 LLDP neighbors...")
+        lldp_neighbors_raw = _safe_collect(conn.collect_lldp_neighbors, "show lldp nei")
+
         # 提取版本号和序列号（使用实际设备类型，传入 system + vsf 信息）
         software_version = extract_software_version(version_info, effective_type)
         serial_number = extract_serial_number(version_info, effective_type, system_info, vsf_info, platform=device_platform)
@@ -319,7 +325,8 @@ def collect_device(
             running_config, startup_config, logs,
             interface_status, version_info, interface_utilization, system_info, vsf_info, switch_info, route_info,
             validation_results, performance_results, change_results,
-            software_version, serial_number
+            software_version, serial_number,
+            cdp_neighbors_raw, lldp_neighbors_raw
         )
 
         _clear_progress(device_name)
@@ -356,7 +363,8 @@ def _save_data(
     logs_raw: str, interface_status: str, version_info: str,
     interface_utilization: str, system_info: str, vsf_info: str, switch_info: str, route_info: str,
     validation_results: str, performance_results: str, change_results: str,
-    software_version: str, serial_number: str
+    software_version: str, serial_number: str,
+    cdp_neighbors_raw: str = "", lldp_neighbors_raw: str = ""
 ) -> None:
     """保存数据到本地"""
 
@@ -399,6 +407,73 @@ def _save_data(
     if route_info:
         with open(os.path.join(week_dir, "routing-table.raw"), "w", encoding="utf-8") as f:
             f.write(route_info)
+
+    # 保存 CDP / LLDP 原始输出 + 解析合并后的 neighbors.json
+    if cdp_neighbors_raw:
+        with open(os.path.join(week_dir, "cdp-neighbors.raw"), "w", encoding="utf-8") as f:
+            f.write(cdp_neighbors_raw)
+
+    if lldp_neighbors_raw:
+        with open(os.path.join(week_dir, "lldp-neighbors.raw"), "w", encoding="utf-8") as f:
+            f.write(lldp_neighbors_raw)
+
+    # 生成 neighbors.json (CDP/LLDP + ConfigParser 端口描述补充)
+    try:
+        from analyzers.neighbor_parser import parse_cdp, parse_lldp, merge_neighbors, NeighborEntry
+        cdp_entries = parse_cdp(cdp_neighbors_raw, device_type) if cdp_neighbors_raw else []
+        lldp_entries = parse_lldp(lldp_neighbors_raw, device_type) if lldp_neighbors_raw else []
+        merged = merge_neighbors(cdp_entries, lldp_entries)
+
+        # 补充: 从 running-config 端口描述中收集 SDW / FWL 设备 (CDP/LLDP 无法发现)
+        if running_config and not running_config.startswith('%'):
+            try:
+                from analyzers.config_parser import ConfigParser
+                cp = ConfigParser(device_type=device_type)
+                config_entries = cp.parse(running_config)
+                # 只追加 SDW 和 FWL 类型
+                seen_ports = set((e.local_port, e.neighbor_name) for e in merged)
+                extra_count = 0
+                for entry in config_entries:
+                    if not entry.device_name:
+                        continue
+                    if entry.device_type not in ('sdwan', 'firewall'):
+                        continue
+                    key = (entry.name, entry.device_name)
+                    if key not in seen_ports:
+                        seen_ports.add(key)
+                        merged.append(NeighborEntry(
+                            local_port=entry.name,
+                            neighbor_name=entry.device_name,
+                            neighbor_type=entry.device_type,
+                            neighbor_platform='',
+                            neighbor_desc=entry.description[:80] if entry.description else '',
+                        ))
+                        extra_count += 1
+                if extra_count:
+                    print(f"[邻居] ConfigParser 补充 SDW/FWL: {extra_count} 条")
+            except Exception as e:
+                print(f"[邻居] ConfigParser 补充失败: {e}")
+
+        neighbors_data = {
+            "device": device_name,
+            "week": week,
+            "collected_at": __import__('datetime').datetime.now().isoformat(),
+            "neighbors": [
+                {
+                    "local_port": e.local_port,
+                    "neighbor_name": e.neighbor_name,
+                    "neighbor_type": e.neighbor_type,
+                    "neighbor_platform": e.neighbor_platform,
+                    "neighbor_desc": e.neighbor_desc,
+                }
+                for e in merged
+            ]
+        }
+        with open(os.path.join(week_dir, "neighbors.json"), "w", encoding="utf-8") as f:
+            json.dump(neighbors_data, f, ensure_ascii=False, indent=2)
+        print(f"[保存] neighbors.json: {len(merged)} 条邻居记录")
+    except Exception as e:
+        print(f"[警告] 邻居解析失败: {e}")
 
     # 保存分析结果
     with open(os.path.join(week_dir, "validation.json"), "w", encoding="utf-8") as f:
