@@ -3,6 +3,7 @@
 from fastapi import APIRouter, HTTPException
 import os
 import re
+import json
 import logging
 from typing import Dict, List
 from analyzers.config_parser import ConfigParser
@@ -43,39 +44,8 @@ async def get_device_topology(device_name: str):
     if not os.path.exists(data_root):
         raise HTTPException(status_code=404, detail="数据目录不存在")
 
-    # 2. 扫描 data_root，按 YYYY-WW 格式找到最新周目录
-    week_dirs = []
-    for entry in os.listdir(data_root):
-        full_path = os.path.join(data_root, entry)
-        if os.path.isdir(full_path) and re.match(r'^\d{4}-\d{2}$', entry):
-            week_dirs.append(entry)
-    week_dirs.sort(reverse=True)
-
-    # 3. 查找包含目标设备的最近一周
-    config_path = None
-    found_week = None
-    for week in week_dirs:
-        candidate = os.path.join(data_root, week, device_name, "running-config.raw")
-        if os.path.exists(candidate):
-            config_path = candidate
-            found_week = week
-            break
-
-    # 回退：尝试旧版路径 data/{device_name}/{YYYY-WW}/running-config.raw
-    if not config_path:
-        alt_device_dir = os.path.join(data_root, device_name)
-        if os.path.isdir(alt_device_dir):
-            alt_weeks = sorted(
-                [d for d in os.listdir(alt_device_dir)
-                 if os.path.isdir(os.path.join(alt_device_dir, d)) and re.match(r'^\d{4}-\d{2}$', d)],
-                reverse=True
-            )
-            for week in alt_weeks:
-                candidate = os.path.join(alt_device_dir, week, "running-config.raw")
-                if os.path.exists(candidate):
-                    config_path = candidate
-                    found_week = week
-                    break
+    # 2. 查找最新 running-config.raw
+    config_path, found_week = _find_device_data_file(device_name, data_root, "running-config.raw")
 
     if not config_path:
         raise HTTPException(status_code=404, detail=f"未找到设备 {device_name} 的 running-config 数据")
@@ -205,4 +175,255 @@ def _detect_stack_members(config_text: str, device_type: str) -> List[str]:
                 slots.add(slot)
 
     return sorted(slots) if len(slots) > 1 else []
+
+
+# ============================================================
+# 共享辅助: 定位设备数据文件
+# ============================================================
+
+def _find_device_data_file(device_name: str, data_root: str, filename: str) -> tuple[str | None, str | None]:
+    """在 data_root 下扫描 YYYY-WW 目录, 找到设备的最新指定文件
+
+    Returns:
+        (file_path, week) 或 (None, None)
+    """
+    week_dirs = []
+    for entry in os.listdir(data_root):
+        full_path = os.path.join(data_root, entry)
+        if os.path.isdir(full_path) and re.match(r'^\d{4}-\d{2}$', entry):
+            week_dirs.append(entry)
+    week_dirs.sort(reverse=True)
+
+    for week in week_dirs:
+        candidate = os.path.join(data_root, week, device_name, filename)
+        if os.path.exists(candidate):
+            return candidate, week
+
+    # 回退: 旧版路径 data/{device_name}/{YYYY-WW}/filename
+    alt_device_dir = os.path.join(data_root, device_name)
+    if os.path.isdir(alt_device_dir):
+        alt_weeks = sorted(
+            [d for d in os.listdir(alt_device_dir)
+             if os.path.isdir(os.path.join(alt_device_dir, d)) and re.match(r'^\d{4}-\d{2}$', d)],
+            reverse=True
+        )
+        for week in alt_weeks:
+            candidate = os.path.join(alt_device_dir, week, filename)
+            if os.path.exists(candidate):
+                return candidate, week
+
+    return None, None
+
+
+def _scan_device_files(data_root: str, filename: str) -> dict[str, str]:
+    """一次扫描 data_root，返回 {device_name: file_path} 映射"""
+    result: dict[str, str] = {}
+    week_dirs = []
+    for entry in os.listdir(data_root):
+        full = os.path.join(data_root, entry)
+        if os.path.isdir(full) and re.match(r'^\d{4}-\d{2}$', entry):
+            week_dirs.append(entry)
+    week_dirs.sort(reverse=True)
+
+    seen: set[str] = set()
+    for week in week_dirs:
+        week_path = os.path.join(data_root, week)
+        for device_name in os.listdir(week_path):
+            if device_name in seen:
+                continue
+            candidate = os.path.join(week_path, device_name, filename)
+            if os.path.isfile(candidate):
+                seen.add(device_name)
+                result[device_name] = candidate
+
+    # 回退: 旧版路径 data/{device_name}/{YYYY-WW}/filename
+    for entry in os.listdir(data_root):
+        alt_dir = os.path.join(data_root, entry)
+        if not os.path.isdir(alt_dir) or entry in week_dirs:
+            continue
+        if entry in seen:
+            continue
+        alt_weeks = sorted(
+            [d for d in os.listdir(alt_dir)
+             if os.path.isdir(os.path.join(alt_dir, d)) and re.match(r'^\d{4}-\d{2}$', d)],
+            reverse=True
+        )
+        for week in alt_weeks:
+            if entry in seen:
+                break
+            candidate = os.path.join(alt_dir, week, filename)
+            if os.path.isfile(candidate):
+                seen.add(entry)
+                result[entry] = candidate
+                break
+
+    return result
+
+
+# ============================================================
+# Location 拓扑端点
+# ============================================================
+
+@router.get("/topology/location/{location}")
+async def get_location_topology(location: str):
+    """
+    获取指定 location 下所有网络设备的互联拓扑
+
+    遍历 location 内所有设备, 读取 neighbors.json, 合并为统一节点/边列表。
+    """
+    # 验证 location
+    if not location or not isinstance(location, str):
+        raise HTTPException(status_code=400, detail="location 参数无效")
+    if '..' in location or '/' in location or '\\' in location:
+        raise HTTPException(status_code=400, detail="location 包含非法字符")
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', location):
+        raise HTTPException(status_code=400, detail="location 包含非法字符")
+
+    data_root = _get_data_root()
+    if not os.path.exists(data_root):
+        raise HTTPException(status_code=404, detail="数据目录不存在")
+
+    # 加载所有设备, 按 location 过滤
+    from utils.settings_loader import load_devices
+    all_devices = load_devices().get("devices", [])
+    location_devices = [d for d in all_devices if d.get("location", "").upper() == location.upper()]
+
+    if not location_devices:
+        raise HTTPException(status_code=404, detail=f"未找到 location={location} 的设备")
+
+    # 构建全局设备 notes 查找表 (供外部邻居设备 tier 判断)
+    device_notes_map: dict[str, str] = {d["name"]: d.get("notes", "") for d in all_devices}
+
+    device_count = len(location_devices)
+    skipped_devices: list[str] = []
+    nodes: list[dict] = []
+    all_edges: list[dict] = []
+    node_set: set[str] = set()
+
+    # 预扫描: 一次扫描 data_root 构建 {device: path} 映射
+    device_file_map = _scan_device_files(data_root, "neighbors.json")
+
+    for dev in location_devices:
+        device_name = dev["name"]
+        neighbors_path = device_file_map.get(device_name)
+        if not neighbors_path:
+            skipped_devices.append(device_name)
+            continue
+
+        try:
+            with open(neighbors_path, "r", encoding="utf-8") as f:
+                neighbor_data = json.load(f)
+        except Exception:
+            skipped_devices.append(device_name)
+            continue
+
+        # 确保本设备节点已加入
+        if device_name not in node_set:
+            node_set.add(device_name)
+            device_type = dev.get("type", "")
+            notes = dev.get("notes", "")
+            nodes.append({
+                "id": device_name,
+                "label": device_name,
+                "type": _map_device_type(device_type),
+                "platform": dev.get("platform", ""),
+                "tier": _compute_tier(device_name, notes),
+                "is_location_device": True,
+                "location": location,
+            })
+
+        # 添加邻居节点 + 边
+        for nb in neighbor_data.get("neighbors", []):
+            neighbor_name = nb.get("neighbor_name", "")
+            if not neighbor_name:
+                continue
+
+            # 邻居节点
+            if neighbor_name not in node_set:
+                node_set.add(neighbor_name)
+                is_loc = _is_in_location(neighbor_name, location_devices)
+                nodes.append({
+                    "id": neighbor_name,
+                    "label": neighbor_name,
+                    "type": nb.get("neighbor_type", "unknown"),
+                    "platform": nb.get("neighbor_platform", ""),
+                    "tier": _compute_tier(neighbor_name, device_notes_map.get(neighbor_name, "")),
+                    "is_location_device": is_loc,
+                    "location": location if is_loc else "",
+                })
+
+            # 边
+            edge_id = f"{device_name}-{nb['local_port']}-{neighbor_name}"
+            all_edges.append({
+                "id": edge_id,
+                "source": device_name,
+                "target": neighbor_name,
+                "source_interface": nb["local_port"],
+                "target_interface": "",
+                "is_cross_location": not _is_in_location(neighbor_name, location_devices),
+            })
+
+    # 去重边: 同向同端口去重 + 双向链路合并
+    deduped_edges: list[dict] = []
+    seen_keys: set[tuple] = set()
+    for edge in all_edges:
+        # key 包含 source_interface，保留多端口并行链路
+        key = (edge["source"], edge["target"], edge["source_interface"])
+        if key not in seen_keys:
+            seen_keys.add(key)
+            deduped_edges.append(edge)
+
+    # 双向链路合并: 匹配 A→B 和 B→A，填充 target_interface
+    reverse_map: dict[tuple, int] = {}
+    for i, edge in enumerate(deduped_edges):
+        rkey = (edge["target"], edge["source"])
+        reverse_map.setdefault(rkey, []).append(i)
+
+    for i, edge in enumerate(deduped_edges):
+        fkey = (edge["source"], edge["target"])
+        if fkey in reverse_map:
+            for ri in reverse_map[fkey]:
+                if ri != i and not edge["target_interface"]:
+                    edge["target_interface"] = deduped_edges[ri]["source_interface"]
+                    break
+
+    return {
+        "location": location,
+        "device_count": device_count,
+        "node_count": len(nodes),
+        "skipped_count": len(skipped_devices),
+        "skipped_devices": skipped_devices,
+        "nodes": nodes,
+        "edges": deduped_edges,
+    }
+
+
+def _map_device_type(device_type: str) -> str:
+    """映射设备类型字符串"""
+    dt = device_type.lower() if device_type else ""
+    if "router" in dt:
+        return "router"
+    return "switch"
+
+
+def _compute_tier(device_name: str, notes: str) -> str:
+    """计算拓扑层级
+
+    - wan: RTW / SDW 类型
+    - core: SWI 且 notes 含 [Core]
+    - access: 其余
+    """
+    type_code = device_name[5:8].upper() if len(device_name) >= 8 else ""
+    if type_code in ("RTW", "SDW"):
+        return "wan"
+    if type_code == "SWI" and notes.lower().startswith("core"):
+        return "core"
+    if type_code == "SWI":
+        return "access"
+    return "unknown"
+
+
+def _is_in_location(device_name: str, location_devices: list[dict]) -> bool:
+    """检查设备名是否属于该 location"""
+    return any(d.get("name") == device_name for d in location_devices)
 
