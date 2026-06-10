@@ -1,7 +1,8 @@
 devices:
 - ip: 10.210.255.1
-  last_synced: 06/10/2026 14:59
+  last_synced: 06/10/2026 20:48
   location: BJQ
+  model: JL659A 6300M
   name: BJQD1SWI01
   notes: Core Switch
   platform: aruba_aoscx
@@ -13,8 +14,9 @@ devices:
   - lag1
   version: FL.10.10.1070
 - ip: 10.210.255.2
-  last_synced: 06/10/2026 15:01
+  last_synced: 06/10/2026 20:49
   location: BJQ
+  model: R8Q70A 6200M
   name: BJQD1SWI02
   notes: Access Switch
   platform: aruba_aoscx
@@ -25,8 +27,9 @@ devices:
   - 1/1/50
   version: ML.10.11.1021
 - ip: 10.210.255.51
-  last_synced: 06/10/2026 15:02
+  last_synced: 06/10/2026 20:50
   location: BJQ
+  model: R8Q70A 6200M
   name: BJQD2QIS01
   notes: Access Switch - Office
   platform: aruba_aoscx
@@ -37,8 +40,9 @@ devices:
   - 1/1/50
   version: ML.10.11.1021
 - ip: 10.24.255.10
-  last_synced: 05/17/2026 19:33
+  last_synced: 06/10/2026 20:53
   location: SZX
+  model: WS-C2960X-48FPD-L, WS-C2960X-48LPD-L
   name: SZXD1SWI01
   notes: Core Switch
   platform: cisco_ios
@@ -49,8 +53,9 @@ devices:
   - Te3/0/2
   version: 15.2(4)
 - ip: 10.67.255.1
-  last_synced: 05/17/2026 19:34
+  last_synced: 06/10/2026 20:55
   location: SHA
+  model: C9500-24Y4C
   name: SHAD1SWI01
   notes: Core Switch - 5F
   platform: cisco_ios_xe
@@ -59,8 +64,9 @@ devices:
   uplink_ports: null
   version: 16.09.03
 - ip: 10.67.255.2
-  last_synced: 05/17/2026 19:35
+  last_synced: 06/10/2026 20:56
   location: SHA
+  model: JL727A 6200F
   name: SHAD1SWI02
   notes: Access Switch, 5F
   platform: aruba_aoscx
@@ -69,7 +75,7 @@ devices:
   uplink_ports: null
   version: ML.10.10.1030
 - ip: 10.210.213.14
-  last_synced: 06/10/2026 14:58
+  last_synced: 06/10/2026 20:47
   location: BJQ
   name: BJQD1RTW01
   notes: Voice Gateway
@@ -79,8 +85,9 @@ devices:
   uplink_ports: null
   version: 17.09.04
 - ip: 10.211.255.1
-  last_synced: 06/10/2026 15:37
+  last_synced: 06/10/2026 21:01
   location: DZN
+  model: JL659A 6300M
   name: DZND1SWI01
   notes: Core Switch
   platform: aruba_aoscx
@@ -89,8 +96,9 @@ devices:
   uplink_ports: null
   version: FL.10.10.1070
 - ip: 10.22.255.1
-  last_synced: 06/10/2026 15:38
+  last_synced: 06/10/2026 20:58
   location: PVG
+  model: JL658A 6300M
   name: PVGD1SWI01
   notes: Core Switch
   platform: aruba_aoscx
@@ -99,8 +107,9 @@ devices:
   uplink_ports: null
   version: FL.10.10.1070
 - ip: 10.22.255.11
-  last_synced: 06/10/2026 15:39
+  last_synced: 06/10/2026 20:59
   location: PVG
+  model: JL659A 6300M
   name: PVGD1SWI02
   notes: Access Switch
   platform: aruba_aoscx
@@ -109,8 +118,9 @@ devices:
   uplink_ports: null
   version: FL.10.10.1070
 - ip: 10.22.255.12
-  last_synced: 06/10/2026 15:39
+  last_synced: 06/10/2026 20:59
   location: PVG
+  model: WS-C3560-48PS-S
   name: PVGD1SWI03
   notes: null
   platform: cisco_ios
@@ -119,8 +129,9 @@ devices:
   uplink_ports: null
   version: 12.2(55)
 - ip: 10.22.255.13
-  last_synced: 06/10/2026 15:40
+  last_synced: 06/10/2026 20:59
   location: PVG
+  model: WS-C3560G-48TS-S
   name: PVGD1SWI04
   notes: null
   platform: cisco_ios
@@ -129,8 +140,9 @@ devices:
   uplink_ports: null
   version: 12.2(58)
 - ip: 10.22.255.10
-  last_synced: 06/10/2026 15:40
+  last_synced: 06/10/2026 20:59
   location: PVG
+  model: WS-C2960X-48FPD-L
   name: PVGD1SWI05
   notes: null
   platform: cisco_ios
@@ -139,11 +151,12 @@ devices:
   uplink_ports: null
   version: 15.2(4)
 - ip: 10.24.255.11
+  last_synced: 06/10/2026 20:54
   location: SZX
   name: SZXD1SWI02
   notes: null
   platform: aruba_aoscx
-  serial_number: null
+  serial_number: JAE244602AG
   type: aruba_aoscx
   uplink_ports: null
   version: null
@@ -157,8 +170,9 @@ devices:
   uplink_ports: null
   version: null
 - ip: 10.26.255.1
-  last_synced: 06/09/2026 19:41
+  last_synced: 06/10/2026 20:50
   location: ZGN
+  model: C9200L-48T-4X
   name: ZGND1SWI01
   notes: Core Switch
   platform: cisco_ios
@@ -176,8 +190,9 @@ devices:
   uplink_ports: null
   version: null
 - ip: 10.26.255.5
-  last_synced: 06/09/2026 19:43
+  last_synced: 06/10/2026 20:52
   location: ZGN
+  model: JL726A 6200F
   name: ZGND2SWI02
   notes: null
   platform: aruba_aoscx
@@ -195,20 +210,48 @@ devices:
   uplink_ports: null
   version: null
 - ip: 10.161.255.1
+  last_synced: 06/10/2026 20:46
   location: ITM
+  model: JL728B 6200F
   name: ITMD1SWI01
-  notes: null
+  notes: Core Switch
   platform: aruba_aoscx
-  serial_number: null
+  serial_number: TW56LZ80FG, CN5BLM900J
   type: aruba_aoscx
   uplink_ports: null
-  version: null
-- name: PVGD1RTW01
-  ip: 10.22.213.14
-  type: cisco_ios_router
-  platform: cisco_ios_router
+  version: ML.10.13.1040
+- ip: 10.22.213.14
+  last_synced: 06/10/2026 20:57
   location: PVG
+  name: PVGD1RTW01
   notes: Voice Gateway
-  serial_number: null
-  version: null
+  platform: cisco_ios_router
+  serial_number: FTX1538ALHB
+  type: cisco_ios_router
   uplink_ports: null
+  version: 15.7(3)
+- ip: 10.218.32.2
+  location: PEK
+  name: PEKD1SWI01
+  notes: Core Switch
+  platform: aruba_aoscx
+  type: aruba_aoscx
+- ip: 10.67.255.3
+  last_synced: 06/10/2026 20:56
+  location: SHA
+  model: WS-C2960X-48FPD-L
+  name: SHAD2SWI02
+  notes: Access Switch
+  platform: cisco_ios
+  serial_number: FJC2313W11A
+  type: cisco_ios
+  version: 15.2(4)
+- ip: 10.24.213.14
+  last_synced: 06/10/2026 20:53
+  location: SZX
+  name: SZXD1RTW03
+  notes: Router
+  platform: cisco_ios_router
+  serial_number: FGL213081KP
+  type: cisco_ios_router
+  version: 15.4(3)

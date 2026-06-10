@@ -6,7 +6,7 @@
 
 - **多厂商支持** — Cisco IOS、Cisco IOS XE、Cisco IOS Router、Aruba OS、Aruba OS CX
 - **Web 管理面板** — React + MUI OLED Dark 主题，专为网络运维设计
-- **设备管理** — 添加、编辑、删除设备，按类型 / 位置筛选
+- **设备管理** — 添加、编辑、删除、批量导入（CSV）设备，按类型 / 位置筛选
 - **配置收集** — 一键收集 running-config、startup-config、日志、接口状态、路由表、版本信息
 - **在线查看** — 代码高亮查看配置内容，支持版本对比（diff）
 - **Dashboard 图表** — Recharts 可视化：设备类型环形图、端口状态柱状图、流量 Top 10 排行、配置变更趋势折线图 + 热力图
