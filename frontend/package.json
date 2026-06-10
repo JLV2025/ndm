@@ -19,7 +19,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@mui/icons-material": "^5.16.13",
     "@mui/material": "^5.16.13",
-    "@xyflow/react": "12.11.0",
+    "@xyflow/react": "^12.11.0",
     "axios": "^1.7.2",
     "date-fns": "^3.6.0",
     "html-to-image": "1.11.13",

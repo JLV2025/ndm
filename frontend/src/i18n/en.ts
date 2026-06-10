@@ -34,6 +34,7 @@ const en: Record<string, string> = {
   'dashboard.ipAddress': 'IP Address',
   'dashboard.location': 'Location',
   'dashboard.serialNumber': 'Serial Number',
+  'dashboard.model': 'Model',
   'dashboard.version': 'Version',
   'dashboard.status': 'Status',
   'dashboard.online': 'Online',

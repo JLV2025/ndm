@@ -168,6 +168,48 @@ def extract_serial_number(version_output: str, device_type: str, system_output: 
     return result
 
 
+def extract_model(system_output: str, version_output: str, device_type: str) -> str:
+    """从 show system / show version 输出中提取设备型号
+
+    - Aruba: system.raw → Product Name 行，取前 2 个 token (SKU + 系列名)
+      例: "JL659A 6300M 48SR5 CL6 PoE 4SFP56 Swch" → "JL659A 6300M"
+    - Cisco: version.raw → Model number 行 (堆叠设备多 member 逗号拼接)
+      例: "WS-C2960X-48FPD-L" 或 "WS-C2960X-48FPD-L, WS-C2960X-48FPD-L"
+    """
+    version_output = _strip_ansi(version_output)
+
+    if _is_aruba_device(device_type):
+        # 从 system.raw 提取 Product Name
+        if system_output:
+            system_output = _strip_ansi(system_output)
+            for line in system_output.splitlines():
+                m = re.search(r'Product\s+Name\s*:\s*(.+)', line, re.IGNORECASE)
+                if m:
+                    tokens = m.group(1).strip().split()
+                    if len(tokens) >= 2:
+                        return f"{tokens[0]} {tokens[1]}"
+                    return tokens[0] if tokens else "未知"
+        # 回退: 从 version.raw 搜索 JL 型号模式
+        for line in version_output.splitlines():
+            m = re.search(r'(JL\d{3}[AB]\s+\d{4}M)', line)
+            if m:
+                return m.group(1)
+        return "未知"
+
+    elif device_type in ("cisco_ios", "cisco_ios_router"):
+        models = []
+        for line in version_output.splitlines():
+            # "Model number                    : WS-C2960X-48FPD-L"
+            m = re.search(r'Model\s+number\s*:\s*(\S+)', line, re.IGNORECASE)
+            if m:
+                model = m.group(1).strip()
+                if model not in models:
+                    models.append(model)
+        return ", ".join(models) if models else "未知"
+
+    return "未知"
+
+
 def collect_device(
     device: Device,
     username: str,
@@ -284,6 +326,9 @@ def collect_device(
         software_version = extract_software_version(version_info, effective_type)
         serial_number = extract_serial_number(version_info, effective_type, system_info, vsf_info, platform=device_platform)
 
+        # 提取设备型号（Aruba 从 system.raw, Cisco 从 version.raw）
+        device_model = extract_model(system_info, version_info, effective_type)
+
         # 查找基准配置路径
         baseline_path = os.path.join(data_root, device_name, "latest", "running-config.raw")
         old_running_config = None
@@ -325,7 +370,7 @@ def collect_device(
             running_config, startup_config, logs,
             interface_status, version_info, interface_utilization, system_info, vsf_info, switch_info, route_info,
             validation_results, performance_results, change_results,
-            software_version, serial_number,
+            software_version, serial_number, device_model,
             cdp_neighbors_raw, lldp_neighbors_raw
         )
 
@@ -339,7 +384,8 @@ def collect_device(
             "configured_type": device_type if type_mismatch else None,
             "running_lines": len(running_config.splitlines()),
             "software_version": software_version,
-            "serial_number": serial_number
+            "serial_number": serial_number,
+            "model": device_model
         }
 
     except Exception as e:
@@ -363,7 +409,7 @@ def _save_data(
     logs_raw: str, interface_status: str, version_info: str,
     interface_utilization: str, system_info: str, vsf_info: str, switch_info: str, route_info: str,
     validation_results: str, performance_results: str, change_results: str,
-    software_version: str, serial_number: str,
+    software_version: str, serial_number: str, device_model: str = "",
     cdp_neighbors_raw: str = "", lldp_neighbors_raw: str = ""
 ) -> None:
     """保存数据到本地"""
@@ -491,16 +537,18 @@ def _save_data(
         running_config, startup_config, logs_raw,
         version_info, software_version, serial_number,
         validation_results, performance_results, change_results,
-        week_dir
+        week_dir, device_model
     )
 
     # 清理旧版本
     max_versions = settings.get("max_versions", 10)
     keep_latest_versions_per_device(data_dir, device_name, max_versions)
 
-    # 更新设备清单中的序列号、版本和最后同步时间
+    # 更新设备清单中的序列号、型号、版本和最后同步时间
     if serial_number and serial_number != "未知":
         _update_device_serial(device_name, serial_number)
+    if device_model and device_model != "未知":
+        _update_device_field(device_name, "model", device_model)
     if software_version and software_version != "未知":
         _update_device_field(device_name, "version", software_version)
     _update_device_field(device_name, "last_synced", datetime.now().strftime("%m/%d/%Y %H:%M"))
@@ -511,7 +559,7 @@ def _generate_summary(
     running_config: str, startup_config: str, logs_raw: str,
     version_info: str, software_version: str, serial_number: str,
     validation_results: str, performance_results: str, change_results: str,
-    week_dir: str
+    week_dir: str, device_model: str = ""
 ) -> None:
     """生成 summary.txt"""
 
@@ -523,6 +571,8 @@ def _generate_summary(
     lines.append(f"类型：{device_type}")
     if serial_number:
         lines.append(f"序列号 (SN): {serial_number}")
+    if device_model:
+        lines.append(f"设备型号：{device_model}")
     lines.append(f"软件版本：{software_version}")
     lines.append(f"生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     lines.append("=" * 70)

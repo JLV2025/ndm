@@ -8,6 +8,32 @@ from utils.settings_loader import load_devices, load_settings
 router = APIRouter()
 
 
+def _count_physical_devices(devices_list: list[dict]) -> int:
+    """按物理设备计数（堆叠设备按逗号分隔的序列号数计算）"""
+    count = 0
+    for dev in devices_list:
+        sn = (dev.get("serial_number") or "").strip()
+        if not sn or sn == "未知" or "," not in sn:
+            count += 1
+        else:
+            count += len([s for s in sn.split(",") if s.strip()])
+    return count
+
+
+def _count_physical_for_type(devices_list: list[dict], device_type: str) -> int:
+    """按类型统计物理设备数"""
+    count = 0
+    for dev in devices_list:
+        if dev.get("type", "") != device_type:
+            continue
+        sn = (dev.get("serial_number") or "").strip()
+        if not sn or sn == "未知" or "," not in sn:
+            count += 1
+        else:
+            count += len([s for s in sn.split(",") if s.strip()])
+    return count
+
+
 @router.get("/overview")
 async def get_overview():
     """Dashboard 汇总数据：设备数、端口统计、Top 10 上行流量、最近采集时间"""
@@ -16,7 +42,7 @@ async def get_overview():
     yaml_data = load_devices()
     devices_list = yaml_data.get("devices", [])
 
-    device_count = len(devices_list)
+    device_count = _count_physical_devices(devices_list)
     device_types = {}
     port_stats = {"total": 0, "up": 0, "down": 0, "disabled": 0}
     error_ports = 0
@@ -24,14 +50,20 @@ async def get_overview():
     last_collection = None
     locations = set()
 
+    # 先统计各类型物理设备数
+    from collections import Counter
+    type_set = set(d.get("type", "unknown") for d in devices_list)
+    for dt in type_set:
+        c = _count_physical_for_type(devices_list, dt)
+        if c > 0:
+            device_types[dt] = c
+
     for dev in devices_list:
         device_name = dev.get("name", "")
         location = dev.get("location", "")
         device_type = dev.get("type", "unknown")
         if location:
             locations.add(location)
-
-        device_types[device_type] = device_types.get(device_type, 0) + 1
 
         # 查找最新周的性能数据
         device_dir = os.path.join(data_root, device_name)

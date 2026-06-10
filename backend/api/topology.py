@@ -283,84 +283,128 @@ async def get_location_topology(location: str):
     if not os.path.exists(data_root):
         raise HTTPException(status_code=404, detail="数据目录不存在")
 
-    # 加载所有设备, 按 location 过滤
+    # 加载所有设备, 按 location 过滤 → 然后拆分为物理设备
     from utils.settings_loader import load_devices
     all_devices = load_devices().get("devices", [])
-    location_devices = [d for d in all_devices if d.get("location", "").upper() == location.upper()]
-
-    if not location_devices:
+    raw_location_devices = [d for d in all_devices if d.get("location", "").upper() == location.upper()]
+    if not raw_location_devices:
         raise HTTPException(status_code=404, detail=f"未找到 location={location} 的设备")
 
-    # 构建全局设备 notes 查找表 (供外部邻居设备 tier 判断)
-    device_notes_map: dict[str, str] = {d["name"]: d.get("notes", "") for d in all_devices}
+    physical_devices = _expand_physical_devices(raw_location_devices)
 
-    device_count = len(location_devices)
+    # 构建全局设备查找表 (key=逻辑设备名, 供邻居查询 ip/platform)
+    device_info_map: dict[str, dict] = {
+        d.get("name", d.get("logical_name", "")): {
+            "ip": d.get("ip", ""), "platform": d.get("platform", ""),
+            "notes": d.get("notes", ""), "model": d.get("model", "")
+        }
+        for d in all_devices
+    }
+
+    # 构建逻辑设备 → 物理成员名称的反查表
+    logical_to_physical: dict[str, list[str]] = {}
+    for pd in physical_devices:
+        log_name = pd["logical_name"]
+        logical_to_physical.setdefault(log_name, []).append(pd["expanded_name"])
+
+    device_count = len(physical_devices)
     skipped_devices: list[str] = []
     nodes: list[dict] = []
     all_edges: list[dict] = []
     node_set: set[str] = set()
 
-    # 预扫描: 一次扫描 data_root 构建 {device: path} 映射
+    # 预扫描 neighbors.json
     device_file_map = _scan_device_files(data_root, "neighbors.json")
 
-    for dev in location_devices:
-        device_name = dev["name"]
-        neighbors_path = device_file_map.get(device_name)
+    for dev in physical_devices:
+        logical_name = dev["logical_name"]
+        expanded_name = dev["expanded_name"]
+        neighbors_path = device_file_map.get(logical_name)
         if not neighbors_path:
-            skipped_devices.append(device_name)
+            if logical_name not in skipped_devices:
+                skipped_devices.append(logical_name)
             continue
 
         try:
             with open(neighbors_path, "r", encoding="utf-8") as f:
                 neighbor_data = json.load(f)
         except Exception:
-            skipped_devices.append(device_name)
+            if logical_name not in skipped_devices:
+                skipped_devices.append(logical_name)
             continue
 
-        # 确保本设备节点已加入
-        if device_name not in node_set:
-            node_set.add(device_name)
+        # 本设备节点 (使用 expanded_name)
+        if expanded_name not in node_set:
+            node_set.add(expanded_name)
             device_type = dev.get("type", "")
+            device_platform = dev.get("platform", "")
+            device_ip = dev.get("ip", "")
+            device_model = dev.get("model", "")
             notes = dev.get("notes", "")
             nodes.append({
-                "id": device_name,
-                "label": device_name,
+                "id": expanded_name,
+                "label": expanded_name,
                 "type": _map_device_type(device_type),
-                "platform": dev.get("platform", ""),
-                "tier": _compute_tier(device_name, notes),
+                "platform": device_platform or device_info_map.get(logical_name, {}).get("platform", ""),
+                "model": device_model or device_info_map.get(logical_name, {}).get("model", ""),
+                "ip": device_ip or device_info_map.get(logical_name, {}).get("ip", ""),
+                "tier": _compute_tier(logical_name, notes),
                 "is_location_device": True,
                 "location": location,
+                "stack_group": dev.get("stack_group", ""),
+                "physical_index": dev.get("physical_index", 1),
+                "physical_count": dev.get("physical_count", 1),
             })
 
-        # 添加邻居节点 + 边
+        # 邻居 + 边: 按端口 member slot 映射到物理成员
         for nb in neighbor_data.get("neighbors", []):
             neighbor_name = nb.get("neighbor_name", "")
             if not neighbor_name:
                 continue
 
-            # 邻居节点
-            if neighbor_name not in node_set:
-                node_set.add(neighbor_name)
-                is_loc = _is_in_location(neighbor_name, location_devices)
+            # source 端口 → 对应物理成员名称
+            local_port = nb.get("local_port", "")
+            member_idx = _member_slot_for_port(local_port, dev.get("type", ""))
+            member_name = logical_to_physical.get(logical_name, [])
+            source_name = member_name[member_idx - 1] if member_name and member_idx <= len(member_name) else expanded_name
+
+            # 邻居节点 (target): 如果邻居是堆叠设备, 也拆分
+            nb_info = device_info_map.get(neighbor_name, {})
+            is_loc = _is_in_location(neighbor_name, raw_location_devices)
+
+            # 同级邻居的物理映射
+            nb_physicals = logical_to_physical.get(neighbor_name, [])
+
+            # 对端口-level 的 target 做映射; 没有端口信息时直接用第一个物理成员
+            target_name = neighbor_name  # 默认逻辑名
+            if nb_physicals:
+                target_name = nb_physicals[0]  # 邻居也用第一个物理成员
+
+            if target_name not in node_set:
+                node_set.add(target_name)
                 nodes.append({
-                    "id": neighbor_name,
-                    "label": neighbor_name,
+                    "id": target_name,
+                    "label": target_name,
                     "type": nb.get("neighbor_type", "unknown"),
-                    "platform": nb.get("neighbor_platform", ""),
-                    "tier": _compute_tier(neighbor_name, device_notes_map.get(neighbor_name, "")),
+                    "platform": nb.get("neighbor_platform", "") or nb_info.get("platform", ""),
+                    "model": nb_info.get("model", ""),
+                    "ip": nb_info.get("ip", ""),
+                    "tier": _compute_tier(neighbor_name, nb_info.get("notes", "")),
                     "is_location_device": is_loc,
                     "location": location if is_loc else "",
+                    "stack_group": neighbor_name if nb_physicals and len(nb_physicals) > 1 else "",
+                    "physical_index": 1,
+                    "physical_count": len(nb_physicals) if nb_physicals else 1,
                 })
 
-            # 边
-            edge_id = f"{device_name}-{nb['local_port']}-{neighbor_name}"
+            edge_id = f"{source_name}-{local_port}-{target_name}"
             all_edges.append({
                 "id": edge_id,
-                "source": device_name,
-                "target": neighbor_name,
-                "source_interface": nb["local_port"],
+                "source": source_name,
+                "target": target_name,
+                "source_interface": local_port,
                 "target_interface": "",
-                "is_cross_location": not _is_in_location(neighbor_name, location_devices),
+                "is_cross_location": not is_loc,
             })
 
     # 去重边: 同向同端口去重 + 双向链路合并
@@ -413,7 +457,9 @@ def _compute_tier(device_name: str, notes: str) -> str:
     - core: SWI 且 notes 含 [Core]
     - access: 其余
     """
-    type_code = device_name[5:8].upper() if len(device_name) >= 8 else ""
+    # 剥离堆叠后缀 (如 "-01", "-02") 后提取类型码
+    base_name = _logical_name(device_name)
+    type_code = base_name[5:8].upper() if len(base_name) >= 8 else ""
     if type_code in ("RTW", "SDW"):
         return "wan"
     if type_code == "SWI" and notes.lower().startswith("core"):
@@ -426,4 +472,79 @@ def _compute_tier(device_name: str, notes: str) -> str:
 def _is_in_location(device_name: str, location_devices: list[dict]) -> bool:
     """检查设备名是否属于该 location"""
     return any(d.get("name") == device_name for d in location_devices)
+
+
+def _logical_name(device_name: str) -> str:
+    """剥离物理设备序号后缀，返回逻辑设备名
+
+    "BJQD1SWI01-01" → "BJQD1SWI01"
+    "BJQD1SWI01"    → "BJQD1SWI01"
+    """
+    m = re.match(r'^(.+?)-\d{2}$', device_name)
+    return m.group(1) if m else device_name
+
+
+def _member_slot_for_port(local_port: str, device_type: str) -> int:
+    """从端口名推断所属堆叠成员序号 (1-based)
+
+    Aruba VSF: 1/1/49 → member 1, 2/1/49 → member 2
+    Cisco Stack: TwentyFiveGigE1/0/x → member 1
+    """
+    if not local_port:
+        return 1
+    m = re.match(r'^(\d+)/', local_port)
+    if m:
+        slot = int(m.group(1))
+        if slot >= 1:
+            return slot
+    m = re.match(r'^[A-Za-z]+(\d+)/', local_port)
+    if m:
+        slot = int(m.group(1))
+        if slot >= 1:
+            return slot
+    return 1
+
+
+def _expand_physical_devices(location_devices: list[dict]) -> list[dict]:
+    """将堆叠设备拆分为物理设备
+
+    返回展开后的设备列表，每个物理设备新增:
+      - expanded_name: "BJQD1SWI01-01"
+      - logical_name: "BJQD1SWI01"
+      - physical_index: 1-based
+      - physical_count: 总成员数
+      - stack_group: 堆叠组标识 (逻辑设备名，非堆叠为空字符串)
+    """
+    expanded = []
+    for dev in location_devices:
+        sn = (dev.get("serial_number") or "").strip()
+        if not sn or sn == "未知" or "," not in sn:
+            d = dict(dev)
+            d["expanded_name"] = dev["name"]
+            d["logical_name"] = dev["name"]
+            d["physical_index"] = 1
+            d["physical_count"] = 1
+            d["stack_group"] = ""
+            expanded.append(d)
+            continue
+
+        sn_list = [s.strip() for s in sn.split(",") if s.strip()]
+        model_str = (dev.get("model") or "").strip()
+        model_list = [m.strip() for m in model_str.split(",")] if model_str else [""] * len(sn_list)
+        ver_str = (dev.get("version") or "").strip()
+        ver_list = [v.strip() for v in ver_str.split(",")] if ver_str else [""] * len(sn_list)
+
+        for i, s in enumerate(sn_list):
+            d = dict(dev)
+            d["expanded_name"] = f"{dev['name']}-{i + 1:02d}"
+            d["logical_name"] = dev["name"]
+            d["physical_index"] = i + 1
+            d["physical_count"] = len(sn_list)
+            d["stack_group"] = dev["name"]
+            d["serial_number"] = s
+            d["model"] = model_list[i] if i < len(model_list) else ""
+            d["version"] = ver_list[i] if i < len(ver_list) else ""
+            expanded.append(d)
+
+    return expanded
 

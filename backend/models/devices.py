@@ -22,6 +22,7 @@ class Device:
         self.location = ""
         self.notes = ""
         self.serial_number = ""
+        self.model = ""
         self.username = ""
         self.password = ""
         self.uplink_ports: List[str] = []
@@ -36,6 +37,7 @@ class Device:
             "location": self.location,
             "notes": self.notes,
             "serial_number": self.serial_number,
+            "model": self.model,
             "username": self.username,
             "password": self.password,
             "uplink_ports": self.uplink_ports
@@ -53,6 +55,7 @@ class Device:
         device.location = data.get("location", "")
         device.notes = data.get("notes", "")
         device.serial_number = data.get("serial_number", "")
+        device.model = data.get("model", "")
         device.username = data.get("username", "")
         device.password = data.get("password", "")
         device.uplink_ports = data.get("uplink_ports", []) or []

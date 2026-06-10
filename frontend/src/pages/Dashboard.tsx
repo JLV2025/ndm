@@ -700,6 +700,7 @@ const Dashboard: React.FC = () => {
                   {t('dashboard.location')} {sortField === 'location' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
                 </TableCell>
                 <TableCell>{t('dashboard.serialNumber')}</TableCell>
+                <TableCell>{t('dashboard.model')}</TableCell>
                 <TableCell>{t('dashboard.version')}</TableCell>
                 <TableCell>{t('dashboard.status')}</TableCell>
               </TableRow>
@@ -748,6 +749,9 @@ const Dashboard: React.FC = () => {
                     <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>{device.location || '-'}</TableCell>
                     <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: '"JetBrains Mono", monospace' }}>
                       {device.serial_number || '-'}
+                    </TableCell>
+                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: '"JetBrains Mono", monospace' }}>
+                      {device.model || '-'}
                     </TableCell>
                     <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: '"JetBrains Mono", monospace' }}>
                       {device.version || '-'}

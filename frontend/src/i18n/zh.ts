@@ -34,6 +34,7 @@ const zh: Record<string, string> = {
   'dashboard.ipAddress': 'IP 地址',
   'dashboard.location': '位置',
   'dashboard.serialNumber': '序列号',
+  'dashboard.model': '型号',
   'dashboard.version': '版本',
   'dashboard.status': '状态',
   'dashboard.online': '在线',

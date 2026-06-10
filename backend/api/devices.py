@@ -20,6 +20,7 @@ class DeviceCreate(BaseModel):
     location: Optional[str] = None
     notes: Optional[str] = None
     serial_number: Optional[str] = None
+    model: Optional[str] = None
     version: Optional[str] = None
     uplink_ports: Optional[List[str]] = None
 
@@ -70,6 +71,7 @@ class DeviceUpdate(BaseModel):
     location: Optional[str] = None
     notes: Optional[str] = None
     serial_number: Optional[str] = None
+    model: Optional[str] = None
     version: Optional[str] = None
     uplink_ports: Optional[List[str]] = None
 
@@ -119,6 +121,7 @@ class DeviceResponse(BaseModel):
     location: Optional[str] = None
     notes: Optional[str] = None
     serial_number: Optional[str] = None
+    model: Optional[str] = None
     version: Optional[str] = None
     last_synced: Optional[str] = None
     username: Optional[str] = None

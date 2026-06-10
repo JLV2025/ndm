@@ -29,9 +29,14 @@ export interface LocationNode {
   label: string
   type: string         // switch / router / firewall / wireless / sdwan
   platform: string
+  model: string        // 硬件型号 (如 "JL659A 6300M")
+  ip: string           // 设备管理 IP
   tier: 'wan' | 'core' | 'access' | 'unknown'
   is_location_device: boolean
   location: string
+  stack_group: string  // 堆叠组标识 (逻辑设备名)，非堆叠为空
+  physical_index: number
+  physical_count: number
 }
 
 export interface LocationEdge {

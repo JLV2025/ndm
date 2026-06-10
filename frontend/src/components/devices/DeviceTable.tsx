@@ -79,6 +79,7 @@ const DeviceTable: React.FC<DeviceTableProps> = React.memo(({
                 {t('dashboard.location')} {sortField === 'location' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
               </TableCell>
               <TableCell>{t('devices.platform')}</TableCell>
+              <TableCell>{t('dashboard.model')}</TableCell>
               <TableCell>{t('devices.lastSync')}</TableCell>
               <TableCell>{t('devices.actions')}</TableCell>
             </TableRow>
@@ -132,6 +133,9 @@ const DeviceTable: React.FC<DeviceTableProps> = React.memo(({
                   <TableCell>{device.ip}</TableCell>
                   <TableCell sx={{ color: 'text.secondary' }}>{device.location || '-'}</TableCell>
                   <TableCell sx={{ color: 'text.secondary' }}>{device.platform || '-'}</TableCell>
+                  <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: '"JetBrains Mono", monospace' }}>
+                    {device.model || '-'}
+                  </TableCell>
                   <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
                     {device.last_synced
                       ? (() => { const [d, t2] = device.last_synced.split(' '); return `${d} ${t2 || ''}`; })()

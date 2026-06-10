@@ -1,6 +1,6 @@
 devices:
 - ip: 10.210.255.1
-  last_synced: 06/09/2026 20:53
+  last_synced: 06/10/2026 14:59
   location: BJQ
   name: BJQD1SWI01
   notes: Core Switch
@@ -13,7 +13,7 @@ devices:
   - lag1
   version: FL.10.10.1070
 - ip: 10.210.255.2
-  last_synced: 06/09/2026 20:54
+  last_synced: 06/10/2026 15:01
   location: BJQ
   name: BJQD1SWI02
   notes: Access Switch
@@ -25,7 +25,7 @@ devices:
   - 1/1/50
   version: ML.10.11.1021
 - ip: 10.210.255.51
-  last_synced: 06/09/2026 20:55
+  last_synced: 06/10/2026 15:02
   location: BJQ
   name: BJQD2QIS01
   notes: Access Switch - Office
@@ -69,7 +69,7 @@ devices:
   uplink_ports: null
   version: ML.10.10.1030
 - ip: 10.210.213.14
-  last_synced: 06/09/2026 20:52
+  last_synced: 06/10/2026 14:58
   location: BJQ
   name: BJQD1RTW01
   notes: Voice Gateway
@@ -79,17 +79,17 @@ devices:
   uplink_ports: null
   version: 17.09.04
 - ip: 10.211.255.1
-  last_synced: 06/09/2026 19:34
+  last_synced: 06/10/2026 15:37
   location: DZN
   name: DZND1SWI01
-  notes: Core
+  notes: Core Switch
   platform: aruba_aoscx
   serial_number: SG30LMQ0ZN
   type: aruba_aoscx
   uplink_ports: null
   version: FL.10.10.1070
 - ip: 10.22.255.1
-  last_synced: 06/09/2026 19:40
+  last_synced: 06/10/2026 15:38
   location: PVG
   name: PVGD1SWI01
   notes: Core Switch
@@ -99,7 +99,7 @@ devices:
   uplink_ports: null
   version: FL.10.10.1070
 - ip: 10.22.255.11
-  last_synced: 06/09/2026 19:41
+  last_synced: 06/10/2026 15:39
   location: PVG
   name: PVGD1SWI02
   notes: Access Switch
@@ -109,7 +109,7 @@ devices:
   uplink_ports: null
   version: FL.10.10.1070
 - ip: 10.22.255.12
-  last_synced: 06/09/2026 19:41
+  last_synced: 06/10/2026 15:39
   location: PVG
   name: PVGD1SWI03
   notes: null
@@ -119,7 +119,7 @@ devices:
   uplink_ports: null
   version: 12.2(55)
 - ip: 10.22.255.13
-  last_synced: 06/09/2026 19:41
+  last_synced: 06/10/2026 15:40
   location: PVG
   name: PVGD1SWI04
   notes: null
@@ -129,7 +129,7 @@ devices:
   uplink_ports: null
   version: 12.2(58)
 - ip: 10.22.255.10
-  last_synced: 06/09/2026 19:41
+  last_synced: 06/10/2026 15:40
   location: PVG
   name: PVGD1SWI05
   notes: null
@@ -150,7 +150,7 @@ devices:
 - ip: 10.208.3.2
   location: BJD
   name: BJDD1SWI01
-  notes: null
+  notes: Core Switch
   platform: aruba_aoscx
   serial_number: null
   type: aruba_aoscx
@@ -203,3 +203,12 @@ devices:
   type: aruba_aoscx
   uplink_ports: null
   version: null
+- name: PVGD1RTW01
+  ip: 10.22.213.14
+  type: cisco_ios_router
+  platform: cisco_ios_router
+  location: PVG
+  notes: Voice Gateway
+  serial_number: null
+  version: null
+  uplink_ports: null

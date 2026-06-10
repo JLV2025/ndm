@@ -17,9 +17,9 @@ const apiJson = axios.create({
 
 // 设备管理
 export const deviceApi = {
-  list: () => apiJson.get('/devices'),
+  list: () => apiJson.get('/devices/'),
   get: (name: string) => apiJson.get(`/devices/${name}`),
-  add: (device: Device) => apiJson.post('/devices', device),
+  add: (device: Device) => apiJson.post('/devices/', device),
   delete: (name: string) => apiJson.delete(`/devices/${name}`),
   update: (name: string, updates: Partial<Device>) => apiJson.patch(`/devices/${name}`, updates),
   search: (params: Record<string, string>) => apiJson.get('/devices/search', { params }),
