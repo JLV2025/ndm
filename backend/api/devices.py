@@ -7,6 +7,8 @@ import os
 import yaml
 import json
 import re
+import csv
+import io
 from utils.settings_loader import get_devices_config_path
 
 router = APIRouter()
@@ -223,6 +225,139 @@ async def list_devices():
     for d in devices:
         result.append(DeviceResponse(**d).model_dump())
     return result
+
+
+# CSV 列名映射（CSV header -> YAML 字段名）
+CSV_COLUMN_MAP = {
+    "name": "name",
+    "ip": "ip",
+    "type": "type",
+    "platform": "platform",
+    "location": "location",
+    "notes": "notes",
+    "uplink_ports": "uplink_ports",
+}
+
+# 模板 CSV 内容
+CSV_TEMPLATE = "name,ip,type,platform,location,notes,uplink_ports\r\nSWI01,192.168.1.1,aruba_aoscx,aruba_aoscx,DC1,Core Switch,\"1/1/49,1/1/50\"\r\nSWI02,192.168.1.2,cisco_ios,cisco_ios_xe,DC1,Access Switch,\"Te1/0/1,Te1/0/2\"\r\n"
+
+
+@router.get("/batch-import/template")
+async def download_import_template():
+    """下载 CSV 导入模板"""
+    from fastapi.responses import Response
+    return Response(
+        content=CSV_TEMPLATE,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=NDM_Device_Import_Template.csv"}
+    )
+
+
+@router.post("/batch-import")
+async def batch_import_devices(file: UploadFile = File(...)):
+    """批量导入设备（CSV 格式）"""
+    # 读取并解析 CSV
+    try:
+        content = await file.read()
+        text = content.decode("utf-8-sig")  # 兼容 BOM
+        reader = csv.DictReader(io.StringIO(text))
+        rows = list(reader)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"CSV 解析失败：{str(e)}")
+
+    if not rows:
+        raise HTTPException(status_code=400, detail="CSV 文件为空")
+
+    # 获取已有设备名集合（用于重名检测）
+    existing_devices = {d.get("name", "") for d in load_devices_from_yaml()}
+
+    results = []
+    success_count = 0
+    failed_count = 0
+    skipped_count = 0
+
+    for idx, row in enumerate(rows):
+        row_num = idx + 2  # CSV 行号（第1行是 header）
+        # 规范化行数据：去除空白
+        row_data = {k.strip().lower(): v.strip() if v else "" for k, v in row.items()}
+
+        name = row_data.get("name", "")
+        ip = row_data.get("ip", "")
+        dev_type = row_data.get("type", "")
+        platform = row_data.get("platform", "")
+        location = row_data.get("location", "")
+        notes = row_data.get("notes", "")
+        uplink_raw = row_data.get("uplink_ports", "")
+
+        # 校验必填字段
+        errors = []
+        if not name:
+            errors.append("设备名称为空")
+        elif not re.match(r'^[a-zA-Z0-9_\-\.]+$', name):
+            errors.append("设备名称包含非法字符")
+        if not ip:
+            errors.append("IP 地址为空")
+        elif not re.match(r'^(\d{1,3}\.){3}\d{1,3}$', ip):
+            errors.append("IP 地址格式无效")
+        else:
+            parts = ip.split('.')
+            if any(int(p) > 255 for p in parts):
+                errors.append("IP 地址值无效")
+        if not dev_type:
+            errors.append("设备类型为空")
+        elif dev_type not in ['cisco_ios', 'cisco_ios_xe', 'cisco_ios_router', 'aruba_aoscx']:
+            errors.append(f"不支持的设备类型：{dev_type}")
+
+        if errors:
+            results.append({"row": row_num, "name": name or "(空)", "status": "failed", "errors": errors})
+            failed_count += 1
+            continue
+
+        # 重名检测
+        if name in existing_devices:
+            results.append({"row": row_num, "name": name, "status": "skipped", "errors": ["设备名称已存在"]})
+            skipped_count += 1
+            continue
+
+        # 解析 uplink_ports（逗号分隔 -> 列表）
+        uplink_ports = None
+        if uplink_raw:
+            uplink_ports = [p.strip() for p in uplink_raw.replace("，", ",").split(",") if p.strip()]
+
+        # 构建设备字典
+        device_dict = {
+            "name": name,
+            "ip": ip,
+            "type": dev_type,
+            "platform": platform or None,
+            "location": location or None,
+            "notes": notes or None,
+            "uplink_ports": uplink_ports,
+        }
+
+        # 剔除 None 值字段
+        device_dict = {k: v for k, v in device_dict.items() if v is not None}
+
+        try:
+            if not save_device_to_yaml(device_dict):
+                results.append({"row": row_num, "name": name, "status": "failed", "errors": ["保存设备失败"]})
+                failed_count += 1
+            else:
+                results.append({"row": row_num, "name": name, "status": "success", "errors": []})
+                success_count += 1
+                existing_devices.add(name)  # 更新重名检测集合
+        except Exception as e:
+            results.append({"row": row_num, "name": name, "status": "failed", "errors": [str(e)]})
+            failed_count += 1
+
+    return {
+        "success": True,
+        "total": len(rows),
+        "success_count": success_count,
+        "failed_count": failed_count,
+        "skipped_count": skipped_count,
+        "results": results,
+    }
 
 
 @router.get("/{name}")

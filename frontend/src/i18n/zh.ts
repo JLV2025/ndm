@@ -311,6 +311,20 @@ const zh: Record<string, string> = {
   'topology.exportPng': '导出 PNG',
   'topology.exportVisio': '导出 Visio',
 
+  // 批量导入
+  'import.title': '批量导入设备',
+  'import.dropHint': '拖拽 CSV 文件到此处，或点击选择',
+  'import.csvOnly': '仅支持 .csv 格式',
+  'import.downloadTemplate': '下载模板',
+  'import.startImport': '开始导入',
+  'import.importing': '导入中...',
+  'import.importFailed': '导入失败',
+  'import.success': '成功',
+  'import.failed': '失败',
+  'import.skipped': '跳过',
+  'import.allSuccess': '全部设备导入成功',
+  'import.done': '完成',
+
   // 语言
   'lang.switch': 'EN',
   'lang.label': '语言',

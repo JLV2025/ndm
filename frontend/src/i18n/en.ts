@@ -309,6 +309,20 @@ const en: Record<string, string> = {
   'topology.exportPng': 'Export PNG',
   'topology.exportVisio': 'Export Visio',
 
+  // Batch import
+  'import.title': 'Batch Import Devices',
+  'import.dropHint': 'Drop CSV file here or click to select',
+  'import.csvOnly': 'Only .csv files supported',
+  'import.downloadTemplate': 'Download Template',
+  'import.startImport': 'Start Import',
+  'import.importing': 'Importing...',
+  'import.importFailed': 'Import failed',
+  'import.success': 'Success',
+  'import.failed': 'Failed',
+  'import.skipped': 'Skipped',
+  'import.allSuccess': 'All devices imported successfully',
+  'import.done': 'Done',
+
   // Language
   'lang.switch': '中',
   'lang.label': 'Language',

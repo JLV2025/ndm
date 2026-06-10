@@ -10,7 +10,7 @@ import {
   LinearProgress,
   Alert,
 } from '@mui/material'
-import { Add, Storage, NetworkWifi } from '@mui/icons-material'
+import { Add, Storage, NetworkWifi, CloudUpload } from '@mui/icons-material'
 import { deviceApi, collectorApi } from '../services/api'
 import { sessionManager } from '../services/auth'
 import DeviceForm from './DeviceForm'
@@ -23,6 +23,7 @@ import DeviceCardGrid from '../components/devices/DeviceCardGrid'
 import DeviceTable from '../components/devices/DeviceTable'
 import CollectResultDialog from '../components/devices/CollectResultDialog'
 import DeleteConfirmDialog from '../components/devices/DeleteConfirmDialog'
+import ImportDialog from '../components/devices/ImportDialog'
 
 const DeviceList: React.FC = () => {
   const { t } = useI18n()
@@ -39,16 +40,25 @@ const DeviceList: React.FC = () => {
   const [collectError, setCollectError] = useState('')
   const [collectResult, setCollectResult] = useState<CollectResult | null>(null)
   const [collectPhase, setCollectPhase] = useState<'ping' | 'collect' | null>(null)
+  const [collectKey, setCollectKey] = useState(0)
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null)
   const [selectedDevices, setSelectedDevices] = useState<Set<string>>(new Set())
   const [batchRunning, setBatchRunning] = useState(false)
   const [batchStatus, setBatchStatus] = useState<Record<string, BatchItemStatus>>({})
   const [sortField, setSortField] = useState<string>('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
+  const [openImport, setOpenImport] = useState(false)
 
   useEffect(() => {
     loadDevices()
   }, [])
+
+  // 位置切换时清除所有选中状态和批量结果，避免跨 location 的数据污染
+  useEffect(() => {
+    setSelectedDevices(new Set())
+    setBatchStatus({})
+    setBatchRunning(false)
+  }, [selectedLocation])
 
   const loadDevices = async () => {
     try {
@@ -112,6 +122,7 @@ const DeviceList: React.FC = () => {
     setCollecting(true)
     setCollectPhase('collect')
     setCollectError('')
+    setCollectKey(k => k + 1)
 
     try {
       // Ping 预检：不可达设备提前拒绝，避免等待 SSH 超时
@@ -276,6 +287,14 @@ const DeviceList: React.FC = () => {
           >
             {t('devices.addDevice')}
           </Button>
+          <Button
+            variant="outlined"
+            startIcon={<CloudUpload />}
+            onClick={() => setOpenImport(true)}
+            sx={{ px: 2, py: 0.75, fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.02em' }}
+          >
+            {t('import.title') || 'Batch Import'}
+          </Button>
         </Box>
         <LocationFilter selectedLocation={selectedLocation} onChange={setSelectedLocation} locations={uniqueLocations} />
       </Paper>
@@ -283,6 +302,7 @@ const DeviceList: React.FC = () => {
       {/* 单设备收集进度 */}
       {collecting && selectedDevice && (
         <CollectionProgress
+          key={collectKey}
           deviceName={selectedDevice.name}
           deviceIp={selectedDevice.ip}
           onComplete={() => {
@@ -390,6 +410,13 @@ const DeviceList: React.FC = () => {
         deviceName={selectedDevice?.name}
         onCancel={() => setOpenConfirm(false)}
         onConfirm={handleConfirmDelete}
+      />
+
+      {/* 批量导入 */}
+      <ImportDialog
+        open={openImport}
+        onClose={() => setOpenImport(false)}
+        onImported={loadDevices}
       />
     </Container>
   )

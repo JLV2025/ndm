@@ -23,6 +23,19 @@ export const deviceApi = {
   delete: (name: string) => apiJson.delete(`/devices/${name}`),
   update: (name: string, updates: Partial<Device>) => apiJson.patch(`/devices/${name}`, updates),
   search: (params: Record<string, string>) => apiJson.get('/devices/search', { params }),
+  batchImport: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiJson.post('/devices/batch-import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 30000,
+    })
+  },
+  downloadTemplate: async () => {
+    const res = await fetch(apiUrl('/devices/batch-import/template'), { credentials: 'include' })
+    if (!res.ok) throw new Error('下载模板失败')
+    return res.blob()
+  },
 }
 
 // 配置收集 — 使用 FormData 发送凭据（需时较长，可能 10-30 秒）
