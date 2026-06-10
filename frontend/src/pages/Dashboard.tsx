@@ -161,7 +161,36 @@ const Dashboard: React.FC = () => {
     ? devices.filter((d) => (d.location || '').toUpperCase() === selectedLocation.toUpperCase())
     : devices
 
-  const sortedDevices = [...filteredDevices].sort((a: Device, b: Device) => {
+  // 堆叠设备拆分：序列号逗号分隔 → 每成员单独一行，逻辑设备名不显示
+  const physicalDevices = useMemo(() => {
+    const result: Array<Device & { logicalName: string; memberIndex: number; memberCount: number }> = []
+    for (const d of filteredDevices) {
+      const snRaw = d.serial_number || ''
+      const snList = snRaw.split(',').map(s => s.trim()).filter(Boolean)
+      if (snList.length <= 1) {
+        // 非堆叠设备，直接显示
+        result.push({ ...d, logicalName: d.name, memberIndex: 0, memberCount: 1 })
+        continue
+      }
+      // 堆叠设备：拆分成员，逻辑设备自己不显示
+      const padWidth = String(snList.length).length
+      snList.forEach((sn, i) => {
+        const idx = i + 1
+        const suffix = String(idx).padStart(padWidth, '0')
+        result.push({
+          ...d,
+          name: `${d.name}-${suffix}`,
+          logicalName: d.name,
+          serial_number: sn,
+          memberIndex: idx,
+          memberCount: snList.length,
+        })
+      })
+    }
+    return result
+  }, [filteredDevices])
+
+  const sortedDevices = [...physicalDevices].sort((a: Device, b: Device) => {
     const va = (a[sortField] || '').toString().toLowerCase()
     const vb = (b[sortField] || '').toString().toLowerCase()
     return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va)
@@ -725,7 +754,7 @@ const Dashboard: React.FC = () => {
                         >
                           <Server sx={{ fontSize: 14 }} />
                         </Avatar>
-                        <Typography variant="body2" component="a" href={`/devices/${device.name}`} sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}>
+                        <Typography variant="body2" component="a" href={`/devices/${(device as any).logicalName || device.name}`} sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}>
                           {device.name}
                         </Typography>
                       </Box>
@@ -758,7 +787,9 @@ const Dashboard: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       {(() => {
-                        const status = deviceStatus[device.name]
+                        // 堆叠设备用逻辑设备名查状态（所有成员共享同一 IP/Ping 状态）
+                        const lookupName = (device as any).logicalName || device.name
+                        const status = deviceStatus[lookupName]
                         if (!status) {
                           return <Chip label="-" size="small" sx={{ bgcolor: 'rgba(148,163,184,0.08)', color: 'text.secondary', height: 20, fontSize: '0.65rem' }} />
                         }
