@@ -460,9 +460,9 @@ def _compute_tier(device_name: str, notes: str) -> str:
     # 剥离堆叠后缀 (如 "-01", "-02") 后提取类型码
     base_name = _logical_name(device_name)
     type_code = base_name[5:8].upper() if len(base_name) >= 8 else ""
-    if type_code in ("RTW", "SDW"):
+    if type_code in ("RTW", "SDW", "FWL"):
         return "wan"
-    if type_code == "SWI" and notes.lower().startswith("core"):
+    if type_code == "SWI" and (notes or "").lower().startswith("core"):
         return "core"
     if type_code == "SWI":
         return "access"

@@ -6,9 +6,10 @@ interface LocationFilterProps {
   selectedLocation: string | null
   onChange: (v: string | null) => void
   locations: string[]
+  showAll?: boolean
 }
 
-const LocationFilter: React.FC<LocationFilterProps> = React.memo(({ selectedLocation, onChange, locations }) => {
+const LocationFilter: React.FC<LocationFilterProps> = React.memo(({ selectedLocation, onChange, locations, showAll = true }) => {
   const { t } = useI18n()
   if (locations.length === 0) return null
 
@@ -38,7 +39,7 @@ const LocationFilter: React.FC<LocationFilterProps> = React.memo(({ selectedLoca
           },
         }}
       >
-        <ToggleButton key="all" value={null}>ALL</ToggleButton>
+        {showAll && <ToggleButton key="all" value={null}>ALL</ToggleButton>}
         {locations.map((loc) => (
           <ToggleButton key={loc} value={loc}>{loc}</ToggleButton>
         ))}

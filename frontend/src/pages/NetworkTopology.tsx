@@ -88,6 +88,7 @@ export default function NetworkTopology() {
           selectedLocation={selectedLocation}
           onChange={loadTopology}
           locations={locations}
+          showAll={false}
         />
         {selectedLocation && topoData && (
           <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', ml: 2 }}>
@@ -123,7 +124,7 @@ export default function NetworkTopology() {
           </Paper>
         ) : topoData ? (
           <Box sx={{ width: '100%', height: '100%' }}>
-            <LocationTopologyCanvas location={selectedLocation!} data={topoData} />
+            <LocationTopologyCanvas key={selectedLocation} location={selectedLocation!} data={topoData} />
           </Box>
         ) : null}
 
