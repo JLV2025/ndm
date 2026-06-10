@@ -116,7 +116,7 @@ const CollectionProgress: React.FC<CollectionProgressProps> = React.memo(({ devi
         variant="determinate"
         value={progressValue}
         color={step === 'failed' ? 'error' : 'primary'}
-        sx={{ mt: 1.5 }}
+        sx={{ mt: 1.5, bgcolor: 'rgba(255,255,255,0.06)' }}
       />
     </Paper>
   )

@@ -72,6 +72,7 @@ const BatchCollectionPanel: React.FC<BatchCollectionPanelProps> = React.memo(({ 
           <LinearProgress
             variant="determinate"
             value={totalCount > 0 ? (doneCount / totalCount) * 100 : 0}
+            sx={{ bgcolor: 'rgba(255,255,255,0.06)' }}
           />
         </Paper>
       )}
