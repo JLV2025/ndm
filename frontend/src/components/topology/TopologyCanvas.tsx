@@ -11,15 +11,8 @@ import type { NeighborNode } from '../../types/topology'
 import FrontPanelNode, { getPortParity } from './FrontPanelNode'
 import type { PortData } from './FrontPanelNode'
 import DirectionPad from './DirectionPad'
+import { getDeviceColor, isStackLink, ENDPOINT_PREFIXES } from '../../shared/constants'
 
-const TYPE_COLORS: Record<string, string> = {
-  switch: '#3B82F6', router: '#F59E0B', firewall: '#EF4444',
-  wireless: '#8B5CF6', sdwan: '#10B981', esxi: '#06B6D4',
-  server: '#06B6D4', printer: '#6366F1', mgmt: '#64748B',
-}
-function getDeviceColor(type: string): string { return TYPE_COLORS[type] || '#94A3B8' }
-const STACK_KEYWORDS = ['VSF', 'stackwise']
-function isStackLink(desc: string): boolean { return STACK_KEYWORDS.some((kw) => desc.toLowerCase().includes(kw.toLowerCase())) }
 const nodeTypes: NodeTypes = { frontPanel: FrontPanelNode }
 
 const canvasFadeIn = keyframes`
@@ -39,14 +32,6 @@ const H_GAP = 60
 const V_GAP = 160
 const ROW_GAP = 110
 const MAX_PER_ROW = 5
-
-const ENDPOINT_PREFIXES = [
-  { prefix: 'Phone-', label: '电话', labelEn: 'Phones' },
-  { prefix: 'Printer-', label: '打印机', labelEn: 'Printers' },
-  { prefix: 'AP', label: '无线AP', labelEn: 'APs' },
-  { prefix: 'Laptop-', label: '笔记本', labelEn: 'Laptops' },
-  { prefix: 'Internet-', label: '互联网', labelEn: 'Internet' },
-]
 
 interface AggDevice {
   name: string
@@ -371,17 +356,15 @@ export default function TopologyCanvas({ deviceName, neighbors, stackMembers, me
             </Tooltip>
             <Tooltip title="Export Visio">
               <IconButton size="small" onClick={() => {
-                const apiBase = (import.meta as any).env?.PROD ? 'http://localhost:8002/api' : '/api'
                 const exportData = {
                   nodes: finalNodes.map(n => ({ id: n.id, label: n.data.label, type: n.data.deviceType, platform: n.data.platform || '' })),
                   edges: finalEdges.map(e => ({ source: e.source, target: e.target, source_interface: e.data?.label || e.label || '' })),
                 }
-                fetch(`${apiBase}/topology/export/visio`, {
-                  method: 'POST', headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(exportData),
-                }).then(r => r.blob()).then(b => {
-                  const u = URL.createObjectURL(b); const a = document.createElement('a')
-                  a.download = `port-topology-${deviceName}.vdx`; a.href = u; a.click()
+                import('../../services/api').then(({ topologyApi }) => {
+                  topologyApi.exportVisio(exportData).then(b => {
+                    const u = URL.createObjectURL(b); const a = document.createElement('a')
+                    a.download = `port-topology-${deviceName}.vdx`; a.href = u; a.click()
+                  })
                 })
               }} sx={{ color: '#94a3b8', '&:hover': { color: '#8B5CF6' }, p: 0.5 }}>
                 <VisioIcon fontSize="small" />

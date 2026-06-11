@@ -470,20 +470,22 @@ def _save_data(
         lldp_entries = parse_lldp(lldp_neighbors_raw, device_type) if lldp_neighbors_raw else []
         merged = merge_neighbors(cdp_entries, lldp_entries)
 
-        # 补充: 从 running-config 端口描述中收集 SDW / FWL 设备 (CDP/LLDP 无法发现)
+        # 补充: 从 running-config 端口描述中收集 CDP/LLDP 无法发现的设备
         if running_config and not running_config.startswith('%'):
             try:
                 from analyzers.config_parser import ConfigParser
                 cp = ConfigParser(device_type=device_type)
                 config_entries = cp.parse(running_config)
-                # 只追加 SDW 和 FWL 类型
+                # CDP/LLDP 无法发现的网络设备类型（SDW, FWL, WLC 及所有非端点类型）
                 seen_ports = set((e.local_port, e.neighbor_name) for e in merged)
                 extra_count = 0
                 for entry in config_entries:
                     if not entry.device_name:
                         continue
-                    if entry.device_type not in ('sdwan', 'firewall'):
+                    if entry.is_endpoint or not entry.device_type:
                         continue
+                    if entry.device_type in ('switch', 'router'):
+                        continue  # 交换机/路由器 CDP/LLDP 能发现，不重复补
                     key = (entry.name, entry.device_name)
                     if key not in seen_ports:
                         seen_ports.add(key)
@@ -496,7 +498,7 @@ def _save_data(
                         ))
                         extra_count += 1
                 if extra_count:
-                    print(f"[邻居] ConfigParser 补充 SDW/FWL: {extra_count} 条")
+                    print(f"[邻居] ConfigParser 补充: {extra_count} 条")
             except Exception as e:
                 print(f"[邻居] ConfigParser 补充失败: {e}")
 

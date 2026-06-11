@@ -5,17 +5,9 @@ import { deviceApi, topologyApi } from '../services/api'
 import { useI18n } from '../i18n'
 import LocationFilter from '../components/devices/LocationFilter'
 import LocationTopologyCanvas from '../components/topology/LocationTopologyCanvas'
+import { TOPOLOGY_LEGEND } from '../shared/constants'
 import type { Device } from '../types'
 import type { LocationTopologyData } from '../types/topology'
-
-const LEGEND_ITEMS = [
-  { type: 'switch', labelZh: '交换机', labelEn: 'Switch', color: '#3B82F6' },
-  { type: 'router', labelZh: '路由器', labelEn: 'Router', color: '#F59E0B' },
-  { type: 'firewall', labelZh: '防火墙', labelEn: 'Firewall', color: '#EF4444' },
-  { type: 'wireless', labelZh: '无线控制器', labelEn: 'Wireless Controller', color: '#8B5CF6' },
-  { type: 'sdwan', labelZh: 'SD-WAN', labelEn: 'SD-WAN', color: '#10B981' },
-  { type: 'server', labelZh: '服务器', labelEn: 'Server', color: '#06B6D4' },
-]
 
 export default function NetworkTopology() {
   const { t, lang } = useI18n()
@@ -145,18 +137,8 @@ export default function NetworkTopology() {
             </Typography>
 
             {/* Tier 标注 */}
-            <Typography sx={{ fontSize: '0.58rem', fontWeight: 600, color: '#F59E0B', mt: 0.5, mb: 0.3 }}>
-              WAN ({t('topology.wanTier')})
-            </Typography>
-            <Typography sx={{ fontSize: '0.58rem', fontWeight: 600, color: '#3B82F6', mb: 0.3 }}>
-              Core ({t('topology.coreTier')})
-            </Typography>
-            <Typography sx={{ fontSize: '0.58rem', fontWeight: 600, color: '#64748b', mb: 0.6 }}>
-              Access ({t('topology.accessTier')})
-            </Typography>
-
-            <Stack alignItems="flex-start" gap={0.4}>
-              {LEGEND_ITEMS.map((item) => (
+            <Stack alignItems="flex-start" gap={0.4} sx={{ mt: 0.5 }}>
+              {TOPOLOGY_LEGEND.map((item) => (
                 <Box key={item.type} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: item.color, flexShrink: 0 }} />
                   <Typography sx={{ fontSize: '0.58rem', fontWeight: 500, color: '#cbd5e1', lineHeight: 1.2, whiteSpace: 'nowrap' }}>

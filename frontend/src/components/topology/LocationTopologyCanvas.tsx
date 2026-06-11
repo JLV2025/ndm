@@ -9,42 +9,45 @@ import {
   Node,
   Edge,
   MarkerType,
+  EdgeLabelRenderer,
+  BaseEdge,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { Box, Paper, Typography, IconButton, Stack, Tooltip } from '@mui/material'
 import { Image as ImageIcon, AccountTree as VisioIcon } from '@mui/icons-material'
 import { toPng } from 'html-to-image'
-import type { LocationTopologyData } from '../../types/topology'
+import type { LocationTopologyData, LocationNode } from '../../types/topology'
 import DirectionPad from './DirectionPad'
+import { getNodeColors, getDisplayType } from '../../shared/constants'
 
 // ============================================================
 // 布局常量
 // ============================================================
 const NODE_W = 210
 const NODE_H = 78
-const H_GAP = 50
-const V_GAP = 220
+const H_GAP = 50       // 独立设备间水平间距
+const STACK_GAP = 20   // 堆叠成员间水平间距（各层统一）
+const V_GAP = 220      // 层间垂直间距
 
 // ============================================================
-// 设备颜色 — 工业级调色板（更高对比度 + 发光效果）
+// DeviceNode 数据接口
 // ============================================================
-const TYPE_COLORS: Record<string, { fill: string; glow: string; border: string }> = {
-  switch:   { fill: '#2563EB', glow: '#3B82F6', border: '#60A5FA' },
-  router:   { fill: '#D97706', glow: '#F59E0B', border: '#FBBF24' },
-  firewall: { fill: '#DC2626', glow: '#EF4444', border: '#F87171' },
-  wireless: { fill: '#7C3AED', glow: '#8B5CF6', border: '#A78BFA' },
-  sdwan:    { fill: '#059669', glow: '#10B981', border: '#34D399' },
-  server:   { fill: '#0891B2', glow: '#06B6D4', border: '#22D3EE' },
-  unknown:  { fill: '#475569', glow: '#64748B', border: '#94A3B8' },
+interface DeviceNodeData {
+  label: string
+  displayType: string  // core-switch / access-switch / router / firewall / sdwan 等
+  tier: string
+  platform: string
+  ip: string
+  isLocationDevice: boolean
 }
 
 // ============================================================
-// 节点组件 — 强化视觉层次
+// 节点组件 — 按设备类型染色
 // ============================================================
 
-function DeviceNode({ data }: { data: any }) {
-  const { label, deviceType, platform, ip, isLocationDevice } = data
-  const colors = TYPE_COLORS[deviceType] || TYPE_COLORS.unknown
+function DeviceNode({ data }: { data: DeviceNodeData }) {
+  const { label, displayType, platform, ip, isLocationDevice } = data
+  const colors = getNodeColors(displayType)
 
   return (
     <Box
@@ -52,8 +55,8 @@ function DeviceNode({ data }: { data: any }) {
         width: NODE_W,
         height: NODE_H,
         borderRadius: '10px',
-        border: isLocationDevice ? `2px solid ${colors.border}` : `1.5px solid ${colors.fill}50`,
-        bgcolor: isLocationDevice ? `${colors.fill}20` : `${colors.fill}0A`,
+        border: isLocationDevice ? `2px solid ${colors.border}` : `1px solid ${colors.glow}40`,
+        bgcolor: isLocationDevice ? `${colors.fill}20` : `${colors.glow}10`,
         position: 'relative',
         display: 'flex',
         flexDirection: 'column',
@@ -63,23 +66,24 @@ function DeviceNode({ data }: { data: any }) {
         transition: 'all 180ms ease',
         backdropFilter: 'blur(4px)',
         boxShadow: isLocationDevice
-          ? `0 0 20px ${colors.glow}30, inset 0 0 20px ${colors.glow}08`
-          : 'none',
+          ? `0 0 24px ${colors.glow}60, 0 4px 12px ${colors.glow}40, inset 0 0 20px ${colors.glow}10`
+          : `0 0 8px ${colors.glow}20`,
         '&:hover': {
-          boxShadow: `0 0 24px ${colors.glow}50`,
+          boxShadow: `0 0 36px ${colors.glow}80, 0 6px 18px ${colors.glow}60`,
           borderColor: colors.border,
         },
       }}
     >
-      {/* 8 方向 Handle */}
+      {/* 上下方向 Handle */}
       <Handle type="target" position={Position.Top} id="tt" style={{ visibility: 'hidden' }} />
       <Handle type="source" position={Position.Top} id="st" style={{ visibility: 'hidden' }} />
       <Handle type="source" position={Position.Bottom} id="sb" style={{ visibility: 'hidden' }} />
       <Handle type="target" position={Position.Bottom} id="tb" style={{ visibility: 'hidden' }} />
+      {/* 同层水平连线用 */}
       <Handle type="source" position={Position.Right} id="sr" style={{ visibility: 'hidden' }} />
-      <Handle type="target" position={Position.Right} id="tr" style={{ visibility: 'hidden' }} />
       <Handle type="target" position={Position.Left} id="tl" style={{ visibility: 'hidden' }} />
       <Handle type="source" position={Position.Left} id="sl" style={{ visibility: 'hidden' }} />
+      <Handle type="target" position={Position.Right} id="tr" style={{ visibility: 'hidden' }} />
 
       {/* 第一行：设备名 */}
       <Typography
@@ -129,7 +133,55 @@ function DeviceNode({ data }: { data: any }) {
   )
 }
 
+// ============================================================
+// 自定义正交折线边 — 直接渲染 path
+// 3 段（相邻层）: 源端口→间隙→水平→目标端口
+// 5 段（跨层 WAN↔Access）: 源端口→间隙→绕行 X→下层间隙→水平→目标端口
+// ============================================================
+function GapOrthoEdge({
+  id, data, markerEnd, markerStart, style, label,
+}: {
+  id: string; sourceX: number; sourceY: number; targetX: number; targetY: number;
+  data?: { path?: string; lineColor?: string; midLabelX?: number; midLabelY?: number };
+  markerEnd?: string; markerStart?: string; style?: React.CSSProperties; label?: string;
+}) {
+  const d = data || {}
+  const lc = d.lineColor || (style?.stroke as string) || '#94A3B8'
+  const sw = (style?.strokeWidth as number) || 2.5
+  const path = d.path || ''
+
+  return (
+    <>
+      <BaseEdge id={id} path={path} style={{ stroke: lc, strokeWidth: sw }} markerEnd={markerEnd} markerStart={markerStart} />
+      {label && d.midLabelX != null && (
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${d.midLabelX}px,${d.midLabelY}px)`,
+              background: '#0F172A',
+              padding: '2px 6px',
+              borderRadius: 3,
+              fontSize: '0.62rem',
+              fontWeight: 600,
+              color: '#E2E8F0',
+              fontFamily: '"JetBrains Mono", monospace',
+              pointerEvents: 'all',
+              whiteSpace: 'nowrap',
+              opacity: 0.92,
+            }}
+            className="nodrag nopan"
+          >
+            {label}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  )
+}
+
 const nodeTypes = { deviceNode: DeviceNode }
+const edgeTypes = { gapOrtho: GapOrthoEdge }
 
 // ============================================================
 // 组件主体
@@ -145,8 +197,10 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
   const [offsets, setOffsets] = useState<Record<string, { dx: number; dy: number }>>({})
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
 
-  // 分层分组
+  // 分层分组（每层内按设备名排序，同类设备相邻）
   const tiers = useMemo(() => {
+    const nameOrder = (a: typeof data.nodes[0], b: typeof data.nodes[0]) =>
+      a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: 'base' })
     const wan: typeof data.nodes = []
     const core: typeof data.nodes = []
     const access: typeof data.nodes = []
@@ -155,151 +209,338 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
       else if (n.tier === 'core') core.push(n)
       else access.push(n)
     }
+    wan.sort(nameOrder)
+    core.sort(nameOrder)
+    access.sort(nameOrder)
     return { wan, core, access }
   }, [data.nodes])
 
-  // 三层布局 + 边生成（修复 Handle ID 匹配）
+  // 三层布局 + 边生成
   const { nodes: layoutNodes, edges: layoutEdges } = useMemo(() => {
     const rfNodes: Node[] = []
-    const maxPerRow = Math.max(tiers.wan.length, tiers.core.length, tiers.access.length, 1)
-    const canvasW = maxPerRow * (NODE_W + H_GAP) + H_GAP
 
-    const layRow = (items: typeof data.nodes, tierY: number) => {
-      // 按 stack_group 分组，堆叠成员上下排列
-      const stackOffset = 12  // 同组内成员垂直间距
+    /** 收集一层所有节点（相对 x=0），返回该层总宽度 */
+    const buildRowNodes = (items: typeof data.nodes, tierY: number): number => {
       const processed = new Set<string>()
       let colX = 0
-      items.forEach((node) => {
-        if (processed.has(node.id)) return
+      let firstPlaced = false
+
+      for (let i = 0; i < items.length; i++) {
+        const node = items[i]
+        if (processed.has(node.id)) continue
         processed.add(node.id)
 
+        // 非首个设备加 H_GAP 间隔
+        if (firstPlaced) colX += H_GAP
+        firstPlaced = true
+
         if (node.stack_group && node.physical_count > 1) {
-          // 堆叠成员: 同一逻辑设备的所有物理成员放在同一列，上下叠放
           const siblings = items.filter(n => n.stack_group === node.stack_group && !processed.has(n.id))
           siblings.forEach(s => processed.add(s.id))
           const allMembers = [node, ...siblings].sort((a, b) => a.physical_index - b.physical_index)
-          const groupTotalH = allMembers.length * (NODE_H + stackOffset) - stackOffset
-          const groupStartY = tierY - groupTotalH / 2 + NODE_H / 2
           allMembers.forEach((member, mi) => {
+            if (mi > 0) colX += STACK_GAP
             rfNodes.push({
               id: member.id,
               type: 'deviceNode',
-              position: { x: colX, y: groupStartY + mi * (NODE_H + stackOffset) },
+              position: { x: colX, y: tierY },
               data: {
                 label: member.label,
-                deviceType: member.type,
+                displayType: getDisplayType(member.type, member.tier),
+                tier: member.tier,
                 platform: member.model || member.platform,
                 ip: member.ip,
                 isLocationDevice: member.is_location_device,
               },
             })
+            colX += NODE_W
           })
-          colX += NODE_W + H_GAP
         } else {
-          // 非堆叠: 正常排列
           rfNodes.push({
             id: node.id,
             type: 'deviceNode',
             position: { x: colX, y: tierY },
             data: {
               label: node.label,
-              deviceType: node.type,
+              displayType: getDisplayType(node.type, node.tier),
+              tier: node.tier,
               platform: node.model || node.platform,
               ip: node.ip,
               isLocationDevice: node.is_location_device,
             },
           })
-          colX += NODE_W + H_GAP
+          colX += NODE_W
         }
-      })
+      }
+      return colX  // 总宽度（末尾无多余间距）
     }
 
+    // 逐层构建，记录每层的宽度 + 对应的节点下标范围
     let currentY = 0
-    layRow(tiers.wan, currentY)
-    currentY += tiers.wan.length > 0 ? NODE_H + V_GAP : 0
-    layRow(tiers.core, currentY)
-    currentY += tiers.core.length > 0 ? NODE_H + V_GAP : 0
-    layRow(tiers.access, currentY)
+    const rowWidths: number[] = []
+    const rowStartIdx: number[] = []
+    const rowY: number[] = []
 
-    // 位置映射
+    // WAN 层
+    if (tiers.wan.length > 0) {
+      rowStartIdx.push(rfNodes.length)
+      rowWidths.push(buildRowNodes(tiers.wan, currentY))
+      rowY.push(currentY)
+      currentY += NODE_H + V_GAP
+    }
+    // Core 层
+    if (tiers.core.length > 0) {
+      rowStartIdx.push(rfNodes.length)
+      rowWidths.push(buildRowNodes(tiers.core, currentY))
+      rowY.push(currentY)
+      currentY += NODE_H + V_GAP
+    }
+    // Access 层
+    if (tiers.access.length > 0) {
+      rowStartIdx.push(rfNodes.length)
+      rowWidths.push(buildRowNodes(tiers.access, currentY))
+      rowY.push(currentY)
+    }
+
+    rowStartIdx.push(rfNodes.length)  // 哨兵
+
+    // 计算全局最大行宽，每层相对居中偏移
+    const maxRowW = Math.max(...rowWidths, NODE_W)
+    for (let ri = 0; ri < rowWidths.length; ri++) {
+      const offsetX = (maxRowW - rowWidths[ri]) / 2
+      if (offsetX > 0) {
+        for (let i = rowStartIdx[ri]; i < rowStartIdx[ri + 1]; i++) {
+          rfNodes[i].position = { x: rfNodes[i].position.x + offsetX, y: rfNodes[i].position.y }
+        }
+      }
+    }
+
+    // ─────── 位置映射 ───────
     const posMap: Record<string, { x: number; y: number }> = {}
+    const nodeCenterX: Record<string, number> = {}
     for (const n of rfNodes) {
       posMap[n.id] = { x: n.position.x, y: n.position.y }
+      nodeCenterX[n.id] = n.position.x + NODE_W / 2
     }
 
-    const rfEdges: Edge[] = data.edges.map((e, i) => {
-      const srcPos = posMap[e.source]
-      const tgtPos = posMap[e.target]
-      let sourceHandle = 'sb'      // 默认 source → bottom
-      let targetHandle = 'tt'      // 默认 target → top
-      let sourcePosition: Position = Position.Bottom
-      let targetPosition: Position = Position.Top
+    const tierRank: Record<string, number> = { wan: 3, core: 2, access: 1, unknown: 0 }
+    const tierToRow: Record<string, number> = {}
+    if (tiers.wan.length > 0) tierToRow.wan = 0
+    if (tiers.core.length > 0) tierToRow.core = tiers.wan.length > 0 ? 1 : 0
+    if (tiers.access.length > 0) tierToRow.access = (tiers.wan.length > 0 ? 1 : 0) + (tiers.core.length > 0 ? 1 : 0)
 
-      if (srcPos && tgtPos) {
-        const dx = tgtPos.x - srcPos.x
-        const dy = tgtPos.y - srcPos.y
+    // 间隙中心 Y
+    const gapCenter: number[] = []
+    for (let i = 0; i < rowY.length - 1; i++) {
+      gapCenter.push((rowY[i] + NODE_H + rowY[i + 1]) / 2)
+    }
 
-        if (Math.abs(dy) > Math.abs(dx)) {
-          // 垂直主导
-          if (dy > 0) {
-            // 目标在下方: source=bottom, target=top
-            sourceHandle = 'sb'; targetHandle = 'tt'
-            sourcePosition = Position.Bottom; targetPosition = Position.Top
-          } else {
-            // 目标在上方: source=top, target=bottom
-            sourceHandle = 'st'; targetHandle = 'tb'
-            sourcePosition = Position.Top; targetPosition = Position.Bottom
-          }
-        } else {
-          // 水平主导
-          if (dx > 0) {
-            // 目标在右侧: source=right, target=left
-            sourceHandle = 'sr'; targetHandle = 'tl'
-            sourcePosition = Position.Right; targetPosition = Position.Left
-          } else {
-            // 目标在左侧: source=left, target=right
-            sourceHandle = 'sl'; targetHandle = 'tr'
-            sourcePosition = Position.Left; targetPosition = Position.Right
-          }
+    // 核心层 X 范围（跨层绕行用）
+    let coreMinX = Infinity, coreMaxX = -Infinity
+    for (const n of tiers.core) {
+      const p = posMap[n.id]; if (p) {
+        coreMinX = Math.min(coreMinX, p.x)
+        coreMaxX = Math.max(coreMaxX, p.x + NODE_W)
+      }
+    }
+
+    const DETOUR_GAP = 30   // 绕行距核心层外侧间距
+    const LAYER_SP = 24     // 同空隙内层间距
+
+    // ─────── 合并双向边 ───────
+    type PairEdge = { a: string; b: string; ports: { fromA: string[]; fromB: string[] } }
+    const pairEdges = new Map<string, PairEdge>()
+    for (const e of data.edges) {
+      const key = e.source < e.target ? `${e.source}||${e.target}` : `${e.target}||${e.source}`
+      if (!pairEdges.has(key)) {
+        pairEdges.set(key, { a: e.source, b: e.target, ports: { fromA: [], fromB: [] } })
+      }
+      const pe = pairEdges.get(key)!
+      if (e.source === pe.a) pe.ports.fromA.push(e.source_interface)
+      else pe.ports.fromB.push(e.source_interface)
+    }
+
+    // 构建每条边的元信息
+    type EdgeMeta = {
+      pairKey: string
+      a: string; b: string
+      aTier: string; bTier: string
+      sameTier: boolean; crossTier: boolean
+      higherDisplay: string; lineColor: string
+      label: string
+    }
+    const allEdges: EdgeMeta[] = []
+
+    for (const [pkey, pe] of pairEdges) {
+      const aNode = data.nodes.find(n => n.id === pe.a)
+      const bNode = data.nodes.find(n => n.id === pe.b)
+      const aTier = aNode?.tier || 'unknown'
+      const bTier = bNode?.tier || 'unknown'
+      const aDisplay = aNode ? getDisplayType(aNode.type, aTier) : 'unknown'
+      const bDisplay = bNode ? getDisplayType(bNode.type, bTier) : 'unknown'
+      const higherDisplay = tierRank[aTier] >= tierRank[bTier] ? aDisplay : bDisplay
+      const lineColor = getNodeColors(higherDisplay).border
+      const aPorts = pe.ports.fromA.join(',')
+      const bPorts = pe.ports.fromB.join(',')
+      const label = [aPorts, bPorts].filter(Boolean).join(' / ')
+      const aRow = tierToRow[aTier] ?? 0; const bRow = tierToRow[bTier] ?? 0
+      const sameTier = aRow === bRow
+      const crossTier = Math.abs(aRow - bRow) === 2
+
+      allEdges.push({ pairKey: pkey, a: pe.a, b: pe.b, aTier, bTier, sameTier, crossTier, higherDisplay, lineColor, label })
+    }
+
+    // ─────── 每间隙收集所有经过的边（相邻层 + 跨层），同层边不参与 ───
+    const gapEdgeKeys: string[][] = gapCenter.map(() => [])
+    for (const em of allEdges) {
+      if (em.sameTier) continue  // 同层边不进入间隙路由
+      const aRow = tierToRow[em.aTier] ?? 0
+      const bRow = tierToRow[em.bTier] ?? 0
+      if (em.crossTier) {
+        if (gapCenter.length >= 2) {
+          gapEdgeKeys[0].push(em.pairKey)
+          gapEdgeKeys[1].push(em.pairKey)
         }
+      } else {
+        const gapIdx = Math.min(aRow, bRow)
+        if (gapIdx < gapCenter.length) gapEdgeKeys[gapIdx].push(em.pairKey)
+      }
+    }
+
+    // 每间隙按 source 设备 X 排序，确定各边在该间隙的层序号
+    const edgeByKey = new Map(allEdges.map(e => [e.pairKey, e]))
+    // 存储每条边在每个间隙的层索引（-1 表示不经过该间隙）
+    const edgeGapLayers = new Map<string, number[]>()
+
+    for (const em of allEdges) {
+      const layers: number[] = gapCenter.map(() => -1)
+      edgeGapLayers.set(em.pairKey, layers)
+    }
+
+    for (let gi = 0; gi < gapCenter.length; gi++) {
+      const keys = gapEdgeKeys[gi]
+      // 按 source 设备 X 排序
+      keys.sort((ka, kb) => {
+        const ea = edgeByKey.get(ka)!
+        const eb = edgeByKey.get(kb)!
+        return (nodeCenterX[ea.a] ?? 0) - (nodeCenterX[eb.a] ?? 0)
+      })
+      for (let li = 0; li < keys.length; li++) {
+        const layers = edgeGapLayers.get(keys[li])!
+        layers[gi] = li
+      }
+    }
+
+    // ─────── 选取绕行 X（跨层边就近到核心层侧，垂直分层避免重叠）───────
+    const V_LAYER_SP = 18  // 垂直线段层间距
+
+    const detourXForEdge = (em: EdgeMeta): number => {
+      const aRow = tierToRow[em.aTier] ?? 0
+      const aCX = nodeCenterX[em.a] ?? 0
+      const layers = edgeGapLayers.get(em.pairKey)!
+      // 源在 WAN 层走 gap[0]，源在 Access 层走 gap[1]
+      const srcGapIdx = aRow === 0 ? 0 : 1
+      const srcGapLayer = layers[srcGapIdx]
+      // 源在核心左侧 → 绕左侧，右侧 → 绕右侧
+      const midCoreX = (coreMinX + coreMaxX) / 2
+      const baseX = aCX < midCoreX ? coreMinX - DETOUR_GAP : coreMaxX + DETOUR_GAP
+      // 同侧多条跨层边——垂直段按层序号偏移
+      return baseX + (aCX < midCoreX ? -1 : 1) * (srcGapLayer - ((gapEdgeKeys[srcGapIdx].length - 1) / 2)) * V_LAYER_SP
+    }
+
+    // ─────── 生成 SVG path ───────
+    const rfEdges: Edge[] = []
+
+    for (const em of allEdges) {
+      const aPos = posMap[em.a]; const bPos = posMap[em.b]
+      const aCX = nodeCenterX[em.a] ?? 0; const bCX = nodeCenterX[em.b] ?? 0
+      const layers = edgeGapLayers.get(em.pairKey)!
+
+      let path: string, source: string, target: string
+      let sourceHandle: string, targetHandle: string
+      let srcPos: Position, tgtPos: Position
+      let midLabelX: number, midLabelY: number
+
+      if (em.sameTier) {
+        // ─── 同层水平直连 — 标签放在该层上方间隙中 ───
+        const lineY = aPos!.y + NODE_H / 2  // 设备垂直中点（走线用）
+        if (aCX <= bCX) {
+          source = em.a; target = em.b
+          sourceHandle = 'sr'; srcPos = Position.Right
+          targetHandle = 'tl'; tgtPos = Position.Left
+          path = `M ${aPos!.x + NODE_W},${lineY} L ${bPos!.x},${lineY}`
+        } else {
+          source = em.a; target = em.b
+          sourceHandle = 'sl'; srcPos = Position.Left
+          targetHandle = 'tr'; tgtPos = Position.Right
+          path = `M ${aPos!.x},${lineY} L ${bPos!.x + NODE_W},${lineY}`
+        }
+        // 标签放在该层上方 24px 处，不被设备方框遮挡
+        midLabelX = (aCX + bCX) / 2
+        midLabelY = aPos!.y - 24
+      } else if (em.crossTier) {
+        // ─── 跨层 7 段路径 ───
+        const detourX = detourXForEdge(em)
+        // gap1Y = WAN-Core gap lane; gap2Y = Core-Access gap lane
+        const g0Len = gapEdgeKeys[0].length; const g1Len = gapEdgeKeys[1].length
+        const gap1Y = gapCenter[0] + (layers[0] - (g0Len - 1) / 2) * LAYER_SP
+        const gap2Y = gapCenter[1] + (layers[1] - (g1Len - 1) / 2) * LAYER_SP
+        const aRow = tierToRow[em.aTier] ?? 0
+        const isTopDown = aRow === 0  // WAN → Access
+
+        if (isTopDown) {
+          source = em.a; target = em.b
+          sourceHandle = 'sb'; srcPos = Position.Bottom
+          targetHandle = 'tt'; tgtPos = Position.Top
+          const sy = aPos!.y + NODE_H  // WAN 设备底部
+          const ty = bPos!.y            // Access 设备顶部
+          // ①垂直下到 gap1 ②水平到 detourX ③垂直下到 gap2 ④水平到目标 X ⑤垂直到目标
+          path = `M ${aCX},${sy} L ${aCX},${gap1Y} L ${detourX},${gap1Y} L ${detourX},${gap2Y} L ${bCX},${gap2Y} L ${bCX},${ty}`
+          midLabelX = (detourX + bCX) / 2; midLabelY = gap2Y
+        } else {
+          source = em.a; target = em.b
+          sourceHandle = 'st'; srcPos = Position.Top
+          targetHandle = 'tb'; tgtPos = Position.Bottom
+          const sy = aPos!.y             // Access 设备顶部
+          const ty = bPos!.y + NODE_H    // WAN 设备底部
+          path = `M ${aCX},${sy} L ${aCX},${gap2Y} L ${detourX},${gap2Y} L ${detourX},${gap1Y} L ${bCX},${gap1Y} L ${bCX},${ty}`
+          midLabelX = (aCX + detourX) / 2; midLabelY = gap2Y
+        }
+      } else {
+        // ─── 相邻层 3 段路径 ───
+        const gi = Math.min(tierToRow[em.aTier] ?? 0, tierToRow[em.bTier] ?? 0)
+        const gLen = gapEdgeKeys[gi].length
+        const laneY = gapCenter[gi] + (layers[gi] - (gLen - 1) / 2) * LAYER_SP
+
+        if (aPos!.y <= bPos!.y) {
+          source = em.a; target = em.b
+          sourceHandle = 'sb'; srcPos = Position.Bottom
+          targetHandle = 'tt'; tgtPos = Position.Top
+          const sy = aPos!.y + NODE_H; const ty = bPos!.y
+          path = `M ${aCX},${sy} L ${aCX},${laneY} L ${bCX},${laneY} L ${bCX},${ty}`
+        } else {
+          source = em.a; target = em.b
+          sourceHandle = 'st'; srcPos = Position.Top
+          targetHandle = 'tb'; tgtPos = Position.Bottom
+          const sy = aPos!.y; const ty = bPos!.y + NODE_H
+          path = `M ${aCX},${sy} L ${aCX},${laneY} L ${bCX},${laneY} L ${bCX},${ty}`
+        }
+        midLabelX = (aCX + bCX) / 2; midLabelY = laneY
       }
 
-      // 连线颜色取源/目标设备中有颜色的那个
-      const srcType = data.nodes.find(n => n.id === e.source)?.type || 'unknown'
-      const tgtType = data.nodes.find(n => n.id === e.target)?.type || 'unknown'
-      const lineColor = srcType !== 'unknown'
-        ? (TYPE_COLORS[srcType] || TYPE_COLORS.unknown).border
-        : (TYPE_COLORS[tgtType] || TYPE_COLORS.unknown).border
-
-      return {
-        id: e.id || `e-${i}`,
-        source: e.source,
-        target: e.target,
-        type: 'smoothstep',
-        sourcePosition,
-        targetPosition,
-        sourceHandle,
-        targetHandle,
-        label: e.source_interface,
-        style: { stroke: lineColor, strokeWidth: 2.5 },
-        markerEnd: { type: MarkerType.ArrowClosed, color: lineColor, width: 18, height: 18 },
-        labelStyle: {
-          fill: '#E2E8F0',
-          fontSize: '0.62rem',
-          fontWeight: 600,
-          fontFamily: '"JetBrains Mono", monospace',
-        },
-        labelBgStyle: {
-          fill: '#0F172A',
-          fillOpacity: 0.85,
-          rx: 3,
-          ry: 3,
-        },
-        labelBgPadding: [6, 4] as [number, number],
-        labelBgBorderRadius: 3,
-        pathOptions: { borderRadius: 12 },
-      }
-    })
+      rfEdges.push({
+        id: `e-${em.a}-${em.b}`,
+        source, target,
+        type: 'gapOrtho',
+        sourcePosition: srcPos, targetPosition: tgtPos,
+        sourceHandle, targetHandle,
+        data: { path, lineColor: em.lineColor, midLabelX, midLabelY },
+        label: em.label || undefined,
+        style: { stroke: em.lineColor, strokeWidth: 2.5 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: em.lineColor, width: 18, height: 18 },
+        markerStart: { type: MarkerType.ArrowClosed, color: em.lineColor, width: 18, height: 18 },
+      })
+    }
 
     return { nodes: rfNodes, edges: rfEdges }
   }, [tiers, data.edges, data.nodes])
@@ -359,27 +600,18 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
     }
   }, [location])
 
-  // Visio 导出
+  // Visio 导出 — 通过 API 服务层
   const exportVisio = useCallback(() => {
-    const apiBase = import.meta.env.PROD ? 'http://localhost:8002/api' : '/api'
-    fetch(`${apiBase}/topology/export/visio`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('Export failed')
-        return res.blob()
-      })
-      .then((blob) => {
+    import('../../services/api').then(({ topologyApi }) => {
+      topologyApi.exportVisio(data).then((blob) => {
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
         link.download = `topology-${location}.vdx`
         link.href = url
         link.click()
         URL.revokeObjectURL(url)
-      })
-      .catch(console.error)
+      }).catch(console.error)
+    })
   }, [location, data])
 
   return (
@@ -420,6 +652,7 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
         nodes={positionedNodes}
         edges={finalEdges}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodeClick={onNodeClick}
         onPaneClick={onPaneClick}
         fitView
@@ -431,7 +664,7 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
         elementsSelectable={true}
         proOptions={{ hideAttribution: true }}
         defaultEdgeOptions={{
-          type: 'smoothstep',
+          type: 'gapOrtho',
           animated: false,
         }}
       >

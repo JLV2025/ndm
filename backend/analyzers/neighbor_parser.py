@@ -26,6 +26,7 @@ TYPE_MAP = {
     "SDW": "sdwan",
     "ESX": "esxi",
     "SRV": "server",
+    "QIS": "switch",  # 部分站点自定义交换机类型码
 }
 
 # 需跳过的接口名开头

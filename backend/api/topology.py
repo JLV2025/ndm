@@ -316,6 +316,34 @@ async def get_location_topology(location: str):
     # 预扫描 neighbors.json
     device_file_map = _scan_device_files(data_root, "neighbors.json")
 
+    # ─── 第一遍：先创建所有本 location 设备节点（确保 YAML 类型优先生效）───
+    for dev in physical_devices:
+        expanded_name = dev["expanded_name"]
+        logical_name = dev["logical_name"]
+        if expanded_name in node_set:
+            continue
+        node_set.add(expanded_name)
+        device_type = dev.get("type", "")
+        device_platform = dev.get("platform", "")
+        device_ip = dev.get("ip", "")
+        device_model = dev.get("model", "")
+        notes = dev.get("notes", "")
+        nodes.append({
+            "id": expanded_name,
+            "label": expanded_name,
+            "type": _map_device_type(device_type),
+            "platform": device_platform or device_info_map.get(logical_name, {}).get("platform", ""),
+            "model": device_model or device_info_map.get(logical_name, {}).get("model", ""),
+            "ip": device_ip or device_info_map.get(logical_name, {}).get("ip", ""),
+            "tier": _compute_tier(logical_name, notes),
+            "is_location_device": True,
+            "location": location,
+            "stack_group": dev.get("stack_group", ""),
+            "physical_index": dev.get("physical_index", 1),
+            "physical_count": dev.get("physical_count", 1),
+        })
+
+    # ─── 第二遍：遍历有邻居数据的设备，创建邻居节点和边 ───
     for dev in physical_devices:
         logical_name = dev["logical_name"]
         expanded_name = dev["expanded_name"]
@@ -332,29 +360,6 @@ async def get_location_topology(location: str):
             if logical_name not in skipped_devices:
                 skipped_devices.append(logical_name)
             continue
-
-        # 本设备节点 (使用 expanded_name)
-        if expanded_name not in node_set:
-            node_set.add(expanded_name)
-            device_type = dev.get("type", "")
-            device_platform = dev.get("platform", "")
-            device_ip = dev.get("ip", "")
-            device_model = dev.get("model", "")
-            notes = dev.get("notes", "")
-            nodes.append({
-                "id": expanded_name,
-                "label": expanded_name,
-                "type": _map_device_type(device_type),
-                "platform": device_platform or device_info_map.get(logical_name, {}).get("platform", ""),
-                "model": device_model or device_info_map.get(logical_name, {}).get("model", ""),
-                "ip": device_ip or device_info_map.get(logical_name, {}).get("ip", ""),
-                "tier": _compute_tier(logical_name, notes),
-                "is_location_device": True,
-                "location": location,
-                "stack_group": dev.get("stack_group", ""),
-                "physical_index": dev.get("physical_index", 1),
-                "physical_count": dev.get("physical_count", 1),
-            })
 
         # 邻居 + 边: 按端口 member slot 映射到物理成员
         for nb in neighbor_data.get("neighbors", []):
@@ -380,7 +385,8 @@ async def get_location_topology(location: str):
             if nb_physicals:
                 target_name = nb_physicals[0]  # 邻居也用第一个物理成员
 
-            if target_name not in node_set:
+            # 外部邻居节点：仅当不在本 location 设备列表中时才创建
+            if not is_loc and target_name not in node_set:
                 node_set.add(target_name)
                 nodes.append({
                     "id": target_name,
@@ -390,8 +396,8 @@ async def get_location_topology(location: str):
                     "model": nb_info.get("model", ""),
                     "ip": nb_info.get("ip", ""),
                     "tier": _compute_tier(neighbor_name, nb_info.get("notes", "")),
-                    "is_location_device": is_loc,
-                    "location": location if is_loc else "",
+                    "is_location_device": False,
+                    "location": "",
                     "stack_group": neighbor_name if nb_physicals and len(nb_physicals) > 1 else "",
                     "physical_index": 1,
                     "physical_count": len(nb_physicals) if nb_physicals else 1,
@@ -453,20 +459,19 @@ def _map_device_type(device_type: str) -> str:
 def _compute_tier(device_name: str, notes: str) -> str:
     """计算拓扑层级
 
-    - wan: RTW / SDW 类型
-    - core: SWI 且 notes 含 [Core]
-    - access: 其余
+    命名规则: [3位站点][D+1位机房][3位设备类型][2位编号]
+    - wan: RTW / SDW / FWL 类型
+    - core: SWI 且 notes 含 Core
+    - access: SWI / QIS 及其他非 WAN 类型
     """
-    # 剥离堆叠后缀 (如 "-01", "-02") 后提取类型码
     base_name = _logical_name(device_name)
     type_code = base_name[5:8].upper() if len(base_name) >= 8 else ""
     if type_code in ("RTW", "SDW", "FWL"):
         return "wan"
     if type_code == "SWI" and (notes or "").lower().startswith("core"):
         return "core"
-    if type_code == "SWI":
-        return "access"
-    return "unknown"
+    # SWI、QIS 及其他非 WAN 类型 → access
+    return "access"
 
 
 def _is_in_location(device_name: str, location_devices: list[dict]) -> bool:

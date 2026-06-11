@@ -31,33 +31,26 @@ class ConfigParser:
     支持 Aruba CX 和 Cisco IOS 两种格式。
     """
 
-    # 设备类型缩写 → 可读类型名映射
+    # 设备类型缩写 → 可读类型名映射（仅已知网络设备类型，不在表中的都归为 server）
     TYPE_MAP = {
         'SWI': 'switch',
         'RTW': 'router',
         'FWL': 'firewall',
         'WLC': 'wireless',
         'SDW': 'sdwan',
-        'ESX': 'esxi',
-        'SRV': 'server',
-        'PRN': 'printer',
-        'CVTMA': 'mgmt',
     }
 
     # 终端设备关键词匹配
     ENDPOINT_KEYWORDS = ['Phone', 'Printer', 'Laptop', 'AP', 'Internet']
 
     # Rule 2 正则：数据中心设备 [SITE]D[DATACENTER_DIGIT][TYPE][NN]
-    # 设备类型支持 3 或 5 字母（SWI, SDW, CVTMA 等）
-    DC_DEVICE_RE = re.compile(r'\b([A-Z]{3})D(\d)([A-Z]{3,5})(\d{2})\b')
+    DC_DEVICE_RE = re.compile(r'\b([A-Z]{3})D(\d)([A-Z]{3,8})(\d{2})\b')
 
     # Rule 3 正则：非数据中心设备 [SITE][DIGIT][TYPE][NN]
-    NON_DC_DEVICE_RE = re.compile(r'\b([A-Z]{3})(\d)([A-Z]{3,5})(\d{2})\b')
+    NON_DC_DEVICE_RE = re.compile(r'\b([A-Z]{3})(\d)([A-Z]{3,8})(\d{2})\b')
 
-    # 终端设备标识符（网络设备，不是终端）
+    # 网络设备类型缩写（不是端点）
     NETWORK_TYPES = {'SWI', 'RTW', 'FWL', 'WLC', 'SDW'}
-    # 基础设施设备标识符（不是终端）
-    INFRA_TYPES = {'ESX', 'SRV', 'PRN', 'CVTMA'}
 
     def __init__(self, device_type: str = ""):
         """
@@ -180,8 +173,9 @@ class ConfigParser:
             dev_num = dc_match.group(4)
             full_match = dc_match.group(0)
 
-            dev_type = self.TYPE_MAP.get(dev_type_abbr, dev_type_abbr.lower())
-            is_ep = dev_type_abbr not in self.NETWORK_TYPES and dev_type_abbr not in self.INFRA_TYPES
+            # 已知网络设备类型 → TYPE_MAP 查找；其余 → server
+            is_known = dev_type_abbr in self.NETWORK_TYPES
+            dev_type = self.TYPE_MAP.get(dev_type_abbr, 'server')
 
             return {
                 'device_name': full_match,
@@ -189,7 +183,7 @@ class ConfigParser:
                 'site_code': site,
                 'dc': f'D{dc_digit}',
                 'device_number': dev_num,
-                'is_endpoint': is_ep,
+                'is_endpoint': False,
             }
 
         # === Rule 3: 非数据中心设备 [SITE][DIGIT][TYPE][NN] ===
@@ -208,8 +202,9 @@ class ConfigParser:
             if pos >= 1 and desc[pos - 1:pos] == 'D':
                 continue
 
-            dev_type = self.TYPE_MAP.get(dev_type_abbr, dev_type_abbr.lower())
-            is_ep = dev_type_abbr not in self.NETWORK_TYPES and dev_type_abbr not in self.INFRA_TYPES
+            # 已知网络设备类型 → TYPE_MAP 查找；其余 → server
+            is_known = dev_type_abbr in self.NETWORK_TYPES
+            dev_type = self.TYPE_MAP.get(dev_type_abbr, 'server')
 
             return {
                 'device_name': full_match,
@@ -217,7 +212,7 @@ class ConfigParser:
                 'site_code': site,
                 'dc': digit,
                 'device_number': dev_num,
-                'is_endpoint': is_ep,
+                'is_endpoint': False,
             }
 
         # 无法识别

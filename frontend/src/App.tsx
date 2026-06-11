@@ -55,6 +55,7 @@ function Layout() {
 
   const handleLogout = () => {
     sessionManager.logout()
+    window.location.href = '/login'
   }
 
   const toggleLang = () => setLang(lang === 'zh' ? 'en' : 'zh')

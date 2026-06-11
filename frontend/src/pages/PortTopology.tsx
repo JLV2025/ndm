@@ -14,19 +14,9 @@ import { deviceApi, topologyApi } from '../services/api'
 import { useI18n } from '../i18n'
 import LocationFilter from '../components/devices/LocationFilter'
 import TopologyCanvas from '../components/topology/TopologyCanvas'
+import { PORT_TOPOLOGY_LEGEND } from '../shared/constants'
 import type { Device } from '../types'
 import type { NeighborNode } from '../types/topology'
-
-const LEGEND_ITEMS = [
-  { type: 'switch', labelZh: '交换机', labelEn: 'Switch', color: '#3B82F6' },
-  { type: 'router', labelZh: '路由器', labelEn: 'Router', color: '#F59E0B' },
-  { type: 'firewall', labelZh: '防火墙', labelEn: 'Firewall', color: '#EF4444' },
-  { type: 'wireless', labelZh: '无线控制器', labelEn: 'Wireless Controller', color: '#8B5CF6' },
-  { type: 'sdwan', labelZh: 'SD-WAN', labelEn: 'SD-WAN', color: '#10B981' },
-  { type: 'server', labelZh: '服务器', labelEn: 'Server', color: '#06B6D4' },
-  { type: 'printer', labelZh: '打印机', labelEn: 'Printer', color: '#6366F1' },
-  { type: 'endpoint', labelZh: '端点设备', labelEn: 'Endpoint', color: '#94A3B8' },
-]
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(12px); }
@@ -189,7 +179,7 @@ export default function Topology() {
               {t('topology.legend')}
             </Typography>
             <Stack alignItems="flex-start" gap={0.4}>
-              {LEGEND_ITEMS.map((item) => (
+              {PORT_TOPOLOGY_LEGEND.map((item) => (
                 <Box key={item.type} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                   <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: item.color, flexShrink: 0 }} />
                   <Typography sx={{ fontSize: '0.58rem', fontWeight: 500, color: '#cbd5e1', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
