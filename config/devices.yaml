@@ -1,6 +1,6 @@
 devices:
 - ip: 10.210.255.1
-  last_synced: 06/11/2026 10:58
+  last_synced: 06/12/2026 09:54
   location: BJQ
   model: JL659A 6300M
   name: BJQD1SWI01
@@ -14,7 +14,7 @@ devices:
   - lag1
   version: FL.10.10.1070
 - ip: 10.210.255.2
-  last_synced: 06/11/2026 10:59
+  last_synced: 06/12/2026 09:56
   location: BJQ
   model: R8Q70A 6200M
   name: BJQD1SWI02
@@ -27,7 +27,7 @@ devices:
   - 1/1/50
   version: ML.10.11.1021
 - ip: 10.210.255.51
-  last_synced: 06/11/2026 11:00
+  last_synced: 06/12/2026 09:58
   location: BJQ
   model: R8Q70A 6200M
   name: BJQD2QIS01
@@ -40,7 +40,7 @@ devices:
   - 1/1/50
   version: ML.10.11.1021
 - ip: 10.24.255.10
-  last_synced: 06/11/2026 11:08
+  last_synced: 06/12/2026 10:29
   location: SZX
   model: WS-C2960X-48FPD-L, WS-C2960X-48LPD-L
   name: SZXD1SWI01
@@ -53,7 +53,7 @@ devices:
   - Te3/0/2
   version: 15.2(4)
 - ip: 10.67.255.1
-  last_synced: 06/11/2026 11:05
+  last_synced: 06/12/2026 10:24
   location: SHA
   model: C9500-24Y4C
   name: SHAD1SWI01
@@ -64,7 +64,7 @@ devices:
   uplink_ports: null
   version: 16.09.03
 - ip: 10.67.255.2
-  last_synced: 06/11/2026 11:06
+  last_synced: 06/12/2026 10:26
   location: SHA
   model: JL727A 6200F
   name: SHAD1SWI02
@@ -75,7 +75,7 @@ devices:
   uplink_ports: null
   version: ML.10.10.1030
 - ip: 10.210.213.14
-  last_synced: 06/11/2026 10:57
+  last_synced: 06/12/2026 09:52
   location: BJQ
   name: BJQD1RTW01
   notes: Voice Gateway
@@ -85,7 +85,7 @@ devices:
   uplink_ports: null
   version: 17.09.04
 - ip: 10.211.255.1
-  last_synced: 06/11/2026 11:02
+  last_synced: 06/12/2026 10:09
   location: DZN
   model: JL659A 6300M
   name: DZND1SWI01
@@ -96,7 +96,7 @@ devices:
   uplink_ports: null
   version: FL.10.10.1070
 - ip: 10.22.255.1
-  last_synced: 06/11/2026 11:03
+  last_synced: 06/12/2026 10:20
   location: PVG
   model: JL658A 6300M
   name: PVGD1SWI01
@@ -107,7 +107,7 @@ devices:
   uplink_ports: null
   version: FL.10.10.1070
 - ip: 10.22.255.11
-  last_synced: 06/11/2026 11:04
+  last_synced: 06/12/2026 10:22
   location: PVG
   model: JL659A 6300M
   name: PVGD1SWI02
@@ -118,7 +118,7 @@ devices:
   uplink_ports: null
   version: FL.10.10.1070
 - ip: 10.22.255.12
-  last_synced: 06/11/2026 11:04
+  last_synced: 06/12/2026 10:22
   location: PVG
   model: WS-C3560-48PS-S
   name: PVGD1SWI03
@@ -129,7 +129,7 @@ devices:
   uplink_ports: null
   version: 12.2(55)
 - ip: 10.22.255.13
-  last_synced: 06/11/2026 11:04
+  last_synced: 06/12/2026 10:22
   location: PVG
   model: WS-C3560G-48TS-S
   name: PVGD1SWI04
@@ -140,7 +140,7 @@ devices:
   uplink_ports: null
   version: 12.2(58)
 - ip: 10.22.255.10
-  last_synced: 06/11/2026 11:04
+  last_synced: 06/12/2026 10:23
   location: PVG
   model: WS-C2960X-48FPD-L
   name: PVGD1SWI05
@@ -151,7 +151,7 @@ devices:
   uplink_ports: null
   version: 15.2(4)
 - ip: 10.24.255.11
-  last_synced: 06/11/2026 11:10
+  last_synced: 06/12/2026 10:31
   location: SZX
   name: SZXD1SWI02
   notes: null
@@ -161,7 +161,7 @@ devices:
   uplink_ports: null
   version: null
 - ip: 10.208.3.2
-  last_synced: 06/11/2026 11:15
+  last_synced: 06/12/2026 10:37
   location: BJD
   model: JL728A 6200F
   name: BJDD1SWI01
@@ -172,7 +172,7 @@ devices:
   uplink_ports: null
   version: ML.10.10.1030
 - ip: 10.26.255.1
-  last_synced: 06/11/2026 11:10
+  last_synced: 06/12/2026 10:32
   location: ZGN
   model: C9200L-48T-4X
   name: ZGND1SWI01
@@ -183,7 +183,7 @@ devices:
   uplink_ports: null
   version: 16.12.03
 - ip: 10.26.255.3
-  last_synced: 06/11/2026 11:18
+  last_synced: 06/12/2026 10:39
   location: ZGN
   model: JL724A 6200F
   name: ZGND2SWI01
@@ -194,7 +194,7 @@ devices:
   uplink_ports: null
   version: ML.10.07.0030
 - ip: 10.26.255.5
-  last_synced: 06/11/2026 11:13
+  last_synced: 06/12/2026 10:35
   location: ZGN
   model: JL726A 6200F
   name: ZGND2SWI02
@@ -205,7 +205,7 @@ devices:
   uplink_ports: null
   version: ML.10.07.0030
 - ip: 10.26.255.4
-  last_synced: 06/11/2026 11:19
+  last_synced: 06/12/2026 10:41
   location: ZGN
   model: JL724A 6200F
   name: ZGND3SWI01
@@ -216,7 +216,7 @@ devices:
   uplink_ports: null
   version: ML.10.07.0030
 - ip: 10.161.255.1
-  last_synced: 06/10/2026 20:46
+  last_synced: 06/12/2026 10:16
   location: ITM
   model: JL728B 6200F
   name: ITMD1SWI01
@@ -227,7 +227,7 @@ devices:
   uplink_ports: null
   version: ML.10.13.1040
 - ip: 10.22.213.14
-  last_synced: 06/11/2026 11:02
+  last_synced: 06/12/2026 10:18
   location: PVG
   name: PVGD1RTW01
   notes: Voice Gateway
@@ -247,7 +247,7 @@ devices:
   type: aruba_aoscx
   version: ML.10.13.1120
 - ip: 10.67.255.3
-  last_synced: 06/11/2026 11:06
+  last_synced: 06/12/2026 10:26
   location: SHA
   model: WS-C2960X-48FPD-L
   name: SHAD2SWI02
@@ -257,7 +257,7 @@ devices:
   type: cisco_ios
   version: 15.2(4)
 - ip: 10.24.213.14
-  last_synced: 06/11/2026 11:08
+  last_synced: 06/12/2026 10:28
   location: SZX
   name: SZXD1RTW03
   notes: Router

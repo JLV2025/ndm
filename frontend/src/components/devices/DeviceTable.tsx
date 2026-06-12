@@ -133,7 +133,7 @@ const DeviceTable: React.FC<DeviceTableProps> = React.memo(({
                   <TableCell>{device.ip}</TableCell>
                   <TableCell sx={{ color: 'text.secondary' }}>{device.location || '-'}</TableCell>
                   <TableCell sx={{ color: 'text.secondary' }}>{device.platform || '-'}</TableCell>
-                  <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: '"JetBrains Mono", monospace' }}>
+                  <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: '"Fira Code", monospace' }}>
                     {device.model || '-'}
                   </TableCell>
                   <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>

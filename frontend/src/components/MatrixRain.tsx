@@ -51,7 +51,7 @@ export default function MatrixRain() {
       ctx.fillStyle = `rgba(2, 6, 23, ${FADE_ALPHA})`
       ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-      ctx.font = `${FONT_SIZE}px "JetBrains Mono", monospace`
+      ctx.font = `${FONT_SIZE}px "Fira Code", monospace`
 
       const advance = frameCount % 2 === 0
 

@@ -14,6 +14,10 @@ import '@fontsource/ibm-plex-sans/700.css'
 import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/500.css'
 import '@fontsource/jetbrains-mono/600.css'
+import '@fontsource/fira-code/400.css'
+import '@fontsource/fira-code/500.css'
+import '@fontsource/fira-code/600.css'
+import '@fontsource/fira-code/700.css'
 
 // OLED Dark — 专业网络工具面板主题
 const theme = createTheme({

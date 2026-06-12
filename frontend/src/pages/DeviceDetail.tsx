@@ -418,7 +418,7 @@ const DeviceDetail: React.FC = () => {
               <TableBody>
                 {filteredPorts.map((port) => (
                   <TableRow key={port.name} hover>
-                    <TableCell sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem', fontWeight: 500 }}>
+                    <TableCell sx={{ fontFamily: '"Fira Code", monospace', fontSize: '0.75rem', fontWeight: 500 }}>
                       {port.name}
                     </TableCell>
                     <TableCell>
@@ -438,10 +438,10 @@ const DeviceDetail: React.FC = () => {
                     <TableCell sx={{ fontSize: '0.75rem', color: 'text.secondary', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {port.description || '-'}
                     </TableCell>
-                    <TableCell sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.7rem' }}>
+                    <TableCell sx={{ fontFamily: '"Fira Code", monospace', fontSize: '0.7rem' }}>
                       {port.rx_mbps !== undefined ? port.rx_mbps.toFixed(2) : '-'}
                     </TableCell>
-                    <TableCell sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.7rem' }}>
+                    <TableCell sx={{ fontFamily: '"Fira Code", monospace', fontSize: '0.7rem' }}>
                       {port.tx_mbps !== undefined ? port.tx_mbps.toFixed(2) : '-'}
                     </TableCell>
                     <TableCell>

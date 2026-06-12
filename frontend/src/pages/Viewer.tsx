@@ -244,7 +244,7 @@ const Viewer: React.FC = () => {
             <Terminal sx={{ color: 'primary.main', fontSize: 16 }} />
             <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>Raw Content</Typography>
           </Box>
-          <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"JetBrains Mono","Fira Code",monospace', margin: 0, fontSize: '0.75rem', color: '#F8FAFC', lineHeight: 1.6 }}>{text}</pre>
+          <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"Fira Code","Fira Code",monospace', margin: 0, fontSize: '0.75rem', color: '#F8FAFC', lineHeight: 1.6 }}>{text}</pre>
         </Paper>
       )
     }
@@ -257,7 +257,7 @@ const Viewer: React.FC = () => {
               <Description sx={{ color: 'primary.main', fontSize: 16 }} />
               <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>JSON Formatted</Typography>
             </Box>
-            <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"JetBrains Mono","Fira Code",monospace', margin: 0, fontSize: '0.75rem', color: '#F8FAFC', lineHeight: 1.6 }}>{JSON.stringify(json, null, 2)}</pre>
+            <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"Fira Code","Fira Code",monospace', margin: 0, fontSize: '0.75rem', color: '#F8FAFC', lineHeight: 1.6 }}>{JSON.stringify(json, null, 2)}</pre>
           </Paper>
         )
       } catch { return null }
@@ -503,7 +503,7 @@ const Viewer: React.FC = () => {
                     <Chip label={`${compareWeek1}`} size="small" sx={{ bgcolor: 'rgba(59,130,246,0.1)', color: 'info.main', height: 18, fontSize: '0.65rem' }} />
                     <Typography variant="caption" color="text.secondary">{t('viewer.newerVersion')}</Typography>
                   </Box>
-                  <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"JetBrains Mono","Fira Code",monospace', margin: 0, fontSize: '0.7rem', lineHeight: 1.6 }}>
+                  <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"Fira Code","Fira Code",monospace', margin: 0, fontSize: '0.7rem', lineHeight: 1.6 }}>
                     {diffLines
                       ? diffLines.map((item, i) => (
                           <div
@@ -531,7 +531,7 @@ const Viewer: React.FC = () => {
                     <Chip label={`${compareWeek2}`} size="small" sx={{ bgcolor: 'rgba(245,158,11,0.1)', color: 'warning.main', height: 18, fontSize: '0.65rem' }} />
                     <Typography variant="caption" color="text.secondary">{t('viewer.olderVersion')}</Typography>
                   </Box>
-                  <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"JetBrains Mono","Fira Code",monospace', margin: 0, fontSize: '0.7rem', lineHeight: 1.6 }}>
+                  <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"Fira Code","Fira Code",monospace', margin: 0, fontSize: '0.7rem', lineHeight: 1.6 }}>
                     {diffLines
                       ? diffLines.map((item, i) => (
                           <div

@@ -282,7 +282,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
         >
           {hoveredPort ? (
             <>
-              <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: '"Fira Code", monospace' }}>
                 {hoveredPort.name}
               </Typography>
               <Chip label={hoveredPort.status} size="small" sx={{ bgcolor: hoveredPort.status_up ? 'rgba(45,212,110,0.12)' : 'rgba(148,163,184,0.08)', color: hoveredPort.status_up ? 'success.main' : 'text.secondary', height: 20, fontSize: '0.65rem' }} />
@@ -290,7 +290,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
               {hoveredPort.type && <Typography variant="caption" color="text.secondary">{hoveredPort.type}</Typography>}
               {hoveredPort.description && <Typography variant="caption" color="text.secondary">{hoveredPort.description}</Typography>}
               {(hoveredPort.rx_mbps !== undefined || hoveredPort.tx_mbps !== undefined) && (
-                <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: 'success.main' }}>
+                <Typography variant="caption" sx={{ fontFamily: '"Fira Code", monospace', color: 'success.main' }}>
                   RX: {((hoveredPort.rx_mbps ?? 0)).toFixed(2)} / TX: {((hoveredPort.tx_mbps ?? 0)).toFixed(2)} Mbps
                 </Typography>
               )}
@@ -321,7 +321,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
                   bgcolor: getPortColor(group.parent),
                   border: '1px solid rgba(255,255,255,0.1)',
                 }} />
-                <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem', fontWeight: 600, flex: 1 }}>
+                <Typography sx={{ fontFamily: '"Fira Code", monospace', fontSize: '0.75rem', fontWeight: 600, flex: 1 }}>
                   {group.parent.name}
                 </Typography>
                 <Chip label={group.parent.status} size="small"
@@ -352,7 +352,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
                   bgcolor: getPortColor(child),
                   border: '1px solid rgba(255,255,255,0.1)',
                 }} />
-                <Typography sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.7rem', flex: 1, color: 'text.secondary' }}>
+                <Typography sx={{ fontFamily: '"Fira Code", monospace', fontSize: '0.7rem', flex: 1, color: 'text.secondary' }}>
                   {child.name}
                 </Typography>
                 <Chip label={child.status} size="small"
@@ -424,7 +424,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
       >
         {hoveredPort ? (
           <>
-            <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: '"JetBrains Mono", monospace' }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: '"Fira Code", monospace' }}>
               {hoveredPort.name}
             </Typography>
             <Chip label={hoveredPort.status} size="small" sx={{ bgcolor: hoveredPort.status_up ? 'rgba(45,212,110,0.12)' : 'rgba(148,163,184,0.08)', color: hoveredPort.status_up ? 'success.main' : 'text.secondary', height: 20, fontSize: '0.65rem' }} />
@@ -434,7 +434,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
             {hoveredPort.description && <Typography variant="caption" color="text.secondary">{hoveredPort.description}</Typography>}
             {hoveredPort.is_uplink && <Chip label="Uplink" size="small" sx={{ bgcolor: 'rgba(245,158,11,0.12)', color: 'warning.main', height: 20, fontSize: '0.65rem' }} />}
             {(hoveredPort.rx_mbps !== undefined || hoveredPort.tx_mbps !== undefined) && (
-              <Typography variant="caption" sx={{ fontFamily: '"JetBrains Mono", monospace', color: 'success.main' }}>
+              <Typography variant="caption" sx={{ fontFamily: '"Fira Code", monospace', color: 'success.main' }}>
                 RX: {((hoveredPort.rx_mbps ?? 0)).toFixed(2)} Mbps / TX: {((hoveredPort.tx_mbps ?? 0)).toFixed(2)} Mbps
               </Typography>
             )}
@@ -518,7 +518,7 @@ const FrontPanel: React.FC<FrontPanelProps> = ({ ports, deviceName: _deviceName,
                       '&:hover': { transform: 'scale(1.05)' },
                     }}
                   >
-                    <Typography variant="caption" sx={{ fontWeight: 600, fontFamily: '"JetBrains Mono", monospace', fontSize: '0.7rem' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 600, fontFamily: '"Fira Code", monospace', fontSize: '0.7rem' }}>
                       {port.name}
                     </Typography>
                   </Box>

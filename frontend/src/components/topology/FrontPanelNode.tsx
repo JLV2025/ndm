@@ -103,7 +103,7 @@ export default function FrontPanelNode({ data, selected }: NodeProps) {
       {isCenter && (
         <Box sx={{ position: 'absolute', top: 9, left: '50%', transform: 'translateX(-50%)', width: '65%', height: 1, background: `linear-gradient(90deg,transparent,${color}40,transparent)` }} />
       )}
-      <Typography sx={{ fontWeight: 700, fontSize: deviceFontSize, color: '#e2e8f0', lineHeight: 1.3, textAlign: 'center', px: 2, fontFamily: '"JetBrains Mono","Consolas",monospace', letterSpacing: '0.03em', textShadow: `0 0 20px ${color}20` }}>
+      <Typography sx={{ fontWeight: 700, fontSize: deviceFontSize, color: '#e2e8f0', lineHeight: 1.3, textAlign: 'center', px: 2, fontFamily: '"Fira Code","Consolas",monospace', letterSpacing: '0.03em', textShadow: `0 0 20px ${color}20` }}>
         {label}
       </Typography>
       {isCenter && memberLabel && (
@@ -131,12 +131,12 @@ export default function FrontPanelNode({ data, selected }: NodeProps) {
               <Box sx={{ position: 'absolute', left: x, top: 3, transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2 }}>
                 <Box sx={{ width: portW, height: portH, borderRadius: '3px', bgcolor: port.color || '#475569', border: '1px solid', borderColor: `${port.color || '#475569'}99`, mb: 0.4, transition: 'transform 0.15s', '&:hover': { transform: 'scale(1.6)', boxShadow: `0 0 10px ${port.color || '#475569'}66` } }} />
                 {showPortLabels && (
-                  <Typography sx={{ fontSize: portFontSize, color: '#cbd5e1', textAlign: 'center', lineHeight: 1.1, whiteSpace: 'nowrap', fontFamily: '"JetBrains Mono","Consolas",monospace', fontWeight: 500, pointerEvents: 'none' }}>{shortIfName(port.fullName)}</Typography>
+                  <Typography sx={{ fontSize: portFontSize, color: '#cbd5e1', textAlign: 'center', lineHeight: 1.1, whiteSpace: 'nowrap', fontFamily: '"Fira Code","Consolas",monospace', fontWeight: 500, pointerEvents: 'none' }}>{shortIfName(port.fullName)}</Typography>
                 )}
                 {/* 最后一个端口旁显示总数徽章（密集模式） */}
                 {!showPortLabels && idx === arr.length - 1 && (
                   <Box sx={{ position: 'absolute', left: 16, top: -4, minWidth: 26, height: 16, px: 0.8, borderRadius: 8, bgcolor: '#1e293b', border: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
-                    <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, fontFamily: '"JetBrains Mono","Consolas",monospace' }}>{arr.length}</Typography>
+                    <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, fontFamily: '"Fira Code","Consolas",monospace' }}>{arr.length}</Typography>
                   </Box>
                 )}
               </Box>
@@ -157,11 +157,11 @@ export default function FrontPanelNode({ data, selected }: NodeProps) {
               <Box sx={{ position: 'absolute', left: x, top: bodyTop + nodeH + 3, transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2 }}>
                 <Box sx={{ width: portW, height: portH, borderRadius: '3px', bgcolor: port.color || '#475569', border: '1px solid', borderColor: `${port.color || '#475569'}99`, mb: 0.4, '&:hover': { transform: 'scale(1.6)', boxShadow: `0 0 10px ${port.color || '#475569'}66` } }} />
                 {showPortLabels && (
-                  <Typography sx={{ fontSize: portFontSize, color: '#cbd5e1', textAlign: 'center', lineHeight: 1.1, whiteSpace: 'nowrap', fontFamily: '"JetBrains Mono","Consolas",monospace', fontWeight: 500 }}>{shortIfName(port.fullName)}</Typography>
+                  <Typography sx={{ fontSize: portFontSize, color: '#cbd5e1', textAlign: 'center', lineHeight: 1.1, whiteSpace: 'nowrap', fontFamily: '"Fira Code","Consolas",monospace', fontWeight: 500 }}>{shortIfName(port.fullName)}</Typography>
                 )}
                 {!showPortLabels && idx === arr.length - 1 && (
                   <Box sx={{ position: 'absolute', left: 16, top: -4, minWidth: 26, height: 16, px: 0.8, borderRadius: 8, bgcolor: '#1e293b', border: '1px solid #334155', display: 'flex', alignItems: 'center', justifyContent: 'center', whiteSpace: 'nowrap' }}>
-                    <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, fontFamily: '"JetBrains Mono","Consolas",monospace' }}>{arr.length}</Typography>
+                    <Typography sx={{ fontSize: '0.6rem', color: '#94a3b8', fontWeight: 700, fontFamily: '"Fira Code","Consolas",monospace' }}>{arr.length}</Typography>
                   </Box>
                 )}
               </Box>

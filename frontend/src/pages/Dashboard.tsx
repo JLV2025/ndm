@@ -463,7 +463,7 @@ const Dashboard: React.FC = () => {
         </Typography>
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={trafficChartData} layout="vertical" barSize={12} barCategoryGap="30%" margin={{ left: 0, right: 8, top: 0, bottom: 0 }}>
-            <YAxis type="category" dataKey="name" tick={{ fill: CHART_COLORS.text, fontSize: 9, fontFamily: '"JetBrains Mono", monospace', textAnchor: 'end' }} width={130} axisLine={false} tickLine={false} />
+            <YAxis type="category" dataKey="name" tick={{ fill: CHART_COLORS.text, fontSize: 9, fontFamily: '"Fira Code", monospace', textAnchor: 'end' }} width={130} axisLine={false} tickLine={false} />
             <XAxis type="number" tick={{ fill: CHART_COLORS.text, fontSize: 9 }} axisLine={{ stroke: CHART_COLORS.grid }} tickLine={false} />
             <RechartsTooltip
               cursor={false}
@@ -618,7 +618,7 @@ const Dashboard: React.FC = () => {
                   <Box sx={{ height: 24 }} />
                   {heatmapData.devices.map(d => (
                     <Box key={d} sx={{ height: 24, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                      <Typography sx={{ fontSize: 9, fontFamily: '"JetBrains Mono", monospace', color: CHART_COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>
+                      <Typography sx={{ fontSize: 9, fontFamily: '"Fira Code", monospace', color: CHART_COLORS.text, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120 }}>
                         {d}
                       </Typography>
                     </Box>
@@ -647,7 +647,7 @@ const Dashboard: React.FC = () => {
                           position: 'relative',
                         }} title={cell.delta !== null ? `${d} →${heatmapData.columns[ci]}: Δ${cell.delta > 0 ? '+' : ''}${cell.delta} 行` : t('dashboard.chartHeatmapNodata')}>
                           {cell.delta !== null ? (
-                            <Typography sx={{ fontSize: 8, fontWeight: 700, color: cell.delta === 0 ? '#64748B' : '#F8FAFC', fontFamily: '"JetBrains Mono", monospace' }}>
+                            <Typography sx={{ fontSize: 8, fontWeight: 700, color: cell.delta === 0 ? '#64748B' : '#F8FAFC', fontFamily: '"Fira Code", monospace' }}>
                               {cell.delta === 0 ? '0' : `${cell.delta > 0 ? '+' : ''}${cell.delta}`}
                             </Typography>
                           ) : (
@@ -776,13 +776,13 @@ const Dashboard: React.FC = () => {
                     </TableCell>
                     <TableCell sx={{ fontSize: '0.8rem' }}>{device.ip}</TableCell>
                     <TableCell sx={{ color: 'text.secondary', fontSize: '0.8rem' }}>{device.location || '-'}</TableCell>
-                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: '"JetBrains Mono", monospace' }}>
+                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: '"Fira Code", monospace' }}>
                       {device.serial_number || '-'}
                     </TableCell>
-                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: '"JetBrains Mono", monospace' }}>
+                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: '"Fira Code", monospace' }}>
                       {device.model || '-'}
                     </TableCell>
-                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: '"JetBrains Mono", monospace' }}>
+                    <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem', fontFamily: '"Fira Code", monospace' }}>
                       {device.version || '-'}
                     </TableCell>
                     <TableCell>
