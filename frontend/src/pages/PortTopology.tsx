@@ -111,7 +111,7 @@ export default function Topology() {
           <Typography sx={{ fontSize: '0.78rem', fontWeight: 600, color: 'text.secondary', whiteSpace: 'nowrap', letterSpacing: '0.04em', textTransform: 'uppercase', bgcolor: 'rgba(45,212,110,0.06)', px: 1, py: 0.5, borderRadius: 1 }}>
             STEP 1
           </Typography>
-          <LocationFilter selectedLocation={selectedLocation} onChange={(v) => setSelectedLocation(v)} locations={locations} />
+          <LocationFilter selectedLocation={selectedLocation} onChange={(v) => setSelectedLocation(v)} locations={locations} showAll={false} />
         </Box>
 
         {/* 步骤2：选择设备（仅在选择位置后出现） */}

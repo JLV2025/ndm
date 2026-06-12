@@ -1,9 +1,9 @@
 import { useMemo, useState, useCallback, useRef } from 'react'
 import {
   ReactFlow, Background, Controls, Panel, Handle, Position,
-  Node, Edge, MarkerType,
+  Node, Edge, MarkerType, BaseEdge, EdgeLabelRenderer,
   useNodesState, useEdgesState,
-  type NodeProps,
+  type NodeProps, type EdgeProps,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { Box, Paper, Typography, IconButton, Stack, Tooltip } from '@mui/material'
@@ -27,6 +27,96 @@ const CORE_NODE_W = 560
 const V_GAP = 240
 const H_GAP = 60
 const MIN_HANDLES = 1   // 每个 side group 最少 1 个 handle
+const DETOUR_R = 30     // 绕行圆弧半径
+
+// ============================================================
+// 跨层绕行自定义边（WAN ↔ Access）
+// ============================================================
+function DetourEdge({
+  id, sourceX, sourceY, targetX, targetY,
+  data, markerEnd, markerStart, style, label,
+}: EdgeProps) {
+  const { gap1Y, gap2Y, detourX, highlighted } = (data || {}) as { gap1Y?: number; gap2Y?: number; detourX?: number; highlighted?: boolean }
+  // 防御：缺少绕行坐标时退化为普通直线
+  if (gap1Y == null || gap2Y == null || detourX == null) {
+    return <BaseEdge id={id} path={`M ${sourceX} ${sourceY} L ${targetX} ${targetY}`} style={{ stroke: (style?.stroke as string) || '#94A3B8', strokeWidth: (style?.strokeWidth as number) || 2.5, fill: 'none', opacity: (style?.opacity as number) ?? 1 }} markerEnd={markerEnd} markerStart={markerStart} />
+  }
+  const R = DETOUR_R
+  const lc = (style?.stroke as string) || '#94A3B8'
+  const sw = (style?.strokeWidth as number) || 2.5
+  const opacity = (style?.opacity as number) ?? 1
+  const dimmed = opacity < 0.1
+
+  let path = ''
+  let labelX = 0
+  let labelY = 0
+
+  // SVG Y 轴向下。CW(sweep=1): 右→下→左→上→右；CCW(sweep=0): 右→上→左→下→右
+  if ((sourceY || 0) < (targetY || 0)) {
+    // 方向 ↓：WAN(bottom) → Access(top)
+    // 弧 1: 下→右(CCW=0), 弧 2: 右→下(CW=1), 弧 3: 下→左(CW=1), 弧 4: 左→下(CCW=0)
+    path = [
+      `M ${sourceX} ${sourceY}`,
+      `L ${sourceX} ${gap1Y - R}`,
+      `A ${R} ${R} 0 0 0 ${sourceX + R} ${gap1Y}`,
+      `L ${detourX - R} ${gap1Y}`,
+      `A ${R} ${R} 0 0 1 ${detourX} ${gap1Y + R}`,
+      `L ${detourX} ${gap2Y - R}`,
+      `A ${R} ${R} 0 0 1 ${detourX - R} ${gap2Y}`,
+      `L ${targetX + R} ${gap2Y}`,
+      `A ${R} ${R} 0 0 0 ${targetX} ${gap2Y + R}`,
+      `L ${targetX} ${targetY}`,
+    ].join(' ')
+    labelX = ((sourceX + (detourX || 0)) / 2)
+    labelY = gap1Y - 15
+  } else {
+    // 方向 ↑：Access(top) → WAN(bottom)
+    // 弧 1: 上→右(CW=1), 弧 2: 右→上(CCW=0), 弧 3: 上→左(CCW=0), 弧 4: 左→上(CW=1)
+    path = [
+      `M ${sourceX} ${sourceY}`,
+      `L ${sourceX} ${gap2Y + R}`,
+      `A ${R} ${R} 0 0 1 ${sourceX + R} ${gap2Y}`,
+      `L ${detourX - R} ${gap2Y}`,
+      `A ${R} ${R} 0 0 0 ${detourX} ${gap2Y - R}`,
+      `L ${detourX} ${gap1Y + R}`,
+      `A ${R} ${R} 0 0 0 ${detourX - R} ${gap1Y}`,
+      `L ${targetX + R} ${gap1Y}`,
+      `A ${R} ${R} 0 0 1 ${targetX} ${gap1Y - R}`,
+      `L ${targetX} ${targetY}`,
+    ].join(' ')
+    labelX = ((sourceX + (detourX || 0)) / 2)
+    labelY = gap2Y - 15
+  }
+
+  return (
+    <>
+      <BaseEdge id={id} path={path} style={{ stroke: lc, strokeWidth: sw, fill: 'none', opacity }} markerEnd={markerEnd} markerStart={markerStart} />
+      {label && (
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+              background: highlighted ? '#0A1A0F' : '#0F172A',
+              padding: highlighted ? '3px 8px' : '2px 6px',
+              borderRadius: 4,
+              fontSize: highlighted ? 14 : 13,
+              fontWeight: highlighted ? 700 : 500,
+              color: highlighted ? '#2DD46E' : '#E2E8F0',
+              fontFamily: '"Fira Code", monospace',
+              pointerEvents: 'all',
+              whiteSpace: 'nowrap',
+              opacity: dimmed ? 0 : 0.92,
+            }}
+            className="nodrag nopan"
+          >
+            {label}
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  )
+}
 
 // tier 层级顺序
 const TIER_ORDER = ['wan', 'core', 'access'] as const
@@ -99,32 +189,30 @@ function countHandleNeeds(
 // 节点组件 — 按实际需求动态创建 handle
 // ============================================================
 function DeviceNode({ data }: NodeProps) {
-  const { label, displayType, tier, platform, ip, isLocationDevice, handles } = data as DeviceNodeData
+  const { label, displayType, tier, platform, ip, handles } = data as DeviceNodeData
   const colors = getNodeColors(displayType)
   const Icon = DEVICE_ICONS[displayType] || null
   const w = nodeW(tier)
 
   const hs = (): React.CSSProperties => ({
-    position: 'absolute', width: 7, height: 7,
+    position: 'absolute', width: 9, height: 9,
     background: colors.border, border: `2px solid ${colors.glow}`, borderRadius: '50%',
   })
 
   return (
     <Box sx={{
       width: w, height: NODE_H, borderRadius: '10px',
-      border: isLocationDevice ? `2px solid ${colors.border}` : `1px solid ${colors.glow}40`,
-      bgcolor: isLocationDevice ? `${colors.fill}20` : `${colors.glow}10`,
+      border: `2px solid ${colors.border}`,
+      bgcolor: `${colors.fill}20`,
       position: 'relative', display: 'flex', alignItems: 'center', gap: 1.5, px: 2.5,
       cursor: 'pointer', transition: 'all 180ms ease', backdropFilter: 'blur(4px)',
-      boxShadow: isLocationDevice
-        ? `0 0 24px ${colors.glow}60, 0 4px 12px ${colors.glow}40`
-        : `0 0 8px ${colors.glow}20`,
+      boxShadow: `0 0 32px ${colors.glow}99, 0 4px 16px ${colors.glow}66`,
       '&:hover': {
-        boxShadow: `0 0 36px ${colors.glow}80, 0 6px 18px ${colors.glow}60`,
+        boxShadow: `0 0 48px ${colors.glow}CC, 0 6px 24px ${colors.glow}99`,
         borderColor: colors.border,
       },
     }}>
-      {Icon && <Icon sx={{ fontSize: tier === 'core' ? 36 : 30, color: colors.glow, flexShrink: 0, filter: `drop-shadow(0 0 4px ${colors.glow}50)` }} />}
+      {Icon && <Icon sx={{ fontSize: tier === 'core' ? 40 : 34, color: colors.glow, flexShrink: 0, filter: `drop-shadow(0 0 8px ${colors.glow}80)` }} />}
 
       {/* 顶部 Source Handle */}
       {Array.from({ length: handles.st }).map((_, i) => (
@@ -148,16 +236,16 @@ function DeviceNode({ data }: NodeProps) {
       ))}
 
       <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 0.3 }}>
-        <Typography sx={{ fontFamily: '"Fira Code", monospace', fontSize: '1rem', fontWeight: 700, color: colors.glow, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <Typography sx={{ fontFamily: '"Fira Code", monospace', fontSize: '1.25rem', fontWeight: 700, color: colors.glow, lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textShadow: `0 0 10px ${colors.glow}66` }}>
           {label}
         </Typography>
         {platform && (
-          <Typography sx={{ fontFamily: '"Fira Code", monospace', fontSize: '0.7rem', fontWeight: 500, color: '#94A3B8', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <Typography sx={{ fontFamily: '"Fira Code", monospace', fontSize: '0.875rem', fontWeight: 500, color: '#94A3B8', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {platform}
           </Typography>
         )}
         {ip && (
-          <Typography sx={{ fontFamily: '"Fira Code", monospace', fontSize: '0.7rem', fontWeight: 500, color: '#CBD5E1', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <Typography sx={{ fontFamily: '"Fira Code", monospace', fontSize: '0.875rem', fontWeight: 500, color: '#CBD5E1', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textShadow: '0 0 6px rgba(203,213,225,0.15)' }}>
             {ip}
           </Typography>
         )}
@@ -167,13 +255,14 @@ function DeviceNode({ data }: NodeProps) {
 }
 
 const nodeTypes = { deviceNode: DeviceNode }
+const edgeTypes = { detour: DetourEdge }
 
 // ============================================================
 // 三层固定行布局：WAN → Core → Access
 // ============================================================
 function tieredLayout(
   nodes: { id: string; tier: string }[],
-): Record<string, { x: number; y: number }> {
+): { positions: Record<string, { x: number; y: number }>; coreRight: number } {
   const groups: Record<string, { id: string; tier: string }[]> = { wan: [], core: [], access: [] }
   for (const n of nodes) {
     const t = groups[n.tier] ? n.tier : 'access'
@@ -191,6 +280,7 @@ function tieredLayout(
   const maxW = Math.max(...TIER_ORDER.map(t => tierWidths[t]), NODE_W)
 
   const positions: Record<string, { x: number; y: number }> = {}
+  let coreRight = 0
   let currentY = 0
   for (const t of TIER_ORDER) {
     const row = groups[t]; if (row.length === 0) continue
@@ -201,10 +291,12 @@ function tieredLayout(
       positions[n.id] = { x, y: currentY }
       x += wPer + H_GAP
     }
+    // 记录核心层最右侧 x 坐标
+    if (t === 'core') coreRight = offsetX + rowW
     currentY += NODE_H + V_GAP
   }
 
-  return positions
+  return { positions, coreRight }
 }
 
 // ============================================================
@@ -229,7 +321,12 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
 
     const rawEdges = data.edges  // 不去重，每条物理连接独立
     const handleCounts = countHandleNeeds(rawEdges, tierMap)
-    const positions = tieredLayout(layoutInputs)
+    const { positions, coreRight } = tieredLayout(layoutInputs)
+
+    // 绕行坐标
+    const gap1Y = NODE_H + V_GAP / 2        // WAN↔Core 间隙中线
+    const gap2Y = NODE_H * 2 + V_GAP * 1.5  // Core↔Access 间隙中线
+    const detourX = coreRight + 300           // 绕行垂直主干 x
 
     // 为缺少 handle 统计的节点补默认值（如 skipped devices）
     for (const n of data.nodes) {
@@ -290,19 +387,33 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
       const tgtPort = shortPort(e.target_interface || '')
       const label = [srcPort, tgtPort].filter(Boolean).join(' / ') || undefined
 
-      rfEdges.push({
+      // 跨层（WAN↔Access）用绕行边，其他用 smoothstep
+      const cross = Math.abs(sr - tr) >= 2
+
+      const base: Edge = {
         id: `e-${e.source}-${e.target}-${ei}`,
         source: e.source, target: e.target,
         sourceHandle: srcHandle, targetHandle: tgtHandle,
-        type: 'smoothstep',
-        pathOptions: sameTier ? { borderRadius: 40, offset: 50 } : { borderRadius: 40, offset: 40 },
+        type: cross ? 'detour' : 'smoothstep',
         label,
         style: { stroke: lineColor, strokeWidth: 2.5 },
-        labelStyle: { fontSize: 12, fill: '#CBD5E1', fontWeight: 500 },
-        labelBgStyle: { fill: '#0F172A', fillOpacity: 0.9 },
         markerEnd: { type: MarkerType.ArrowClosed, color: lineColor, width: 8, height: 8 },
         markerStart: { type: MarkerType.ArrowClosed, color: lineColor, width: 8, height: 8 },
-      })
+      }
+
+      if (cross) {
+        rfEdges.push({
+          ...base,
+          data: { gap1Y, gap2Y, detourX },
+        })
+      } else {
+        rfEdges.push({
+          ...base,
+          pathOptions: sameTier ? { borderRadius: 40, offset: 50 } : { borderRadius: 40, offset: 40 },
+          labelStyle: { fontFamily: '"Fira Code", monospace', fontSize: 13, fill: '#E2E8F0', fontWeight: 500, transform: 'translateY(-14px)' },
+          labelBgStyle: { fill: '#0F172A', fillOpacity: 0.92, borderRadius: 4 },
+        })
+      }
     }
 
     return { initialNodes: rfNodes, initialEdges: rfEdges }
@@ -314,13 +425,26 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
   const prevRef = useRef(data)
   if (prevRef.current !== data) { prevRef.current = data; setNodes(initialNodes); setEdges(initialEdges) }
 
-  // 高亮
+  // 高亮 — 选中节点的连线绿色加粗提至顶层，标签同步放大亮化
   const finalEdges = useMemo(() => {
     if (!selectedNodeId) return edges
     return edges.map(e => {
       if (e.source === selectedNodeId || e.target === selectedNodeId)
-        return { ...e, style: { ...e.style, stroke: '#2DD46E', strokeWidth: 4 }, animated: true }
-      return { ...e, style: { ...e.style, opacity: 0.06 }, labelStyle: { opacity: 0.06 } }
+        return {
+          ...e,
+          data: { ...(e.data || {}), highlighted: true },
+          style: { ...e.style, stroke: '#2DD46E', strokeWidth: 4 },
+          labelStyle: { fontFamily: '"Fira Code", monospace', fontSize: 14, fill: '#2DD46E', fontWeight: 700, transform: 'translateY(-14px)' },
+          labelBgStyle: { fill: '#0A1A0F', fillOpacity: 0.95, borderRadius: 4 },
+          animated: true,
+          zIndex: 10,
+        }
+      return {
+        ...e,
+        style: { ...e.style, stroke: e.style?.stroke, opacity: 0.06 },
+        labelStyle: { ...e.labelStyle, opacity: 0.06 },
+        zIndex: 0,
+      }
     })
   }, [edges, selectedNodeId])
 
@@ -362,7 +486,7 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
       `}</style>
 
       <ReactFlow
-        nodes={nodes} edges={finalEdges} nodeTypes={nodeTypes}
+        nodes={nodes} edges={finalEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
         onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
         onNodeClick={onNodeClick} onPaneClick={onPaneClick}
         fitView fitViewOptions={{ padding: 0.35 }} minZoom={0.05} maxZoom={3}
@@ -371,7 +495,7 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
       >
         <Background color="#1E293B" gap={32} size={0.6} />
 
-        <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 0.04, zIndex: 0 }}>
+        <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 0.08, zIndex: 0 }}>
           <pattern id="hexGrid" width="40" height="69.28" patternUnits="userSpaceOnUse">
             <path d="M40 11.55l-10-5.77-10 5.77v11.55l10 5.77 10-5.77V11.55zM20 46.19l-10-5.77-10 5.77v11.55l10 5.77 10-5.77V46.19zM0 11.55l-10-5.77-10 5.77v11.55l10 5.77 10-5.77V11.55z" fill="none" stroke="#3B82F6" strokeWidth="0.5" />
           </pattern>

@@ -33,13 +33,13 @@ export interface NodeColorSet {
 }
 
 export const NODE_COLORS: Record<string, NodeColorSet> = {
-  'core-switch':   { fill: '#1E40AF', glow: '#3B82F6', border: '#60A5FA' },
-  'access-switch': { fill: '#0F766E', glow: '#14B8A6', border: '#2DD4BF' },
-  router:          { fill: '#D97706', glow: '#F59E0B', border: '#FBBF24' },
-  firewall:        { fill: '#DC2626', glow: '#EF4444', border: '#F87171' },
-  wireless:        { fill: '#7C3AED', glow: '#8B5CF6', border: '#A78BFA' },
-  sdwan:           { fill: '#9A3412', glow: '#F97316', border: '#FB923C' },
-  server:          { fill: '#0891B2', glow: '#06B6D4', border: '#22D3EE' },
+  'core-switch':   { fill: '#1E3A8A', glow: '#3B82F6', border: '#93C5FD' },  // 深蓝 → 蓝 → 浅蓝
+  'access-switch': { fill: '#0F766E', glow: '#14B8A6', border: '#5EEAD4' },  // 深绿 → 绿 → 浅绿
+  router:          { fill: '#B45309', glow: '#F59E0B', border: '#FCD34D' },  // 深橙 → 橙 → 浅橙
+  firewall:        { fill: '#991B1B', glow: '#EF4444', border: '#FCA5A5' },  // 深红 → 红 → 浅红
+  wireless:        { fill: '#5B21B6', glow: '#8B5CF6', border: '#C4B5FD' },  // 深紫 → 紫 → 浅紫
+  sdwan:           { fill: '#7C2D12', glow: '#F97316', border: '#FDBA74' },  // 深棕 → 橙 → 浅橙
+  server:          { fill: '#155E75', glow: '#06B6D4', border: '#67E8F9' },  // 深青 → 青 → 浅青
 }
 
 export function getNodeColors(type: string): NodeColorSet {

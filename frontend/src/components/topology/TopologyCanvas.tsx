@@ -8,10 +8,12 @@ import { Image as ImageIcon, AccountTree as VisioIcon } from '@mui/icons-materia
 import { toPng } from 'html-to-image'
 import { useI18n } from '../../i18n'
 import type { NeighborNode } from '../../types/topology'
+import type { LocationTopologyData, LocationNode, LocationEdge } from '../../types/topology'
 import FrontPanelNode, { getPortParity } from './FrontPanelNode'
 import type { PortData } from './FrontPanelNode'
 import DirectionPad from './DirectionPad'
 import { getDeviceColor, isStackLink, ENDPOINT_PREFIXES } from '../../shared/constants'
+import LocationTopologyCanvas from './LocationTopologyCanvas'
 
 const nodeTypes: NodeTypes = { frontPanel: FrontPanelNode }
 
@@ -32,6 +34,132 @@ const H_GAP = 60
 const V_GAP = 160
 const ROW_GAP = 110
 const MAX_PER_ROW = 5
+
+/** 判断端口拓扑是否符合三层结构：有 WAN 设备 + 中心交换机 + 终端设备 */
+function fitsThreeTier(neighbors: NeighborNode[]): boolean {
+  const all = neighbors.filter(n => n.device_name)
+  const hasWan = all.some(n => n.device_type === 'router' || n.device_type === 'firewall' || n.device_type === 'sdwan'
+    || n.device_name.startsWith('Internet') || n.device_name.startsWith('互联网'))
+  const hasAccess = all.some(n => n.is_endpoint || n.device_type === 'wireless' || n.device_type === 'printer')
+  return hasWan && hasAccess
+}
+
+/** NeighborNode 数据转换为 LocationTopologyData（三层结构） */
+function neighborsToLocationData(
+  deviceName: string, neighbors: NeighborNode[],
+  stackMembers?: string[], memberNeighbors?: Record<string, NeighborNode[]>,
+): LocationTopologyData {
+  const nodes: LocationNode[] = []
+  const edges: LocationEdge[] = []
+  let ei = 0
+
+  // 处理多个 stack 成员 vs 单个设备
+  const hasStack = stackMembers && stackMembers.length > 1
+  const members = hasStack ? stackMembers! : ['1']
+
+  // 收集所有中心端口
+  type MemberPort = { member: string; iface: string; targetName: string; targetType: string }
+  const allPorts: MemberPort[] = []
+
+  for (const mid of members) {
+    const memberName = hasStack ? `${deviceName}-0${mid}` : deviceName
+    const nbrs = hasStack
+      ? (memberNeighbors?.[mid] || []).filter(n => n.device_name && !isStackLink(n.description))
+      : neighbors.filter(n => n.device_name && !isStackLink(n.description))
+
+    for (const n of nbrs) {
+      allPorts.push({ member: memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type })
+    }
+  }
+
+  // 统计目标设备类型（含端点聚合组）
+  const devMap = new Map<string, { type: string; entries: MemberPort[] }>()
+  for (const p of allPorts) {
+    let key: string; let dtype: string
+    if (p.targetType && !p.targetName.startsWith('Internet') && !p.targetName.startsWith('互联网')) {
+      // 检查是否是端点前缀匹配
+      let isEp = false
+      for (const ep of ENDPOINT_PREFIXES) {
+        if (p.targetName.startsWith(ep.prefix)) { key = ep.label; dtype = 'endpoint'; isEp = true; break }
+      }
+      if (!isEp) { key = p.targetName; dtype = p.targetType }
+    } else {
+      key = p.targetName
+      dtype = p.targetType || 'endpoint'
+    }
+    if (!devMap.has(key)) devMap.set(key, { type: dtype, entries: [] })
+    devMap.get(key)!.entries.push(p)
+  }
+
+  // 分配 tier
+  function tierFor(type: string, isCenter: boolean): string {
+    if (isCenter) return 'core'
+    if (type === 'router' || type === 'firewall' || type === 'sdwan') return 'wan'
+    // Internet / 互联网 归入 WAN
+    return 'access'
+  }
+
+  // 中心设备节点
+  const centerIds: string[] = []
+  for (const mid of members) {
+    const memberName = hasStack ? `${deviceName}-0${mid}` : deviceName
+    centerIds.push(memberName)
+    nodes.push({
+      id: memberName, label: memberName, type: 'switch',
+      platform: '', model: '', ip: '',
+      tier: 'core', is_location_device: true, location: deviceName,
+      stack_group: hasStack ? deviceName : '',
+      physical_index: hasStack ? parseInt(mid, 10) : 1,
+      physical_count: members.length,
+    })
+  }
+
+  // 邻居设备节点 + 边
+  const addedNodes = new Set<string>()
+  for (const [name, dev] of devMap) {
+    const actualTier = (name.startsWith('Internet') || name.startsWith('互联网')) ? 'wan'
+      : (dev.type === 'wireless' || dev.type === 'printer' || dev.type === 'endpoint') ? 'access'
+      : tierFor(dev.type, false)
+    const isEp = dev.type === 'endpoint'
+
+    const nodeId = name
+    if (!addedNodes.has(nodeId)) {
+      addedNodes.add(nodeId)
+      const count = dev.entries.length
+      nodes.push({
+        id: nodeId,
+        label: isEp ? `${name} ×${count}` : name,
+        type: dev.type === 'endpoint' ? 'server' : dev.type,
+        platform: isEp ? `${count} 端口` : '', model: '', ip: '',
+        tier: actualTier,
+        is_location_device: false, location: deviceName,
+        stack_group: '', physical_index: 1, physical_count: 1,
+      })
+    }
+
+    // 为每个物理连接创建边
+    for (const p of dev.entries) {
+      edges.push({
+        id: `pe-${ei++}`,
+        source: p.member,
+        target: nodeId,
+        source_interface: p.iface,
+        target_interface: '',
+        is_cross_location: false,
+      })
+    }
+  }
+
+  return {
+    location: deviceName,
+    device_count: centerIds.length + addedNodes.size,
+    node_count: nodes.length,
+    skipped_count: 0,
+    skipped_devices: [],
+    nodes,
+    edges,
+  }
+}
 
 interface AggDevice {
   name: string
@@ -58,7 +186,20 @@ export default function TopologyCanvas({ deviceName, neighbors, stackMembers, me
   const hasStack = !!members
   const memberCount = hasStack ? members!.length : 1
 
-  // ====== 设备分组 + 聚合 ======
+  // ====== 三层结构检测 + 数据转换 ======
+  const allNeighbors = useMemo(() =>
+    hasStack
+      ? members!.flatMap(mid => (memberNeighbors?.[mid] || []))
+      : validNeighbors,
+    [hasStack, members, memberNeighbors, validNeighbors],
+  )
+
+  const threeTierData = useMemo(() => {
+    if (!fitsThreeTier(allNeighbors)) return null
+    return neighborsToLocationData(deviceName, allNeighbors, stackMembers, memberNeighbors)
+  }, [allNeighbors, deviceName, stackMembers, memberNeighbors])
+
+  // ====== 设备分组 + 聚合（始终计算，hooks 数量恒定）======
   const { topDevs, bottomDevs } = useMemo(() => {
     // 收集所有外部连接
     const all = (hasStack ? members! : ['1']).flatMap((mid) =>
@@ -303,6 +444,15 @@ export default function TopologyCanvas({ deviceName, neighbors, stackMembers, me
 
   if (validNeighbors.length === 0) {
     return <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 500, color: 'text.secondary' }}><Typography sx={{ fontSize: '1.1rem' }}>{t('topology.noNeighbors')}</Typography></Box>
+  }
+
+  // 符合三层结构 → 使用三层布局渲染
+  if (threeTierData) {
+    return (
+      <Box sx={{ width: '100%', height: '100%', minHeight: 650, borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider', bgcolor: '#0a0e1a', animation: `${canvasFadeIn} 0.5s ease`, position: 'relative' }}>
+        <LocationTopologyCanvas location={deviceName} data={threeTierData} />
+      </Box>
+    )
   }
 
   return (
