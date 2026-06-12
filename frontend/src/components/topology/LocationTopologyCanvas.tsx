@@ -26,15 +26,13 @@ const NODE_W = 260
 const CORE_NODE_W = 560
 const V_GAP = 240
 const H_GAP = 60
-const HANDLE_COUNT = 5
-const CORE_HANDLE_COUNT = 9
+const MIN_HANDLES = 1   // 每个 side group 最少 1 个 handle
 
 // tier 层级顺序
 const TIER_ORDER = ['wan', 'core', 'access'] as const
 const TIER_RANK: Record<string, number> = { wan: 3, core: 2, access: 1 }
 
 function nodeW(tier: string): number { return tier === 'core' ? CORE_NODE_W : NODE_W }
-function handleCount(tier: string): number { return tier === 'core' ? CORE_HANDLE_COUNT : HANDLE_COUNT }
 
 // ============================================================
 // 设备图标
@@ -48,16 +46,63 @@ const DEVICE_ICONS: Record<string, React.ComponentType<any>> = {
 // ============================================================
 // DeviceNode 数据
 // ============================================================
-interface DeviceNodeData { label: string; displayType: string; tier: string; platform: string; ip: string; isLocationDevice: boolean }
+type HandleGroup = 'st' | 'tt' | 'sb' | 'tb'
+interface DeviceNodeData {
+  label: string; displayType: string; tier: string
+  platform: string; ip: string; isLocationDevice: boolean
+  handles: Record<HandleGroup, number>
+}
 
 // ============================================================
-// 节点组件
+// 端口缩写
+// ============================================================
+function shortPort(port: string): string {
+  return port
+    .replace(/^GigabitEthernet/, 'Gi')
+    .replace(/^TenGigabitEthernet/, 'Te')
+    .replace(/^TwentyFiveGigE/, 'Tw')
+    .replace(/^FortyGigabitEthernet/, 'Fo')
+    .replace(/^HundredGigE/, 'Hu')
+    .replace(/^FastEthernet/, 'Fa')
+}
+
+// ============================================================
+// 统计原始边 → 每个节点每 group 需多少 handle
+// ============================================================
+function countHandleNeeds(
+  rawEdges: { source: string; target: string }[],
+  tiers: Record<string, string>,
+): Record<string, Record<HandleGroup, number>> {
+  const cnt: Record<string, Record<HandleGroup, number>> = {}
+  const zero = (): Record<HandleGroup, number> => ({ st: 0, tt: 0, sb: 0, tb: 0 })
+  const ensure = (id: string) => { if (!cnt[id]) cnt[id] = zero() }
+
+  for (const e of rawEdges) {
+    const sr = TIER_RANK[tiers[e.source]] ?? 0
+    const tr = TIER_RANK[tiers[e.target]] ?? 0
+    ensure(e.source); ensure(e.target)
+    if (sr > tr)       { cnt[e.source].sb++; cnt[e.target].tt++ }
+    else if (sr < tr)  { cnt[e.source].st++; cnt[e.target].tb++ }
+    else               { cnt[e.source].sb++; cnt[e.target].tb++ }
+  }
+  // 每组至少 MIN_HANDLES
+  for (const c of Object.values(cnt)) {
+    c.st = Math.max(c.st, MIN_HANDLES)
+    c.tt = Math.max(c.tt, MIN_HANDLES)
+    c.sb = Math.max(c.sb, MIN_HANDLES)
+    c.tb = Math.max(c.tb, MIN_HANDLES)
+  }
+  return cnt
+}
+
+// ============================================================
+// 节点组件 — 按实际需求动态创建 handle
 // ============================================================
 function DeviceNode({ data }: NodeProps) {
-  const { label, displayType, tier, platform, ip, isLocationDevice } = data as DeviceNodeData
+  const { label, displayType, tier, platform, ip, isLocationDevice, handles } = data as DeviceNodeData
   const colors = getNodeColors(displayType)
   const Icon = DEVICE_ICONS[displayType] || null
-  const w = nodeW(tier); const hc = handleCount(tier)
+  const w = nodeW(tier)
 
   const hs = (): React.CSSProperties => ({
     position: 'absolute', width: 7, height: 7,
@@ -81,23 +126,25 @@ function DeviceNode({ data }: NodeProps) {
     }}>
       {Icon && <Icon sx={{ fontSize: tier === 'core' ? 36 : 30, color: colors.glow, flexShrink: 0, filter: `drop-shadow(0 0 4px ${colors.glow}50)` }} />}
 
-      {/* 顶部 Handle */}
-      {Array.from({ length: hc }).map((_, i) => (
+      {/* 顶部 Source Handle */}
+      {Array.from({ length: handles.st }).map((_, i) => (
         <Handle key={`st-${i}`} type="source" position={Position.Top} id={`st-${i}`}
-          style={{ ...hs(), left: `${((i + 1) / (hc + 1)) * 100}%`, top: -3 }} />
+          style={{ ...hs(), left: `${((i + 1) / (handles.st + 1)) * 100}%`, top: -3 }} />
       ))}
-      {Array.from({ length: hc }).map((_, i) => (
+      {/* 顶部 Target Handle */}
+      {Array.from({ length: handles.tt }).map((_, i) => (
         <Handle key={`tt-${i}`} type="target" position={Position.Top} id={`tt-${i}`}
-          style={{ ...hs(), left: `${((i + 1) / (hc + 1)) * 100}%`, top: -3 }} />
+          style={{ ...hs(), left: `${((i + 1) / (handles.tt + 1)) * 100}%`, top: -3 }} />
       ))}
-      {/* 底部 Handle */}
-      {Array.from({ length: hc }).map((_, i) => (
+      {/* 底部 Source Handle */}
+      {Array.from({ length: handles.sb }).map((_, i) => (
         <Handle key={`sb-${i}`} type="source" position={Position.Bottom} id={`sb-${i}`}
-          style={{ ...hs(), left: `${((i + 1) / (hc + 1)) * 100}%`, bottom: -3 }} />
+          style={{ ...hs(), left: `${((i + 1) / (handles.sb + 1)) * 100}%`, bottom: -3 }} />
       ))}
-      {Array.from({ length: hc }).map((_, i) => (
+      {/* 底部 Target Handle */}
+      {Array.from({ length: handles.tb }).map((_, i) => (
         <Handle key={`tb-${i}`} type="target" position={Position.Bottom} id={`tb-${i}`}
-          style={{ ...hs(), left: `${((i + 1) / (hc + 1)) * 100}%`, bottom: -3 }} />
+          style={{ ...hs(), left: `${((i + 1) / (handles.tb + 1)) * 100}%`, bottom: -3 }} />
       ))}
 
       <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 0.3 }}>
@@ -120,78 +167,6 @@ function DeviceNode({ data }: NodeProps) {
 }
 
 const nodeTypes = { deviceNode: DeviceNode }
-
-// ============================================================
-// 边数据
-// ============================================================
-interface UniqueEdge {
-  source: string; target: string
-  source_interface: string; target_interface: string
-}
-interface LocationEdge {
-  source: string; target: string
-  source_interface: string; target_interface: string
-  is_cross_location: boolean
-}
-
-function dedupeEdges(rawEdges: LocationEdge[]): UniqueEdge[] {
-  const m = new Map<string, UniqueEdge>()
-  for (const e of rawEdges) {
-    const k = [e.source, e.target].sort().join('||')
-    if (!m.has(k)) m.set(k, { source: e.source, target: e.target, source_interface: e.source_interface, target_interface: e.target_interface })
-    else {
-      const ex = m.get(k)!
-      if (e.source_interface) ex.source_interface = ex.source_interface ? `${ex.source_interface},${e.source_interface}` : e.source_interface
-      if (e.target_interface) ex.target_interface = ex.target_interface ? `${ex.target_interface},${e.target_interface}` : e.target_interface
-    }
-  }
-  return [...m.values()]
-}
-
-// ============================================================
-// Handle 分配：就近原则 — 上对下(sb→tt)，下对上(st→tb)
-// ============================================================
-function assignHandleIds(
-  edges: UniqueEdge[],
-  tiers: Record<string, string>,
-): Record<string, { src: string; tgt: string }> {
-  const assign: Record<string, { src: string; tgt: string }> = {}
-  const counters: Record<string, Record<string, number>> = {}
-
-  function next(nodeId: string, group: string, max: number): number {
-    if (!counters[nodeId]) counters[nodeId] = {}
-    if (counters[nodeId][group] === undefined) counters[nodeId][group] = 0
-    const idx = counters[nodeId][group] % max
-    counters[nodeId][group]++
-    return idx
-  }
-
-  for (const e of edges) {
-    const srcRank = TIER_RANK[tiers[e.source]] ?? 0
-    const tgtRank = TIER_RANK[tiers[e.target]] ?? 0
-    const srcHc = handleCount(tiers[e.source])
-    const tgtHc = handleCount(tiers[e.target])
-
-    let srcHandle: string, tgtHandle: string
-
-    if (srcRank > tgtRank) {
-      // source 在上层 → target 在下层：源 Bottom 出，目标 Top 入
-      srcHandle = `sb-${next(e.source, 'sb', srcHc)}`
-      tgtHandle = `tt-${next(e.target, 'tt', tgtHc)}`
-    } else if (srcRank < tgtRank) {
-      // source 在下层 → target 在上层：源 Top 出，目标 Bottom 入
-      srcHandle = `st-${next(e.source, 'st', srcHc)}`
-      tgtHandle = `tb-${next(e.target, 'tb', tgtHc)}`
-    } else {
-      // 同层：不处理
-      srcHandle = 'sb-0'
-      tgtHandle = 'tt-0'
-    }
-
-    assign[`${e.source}||${e.target}`] = { src: srcHandle, tgt: tgtHandle }
-  }
-  return assign
-}
 
 // ============================================================
 // 三层固定行布局：WAN → Core → Access
@@ -242,59 +217,86 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
 
   const { initialNodes, initialEdges } = useMemo(() => {
+    const tierMap: Record<string, string> = {}
     const layoutInputs: { id: string; tier: string }[] = []
     const nodeSet = new Set<string>()
-    const tierMap: Record<string, string> = {}
 
     for (const n of data.nodes) {
       if (nodeSet.has(n.id)) continue; nodeSet.add(n.id)
-      layoutInputs.push({ id: n.id, tier: n.tier })
       tierMap[n.id] = n.tier
+      layoutInputs.push({ id: n.id, tier: n.tier })
     }
 
-    const uniqueEdges = dedupeEdges(data.edges)
+    const rawEdges = data.edges  // 不去重，每条物理连接独立
+    const handleCounts = countHandleNeeds(rawEdges, tierMap)
     const positions = tieredLayout(layoutInputs)
-    const handleAssign = assignHandleIds(uniqueEdges, tierMap)
+
+    // 为缺少 handle 统计的节点补默认值（如 skipped devices）
+    for (const n of data.nodes) {
+      if (!handleCounts[n.id]) handleCounts[n.id] = { st: 1, tt: 1, sb: 1, tb: 1 }
+    }
 
     // ReactFlow nodes
-    const rfNodes: Node<DeviceNodeData>[] = []
-    for (const n of data.nodes) {
-      const pos = positions[n.id] || { x: 0, y: 0 }
-      rfNodes.push({
-        id: n.id, type: 'deviceNode', position: pos,
-        data: {
-          label: n.label, displayType: getDisplayType(n.type, n.tier), tier: n.tier,
-          platform: n.model || n.platform, ip: n.ip, isLocationDevice: n.is_location_device,
-        },
-      })
+    const rfNodes: Node<DeviceNodeData>[] = data.nodes.map(n => ({
+      id: n.id, type: 'deviceNode' as const,
+      position: positions[n.id] || { x: 0, y: 0 },
+      data: {
+        label: n.label, displayType: getDisplayType(n.type, n.tier), tier: n.tier,
+        platform: n.model || n.platform, ip: n.ip, isLocationDevice: n.is_location_device,
+        handles: handleCounts[n.id],
+      },
+    }))
+
+    // ReactFlow edges — 每条物理连接独立，动态分配 handle
+    const edgeCounters: Record<string, Record<string, number>> = {}
+    const nextHandle = (nodeId: string, g: HandleGroup): number => {
+      if (!edgeCounters[nodeId]) edgeCounters[nodeId] = {}
+      if (edgeCounters[nodeId][g] === undefined) edgeCounters[nodeId][g] = 0
+      const max = handleCounts[nodeId]?.[g] || 1
+      const idx = edgeCounters[nodeId][g] % max
+      edgeCounters[nodeId][g]++
+      return idx
     }
 
-    // ReactFlow edges
     const rfEdges: Edge[] = []
-    for (const e of uniqueEdges) {
-      const pairKey = `${e.source}||${e.target}`
-      const revKey = `${e.target}||${e.source}`
-      const h = handleAssign[pairKey] || handleAssign[revKey] || { src: 'sb-0', tgt: 'tt-0' }
+    for (let ei = 0; ei < rawEdges.length; ei++) {
+      const e = rawEdges[ei]
+      const sr = TIER_RANK[tierMap[e.source]] ?? 0
+      const tr = TIER_RANK[tierMap[e.target]] ?? 0
 
-      // 颜色 = 较高层级设备的颜色
+      let srcHandle: string, tgtHandle: string, sameTier: boolean
+      if (sr > tr) {
+        srcHandle = `sb-${nextHandle(e.source, 'sb')}`
+        tgtHandle = `tt-${nextHandle(e.target, 'tt')}`
+        sameTier = false
+      } else if (sr < tr) {
+        srcHandle = `st-${nextHandle(e.source, 'st')}`
+        tgtHandle = `tb-${nextHandle(e.target, 'tb')}`
+        sameTier = false
+      } else {
+        srcHandle = `sb-${nextHandle(e.source, 'sb')}`
+        tgtHandle = `tb-${nextHandle(e.target, 'tb')}`
+        sameTier = true
+      }
+
       const srcNode = data.nodes.find(n => n.id === e.source)
       const tgtNode = data.nodes.find(n => n.id === e.target)
       const srcDisp = srcNode ? getDisplayType(srcNode.type, srcNode.tier) : 'unknown'
       const tgtDisp = tgtNode ? getDisplayType(tgtNode.type, tgtNode.tier) : 'unknown'
-      const srcRank = TIER_RANK[srcNode?.tier || ''] ?? 0
-      const tgtRank = TIER_RANK[tgtNode?.tier || ''] ?? 0
-      const higherDisp = srcRank >= tgtRank ? srcDisp : tgtDisp
+      const higherDisp = sr >= tr ? srcDisp : tgtDisp
       const lineColor = getNodeColors(higherDisp).border
 
-      const portsLabel = [e.source_interface, e.target_interface].filter(Boolean).join(' / ')
+      const srcPort = shortPort(e.source_interface || '')
+      const tgtPort = shortPort(e.target_interface || '')
+      const label = [srcPort, tgtPort].filter(Boolean).join(' / ') || undefined
 
       rfEdges.push({
-        id: `e-${e.source}-${e.target}`,
+        id: `e-${e.source}-${e.target}-${ei}`,
         source: e.source, target: e.target,
-        sourceHandle: h.src, targetHandle: h.tgt,
+        sourceHandle: srcHandle, targetHandle: tgtHandle,
         type: 'smoothstep',
-        pathOptions: { borderRadius: 40, offset: 40 },
-        label: portsLabel || undefined,
+        pathOptions: sameTier ? { borderRadius: 40, offset: 50 } : { borderRadius: 40, offset: 40 },
+        label,
         style: { stroke: lineColor, strokeWidth: 2.5 },
         labelStyle: { fontSize: 12, fill: '#CBD5E1', fontWeight: 500 },
         labelBgStyle: { fill: '#0F172A', fillOpacity: 0.9 },
