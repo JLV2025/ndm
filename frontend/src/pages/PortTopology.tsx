@@ -13,7 +13,7 @@ import { Hub as HubIcon } from '@mui/icons-material'
 import { deviceApi, topologyApi } from '../services/api'
 import { useI18n } from '../i18n'
 import LocationFilter from '../components/devices/LocationFilter'
-import TopologyCanvas from '../components/topology/TopologyCanvas'
+import PortTopologyCanvas from '../components/topology/PortTopologyCanvas'
 import { PORT_TOPOLOGY_LEGEND } from '../shared/constants'
 import type { Device } from '../types'
 import type { NeighborNode } from '../types/topology'
@@ -32,6 +32,9 @@ export default function Topology() {
   const [stackMembers, setStackMembers] = useState<string[]>([])
   const [memberNeighbors, setMemberNeighbors] = useState<Record<string, NeighborNode[]>>({})
   const [loading, setLoading] = useState(false)
+  const [deviceNotes, setDeviceNotes] = useState('')
+  const [deviceModel, setDeviceModel] = useState('')
+  const [deviceIp, setDeviceIp] = useState('')
 
   useEffect(() => {
     deviceApi.list().then((res) => setDevices(res.data)).catch(console.error)
@@ -73,6 +76,9 @@ export default function Topology() {
         setNeighbors(data.neighbors || [])
         setStackMembers(data.stack_members || [])
         setMemberNeighbors(data.member_neighbors || {})
+        setDeviceNotes(data.device_notes || '')
+        setDeviceModel(data.device_model || '')
+        setDeviceIp(data.device_ip || '')
       })
       .catch((err) => {
         console.error(err)
@@ -84,7 +90,7 @@ export default function Topology() {
   }, [selectedDevice])
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)', px: 2, py: 2 }}>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)', px: 2, pt: 1.5, pb: 0.5 }}>
       {/* 页面头部 — 左侧绿色装饰条 */}
       <Box sx={{ mb: 2, display: 'flex', alignItems: 'flex-start', gap: 2, flexShrink: 0 }}>
         <Box
@@ -157,8 +163,8 @@ export default function Topology() {
             <CircularProgress size={32} />
           </Box>
         ) : (
-          <Box key={selectedDevice.name} sx={{ width: '100%', height: '100%', animation: `${fadeIn} 0.45s ease` }}>
-            <TopologyCanvas deviceName={selectedDevice.name} neighbors={neighbors} stackMembers={stackMembers} memberNeighbors={memberNeighbors} />
+          <Box key={selectedDevice.name} sx={{ width: '100%', height: '100%', flex: 1, minHeight: 0, animation: `${fadeIn} 0.45s ease` }}>
+            <PortTopologyCanvas deviceName={selectedDevice.name} neighbors={neighbors} stackMembers={stackMembers} memberNeighbors={memberNeighbors} deviceNotes={deviceNotes} deviceModel={deviceModel} deviceIp={deviceIp} />
           </Box>
         )}
 

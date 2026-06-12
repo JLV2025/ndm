@@ -88,8 +88,17 @@ async def get_device_topology(device_name: str):
                     return parts[0]
             return "1"
 
-    # 9. 构建返回结果（按成员分组）
+    # 9. 构建返回结果（按成员分组），含邻居设备型号/IP
     member_neighbors: Dict[str, list] = {m: [] for m in members}
+
+    # 预加载 YAML 设备信息（用于补充邻居 IP/型号）
+    device_info_map: Dict[str, dict] = {}
+    try:
+        from utils.settings_loader import load_devices
+        for dev in load_devices().get("devices", []):
+            device_info_map[dev.get("name", "")] = dev
+    except Exception:
+        pass
 
     for entry in results:
         member = _member_for_iface(entry.name)
@@ -103,6 +112,8 @@ async def get_device_topology(device_name: str):
             "device_number": entry.device_number,
             "is_endpoint": entry.is_endpoint,
             "member": member,
+            "neighbor_ip": device_info_map.get(entry.device_name, {}).get("ip", ""),
+            "neighbor_model": device_info_map.get(entry.device_name, {}).get("model", ""),
         }
         if member in member_neighbors:
             member_neighbors[member].append(item)
@@ -112,6 +123,22 @@ async def get_device_topology(device_name: str):
     endpoints = [i for i in neighbors if i["is_endpoint"]]
     network_devices = [i for i in neighbors if not i["is_endpoint"]]
 
+    # 10. 从 YAML 读取设备备注、型号、IP
+    device_notes = ""
+    device_model = ""
+    device_ip = ""
+    try:
+        from utils.settings_loader import load_devices
+        devices_config = load_devices()
+        for dev in devices_config.get("devices", []):
+            if dev.get("name") == device_name:
+                device_notes = dev.get("notes", "") or ""
+                device_model = dev.get("model", "") or ""
+                device_ip = dev.get("ip", "") or ""
+                break
+    except Exception:
+        pass
+
     return {
         "device_name": device_name,
         "week": found_week,
@@ -120,6 +147,9 @@ async def get_device_topology(device_name: str):
         "neighbors": neighbors,
         "endpoints": endpoints,
         "network_devices": network_devices,
+        "device_notes": device_notes,
+        "device_model": device_model,
+        "device_ip": device_ip,
     }
 
 

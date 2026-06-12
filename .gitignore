@@ -66,18 +66,22 @@ security-review-report.md
 *.txt
 !requirements.txt
 
-# OpenWolf
-.wolf/
+# OpenWolf — 排除临时文件，保留项目知识资产
+.wolf/designqc-captures/
+.wolf/memory.md
+.wolf/token-ledger.json
+.wolf/cron-manifest.json
+.wolf/cron-state.json
+.wolf/suggestions.json
+.wolf/designqc-report.json
+.wolf/hooks/_session.json
 
-# Playwright / Design QC temp files
+# Playwright 临时截图（收工技能负责删除，此处兜底）
 .playwright-mcp/
-*.png
-*.jpg
 
-# Local IDE / Tool config (may contain secrets)
-.claude/
-.vscode/
-.idea/
+# Claude Code — 排除会话临时文件，保留项目配置和技能
+.claude/plans/
+.claude/worktrees/
 
 # Test fixtures with real IPs
 c:/tmp/switch.txt

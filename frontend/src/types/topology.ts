@@ -8,6 +8,8 @@ export interface NeighborNode {
   device_number?: string
   is_endpoint: boolean
   member?: string
+  neighbor_ip?: string
+  neighbor_model?: string
 }
 
 export interface TopologyData {
@@ -18,6 +20,9 @@ export interface TopologyData {
   neighbors: NeighborNode[]
   endpoints: NeighborNode[]
   network_devices: NeighborNode[]
+  device_notes?: string
+  device_model?: string
+  device_ip?: string
 }
 
 // ============================================================
