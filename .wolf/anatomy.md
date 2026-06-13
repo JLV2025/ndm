@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-13T05:40:36.277Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-13T05:53:08.162Z
 > Files: 135 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
@@ -213,7 +213,7 @@
 - `DirectionPad.tsx` — DirectionPad (~444 tok)
 - `FrontPanelNode.tsx` — 为 true 时只显示计数，不画端口视觉元素（端点聚合用） (~2701 tok)
 - `LocationTopologyCanvas.tsx` — NODE_W (~6013 tok)
-- `PortTopologyCanvas.tsx` — 堆叠成员标签格式化：PVGD1SWI01-M1 → PVGD1SWI01 (Member 1) (~10402 tok)
+- `PortTopologyCanvas.tsx` — 堆叠成员标签格式化：PVGD1SWI01-M1 → PVGD1SWI01 (Member 1) (~10596 tok)
 - `TopologyCanvas.tsx` — TYPE_COLORS (~5109 tok)
 
 ## frontend/src/i18n/
@@ -241,7 +241,7 @@
 
 ## frontend/src/shared/
 
-- `constants.ts` — 全局共享常量 — 设备颜色、图例、端点前缀 (~1217 tok)
+- `constants.ts` — 全局共享常量 — 设备颜色、图例、端点前缀 (~1234 tok)
 
 ## frontend/src/test/
 

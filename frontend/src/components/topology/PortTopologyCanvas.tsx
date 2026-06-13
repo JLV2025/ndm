@@ -34,7 +34,12 @@ const ROW_GAP = 140
 const DEVICE_GAP = 44
 const STACK_GAP = 24
 const SIDEBAR_W = 104
-const SWITCH_COLOR = '#3B82F6'
+const SWITCH_COLOR_CORE = '#3B82F6'
+const SWITCH_COLOR_ACCESS = '#14B8A6'
+
+function switchColorByCore(isCoreSwitch: boolean): string {
+  return isCoreSwitch ? SWITCH_COLOR_CORE : SWITCH_COLOR_ACCESS
+}
 
 // ============================================================
 // 设备图标 + 端口工具
@@ -76,9 +81,9 @@ function isWanDevice(type: string, name: string): boolean {
     || name.startsWith('Internet') || name.startsWith('互联网')
 }
 
-function getEdgeColor(deviceType: string, deviceName: string): string {
+function getEdgeColor(deviceType: string, deviceName: string, isCoreSw?: boolean): string {
   if (isWanDevice(deviceType, deviceName)) return getDeviceColor(deviceType)
-  if (deviceType === 'switch') return getDeviceColor('switch')
+  if (deviceType === 'switch') return getDeviceColor(isCoreSw ? 'core-switch' : 'access-switch')
   return getDeviceColor(deviceType)
 }
 
@@ -429,7 +434,8 @@ export default function PortTopologyCanvas({
       const allBottomPorts: { id: string; label: string; color: string; neighborName: string }[] = []
       for (const n of ifaceList) {
         const pn = extractPortNumber(n.interface)
-        const ec = getEdgeColor(n.device_type, n.device_name)
+        const isNbCore = /核心|core/i.test((n as any).neighbor_notes || '')
+        const ec = getEdgeColor(n.device_type, n.device_name, isNbCore)
         if (pn % 2 === 0) allBottomPorts.push({ id: n.interface, label: String(pn), color: ec, neighborName: n.device_name })
         else allTopPorts.push({ id: n.interface, label: String(pn), color: ec, neighborName: n.device_name })
       }
@@ -454,7 +460,7 @@ export default function PortTopologyCanvas({
             const nid = `switch-${member}`
             switchNodeIdSet.add(nid)
             nodes.push({ id: nid, type: 'switchNode', position: { x: cx, y: yCursor },
-              data: { label: `${deviceName} (Member ${member})`, model: deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, color: SWITCH_COLOR, handleRole: 'source' } })
+              data: { label: `${deviceName} (Member ${member})`, model: deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, color: switchColorByCore(isCore), handleRole: 'source' } })
             maxDeviceRight = Math.max(maxDeviceRight, cx + SWITCH_W)
             cx += SWITCH_W + STACK_GAP
           }
@@ -463,7 +469,7 @@ export default function PortTopologyCanvas({
           const sx = (canvasW - SWITCH_W) / 2
           switchNodeIdSet.add('switch')
           nodes.push({ id: 'switch', type: 'switchNode', position: { x: sx, y: yCursor },
-            data: { label: deviceName, model: deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, color: SWITCH_COLOR, handleRole: 'source' } })
+            data: { label: deviceName, model: deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, color: switchColorByCore(isCore), handleRole: 'source' } })
           maxDeviceRight = Math.max(maxDeviceRight, sx + SWITCH_W)
         }
         rowMetas.push({ yStart: rowYStart, maxH: SWITCH_H, maxRight: startX + lw })
@@ -489,7 +495,7 @@ export default function PortTopologyCanvas({
             sBot.sort((a, b) => extractPortNumber(a.id) - extractPortNumber(b.id))
             switchNodeIdSet.add(dev.name)
             nodes.push({ id: dev.name, type: 'switchNode', position: { x: cx, y: yCursor },
-              data: { label: formatDevLabel(dev.name), model: dev.model, ip: dev.ip, topPorts: sTop, bottomPorts: sBot, color: SWITCH_COLOR, nodeWidth: dw, handleRole: 'target' } })
+              data: { label: formatDevLabel(dev.name), model: dev.model, ip: dev.ip, topPorts: sTop, bottomPorts: sBot, color: switchColorByCore(isCoreSwitch(dev.name)), nodeWidth: dw, handleRole: 'target' } })
           } else {
             const hm = resolveHandleMode(activeLayers.indexOf(layer), activeLayers.length, dev)
             nodes.push({ id: dev.name, type: 'neighborNode', position: { x: cx, y: yCursor + (rowH - dh) / 2 },
@@ -568,7 +574,12 @@ export default function PortTopologyCanvas({
       const pipeSrc = swap ? tgtPipe : srcPipe  // 高层设备的管道
       const pipeTgt = swap ? srcPipe : tgtPipe  // 低层设备的管道
 
-      const ec = getEdgeColor(n.device_type, n.device_name)
+      // 连线颜色：取连接双方中优先级更高者的颜色 (WAN > Core > Access)
+      const nbIsCore = /核心|core/i.test((n as any).neighbor_notes || '')
+      const connIsCore = isCore || nbIsCore
+      const isWanConn = isWanDevice(n.device_type, n.device_name)
+      const connType = isWanConn ? n.device_type : (connIsCore ? 'core-switch' : 'access-switch')
+      const ec = getDeviceColor(connType)
       const isWan = isWanDevice(n.device_type, n.device_name)
       edges.push({
         id: `e-${srcNodeId}-${n.interface}-${targetName}`,

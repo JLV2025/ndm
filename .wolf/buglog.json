@@ -5394,6 +5394,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-13T05:40:24.548Z"
+    },
+    {
+      "id": "bug-338",
+      "timestamp": "2026-06-13T05:51:51.558Z",
+      "error_message": "CSS fix: model",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "model: deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, color: SWITCH_COLOR, handleRole: 'source' → deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, color: switchColorByCore(isCore), handleRole: 'source'",
+      "fix": "Changed model: deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, color: SWITCH_COLOR, handleRole: 'source' → deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, color: switchColorByCore(isCore), handleRole: 'source'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-06-13T05:52:21.037Z"
+    },
+    {
+      "id": "bug-339",
+      "timestamp": "2026-06-13T05:52:50.082Z",
+      "error_message": "Type error",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: // 连线颜色：取连接双方中优先级更高者的颜色 (WAN > Core > Access); const nbIsCore = /核心|core/i.test((n as any).neighbor_notes |",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-13T05:53:08.183Z"
     }
   ]
 }

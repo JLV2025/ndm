@@ -8,6 +8,8 @@
 // ============================================================
 export const DEVICE_COLORS: Record<string, string> = {
   switch: '#3B82F6',
+  'core-switch': '#3B82F6',
+  'access-switch': '#14B8A6',
   router: '#F59E0B',
   firewall: '#EF4444',
   wireless: '#8B5CF6',
