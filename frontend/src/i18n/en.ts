@@ -120,6 +120,7 @@ const en: Record<string, string> = {
 
   // Viewer
   'viewer.title': 'Configuration Viewer',
+  'viewer.description': 'View device running config and analysis results',
   'viewer.selectDevice': 'Select Device',
   'viewer.selectWeek': 'Select Week',
   'viewer.selectFile': 'Select File',
@@ -285,7 +286,7 @@ const en: Record<string, string> = {
 
   // Topology
   'topology.title': 'Port Connection Topology',
-  'topology.description': 'Switch port connections via LLDP topology data',
+  'topology.description': 'Switch port connections by merging CDP, LLDP and port description data',
   'topology.selectDevice': 'Select Device',
   'topology.empty': 'Select a device to view port connections',
   'topology.selectLocationHint': 'Select a Location First',

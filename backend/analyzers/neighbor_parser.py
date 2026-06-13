@@ -71,6 +71,7 @@ def _is_endpoint(name: str) -> bool:
         or "LAPTOP" in upper
         or "PRINTER" in upper
         or "TL-" in upper   # TP-Link 消费级
+        or "-AP" in upper or upper.startswith("AP")  # AP 接入点
         or upper.endswith(".C1D1") or upper.endswith(".842C")  # AP hostname 模式
         or upper.endswith(".9294") or upper.endswith(".93A8")
         or upper.endswith(".89B0")

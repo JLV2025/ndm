@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-13T05:53:08.162Z
-> Files: 135 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-13T07:49:51.387Z
+> Files: 137 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -53,7 +53,7 @@
 - `.gitignore` — Git ignore rules (~281 tok)
 - `CLAUDE.md` — CLAUDE.md (~954 tok)
 - `README_EN.md` — NDM — Network Device Manager (~1707 tok)
-- `README.md` — Project documentation (~1232 tok)
+- `README.md` — Project documentation (~1238 tok)
 - `security-review-report.md` — 后端代码安全审查报告 (~1406 tok)
 - `start.bat` (~1031 tok)
 - `用户手册.html` — QCNDM 网络配置管理系统 - 用户手册 (~6364 tok)
@@ -69,6 +69,14 @@
 ## .claude/rules/
 
 - `openwolf.md` (~313 tok)
+
+## .claude/skills/port-topology-canvas/
+
+- `SKILL.md` — 端口拓扑画布技能 (~815 tok)
+
+## .claude/skills/天龙五步/
+
+- `SKILL.md` — 天龙五步 (~810 tok)
 
 ## .gitnexus/
 
@@ -98,7 +106,7 @@
 - `change_detector.py` — ChangeDetector: detect (~1120 tok)
 - `config_parser.py` — class: parse (~2177 tok)
 - `config_validator.py` — ConfigValidator: validate, check_completeness, check_critical_items, check_syntax (~1129 tok)
-- `neighbor_parser.py` — CDP / LLDP 邻居解析器 (~3795 tok)
+- `neighbor_parser.py` — CDP / LLDP 邻居解析器 (~3962 tok)
 - `performance.py` — PerformanceAnalyzer: analyze (~5856 tok)
 
 ## backend/api/
@@ -110,7 +118,7 @@
 - `devices.py` — 设备管理 API 路由 (~3834 tok)
 - `stats.py` — Dashboard 统计 API (~2031 tok)
 - `topology_visio.py` — Visio .vdx 拓扑图导出 (~1695 tok)
-- `topology.py` — 拓扑图 API 路由 (~6316 tok)
+- `topology.py` — 拓扑图 API 路由 (~7926 tok)
 
 ## backend/collectors/
 
@@ -184,7 +192,7 @@
 
 ## frontend/src/
 
-- `App.tsx` — DRAWER_WIDTH — renders modal (~2607 tok)
+- `App.tsx` — DRAWER_WIDTH — renders modal (~2618 tok)
 - `index.css` — Stylesheet (~182 tok)
 - `index.tsx` — theme (~141 tok)
 - `main.tsx` — 字体自托管（打包进 dist，无需外网） (~2880 tok)
@@ -201,26 +209,26 @@
 - `CollectionProgress.tsx` — STEP_KEYS (~1114 tok)
 - `CollectResultDialog.tsx` — CollectResultDialog — renders modal (~1063 tok)
 - `DeleteConfirmDialog.tsx` — DeleteConfirmDialog — renders modal (~431 tok)
-- `DeviceCardGrid.tsx` — DeviceCardGrid (~1791 tok)
+- `DeviceCardGrid.tsx` — DeviceCardGrid (~1820 tok)
 - `DeviceTable.tsx` — DeviceTable — renders table (~2306 tok)
 - `deviceUtils.ts` — Exports getDeviceColor, getTypeLabel (~192 tok)
 - `FrontPanel.tsx` — 端口状态 → 颜色映射 (~6128 tok)
 - `ImportDialog.tsx` — ImportDialog — renders table, modal (~2782 tok)
-- `LocationFilter.tsx` — LocationFilter (~524 tok)
+- `LocationFilter.tsx` — LocationFilter (~543 tok)
 
 ## frontend/src/components/topology/
 
 - `DirectionPad.tsx` — DirectionPad (~444 tok)
 - `FrontPanelNode.tsx` — 为 true 时只显示计数，不画端口视觉元素（端点聚合用） (~2701 tok)
 - `LocationTopologyCanvas.tsx` — NODE_W (~6013 tok)
-- `PortTopologyCanvas.tsx` — 堆叠成员标签格式化：PVGD1SWI01-M1 → PVGD1SWI01 (Member 1) (~10596 tok)
+- `PortTopologyCanvas.tsx` — 堆叠成员标签格式化：PVGD1SWI01-M1 → PVGD1SWI01 (Member 1) (~11619 tok)
 - `TopologyCanvas.tsx` — TYPE_COLORS (~5109 tok)
 
 ## frontend/src/i18n/
 
-- `en.ts` — en: location (~3768 tok)
+- `en.ts` — en: location (~3796 tok)
 - `index.tsx` — dictionaries (~427 tok)
-- `zh.ts` — Declares zh (~2916 tok)
+- `zh.ts` — Declares zh (~2931 tok)
 
 ## frontend/src/pages/
 
@@ -230,9 +238,9 @@
 - `DeviceList.tsx` — DeviceList (~4160 tok)
 - `Login.tsx` — Login (~2286 tok)
 - `NetworkTopology.tsx` — LEGEND_ITEMS (~2124 tok)
-- `PortTopology.tsx` — fadeIn (~2121 tok)
+- `PortTopology.tsx` — fadeIn (~2167 tok)
 - `Topology.tsx` — LEGEND_ITEMS (~2527 tok)
-- `Viewer.tsx` — 语义颜色常量 — 对应 MUI OLED Dark 主题 (~8256 tok)
+- `Viewer.tsx` — 语义颜色常量 — 对应 MUI OLED Dark 主题 (~8234 tok)
 
 ## frontend/src/services/
 
@@ -241,7 +249,7 @@
 
 ## frontend/src/shared/
 
-- `constants.ts` — 全局共享常量 — 设备颜色、图例、端点前缀 (~1234 tok)
+- `constants.ts` — 全局共享常量 — 设备颜色、图例、端点前缀 (~1351 tok)
 
 ## frontend/src/test/
 
@@ -251,7 +259,7 @@
 ## frontend/src/types/
 
 - `index.ts` — Exports Device, CollectResult, BatchItemStatus, Session + 2 more (~429 tok)
-- `topology.ts` — Exports NeighborNode, TopologyData, LocationNode, LocationEdge, LocationTopologyData (~473 tok)
+- `topology.ts` — Exports NeighborNode, TopologyData, LocationNode, LocationEdge, LocationTopologyData (~494 tok)
 
 ## tests/
 

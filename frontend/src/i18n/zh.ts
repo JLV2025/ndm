@@ -120,6 +120,7 @@ const zh: Record<string, string> = {
 
   // 配置查看器
   'viewer.title': '配置查看器',
+  'viewer.description': '查看设备运行配置与分析结果',
   'viewer.selectDevice': '选择设备',
   'viewer.selectWeek': '选择周次',
   'viewer.selectFile': '选择文件',
@@ -287,7 +288,7 @@ const zh: Record<string, string> = {
 
   // 拓扑图
   'topology.title': '设备端口连接图',
-  'topology.description': '通过 LLDP 拓扑数据展示交换机端口连接关系',
+  'topology.description': '通过合并CDP、LLDP和端口描述的数据，展示交换机端口连接关系',
   'topology.selectDevice': '选择设备',
   'topology.empty': '请选择一个设备查看端口连接图',
   'topology.selectLocationHint': '请先选择位置',

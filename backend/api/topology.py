@@ -50,57 +50,128 @@ async def get_device_topology(device_name: str):
     if not config_path:
         raise HTTPException(status_code=404, detail=f"未找到设备 {device_name} 的 running-config 数据")
 
-    # 4. 读取 running-config.raw
+    # 3. 读取 running-config.raw
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             config_text = f.read()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"读取配置文件失败: {str(e)}")
+        logger.error(f"读取配置文件失败 ({config_path}): {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="读取配置文件时发生内部错误")
 
-    # 5. 推断设备类型（根据文件名或目录名中的提示）
+    # 4. 推断设备类型
     detected_type = _detect_device_type(config_text)
 
-    # 6. 检测堆叠成员
+    # 5. 检测堆叠成员
     members = _detect_stack_members(config_text, detected_type)
     if len(members) < 2:
         members = ["1"]
 
-    # 7. 用 ConfigParser 解析
-    parser = ConfigParser(device_type=detected_type)
-    results = parser.parse(config_text)
-
-    # 8. 按堆叠成员分配端口
-    def _member_for_iface(iface: str) -> str:
-        """根据接口名推断所属堆叠成员"""
-        if detected_type == "cisco_ios":
-            # Cisco StackWise: TwentyFiveGigE1/0/x → member 1, TwentyFiveGigE2/0/x → member 2
-            m = re.match(r'[A-Za-z]+(\d+)', iface)
-            if m:
-                slot = m.group(1)
-                if slot in members:
-                    return slot
-            return "1"
-        else:
-            # Aruba VSF: 1/1/x → member 1, 2/1/x → member 2
-            parts = iface.split('/')
-            if len(parts) >= 1 and parts[0].isdigit():
-                if parts[0] in members:
-                    return parts[0]
-            return "1"
-
-    # 9. 构建返回结果（按成员分组），含邻居设备型号/IP
-    member_neighbors: Dict[str, list] = {m: [] for m in members}
-
-    # 预加载 YAML 设备信息（用于补充邻居 IP/型号）
+    # 6. 预加载 YAML 设备信息
     device_info_map: Dict[str, dict] = {}
     try:
         from utils.settings_loader import load_devices
         for dev in load_devices().get("devices", []):
             device_info_map[dev.get("name", "")] = dev
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"加载 YAML 设备信息失败: {e}")
 
-    for entry in results:
+    # 7. 按堆叠成员分配端口
+    def _member_for_iface(iface: str) -> str:
+        if detected_type == "cisco_ios":
+            m = re.match(r'[A-Za-z]+(\d+)', iface)
+            if m and m.group(1) in members:
+                return m.group(1)
+            return "1"
+        else:
+            parts = iface.split('/')
+            if len(parts) >= 1 and parts[0].isdigit() and parts[0] in members:
+                return parts[0]
+            return "1"
+
+    member_neighbors: Dict[str, list] = {m: [] for m in members}
+
+    # ---- 数据源1: CDP/LLDP neighbors.json（网络设备邻居，准确无 LAG 虚口） ----
+    cdp_lldp_neighbors: Dict[str, List[dict]] = {}  # member → [items]
+    cdp_lldp_path, _ = _find_device_data_file(device_name, data_root, "neighbors.json")
+    if cdp_lldp_path:
+        try:
+            with open(cdp_lldp_path, "r", encoding="utf-8") as f:
+                cdp_data = json.load(f)
+            for nb in cdp_data.get("neighbors", []):
+                iface = nb.get("local_port", "")
+                nb_name = nb.get("neighbor_name", "")
+                if not nb_name or not iface:
+                    continue
+                # 过滤 LAG / Port-Channel 虚接口
+                if re.match(r'^(lag|port-channel)\s*\d', iface, re.IGNORECASE):
+                    continue
+                member = _member_for_iface(iface)
+                item = {
+                    "interface": iface,
+                    "description": nb.get("neighbor_desc", ""),
+                    "device_name": nb_name,
+                    "device_type": nb.get("neighbor_type", ""),
+                    "site_code": None,
+                    "dc": None,
+                    "device_number": None,
+                    "is_endpoint": False,
+                    "member": member,
+                    "neighbor_ip": device_info_map.get(nb_name, {}).get("ip", ""),
+                    "neighbor_model": nb.get("neighbor_platform", ""),
+                    "neighbor_notes": device_info_map.get(nb_name, {}).get("notes", "") or "",
+                    "_source": "cdp_lldp",
+                }
+                cdp_lldp_neighbors.setdefault(member, []).append(item)
+        except Exception as e:
+            logger.warning(f"读取 CDP/LLDP 数据失败: {e}")
+
+    # ---- 反查邻居设备的远程端口 ----
+    # CDP/LLDP 只记录本地端口，需查邻居的 neighbors.json 获取远程端口
+    neighbor_port_list: Dict[str, list] = {}  # 邻居名 → [(本地接口, member)]
+    for member in members:
+        for item in cdp_lldp_neighbors.get(member, []):
+            nb_name = item["device_name"]
+            if nb_name:
+                if nb_name not in neighbor_port_list:
+                    neighbor_port_list[nb_name] = []
+                neighbor_port_list[nb_name].append((item["interface"], member))
+
+    neighbor_port_map: Dict[tuple, str] = {}  # (邻居名, 本地接口) → 邻居侧端口
+    for nb_name, local_ports in neighbor_port_list.items():
+        try:
+            nb_nb_path, _ = _find_device_data_file(nb_name, data_root, "neighbors.json")
+            if nb_nb_path:
+                with open(nb_nb_path, "r", encoding="utf-8") as f:
+                    nb_nb_data = json.load(f)
+                # 收集邻居侧所有指向当前设备（device_name）的端口
+                remote_ports: List[str] = []
+                for nb_nb in nb_nb_data.get("neighbors", []):
+                    if nb_nb.get("neighbor_name") == device_name:
+                        rp = nb_nb.get("local_port", "")
+                        if rp and not re.match(r'^(lag|port-channel)\s*\d', rp, re.IGNORECASE):
+                            remote_ports.append(rp)
+                # 排序后按序配对，CDP/LLDP 端口通常有序，排序确保确定性
+                local_ports.sort(key=lambda x: x[0])
+                remote_ports.sort()
+                for i, (local_iface, _member) in enumerate(local_ports):
+                    if i < len(remote_ports):
+                        neighbor_port_map[(nb_name, local_iface)] = remote_ports[i]
+                    elif remote_ports:
+                        neighbor_port_map[(nb_name, local_iface)] = remote_ports[-1]
+        except Exception as e:
+            logger.warning(f"反查邻居 {nb_name} 远程端口失败: {e}")
+    # 把远程端口写入条目
+    for member in members:
+        for item in cdp_lldp_neighbors.get(member, []):
+            key = (item["device_name"], item["interface"])
+            if key in neighbor_port_map:
+                item["neighbor_interface"] = neighbor_port_map[key]
+
+    # ---- 数据源2: ConfigParser（端点设备，CDP/LLDP 过滤掉的 Phone/Printer/AP 等） ----
+    parser = ConfigParser(device_type=detected_type)
+    config_entries = parser.parse(config_text)
+    endpoints_by_member: Dict[str, List[dict]] = {}  # member → [items]
+    for entry in config_entries:
         member = _member_for_iface(entry.name)
         item = {
             "interface": entry.name,
@@ -115,8 +186,32 @@ async def get_device_topology(device_name: str):
             "neighbor_ip": device_info_map.get(entry.device_name, {}).get("ip", ""),
             "neighbor_model": device_info_map.get(entry.device_name, {}).get("model", ""),
             "neighbor_notes": device_info_map.get(entry.device_name, {}).get("notes", "") or "",
+            "_source": "config_parser",
         }
-        if member in member_neighbors:
+        endpoints_by_member.setdefault(member, []).append(item)
+
+    # ---- 合并: CDP/LLDP 优先（网络设备），ConfigParser 补端点 ----
+    for member in members:
+        cdp_items = cdp_lldp_neighbors.get(member, [])
+        ep_items = endpoints_by_member.get(member, [])
+        # CDP/LLDP 条目（网络设备）直接加入
+        seen_ports = set()
+        for item in cdp_items:
+            if item["device_name"]:
+                seen_ports.add((member, item["interface"]))
+                member_neighbors[member].append(item)
+        # ConfigParser 端点条目：仅当非 LAG 且未被 CDP/LLDP 覆盖时加入
+        for item in ep_items:
+            key = (member, item["interface"])
+            if not item["device_name"]:
+                continue
+            if not item["is_endpoint"]:
+                continue  # 非端点的 ConfigParser 条目不纳入（CDP/LLDP 更准）
+            if key in seen_ports:
+                continue
+            if re.match(r'^(lag|port-channel)\s*\d', item["interface"], re.IGNORECASE):
+                continue  # LAG 口在后端过滤
+            seen_ports.add(key)
             member_neighbors[member].append(item)
 
     # 过滤无标识端口
@@ -137,8 +232,8 @@ async def get_device_topology(device_name: str):
                 device_model = dev.get("model", "") or ""
                 device_ip = dev.get("ip", "") or ""
                 break
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"加载 YAML 设备信息失败: {e}")
 
     # 11. 为邻居交换机检测堆叠成员数
     neighbor_members_map: Dict[str, list] = {}
@@ -158,14 +253,27 @@ async def get_device_topology(device_name: str):
                 nb_members = _detect_stack_members(nb_config, nb_type)
                 if len(nb_members) > 1:
                     neighbor_members_map[nb_name] = nb_members
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"检测邻居 {nb_name} 堆叠成员失败: {e}")
 
     # 为每个 neighbor 条目附加邻居堆叠信息
     for item in neighbors:
         nb_name = item.get("device_name", "")
         if nb_name in neighbor_members_map:
             item["neighbor_members"] = neighbor_members_map[nb_name]
+
+    # 12. 拆分逗号分隔的设备型号，按成员分配
+    member_models: Dict[str, str] = {}
+    if device_model:
+        model_parts = [m.strip() for m in device_model.split(",") if m.strip()]
+        for i, member in enumerate(members):
+            if i < len(model_parts):
+                member_models[member] = model_parts[i]
+            elif model_parts:
+                member_models[member] = model_parts[-1]  # 型号不够则用最后一个
+    else:
+        for member in members:
+            member_models[member] = ""
 
     return {
         "device_name": device_name,
@@ -178,6 +286,7 @@ async def get_device_topology(device_name: str):
         "device_notes": device_notes,
         "device_model": device_model,
         "device_ip": device_ip,
+        "member_models": member_models,
     }
 
 
@@ -193,7 +302,7 @@ def _detect_device_type(config_text: str) -> str:
     """
     head = config_text[:3000]
     # Aruba CX: running-config 包含 "!Version ArubaOS-CX" 或 "ArubaOS-CX"
-    if 'ArubaOS-CX' in head or 'ArubaOS-CX' in head:
+    if 'ArubaOS-CX' in head:
         return "aruba_aoscx"
     # Cisco IOS: running-config 以 "version 16.9" 等形式开头，"boot system" 也是 Cisco 特有
     if 'Cisco IOS' in head or 'Cisco Internetwork Operating System' in head:
@@ -245,6 +354,13 @@ def _find_device_data_file(device_name: str, data_root: str, filename: str) -> t
     Returns:
         (file_path, week) 或 (None, None)
     """
+    # 防御纵深：无论调用者是否已验证，此处再做路径遍历检查
+    if not device_name or not isinstance(device_name, str):
+        return None, None
+    if '..' in device_name or '/' in device_name or '\\' in device_name:
+        return None, None
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', device_name):
+        return None, None
     week_dirs = []
     for entry in os.listdir(data_root):
         full_path = os.path.join(data_root, entry)

@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef } from 'react'
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
 import {
   ReactFlow, Node, Edge, Background, MarkerType, Handle, Position, BaseEdge,
   type NodeProps, type EdgeProps, type ReactFlowInstance,
@@ -13,7 +13,7 @@ import {
   Wifi as WifiIcon, Dns as DnsIcon, DevicesOther as DevicesOtherIcon,
 } from '@mui/icons-material'
 import { toPng } from 'html-to-image'
-import { getDeviceColor, getNodeColors, ENDPOINT_PREFIXES, isStackLink, isLagInterface, PORT_TOPOLOGY_LEGEND } from '../../shared/constants'
+import { getDeviceColor, getNodeColors, ENDPOINT_PREFIXES, ENDPOINT_TYPE_MAP, isStackLink, isLagInterface, PORT_TOPOLOGY_LEGEND } from '../../shared/constants'
 import { useI18n } from '../../i18n'
 import type { NeighborNode } from '../../types/topology'
 import DirectionPad from './DirectionPad'
@@ -33,14 +33,7 @@ const COMPACT_H = 42
 const ROW_GAP = 140
 const DEVICE_GAP = 44
 const STACK_GAP = 24
-const SIDEBAR_W = 104
-const SWITCH_COLOR_CORE = '#3B82F6'
-const SWITCH_COLOR_ACCESS = '#14B8A6'
-
-function switchColorByCore(isCoreSwitch: boolean): string {
-  return isCoreSwitch ? SWITCH_COLOR_CORE : SWITCH_COLOR_ACCESS
-}
-
+const SIDEBAR_W = 112
 // ============================================================
 // 设备图标 + 端口工具
 // ============================================================
@@ -96,30 +89,31 @@ interface SwitchNodeData {
   ip?: string
   topPorts: { id: string; label: string; color: string; neighborName: string }[]
   bottomPorts: { id: string; label: string; color: string; neighborName: string }[]
-  color: string
+  displayType: string  // 颜色类型键（core-switch / access-switch），用于取 fill/glow/border 三件套
   nodeWidth?: number
   handleRole?: 'source' | 'target'
 }
 
 function SwitchNode({ data }: NodeProps) {
-  const { label, model, ip, topPorts, bottomPorts, color, nodeWidth, handleRole } = data as unknown as SwitchNodeData
+  const { label, model, ip, topPorts, bottomPorts, displayType, nodeWidth, handleRole } = data as unknown as SwitchNodeData
   const nodeW = nodeWidth || SWITCH_W
   const ht = handleRole || 'source'
+  const nc = getNodeColors(displayType)
 
   return (
     <Box sx={{
       width: nodeW, height: SWITCH_H, position: 'relative',
-      borderRadius: 2, border: '2px solid', borderColor: `${color}99`,
-      bgcolor: `${color}08`,
-      boxShadow: `0 0 32px ${color}22, 0 4px 16px rgba(0,0,0,0.55), inset 0 1px 0 ${color}14`,
+      borderRadius: 2, border: '2px solid', borderColor: nc.border,
+      bgcolor: `${nc.fill}2A`,
+      boxShadow: `0 0 32px ${nc.glow}99, 0 4px 16px ${nc.glow}66, inset 0 1px 0 ${nc.glow}20`,
       fontFamily: '"Fira Code","Consolas",monospace',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
     }}>
       {/* 三排文字：名称 / 型号 / IP */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <HubIcon sx={{ fontSize: 28, color, filter: `drop-shadow(0 0 6px ${color}80)`, flexShrink: 0 }} />
+        <HubIcon sx={{ fontSize: 28, color: nc.glow, filter: `drop-shadow(0 0 6px ${nc.glow}80)`, flexShrink: 0 }} />
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-          <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: '#e2e8f0', letterSpacing: '0.04em', textShadow: `0 0 20px ${color}30`, lineHeight: 1.3 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '1rem', color: '#e2e8f0', letterSpacing: '0.04em', textShadow: `0 0 20px ${nc.glow}40`, lineHeight: 1.3 }}>
             {label}
           </Typography>
           {model && <Typography sx={{ fontSize: '0.8rem', color: '#94A3B8', fontFamily: '"Fira Code",monospace', fontWeight: 500, lineHeight: 1.3 }}>{model}</Typography>}
@@ -130,7 +124,7 @@ function SwitchNode({ data }: NodeProps) {
       {topPorts.map((p, idx) => {
         const x = getHandleX(idx, topPorts.length, nodeW)
         return (
-          <Box key={`tv-${p.id}`} sx={{ position: 'absolute', left: x - 16, top: 0, width: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2 }}>
+          <Box key={`tv-${p.id}-${p.neighborName}`} sx={{ position: 'absolute', left: x - 16, top: 0, width: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2 }}>
             <Handle id={p.id} type={ht} position={Position.Top} style={{ position: 'relative', left: 0, top: 0, transform: 'none', width: HANDLE_SIZE, height: HANDLE_SIZE, background: p.color, borderRadius: 2, border: 'none' }} />
             <Typography sx={{ fontSize: '0.85rem', color: '#94a3b8', mt: 0.2, fontFamily: '"Fira Code","Consolas",monospace', fontWeight: 600, lineHeight: 1, whiteSpace: 'nowrap' }}>{p.label}</Typography>
           </Box>
@@ -139,7 +133,7 @@ function SwitchNode({ data }: NodeProps) {
       {bottomPorts.map((p, idx) => {
         const x = getHandleX(idx, bottomPorts.length, nodeW)
         return (
-          <Box key={`bv-${p.id}`} sx={{ position: 'absolute', left: x - 16, bottom: 0, width: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2 }}>
+          <Box key={`bv-${p.id}-${p.neighborName}`} sx={{ position: 'absolute', left: x - 16, bottom: 0, width: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2 }}>
             <Typography sx={{ fontSize: '0.85rem', color: '#94a3b8', mb: 0.2, fontFamily: '"Fira Code","Consolas",monospace', fontWeight: 600, lineHeight: 1, whiteSpace: 'nowrap' }}>{p.label}</Typography>
             <Handle id={p.id} type={ht} position={Position.Bottom} style={{ position: 'relative', left: 0, bottom: 0, transform: 'none', width: HANDLE_SIZE, height: HANDLE_SIZE, background: p.color, borderRadius: 2, border: 'none' }} />
           </Box>
@@ -156,6 +150,7 @@ interface NeighborNodeData {
   label: string; deviceType: string; color: string; compact: boolean
   model?: string; ip?: string
   handleMode?: 'top' | 'bottom' | 'both'
+  count?: number  // 端点聚合数量
 }
 
 function toDisplayType(type: string): string {
@@ -165,11 +160,13 @@ function toDisplayType(type: string): string {
   if (type === 'sdwan') return 'sdwan'
   if (type === 'wireless') return 'wireless'
   if (type === 'server' || type === 'esxi') return 'server'
-  return 'server'
+  if (type === 'endpoint') return 'endpoint'
+  if (type === 'printer') return 'printer'
+  return 'endpoint'
 }
 
 function NeighborDeviceNode({ data, selected }: NodeProps) {
-  const { label, deviceType, color, compact, model, ip, handleMode } = data as unknown as NeighborNodeData
+  const { label, deviceType, color, compact, model, ip, handleMode, count } = data as unknown as NeighborNodeData
   const dt = toDisplayType(deviceType)
   const nc = getNodeColors(dt)
   const Icon = DEVICE_ICONS[deviceType] || DevicesOtherIcon
@@ -203,6 +200,7 @@ function NeighborDeviceNode({ data, selected }: NodeProps) {
       <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 0.2 }}>
         <Typography sx={{ fontFamily: '"Fira Code", monospace', fontSize: '1rem', fontWeight: 700, color: glowColor, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textShadow: `0 0 10px ${glowColor}66` }}>
           {label}
+          {count != null && count > 1 && <Box component="span" sx={{ color: '#94A3B8', fontWeight: 400, ml: 0.3, fontSize: '0.82rem' }}> ×{count}</Box>}
         </Typography>
         {model && (
           <Typography sx={{ fontFamily: '"Fira Code", monospace', fontSize: '0.82rem', fontWeight: 500, color: '#94A3B8', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{model}</Typography>
@@ -289,16 +287,17 @@ function buildRoundedPath(pts: number[][], r: number): string {
 // ============================================================
 // 主组件
 // ============================================================
-interface DevRow { name: string; type: string; ifaces: string[]; isEndpoint: boolean; model: string; ip: string }
+interface DevRow { name: string; type: string; ifaces: string[]; isEndpoint: boolean; model: string; ip: string; count?: number }
 
 interface Props {
   deviceName: string; neighbors: NeighborNode[]
   stackMembers?: string[]; memberNeighbors?: Record<string, NeighborNode[]>
   deviceNotes?: string; deviceModel?: string; deviceIp?: string
+  memberModels?: Record<string, string>
 }
 
 export default function PortTopologyCanvas({
-  deviceName, neighbors, stackMembers, memberNeighbors, deviceNotes, deviceModel, deviceIp,
+  deviceName, neighbors, stackMembers, memberNeighbors, deviceNotes, deviceModel, deviceIp, memberModels,
 }: Props) {
   const isCore = /核心|core/i.test(deviceNotes || '')
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null)
@@ -318,25 +317,77 @@ export default function PortTopologyCanvas({
 
   // ====== 设备信息映射（堆叠邻居展开为多成员） ======
   const devInfo = useMemo(() => {
-    const map = new Map<string, { type: string; ifaces: string[]; isEp: boolean; model: string; ip: string }>()
+    interface DevInfo { type: string; ifaces: string[]; isEp: boolean; model: string; ip: string; count: number; neighborIfaceMap: Map<string, string> }
+    const map = new Map<string, DevInfo>()
     const valid = neighbors.filter(n => n.device_name && n.device_name !== deviceName && !isStackLink(n.description) && !isLagInterface(n.interface))
-    // 收集每个逻辑设备的全部 ifaces
-    const raw = new Map<string, { type: string; ifaces: string[]; isEp: boolean; model: string; ip: string }>()
+    // 端点标签解析：前缀匹配 → device_type 映射 → is_endpoint 兜底
+    function getEndpointLabel(n: NeighborNode): string | null {
+      const pfx = ENDPOINT_PREFIXES.find(ep => n.device_name.startsWith(ep.prefix))
+      if (pfx) return pfx.label
+      const typeLabel = ENDPOINT_TYPE_MAP[n.device_type]
+      if (typeLabel) return typeLabel
+      if (n.is_endpoint) return '端点设备'
+      return null
+    }
+    // 收集每个逻辑设备的全部 ifaces + 邻居侧端口映射
+    const raw = new Map<string, DevInfo>()
     for (const n of valid) {
       let key: string; let dtype: string; let isEp: boolean
-      const pfx = ENDPOINT_PREFIXES.find(ep => n.device_name.startsWith(ep.prefix))
-      if (pfx) { key = pfx.label; dtype = 'endpoint'; isEp = true }
+      const epLabel = getEndpointLabel(n)
+      if (epLabel) { key = epLabel; dtype = 'endpoint'; isEp = true }
       else { key = n.device_name; dtype = n.device_type; isEp = n.is_endpoint }
-      if (!raw.has(key)) raw.set(key, { type: dtype, ifaces: [], isEp, model: (n as any).neighbor_model || '', ip: (n as any).neighbor_ip || '' })
+      if (!raw.has(key)) raw.set(key, { type: dtype, ifaces: [], isEp, model: (n as any).neighbor_model || '', ip: (n as any).neighbor_ip || '', count: 0, neighborIfaceMap: new Map() })
       raw.get(key)!.ifaces.push(n.interface)
+      // 记录后端反查的邻居侧端口（如 BJQD1SWI01 的 2/1/49）
+      if ((n as any).neighbor_interface) {
+        raw.get(key)!.neighborIfaceMap.set(n.interface, (n as any).neighbor_interface)
+      }
     }
-    // 展开堆叠邻居
+    // 端点计数
+    const endpointNameSets = new Map<string, Set<string>>()
+    for (const n of valid) {
+      const epLabel = getEndpointLabel(n)
+      if (epLabel) {
+        if (!endpointNameSets.has(epLabel)) endpointNameSets.set(epLabel, new Set())
+        endpointNameSets.get(epLabel)!.add(n.device_name)
+      }
+      else if (n.is_endpoint) {
+        const fallback = '端点设备'
+        if (!endpointNameSets.has(fallback)) endpointNameSets.set(fallback, new Set())
+        endpointNameSets.get(fallback)!.add(n.device_name)
+      }
+    }
+    for (const [label, names] of endpointNameSets) {
+      if (raw.has(label)) {
+        raw.get(label)!.count = raw.get(label)!.ifaces.length
+      }
+    }
+    // 展开堆叠邻居：按远程端口所属成员分配（neighbor_interface 如 2/1/49 → member 2）
     for (const [name, info] of raw) {
       const stk = neighborStackMap.get(name)
       if (stk && info.type === 'switch') {
-        stk.forEach((m, mi) => {
+        // 按 neighbor_interface 推断每条边对应哪个堆叠成员
+        const memberIfaces = new Map<string, string[]>()
+        for (const m of stk) memberIfaces.set(m, [])
+        for (const iface of info.ifaces) {
+          const nbIface = info.neighborIfaceMap.get(iface) || ''
+          // 从邻居侧端口推断成员：2/1/49 → member 2, 1/1/49 → member 1
+          const slotMatch = nbIface.match(/^(\d+)\//)
+          const slot = slotMatch ? slotMatch[1] : '1'
+          const targetM = stk.includes(slot) ? slot : stk[0]
+          if (!memberIfaces.has(targetM)) memberIfaces.set(targetM, [])
+          memberIfaces.get(targetM)!.push(iface)
+        }
+        // 按 neighbor_interface 推断的成员分配创建节点（无接口的成员仍会渲染空方框）
+        stk.forEach((m) => {
           const mk = `${name}-M${m}`
-          map.set(mk, { ...info, ifaces: info.ifaces.filter((_, i) => i % stk.length === mi) })
+          // 保留该成员对应的 neighborIfaceMap（仅保留属于该成员的接口映射）
+          const memberIfaceList = memberIfaces.get(m) || []
+          const subMap = new Map<string, string>()
+          for (const [iface, nbIface] of info.neighborIfaceMap) {
+            if (memberIfaceList.includes(iface)) subMap.set(iface, nbIface)
+          }
+          map.set(mk, { ...info, ifaces: memberIfaceList, neighborIfaceMap: subMap })
         })
       } else {
         map.set(name, info)
@@ -368,7 +419,7 @@ export default function PortTopologyCanvas({
     const endpointList: DevRow[] = []
 
     for (const [name, info] of devInfo) {
-      const d: DevRow = { name, type: info.type, ifaces: info.ifaces, isEndpoint: info.isEp, model: info.model, ip: info.ip }
+      const d: DevRow = { name, type: info.type, ifaces: info.ifaces, isEndpoint: info.isEp, model: info.model, ip: info.ip, count: info.count }
       if (isWanDevice(info.type, name)) { wanList.push(d) }
       else if (info.type === 'switch') {
         if (isCoreSwitch(name)) { upstreamCoreList.push(d) }
@@ -460,7 +511,7 @@ export default function PortTopologyCanvas({
             const nid = `switch-${member}`
             switchNodeIdSet.add(nid)
             nodes.push({ id: nid, type: 'switchNode', position: { x: cx, y: yCursor },
-              data: { label: `${deviceName} (Member ${member})`, model: deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, color: switchColorByCore(isCore), handleRole: 'source' } })
+              data: { label: `${deviceName} (Member ${member})`, model: memberModels?.[member] || deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, displayType: isCore ? 'core-switch' : 'access-switch', handleRole: 'source' } })
             maxDeviceRight = Math.max(maxDeviceRight, cx + SWITCH_W)
             cx += SWITCH_W + STACK_GAP
           }
@@ -469,7 +520,7 @@ export default function PortTopologyCanvas({
           const sx = (canvasW - SWITCH_W) / 2
           switchNodeIdSet.add('switch')
           nodes.push({ id: 'switch', type: 'switchNode', position: { x: sx, y: yCursor },
-            data: { label: deviceName, model: deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, color: switchColorByCore(isCore), handleRole: 'source' } })
+            data: { label: deviceName, model: deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, displayType: isCore ? 'core-switch' : 'access-switch', handleRole: 'source' } })
           maxDeviceRight = Math.max(maxDeviceRight, sx + SWITCH_W)
         }
         rowMetas.push({ yStart: rowYStart, maxH: SWITCH_H, maxRight: startX + lw })
@@ -483,10 +534,12 @@ export default function PortTopologyCanvas({
           const dw = isSwitchDevice(dev) ? SWITCH_W : devW(dev)
           const dh = isSwitchDevice(dev) ? SWITCH_H : devH(dev)
           if (isSwitchDevice(dev) && dev.ifaces.length > 0) {
+            const niMap = devInfo.get(dev.name)?.neighborIfaceMap  // 远程端口映射
             const sTop: { id: string; label: string; color: string; neighborName: string }[] = []
             const sBot: { id: string; label: string; color: string; neighborName: string }[] = []
             for (const iface of dev.ifaces) {
-              const pn = extractPortNumber(iface)
+              const nbIface = niMap?.get(iface) || iface
+              const pn = extractPortNumber(nbIface)  // 用邻居侧端口号作标签
               const ec = getDeviceColor(dev.type)
               if (pn % 2 === 0) sBot.push({ id: iface, label: String(pn), color: ec, neighborName: dev.name })
               else sTop.push({ id: iface, label: String(pn), color: ec, neighborName: dev.name })
@@ -495,11 +548,11 @@ export default function PortTopologyCanvas({
             sBot.sort((a, b) => extractPortNumber(a.id) - extractPortNumber(b.id))
             switchNodeIdSet.add(dev.name)
             nodes.push({ id: dev.name, type: 'switchNode', position: { x: cx, y: yCursor },
-              data: { label: formatDevLabel(dev.name), model: dev.model, ip: dev.ip, topPorts: sTop, bottomPorts: sBot, color: switchColorByCore(isCoreSwitch(dev.name)), nodeWidth: dw, handleRole: 'target' } })
+              data: { label: formatDevLabel(dev.name), model: dev.model, ip: dev.ip, topPorts: sTop, bottomPorts: sBot, displayType: isCoreSwitch(dev.name) ? 'core-switch' : 'access-switch', nodeWidth: dw, handleRole: 'target' } })
           } else {
             const hm = resolveHandleMode(activeLayers.indexOf(layer), activeLayers.length, dev)
             nodes.push({ id: dev.name, type: 'neighborNode', position: { x: cx, y: yCursor + (rowH - dh) / 2 },
-              data: { label: formatDevLabel(dev.name), deviceType: dev.type, color: dc, compact: dev.isEndpoint, model: dev.model, ip: dev.ip, handleMode: hm === 'switch' ? 'both' : hm } })
+              data: { label: formatDevLabel(dev.name), deviceType: dev.type, color: dc, compact: dev.isEndpoint, model: dev.model, ip: dev.ip, handleMode: hm === 'switch' ? 'both' : hm, count: dev.count } })
           }
           maxDeviceRight = Math.max(maxDeviceRight, cx + dw)
           cx += dw + gap
@@ -550,19 +603,24 @@ export default function PortTopologyCanvas({
       let targetName = n.device_name
       const stk = neighborStackMap.get(n.device_name)
       if (stk) {
-        const ifaceIdx = valid.filter(v => v.device_name === n.device_name).findIndex(v => v.interface === n.interface)
-        const memberIdx = ifaceIdx >= 0 ? ifaceIdx % stk.length : 0
-        targetName = `${n.device_name}-M${stk[memberIdx]}`
+        // 用邻居侧端口 (neighbor_interface) 推断所属堆叠成员: 2/1/49 → member 2
+        const nbIface = (n as any).neighbor_interface || ''
+        const slotMatch = nbIface.match(/^(\d+)\//)
+        const member = slotMatch && stk.includes(slotMatch[1]) ? slotMatch[1] : stk[0]
+        targetName = `${n.device_name}-M${member}`
       }
-      for (const ep of ENDPOINT_PREFIXES) { if (n.device_name.startsWith(ep.prefix)) { targetName = ep.label; break } }
+      const epPfx = ENDPOINT_PREFIXES.find(ep => n.device_name.startsWith(ep.prefix))
+      if (epPfx) { targetName = epPfx.label }
+      else if (ENDPOINT_TYPE_MAP[n.device_type]) { targetName = ENDPOINT_TYPE_MAP[n.device_type] }
+      else if (n.is_endpoint) { targetName = '端点设备' }
       const srcRow = nodeToRow.get(srcNodeId) ?? 0
       const tgtRow = nodeToRow.get(targetName) ?? (rowMetas.length - 1)
       const tgtNode = nodes.find(nn => nn.id === targetName)
 
-      // targetHandle（面向连接的方向）
+      // targetHandle（面向连接的方向）— 交换机用 neighbor_interface 端口号对齐端口创建逻辑
       const targetIsTop = tgtNode?.type === 'switchNode'
-        ? extractPortNumber(n.interface) % 2 !== 0
-        : tgtRow > srcRow  // 目标在源下方 → 用目标的上部 handle
+        ? extractPortNumber((n as any).neighbor_interface || n.interface) % 2 !== 0
+        : tgtRow > srcRow
       const targetHandle = tgtNode?.type === 'switchNode' ? n.interface : (targetIsTop ? 't' : 'b')
 
       // 管道索引：top handle → pipe[row], bottom handle → pipe[row+1]
@@ -593,8 +651,16 @@ export default function PortTopologyCanvas({
     }
 
     return { nodes, edges, horizPipes, vertPipeX }
-  }, [devInfo, isCore, deviceName, deviceModel, deviceIp, neighbors, stackMembers, memberNeighbors, neighborStackMap])
+  }, [devInfo, isCore, deviceName, deviceModel, deviceIp, memberModels, neighbors, stackMembers, memberNeighbors, neighborStackMap])
 
+  // ====== 布局完成后自动居中全屏适配 ======
+  useEffect(() => {
+    if (!rfInstance.current || nodes.length === 0) return
+    const timer = setTimeout(() => {
+      rfInstance.current?.fitView({ padding: 0.08, duration: 300, maxZoom: 1.5 })
+    }, 60)  // 等待 ReactFlow 内部渲染管线完成
+    return () => clearTimeout(timer)
+  }, [deviceName])  // 切换设备时重新适配
 
   // ====== 交互 ======
   const onNodeClick = useCallback((_e: React.MouseEvent, n: Node) => {
@@ -655,19 +721,19 @@ export default function PortTopologyCanvas({
         {/* 图例 */}
         <Paper
           sx={{
-            px: 0.6, py: 0.4, borderRadius: 2,
+            px: 1, py: 0.8, borderRadius: 2,
             bgcolor: 'rgba(15, 18, 35, 0.82)', backdropFilter: 'blur(10px)',
             border: '1px solid', borderColor: 'divider',
           }}
         >
-          <Typography sx={{ fontSize: '0.5rem', fontWeight: 700, color: 'text.disabled', mb: 0.3, letterSpacing: '0.04em', textTransform: 'uppercase', textAlign: 'center' }}>
+          <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: 'text.disabled', mb: 0.5, letterSpacing: '0.04em', textTransform: 'uppercase', textAlign: 'center' }}>
             {t('topology.legend')}
           </Typography>
-          <Stack gap={0.1}>
+          <Stack gap={0.35}>
             {PORT_TOPOLOGY_LEGEND.map((item) => (
-              <Box key={item.type} sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
-                <Box sx={{ width: 6, height: 6, borderRadius: '2px', bgcolor: item.color, flexShrink: 0 }} />
-                <Typography sx={{ fontSize: '0.5rem', fontWeight: 500, color: '#cbd5e1', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+              <Box key={item.type} sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                <Box sx={{ width: 10, height: 10, borderRadius: '2px', bgcolor: item.color, flexShrink: 0 }} />
+                <Typography sx={{ fontSize: '0.7rem', fontWeight: 500, color: '#cbd5e1', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
                   {lang === 'zh' ? item.labelZh : item.labelEn}
                 </Typography>
               </Box>

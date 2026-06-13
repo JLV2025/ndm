@@ -41,9 +41,10 @@ const DeviceCardGrid: React.FC<DeviceCardGridProps> = React.memo(({ devices, sel
                 bgcolor: 'background.paper',
                 border: '1px solid',
                 borderColor: 'divider',
-                transition: 'box-shadow 200ms ease, transform 200ms ease',
+                transition: 'box-shadow 200ms ease, transform 200ms ease, border-color 200ms ease',
                 '&:hover': {
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                  boxShadow: `0 4px 16px rgba(0,0,0,0.3), 0 0 20px ${colors.primary}22`,
+                  borderColor: colors.primary,
                   transform: 'translateY(-2px)',
                 },
               }}

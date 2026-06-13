@@ -33,6 +33,7 @@ export default function Topology() {
   const [deviceNotes, setDeviceNotes] = useState('')
   const [deviceModel, setDeviceModel] = useState('')
   const [deviceIp, setDeviceIp] = useState('')
+  const [memberModels, setMemberModels] = useState<Record<string, string>>({})
 
   useEffect(() => {
     deviceApi.list().then((res) => setDevices(res.data)).catch(console.error)
@@ -77,6 +78,7 @@ export default function Topology() {
         setDeviceNotes(data.device_notes || '')
         setDeviceModel(data.device_model || '')
         setDeviceIp(data.device_ip || '')
+        setMemberModels(data.member_models || {})
       })
       .catch((err) => {
         console.error(err)
@@ -89,18 +91,18 @@ export default function Topology() {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)', px: 2, pt: 1.5, pb: 0.5 }}>
-      {/* 页面头部 — 左侧绿色装饰条 */}
+      {/* 页面头部 — 青色装饰条（端口连接图主题色） */}
       <Box sx={{ mb: 2, display: 'flex', alignItems: 'flex-start', gap: 2, flexShrink: 0 }}>
         <Box
           sx={{
             width: 4, height: 48, borderRadius: 2,
-            bgcolor: 'primary.main',
-            boxShadow: '0 0 12px rgba(45, 212, 110, 0.35)',
+            bgcolor: '#14B8A6',
+            boxShadow: '0 0 12px rgba(20, 184, 166, 0.45)',
             flexShrink: 0, mt: 0.5,
           }}
         />
         <Box sx={{ flex: 1 }}>
-          <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary', mb: 0.25, letterSpacing: '-0.01em' }}>
+          <Typography variant="h4" sx={{ fontWeight: 700, color: 'text.primary', mb: 0.25, letterSpacing: '-0.01em' }}>
             {t('topology.title')}
           </Typography>
           <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.85rem', ml: 0.5 }}>
@@ -162,7 +164,7 @@ export default function Topology() {
           </Box>
         ) : (
           <Box key={selectedDevice.name} sx={{ width: '100%', height: '100%', flex: 1, minHeight: 0, animation: `${fadeIn} 0.45s ease` }}>
-            <PortTopologyCanvas deviceName={selectedDevice.name} neighbors={neighbors} stackMembers={stackMembers} memberNeighbors={memberNeighbors} deviceNotes={deviceNotes} deviceModel={deviceModel} deviceIp={deviceIp} />
+            <PortTopologyCanvas deviceName={selectedDevice.name} neighbors={neighbors} stackMembers={stackMembers} memberNeighbors={memberNeighbors} deviceNotes={deviceNotes} deviceModel={deviceModel} deviceIp={deviceIp} memberModels={memberModels} />
           </Box>
         )}
 

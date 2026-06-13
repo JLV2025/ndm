@@ -37,6 +37,7 @@
   4. 空层折叠: 某层无设备则下层上移
   5. 堆叠展开: 每个成员独立switchNode, 水平排列
   6. 邻居交换机识别: neighbor_notes含"核心"/"core"=上游核心; 堆叠名(-M1)需还原原名查找
+  7. 设备方框颜色+发光: SwitchNode用getNodeColors(displayType)取fill/glow/border三件套; NeighborDeviceNode用getNodeColors(toDisplayType); 禁止手写单色拼发光
   ## 第二步: Handle规则
   7. 交换机: 始终 switchNode, 上下两排 handle, 奇数Top/偶数Bottom
   8. 首层非交换机: bottom only; 末层非交换机: top only; 端点强制 top
@@ -79,6 +80,12 @@
 - [2026-06-07] 所有外部设备只能分 `top` 和 `bottom` 行，不能有 `center` 行（与交换机同行会导致连线水平穿过交换机节点）。
 - [2026-06-07] React 组件中 `const` 对象（如 `btnSx`）定义在组件函数 `}` 之后会导致 TDZ `ReferenceError: Cannot access 'k' before initialization`。SX 常量必须放在组件函数之前，或在 JSX 中直接 inline。
 - [2026-06-07] Vite build 必须在项目根目录（含 `index.html`）执行，不能在 cwd 不对时运行，否则报 `UNRESOLVED_ENTRY`。务必先 `cd frontend` 再 `npx vite build`。
+- [2026-06-13] 端口拓扑图数据源优先级：CDP/LLDP neighbors.json（网络设备物理端口）> ConfigParser running-config（端点设备），双源均在后端过滤 LAG 虚接口
+- [2026-06-13] 交换机颜色发光统一用 `getNodeColors(displayType)` 取 fill/glow/border 三件套，禁止 SwitchNode 手写单色拼发光
+- [2026-06-13] `neighbor_interface` 字段由后端反查邻居 CDP/LLDP 获取远程端口，前端端口标签 + handle + 堆叠成员分配均以此为准
+- [2026-06-13] 端点计数用 `ifaces.length`（每端口=一个物理端点）而非去重设备名，因 ConfigParser 可能返回统一 device_name
+- [2026-06-13] `except:pass` 静默吞异常 → 所有异常处理至少 `logger.warning()`
+- [2026-06-13] UI/UX 审查工具：`ui-ux-pro-max` 技能可用于搜索设计风格/配色/字体；Playwright browser_evaluate 可提取实时字号/颜色/间距数据
 - [2026-06-09] React Flow `useReactFlow()` 需要 `ReactFlowProvider` 祖先组件。自定义节点和控件面板应作为 `Panel` 放入 `<ReactFlow>` children 内，不要用 `ReactFlowProvider` 包裹外部 DOM。
 - [2026-06-09] 自定义 ReactFlow 节点必须包含 `<Handle>` 元素（即使 `visibility: 'hidden'`），否则边无处可连，画布上不显示连线。
 - [2026-06-09] Windows 批处理 `for /f` 内嵌 pipe `^|` + 重定向 `2^>nul` 在 Win11 cmd.exe 下转义不稳定。正确做法：先在 `for` 外执行 `command | findstr > tempfile`，再 `for /f` 读临时文件。

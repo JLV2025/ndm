@@ -42,6 +42,8 @@ export const NODE_COLORS: Record<string, NodeColorSet> = {
   wireless:        { fill: '#5B21B6', glow: '#8B5CF6', border: '#C4B5FD' },  // 深紫 → 紫 → 浅紫
   sdwan:           { fill: '#7C2D12', glow: '#F97316', border: '#FDBA74' },  // 深棕 → 橙 → 浅橙
   server:          { fill: '#155E75', glow: '#06B6D4', border: '#67E8F9' },  // 深青 → 青 → 浅青
+  endpoint:        { fill: '#374151', glow: '#94A3B8', border: '#CBD5E1' },  // 深灰 → 灰 → 浅灰
+  printer:         { fill: '#312E81', glow: '#6366F1', border: '#A5B4FC' },  // 深靛 → 靛 → 浅靛
 }
 
 export function getNodeColors(type: string): NodeColorSet {
@@ -108,3 +110,9 @@ export const ENDPOINT_PREFIXES = [
   { prefix: 'Laptop-',   label: '笔记本', labelEn: 'Laptops' },
   { prefix: 'Internet-', label: '互联网', labelEn: 'Internet' },
 ]
+
+/** 后端 device_type → 端点聚合标签（config_parser 的端点名不以 "AP" 等前缀开头时用） */
+export const ENDPOINT_TYPE_MAP: Record<string, string> = {
+  'Phone': '电话', 'Printer': '打印机', 'AP': '无线AP',
+  'Laptop': '笔记本', 'Internet': '互联网',
+}

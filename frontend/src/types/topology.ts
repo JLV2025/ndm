@@ -12,6 +12,7 @@ export interface NeighborNode {
   neighbor_model?: string
   neighbor_members?: string[]
   neighbor_notes?: string
+  neighbor_interface?: string
 }
 
 export interface TopologyData {
@@ -25,6 +26,7 @@ export interface TopologyData {
   device_notes?: string
   device_model?: string
   device_ip?: string
+  member_models?: Record<string, string>
 }
 
 // ============================================================

@@ -384,11 +384,10 @@ const Viewer: React.FC = () => {
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <Box>
             <Typography variant="h4" sx={{ fontWeight: 700 }}>
-              <span style={{ color: '#2DD46E' }}>Data</span>
-              <span style={{ color: '#F8FAFC' }}> Viewer</span>
+              <span style={{ color: '#2DD46E' }}>{t('viewer.title')}</span>
             </Typography>
             <Typography variant="subtitle2" color="text.secondary">
-              Configuration & Analysis Viewer
+              {t('viewer.description')}
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
