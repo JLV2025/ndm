@@ -6,7 +6,6 @@ import {
   Autocomplete,
   TextField,
   CircularProgress,
-  Stack,
   keyframes,
 } from '@mui/material'
 import { Hub as HubIcon } from '@mui/icons-material'
@@ -14,7 +13,6 @@ import { deviceApi, topologyApi } from '../services/api'
 import { useI18n } from '../i18n'
 import LocationFilter from '../components/devices/LocationFilter'
 import PortTopologyCanvas from '../components/topology/PortTopologyCanvas'
-import { PORT_TOPOLOGY_LEGEND } from '../shared/constants'
 import type { Device } from '../types'
 import type { NeighborNode } from '../types/topology'
 
@@ -24,7 +22,7 @@ const fadeIn = keyframes`
 `
 
 export default function Topology() {
-  const { t, lang } = useI18n()
+  const { t } = useI18n()
   const [devices, setDevices] = useState<Device[]>([])
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null)
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null)
@@ -168,34 +166,6 @@ export default function Topology() {
           </Box>
         )}
 
-        {/* 图例 — 画布左侧纵向排列 */}
-        {selectedDevice && !loading && (
-          <Paper
-            sx={{
-              position: 'absolute', left: 16, top: 16, zIndex: 10,
-              px: 1.2, py: 1, borderRadius: 2,
-              bgcolor: 'rgba(15, 18, 35, 0.78)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid', borderColor: 'divider',
-              animation: `${fadeIn} 0.35s ease`,
-              minWidth: 100,
-            }}
-          >
-            <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: 'text.disabled', mb: 0.6, letterSpacing: '0.06em', textTransform: 'uppercase', textAlign: 'center' }}>
-              {t('topology.legend')}
-            </Typography>
-            <Stack alignItems="flex-start" gap={0.4}>
-              {PORT_TOPOLOGY_LEGEND.map((item) => (
-                <Box key={item.type} sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Box sx={{ width: 8, height: 8, borderRadius: '2px', bgcolor: item.color, flexShrink: 0 }} />
-                  <Typography sx={{ fontSize: '0.58rem', fontWeight: 500, color: '#cbd5e1', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
-                    {lang === 'zh' ? item.labelZh : item.labelEn}
-                  </Typography>
-                </Box>
-              ))}
-            </Stack>
-          </Paper>
-        )}
       </Box>
     </Box>
   )

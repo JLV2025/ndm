@@ -91,6 +91,11 @@ export function isStackLink(desc: string): boolean {
   return STACK_KEYWORDS.some((kw) => desc.toLowerCase().includes(kw.toLowerCase()))
 }
 
+/** LAG（链路聚合）逻辑接口 — 不是物理端口，端口连接图中需过滤 */
+export function isLagInterface(iface: string): boolean {
+  return /^lag\s*\d/i.test(iface)
+}
+
 // ============================================================
 // 端点前缀聚合
 // ============================================================

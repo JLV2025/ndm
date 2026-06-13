@@ -114,6 +114,7 @@ async def get_device_topology(device_name: str):
             "member": member,
             "neighbor_ip": device_info_map.get(entry.device_name, {}).get("ip", ""),
             "neighbor_model": device_info_map.get(entry.device_name, {}).get("model", ""),
+            "neighbor_notes": device_info_map.get(entry.device_name, {}).get("notes", "") or "",
         }
         if member in member_neighbors:
             member_neighbors[member].append(item)
@@ -138,6 +139,33 @@ async def get_device_topology(device_name: str):
                 break
     except Exception:
         pass
+
+    # 11. 为邻居交换机检测堆叠成员数
+    neighbor_members_map: Dict[str, list] = {}
+    for nb in network_devices:
+        nb_name = nb["device_name"]
+        if not nb_name or nb_name in neighbor_members_map:
+            continue
+        # 仅对交换机检测堆叠
+        nb_type = nb.get("device_type", "")
+        if nb_type not in ("switch", "cisco_ios", "aruba_osswitch"):
+            continue
+        try:
+            nb_config_path, _ = _find_device_data_file(nb_name, data_root, "running-config.raw")
+            if nb_config_path:
+                with open(nb_config_path, "r", encoding="utf-8") as f:
+                    nb_config = f.read()
+                nb_members = _detect_stack_members(nb_config, nb_type)
+                if len(nb_members) > 1:
+                    neighbor_members_map[nb_name] = nb_members
+        except Exception:
+            pass
+
+    # 为每个 neighbor 条目附加邻居堆叠信息
+    for item in neighbors:
+        nb_name = item.get("device_name", "")
+        if nb_name in neighbor_members_map:
+            item["neighbor_members"] = neighbor_members_map[nb_name]
 
     return {
         "device_name": device_name,

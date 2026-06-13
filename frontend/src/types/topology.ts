@@ -10,6 +10,8 @@ export interface NeighborNode {
   member?: string
   neighbor_ip?: string
   neighbor_model?: string
+  neighbor_members?: string[]
+  neighbor_notes?: string
 }
 
 export interface TopologyData {

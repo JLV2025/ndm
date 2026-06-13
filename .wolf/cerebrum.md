@@ -29,6 +29,27 @@
 
 - [2026-06-10] 设备批量导入：CSV 格式，name/ip/type 必填，platform/location/notes/uplink_ports 可选。模板下载端点 `GET /devices/batch-import/template`，导入端点 `POST /devices/batch-import`。重名设备跳过不覆盖。FastAPI 中批量导入路由必须在 `/{name}` 参数化路由之前定义，否则 `batch-import` 会被当作设备名匹配。
 
+- [2026-06-13] **端口连接图绘制三步规则** (适用于所有端口连接图, 执行顺序严格):
+  ## 第一步: 布局规则
+  1. 层定义: L1=WAN(router/firewall/sdwan), L2=上游核心交换机, L3=选中设备, L4=下级交换机+端点
+  2. 核心选中(isCore): WAN? → ★Core → 接入交换机+端点(同层)
+  3. 接入选中(!isCore): WAN? → 上游核心? → ★Access → 下级交换机+端点(同层)
+  4. 空层折叠: 某层无设备则下层上移
+  5. 堆叠展开: 每个成员独立switchNode, 水平排列
+  6. 邻居交换机识别: neighbor_notes含"核心"/"core"=上游核心; 堆叠名(-M1)需还原原名查找
+  ## 第二步: Handle规则
+  7. 交换机: 始终 switchNode, 上下两排 handle, 奇数Top/偶数Bottom
+  8. 首层非交换机: bottom only; 末层非交换机: top only; 端点强制 top
+  ## 第三步: 连线规则
+  9. 水平管道: N层→N+1条(每层上方1条+最下层下方1条); 垂直管道: 选中设备行最右+100px
+  10. 高层设备出线(优先级 WAN>Core>Access>End), 用高层设备颜色
+  11. 端口出线: top handle→最近管道(pipe[row]); bottom handle→pipe[row+1]
+  12. 同管道两侧: 源→垂直进管道→水平到目标X→垂直到目标
+  13. 跨管道: 源→垂直进源管道→右转垂直管道→上行/下行→目标管道→水平到目标X→垂直到目标
+  14. 转角: buildRoundedPath(二次贝塞尔, 半径12px); 管道内线段可重合
+  ## 过滤
+  15. LAG(isLagInterface), 自身引用, 堆叠线(isStackLink)
+
 ## Do-Not-Repeat
 
 - [2026-06-10] **拓扑图 LocationTopologyCanvas 遗留问题**：

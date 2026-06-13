@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-12T14:08:50.570Z
-> Files: 133 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-13T05:40:36.277Z
+> Files: 135 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -110,7 +110,7 @@
 - `devices.py` — 设备管理 API 路由 (~3834 tok)
 - `stats.py` — Dashboard 统计 API (~2031 tok)
 - `topology_visio.py` — Visio .vdx 拓扑图导出 (~1695 tok)
-- `topology.py` — 拓扑图 API 路由 (~5985 tok)
+- `topology.py` — 拓扑图 API 路由 (~6316 tok)
 
 ## backend/collectors/
 
@@ -213,7 +213,7 @@
 - `DirectionPad.tsx` — DirectionPad (~444 tok)
 - `FrontPanelNode.tsx` — 为 true 时只显示计数，不画端口视觉元素（端点聚合用） (~2701 tok)
 - `LocationTopologyCanvas.tsx` — NODE_W (~6013 tok)
-- `PortTopologyCanvas.tsx` — SWITCH_W (~6698 tok)
+- `PortTopologyCanvas.tsx` — 堆叠成员标签格式化：PVGD1SWI01-M1 → PVGD1SWI01 (Member 1) (~10402 tok)
 - `TopologyCanvas.tsx` — TYPE_COLORS (~5109 tok)
 
 ## frontend/src/i18n/
@@ -230,7 +230,7 @@
 - `DeviceList.tsx` — DeviceList (~4160 tok)
 - `Login.tsx` — Login (~2286 tok)
 - `NetworkTopology.tsx` — LEGEND_ITEMS (~2124 tok)
-- `PortTopology.tsx` — fadeIn (~2538 tok)
+- `PortTopology.tsx` — fadeIn (~2121 tok)
 - `Topology.tsx` — LEGEND_ITEMS (~2527 tok)
 - `Viewer.tsx` — 语义颜色常量 — 对应 MUI OLED Dark 主题 (~8256 tok)
 
@@ -238,6 +238,10 @@
 
 - `api.ts` — API routes: GET, POST, DELETE, PATCH (12 endpoints) (~1239 tok)
 - `auth.ts` — Exports sessionManager (~826 tok)
+
+## frontend/src/shared/
+
+- `constants.ts` — 全局共享常量 — 设备颜色、图例、端点前缀 (~1217 tok)
 
 ## frontend/src/test/
 
@@ -247,12 +251,9 @@
 ## frontend/src/types/
 
 - `index.ts` — Exports Device, CollectResult, BatchItemStatus, Session + 2 more (~429 tok)
-- `topology.ts` — Exports NeighborNode, TopologyData, LocationNode, LocationEdge, LocationTopologyData (~456 tok)
+- `topology.ts` — Exports NeighborNode, TopologyData, LocationNode, LocationEdge, LocationTopologyData (~473 tok)
 
 ## tests/
 
-- `README.md` — Project documentation (~197 tok)
----
-| 22:10 | 更新 anatomy.md + 新建 PortTopologyCanvas.tsx | .wolf/anatomy.md | 完成 | ~0.2k
-
 - `PortTopologyCanvas.tsx` — 端口连接图独立画布：分层布局(交换机体+端口Handle+邻居设备)、click高亮、方向键偏移、PNG/Visio导出 (~5800 tok)
+- `README.md` — Project documentation (~197 tok)

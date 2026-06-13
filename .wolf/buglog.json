@@ -4786,6 +4786,614 @@
       "related_bugs": [],
       "occurrences": 2,
       "last_seen": "2026-06-12T14:07:48.980Z"
+    },
+    {
+      "id": "bug-300",
+      "timestamp": "2026-06-12T14:15:20.898Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/PortTopology.tsx",
+      "root_cause": "Had '../shared/constants'",
+      "fix": "Changed to '../types'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T14:15:20.898Z"
+    },
+    {
+      "id": "bug-301",
+      "timestamp": "2026-06-12T14:15:27.323Z",
+      "error_message": "Wrong reference: lang should be useI18n",
+      "file": "frontend/src/pages/PortTopology.tsx",
+      "root_cause": "Used \"lang\" instead of \"useI18n\"",
+      "fix": "Changed lang → useI18n",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T14:15:27.323Z"
+    },
+    {
+      "id": "bug-302",
+      "timestamp": "2026-06-12T14:17:22.485Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-12T14:17:22.485Z"
+    },
+    {
+      "id": "bug-303",
+      "timestamp": "2026-06-13T01:41:03.519Z",
+      "error_message": "CSS fix: fontSize",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "fontSize: '0.65rem', color: '#94a3b8', mt: 0.3, fontFamily: '\"Fira Code\",\"Consolas\",monospace', fontWeight: 500, lineHeight: 1, whiteSpace: 'nowrap' → '0.85rem', color: '#94a3b8', mb: 0.2, fontFamily: '\"Fira Code\",\"Consolas\",monospace', fontWeight: 600, lineHeight: 1, whiteSpace: 'nowrap'",
+      "fix": "Changed fontSize: '0.65rem', color: '#94a3b8', mt: 0.3, fontFamily: '\"Fira Code\",\"Consolas\",monospace', fontWeight: 500, lineHeight: 1, whiteSpace: 'nowrap' → '0.85rem', color: '#94a3b8', mb: 0.2, fontFamily: '\"Fira Code\",\"Consolas\",monospace', fontWeight: 600, lineHeight: 1, whiteSpace: 'nowrap'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T01:41:03.519Z"
+    },
+    {
+      "id": "bug-304",
+      "timestamp": "2026-06-13T01:51:53.274Z",
+      "error_message": "Wrong reference: SWITCH_W should be nodeW",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Used \"SWITCH_W\" instead of \"nodeW\"",
+      "fix": "Changed SWITCH_W → nodeW",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T01:51:53.274Z"
+    },
+    {
+      "id": "bug-305",
+      "timestamp": "2026-06-13T01:53:06.942Z",
+      "error_message": "CSS fix: id, source",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "id: `e-${n.interface → `e-${srcNodeId; source: 'switch', sourceHandle: n.interface, → srcNodeId, sourceHandle: n.interface,",
+      "fix": "Changed id: `e-${n.interface → `e-${srcNodeId; source: 'switch', sourceHandle: n.interface, → srcNodeId, sourceHandle: n.interface,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T01:53:06.942Z"
+    },
+    {
+      "id": "bug-306",
+      "timestamp": "2026-06-13T01:53:20.538Z",
+      "error_message": "Wrong condition in logic",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Condition was: if (n.id !== 'switch' && !n.id.startsWith('_')",
+      "fix": "Changed to: if (!n.id.startsWith('switch')",
+      "tags": [
+        "auto-detected",
+        "logic-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-06-13T01:54:24.438Z"
+    },
+    {
+      "id": "bug-307",
+      "timestamp": "2026-06-13T02:00:45.676Z",
+      "error_message": "CSS fix: display, fontWeight",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "display: 'flex', gap: 3, mt: 0.5 → 'flex', flexDirection: 'column', alignItems: 'flex-start'; fontWeight: 700, fontSize: '1.35rem', color: '#e2e8f0', letterSpacing: '0.04em', textShadow: `0 0 20px ${color → 700, fontSize: '1rem', color: '#e2e8f0', letterSpacing: '0.04em', textShadow: `0 0 20px ${color",
+      "fix": "Changed display: 'flex', gap: 3, mt: 0.5 → 'flex', flexDirection: 'column', alignItems: 'flex-start'; fontWeight: 700, fontSize: '1.35rem', color: '#e2e8f0', letterSpacing: '0.04em', textShadow: `0 0 20px ${color → 700, fontSize: '1rem', color: '#e2e8f0', letterSpacing: '0.04em', textShadow: `0 0 20px ${color",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-13T02:01:22.597Z"
+    },
+    {
+      "id": "bug-308",
+      "timestamp": "2026-06-13T02:01:11.881Z",
+      "error_message": "Wrong reference: 360 should be 720",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Used \"360\" instead of \"720\"",
+      "fix": "Changed 360 → 720",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-06-13T02:02:14.009Z"
+    },
+    {
+      "id": "bug-309",
+      "timestamp": "2026-06-13T02:08:14.911Z",
+      "error_message": "Wrong reference: 540 should be 460",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Used \"540\" instead of \"460\"",
+      "fix": "Changed 540 → 460",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-13T02:09:19.102Z"
+    },
+    {
+      "id": "bug-310",
+      "timestamp": "2026-06-13T02:51:40.679Z",
+      "error_message": "Type error",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T02:51:40.679Z"
+    },
+    {
+      "id": "bug-311",
+      "timestamp": "2026-06-13T02:53:00.368Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T02:53:00.368Z"
+    },
+    {
+      "id": "bug-312",
+      "timestamp": "2026-06-13T03:00:46.827Z",
+      "error_message": "Wrong reference: 200 should be 50",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Used \"200\" instead of \"50\"",
+      "fix": "Changed 200 → 50",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T03:00:46.827Z"
+    },
+    {
+      "id": "bug-313",
+      "timestamp": "2026-06-13T03:00:59.004Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "No early return/throw for edge case: horizPipes == null || vertPipeX == null",
+      "fix": "Added guard clause: if (horizPipes == null || vertPipeX == null)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T03:00:59.004Z"
+    },
+    {
+      "id": "bug-314",
+      "timestamp": "2026-06-13T03:01:06.871Z",
+      "error_message": "CSS fix: null",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "null: e.target) → e.source)",
+      "fix": "Changed null: e.target) → e.source)",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T03:01:06.871Z"
+    },
+    {
+      "id": "bug-315",
+      "timestamp": "2026-06-13T03:06:05.142Z",
+      "error_message": "Type error",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T03:06:05.142Z"
+    },
+    {
+      "id": "bug-316",
+      "timestamp": "2026-06-13T03:10:36.430Z",
+      "error_message": "Wrong reference: 130 should be 104",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Used \"130\" instead of \"104\"",
+      "fix": "Changed 130 → 104",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T03:10:36.430Z"
+    },
+    {
+      "id": "bug-317",
+      "timestamp": "2026-06-13T03:10:58.399Z",
+      "error_message": "CSS fix: width",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "width: '100%', height: '100%', borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider', bgcolor: '#0a0e1a', position: 'relative' → SIDEBAR_W, flexShrink: 0, zIndex: 20,",
+      "fix": "Changed width: '100%', height: '100%', borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider', bgcolor: '#0a0e1a', position: 'relative' → SIDEBAR_W, flexShrink: 0, zIndex: 20,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T03:10:58.399Z"
+    },
+    {
+      "id": "bug-318",
+      "timestamp": "2026-06-13T03:18:17.996Z",
+      "error_message": "Wrong operator: && should be ||",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Used \"&&\" instead of \"||\"",
+      "fix": "Changed operator && → ||",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T03:18:17.996Z"
+    },
+    {
+      "id": "bug-319",
+      "timestamp": "2026-06-13T03:28:19.721Z",
+      "error_message": "CSS fix: ifaces",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "ifaces: string[] → info.ifaces.filter((_, i) => i % stk.length === mi)",
+      "fix": "Changed ifaces: string[] → info.ifaces.filter((_, i) => i % stk.length === mi)",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-13T03:31:11.118Z"
+    },
+    {
+      "id": "bug-320",
+      "timestamp": "2026-06-13T03:31:17.989Z",
+      "error_message": "Type error",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T03:31:17.989Z"
+    },
+    {
+      "id": "bug-321",
+      "timestamp": "2026-06-13T03:39:27.807Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 22→42 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T03:39:27.807Z"
+    },
+    {
+      "id": "bug-322",
+      "timestamp": "2026-06-13T03:40:28.621Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T03:40:28.621Z"
+    },
+    {
+      "id": "bug-323",
+      "timestamp": "2026-06-13T03:44:20.807Z",
+      "error_message": "Wrong reference: source should be ht",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Used \"source\" instead of \"ht\"",
+      "fix": "Changed source → ht",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-13T03:44:26.264Z"
+    },
+    {
+      "id": "bug-324",
+      "timestamp": "2026-06-13T03:44:52.435Z",
+      "error_message": "CSS fix: model",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "model: deviceModel, ip: deviceIp, topPorts: mTopPorts, bottomPorts: mBottomPorts, color: SWITCH_COLOR → deviceModel, ip: deviceIp, topPorts: mTopPorts, bottomPorts: mBottomPorts, color: SWITCH_COLOR, handleRole: 'source'",
+      "fix": "Changed model: deviceModel, ip: deviceIp, topPorts: mTopPorts, bottomPorts: mBottomPorts, color: SWITCH_COLOR → deviceModel, ip: deviceIp, topPorts: mTopPorts, bottomPorts: mBottomPorts, color: SWITCH_COLOR, handleRole: 'source'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 6,
+      "last_seen": "2026-06-13T03:49:05.912Z"
+    },
+    {
+      "id": "bug-325",
+      "timestamp": "2026-06-13T03:52:36.506Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "No early return/throw for edge case: nodes.length === 0",
+      "fix": "Added guard clause: if (nodes.length === 0)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-13T03:53:40.991Z"
+    },
+    {
+      "id": "bug-326",
+      "timestamp": "2026-06-13T03:52:56.252Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 10→5 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T03:52:56.252Z"
+    },
+    {
+      "id": "bug-327",
+      "timestamp": "2026-06-13T03:53:04.665Z",
+      "error_message": "Wrong return value",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Was returning: { nodes, edges, pipeDebug: { horizPipes, vertPipeX",
+      "fix": "Now returns: { nodes, edges }",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T03:53:04.665Z"
+    },
+    {
+      "id": "bug-328",
+      "timestamp": "2026-06-13T03:53:58.448Z",
+      "error_message": "Wrong reference: useMemo should be horizPipes",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Used \"useMemo\" instead of \"horizPipes\"",
+      "fix": "Changed useMemo → horizPipes",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T03:53:58.448Z"
+    },
+    {
+      "id": "bug-329",
+      "timestamp": "2026-06-13T03:54:55.579Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T03:54:55.579Z"
+    },
+    {
+      "id": "bug-330",
+      "timestamp": "2026-06-13T04:07:33.409Z",
+      "error_message": "Type error",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T04:07:33.409Z"
+    },
+    {
+      "id": "bug-331",
+      "timestamp": "2026-06-13T04:42:10.003Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "No early return/throw for edge case: l.isSelectedSwitch",
+      "fix": "Added guard clause: if (l.isSelectedSwitch)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T04:42:10.003Z"
+    },
+    {
+      "id": "bug-332",
+      "timestamp": "2026-06-13T04:42:51.235Z",
+      "error_message": "Wrong reference: maxH should be rowH",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Used \"maxH\" instead of \"rowH\"",
+      "fix": "Changed maxH → rowH",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T04:42:51.235Z"
+    },
+    {
+      "id": "bug-333",
+      "timestamp": "2026-06-13T04:42:56.780Z",
+      "error_message": "CSS fix: yStart",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "yStart: rowYStart, maxH: maxH, maxRight: startX + lw → rowYStart, maxH: rowH, maxRight: startX + lw",
+      "fix": "Changed yStart: rowYStart, maxH: maxH, maxRight: startX + lw → rowYStart, maxH: rowH, maxRight: startX + lw",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T04:42:56.780Z"
+    },
+    {
+      "id": "bug-334",
+      "timestamp": "2026-06-13T04:43:04.139Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 7→3 lines (4 removed) | Also: // 判断邻居交换机是否为上游核心（YAML notes 含\"核心\"或\"Core\"或\"core\"）; const notes = (neighbors.find(n => n.device_name =",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-13T04:45:38.397Z"
+    },
+    {
+      "id": "bug-335",
+      "timestamp": "2026-06-13T04:45:31.209Z",
+      "error_message": "Wrong return value",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Was returning: ((nn as any)?.neighbor_notes || '').includes('核心')",
+      "fix": "Now returns: nLow.includes('核心') || nLow.includes('core')",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T04:45:31.209Z"
+    },
+    {
+      "id": "bug-336",
+      "timestamp": "2026-06-13T05:07:31.212Z",
+      "error_message": "CSS fix: data",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "data: { label: formatDevLabel(dev.name), deviceType: dev.type, color: dc, compact: dev.isEndpoint, model: dev.model, ip: dev.ip, handleMode: dev.isEndpoint ? 'top' : hm → { label: formatDevLabel(dev.name), deviceType: dev.type, color: dc, compact: dev.isEndpoint, model: dev.model, ip: dev.ip, handleMode: hm === 'switch' ? 'both' : hm",
+      "fix": "Changed data: { label: formatDevLabel(dev.name), deviceType: dev.type, color: dc, compact: dev.isEndpoint, model: dev.model, ip: dev.ip, handleMode: dev.isEndpoint ? 'top' : hm → { label: formatDevLabel(dev.name), deviceType: dev.type, color: dc, compact: dev.isEndpoint, model: dev.model, ip: dev.ip, handleMode: hm === 'switch' ? 'both' : hm",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T05:07:31.212Z"
+    },
+    {
+      "id": "bug-337",
+      "timestamp": "2026-06-13T05:40:24.548Z",
+      "error_message": "CSS fix: interface, data",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "interface: (tgtRow < srcRow ? 'b' : 't') → (targetIsTop ? 't' : 'b'); data: { horizPipes, vertPipeX, sourcePipeIdx: sp, targetPipeIdx: tp → { horizPipes, vertPipeX, sourcePipeIdx: pipeSrc, targetPipeIdx: pipeTgt, swap",
+      "fix": "Changed interface: (tgtRow < srcRow ? 'b' : 't') → (targetIsTop ? 't' : 'b'); data: { horizPipes, vertPipeX, sourcePipeIdx: sp, targetPipeIdx: tp → { horizPipes, vertPipeX, sourcePipeIdx: pipeSrc, targetPipeIdx: pipeTgt, swap",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-13T05:40:24.548Z"
     }
   ]
 }
