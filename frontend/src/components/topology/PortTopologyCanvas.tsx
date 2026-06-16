@@ -74,6 +74,31 @@ function isWanDevice(type: string, name: string): boolean {
     || name.startsWith('Internet') || name.startsWith('互联网')
 }
 
+/** 从设备名推断选中设备所属层级 */
+function getSelectedTier(deviceName: string, notes?: string): 'wan' | 'core' | 'access' {
+  const typeCode = deviceName.length >= 8 ? deviceName.substring(5, 8).toUpperCase() : ''
+  if (['RTW', 'FWL', 'SDW'].includes(typeCode)) return 'wan'
+  if (typeCode === 'SWI' || typeCode === 'QIS') {
+    const nLow = (notes || '').toLowerCase()
+    return (nLow.includes('核心') || nLow.includes('core')) ? 'core' : 'access'
+  }
+  return 'access'
+}
+
+/** 从设备名推断选中设备的显示类型（决定颜色） */
+function getSelectedDisplayType(deviceName: string, notes?: string): string {
+  const typeCode = deviceName.length >= 8 ? deviceName.substring(5, 8).toUpperCase() : ''
+  if (typeCode === 'RTW') return 'router'
+  if (typeCode === 'FWL') return 'firewall'
+  if (typeCode === 'SDW') return 'sdwan'
+  if (typeCode === 'WLC') return 'wireless'
+  if (typeCode === 'SWI' || typeCode === 'QIS') {
+    const nLow = (notes || '').toLowerCase()
+    return (nLow.includes('核心') || nLow.includes('core')) ? 'core-switch' : 'access-switch'
+  }
+  return 'access-switch'
+}
+
 function getEdgeColor(deviceType: string, deviceName: string, isCoreSw?: boolean): string {
   if (isWanDevice(deviceType, deviceName)) return getDeviceColor(deviceType)
   if (deviceType === 'switch') return getDeviceColor(isCoreSw ? 'core-switch' : 'access-switch')
@@ -89,16 +114,19 @@ interface SwitchNodeData {
   ip?: string
   topPorts: { id: string; label: string; color: string; neighborName: string }[]
   bottomPorts: { id: string; label: string; color: string; neighborName: string }[]
-  displayType: string  // 颜色类型键（core-switch / access-switch），用于取 fill/glow/border 三件套
+  displayType: string
   nodeWidth?: number
   handleRole?: 'source' | 'target'
+  handleSide?: 'top' | 'bottom' | 'both'  // 控制哪些边显示 Handle（默认 both）
 }
 
 function SwitchNode({ data }: NodeProps) {
-  const { label, model, ip, topPorts, bottomPorts, displayType, nodeWidth, handleRole } = data as unknown as SwitchNodeData
+  const { label, model, ip, topPorts, bottomPorts, displayType, nodeWidth, handleRole, handleSide } = data as unknown as SwitchNodeData
   const nodeW = nodeWidth || SWITCH_W
   const ht = handleRole || 'source'
   const nc = getNodeColors(displayType)
+  const showTop = (handleSide || 'both') !== 'bottom'
+  const showBottom = (handleSide || 'both') !== 'top'
 
   return (
     <Box sx={{
@@ -121,7 +149,7 @@ function SwitchNode({ data }: NodeProps) {
         </Box>
       </Box>
 
-      {topPorts.map((p, idx) => {
+      {showTop && topPorts.map((p, idx) => {
         const x = getHandleX(idx, topPorts.length, nodeW)
         return (
           <Box key={`tv-${p.id}-${p.neighborName}`} sx={{ position: 'absolute', left: x - 16, top: 0, width: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2 }}>
@@ -130,7 +158,7 @@ function SwitchNode({ data }: NodeProps) {
           </Box>
         )
       })}
-      {bottomPorts.map((p, idx) => {
+      {showBottom && bottomPorts.map((p, idx) => {
         const x = getHandleX(idx, bottomPorts.length, nodeW)
         return (
           <Box key={`bv-${p.id}-${p.neighborName}`} sx={{ position: 'absolute', left: x - 16, bottom: 0, width: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 2 }}>
@@ -155,6 +183,7 @@ interface NeighborNodeData {
 
 function toDisplayType(type: string): string {
   if (type === 'switch') return 'access-switch'
+  if (type === 'core-switch') return 'core-switch'
   if (type === 'router') return 'router'
   if (type === 'firewall') return 'firewall'
   if (type === 'sdwan') return 'sdwan'
@@ -428,21 +457,43 @@ export default function PortTopologyCanvas({
       else { endpointList.push(d) }
     }
 
-    // 模板层：空层折叠
+    // 模板层：按选中设备类型动态排列
+    // 规则：WAN 在最上排 → Core → 选中设备所在层 → 接入/端点层
     interface Layer { label: string; isSelectedSwitch: boolean; devs: DevRow[]; stackGap: boolean }
     const layers: Layer[] = []
+    const selectedTier = getSelectedTier(deviceName, deviceNotes)
 
-    if (isCore) {
-      if (wanList.length > 0) layers.push({ label: 'WAN', isSelectedSwitch: false, devs: wanList, stackGap: false })
-      layers.push({ label: 'Core', isSelectedSwitch: true, devs: [], stackGap: false })
-      const L3 = [...downstreamSwList, ...endpointList]
-      if (L3.length > 0) layers.push({ label: 'Access', isSelectedSwitch: false, devs: L3, stackGap: true })
+    // 收集非选中设备层的邻居
+    const wanNeighbors: DevRow[] = []
+    const coreNeighbors: DevRow[] = []
+    const accessNeighbors: DevRow[] = []
+    const endNeighbors: DevRow[] = []
+
+    for (const d of [...wanList, ...upstreamCoreList, ...downstreamSwList, ...endpointList]) {
+      // 这些分类已经在上面按 isWanDevice / isCoreSwitch 分好了
+      if (isWanDevice(d.type, d.name)) { wanNeighbors.push(d) }
+      else if (d.type === 'switch' && isCoreSwitch(d.name)) { coreNeighbors.push(d) }
+      else if (d.isEndpoint) { endNeighbors.push(d) }
+      else { accessNeighbors.push(d) }  // 非核心交换机、非端点
+    }
+
+    if (selectedTier === 'wan') {
+      // 选中设备是 WAN → 放第一排
+      layers.push({ label: 'WAN', isSelectedSwitch: true, devs: wanNeighbors, stackGap: false })
+      const coreAndBelow = [...coreNeighbors, ...accessNeighbors, ...endNeighbors]
+      if (coreAndBelow.length > 0) layers.push({ label: 'Switch', isSelectedSwitch: false, devs: coreAndBelow, stackGap: true })
+    } else if (selectedTier === 'core') {
+      if (wanNeighbors.length > 0) layers.push({ label: 'WAN', isSelectedSwitch: false, devs: wanNeighbors, stackGap: false })
+      layers.push({ label: 'Core', isSelectedSwitch: true, devs: coreNeighbors, stackGap: false })
+      const below = [...accessNeighbors, ...endNeighbors]
+      if (below.length > 0) layers.push({ label: 'Access', isSelectedSwitch: false, devs: below, stackGap: true })
     } else {
-      if (wanList.length > 0) layers.push({ label: 'WAN', isSelectedSwitch: false, devs: wanList, stackGap: false })
-      if (upstreamCoreList.length > 0) layers.push({ label: 'Core', isSelectedSwitch: false, devs: upstreamCoreList, stackGap: false })
+      // selectedTier === 'access'（默认）
+      if (wanNeighbors.length > 0) layers.push({ label: 'WAN', isSelectedSwitch: false, devs: wanNeighbors, stackGap: false })
+      if (coreNeighbors.length > 0) layers.push({ label: 'Core', isSelectedSwitch: false, devs: coreNeighbors, stackGap: false })
       layers.push({ label: 'Access', isSelectedSwitch: true, devs: [], stackGap: false })
-      const L4 = [...downstreamSwList, ...endpointList]
-      if (L4.length > 0) layers.push({ label: 'End', isSelectedSwitch: false, devs: L4, stackGap: false })
+      const below = [...accessNeighbors, ...endNeighbors]
+      if (below.length > 0) layers.push({ label: 'End', isSelectedSwitch: false, devs: below, stackGap: false })
     }
 
     // 折叠空层：移除无设备的非交换机行
@@ -480,14 +531,16 @@ export default function PortTopologyCanvas({
     let maxDeviceRight = 0
 
     // 选中交换机端口构建
-    function buildSwitchPorts(ifaceList: NeighborNode[]): { top: typeof allTopPorts; bottom: typeof allTopPorts } {
+    // side: 'both' → 按奇偶分配上下；'bottom' → 全部放底部；'top' → 全部放顶部
+    function buildSwitchPorts(ifaceList: NeighborNode[], side?: 'top' | 'bottom' | 'both'): { top: typeof allTopPorts; bottom: typeof allTopPorts } {
       const allTopPorts: { id: string; label: string; color: string; neighborName: string }[] = []
       const allBottomPorts: { id: string; label: string; color: string; neighborName: string }[] = []
       for (const n of ifaceList) {
         const pn = extractPortNumber(n.interface)
         const isNbCore = /核心|core/i.test((n as any).neighbor_notes || '')
         const ec = getEdgeColor(n.device_type, n.device_name, isNbCore)
-        if (pn % 2 === 0) allBottomPorts.push({ id: n.interface, label: String(pn), color: ec, neighborName: n.device_name })
+        const useBottom = side === 'bottom' ? true : side === 'top' ? false : (pn % 2 === 0)
+        if (useBottom) allBottomPorts.push({ id: n.interface, label: String(pn), color: ec, neighborName: n.device_name })
         else allTopPorts.push({ id: n.interface, label: String(pn), color: ec, neighborName: n.device_name })
       }
       allTopPorts.sort((a, b) => extractPortNumber(a.id) - extractPortNumber(b.id))
@@ -502,25 +555,28 @@ export default function PortTopologyCanvas({
       const startX = (canvasW - lw) / 2
 
       if (layer.isSelectedSwitch) {
+        // 选中设备 Handle 方向：WAN 设备在第一层，只用底部 Handle
+        const selHandleSide = selectedTier === 'wan' ? 'bottom' as const : 'both' as const
+
         if (hasStack) {
           let cx = startX
           for (const member of stackMembers!) {
             const memberValid = (memberNeighbors![member] || [])
               .filter(n => n.device_name && n.device_name !== deviceName && !isStackLink(n.description) && !isLagInterface(n.interface))
-            const { top, bottom } = buildSwitchPorts(memberValid)
+            const { top, bottom } = buildSwitchPorts(memberValid, selHandleSide)
             const nid = `switch-${member}`
             switchNodeIdSet.add(nid)
             nodes.push({ id: nid, type: 'switchNode', position: { x: cx, y: yCursor },
-              data: { label: `${deviceName} (Member ${member})`, model: memberModels?.[member] || deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, displayType: isCore ? 'core-switch' : 'access-switch', handleRole: 'source' } })
+              data: { label: `${deviceName} (Member ${member})`, model: memberModels?.[member] || deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, displayType: getSelectedDisplayType(deviceName, deviceNotes), handleRole: 'source', handleSide: selHandleSide } })
             maxDeviceRight = Math.max(maxDeviceRight, cx + SWITCH_W)
             cx += SWITCH_W + STACK_GAP
           }
         } else {
-          const { top, bottom } = buildSwitchPorts(valid)
+          const { top, bottom } = buildSwitchPorts(valid, selHandleSide)
           const sx = (canvasW - SWITCH_W) / 2
           switchNodeIdSet.add('switch')
           nodes.push({ id: 'switch', type: 'switchNode', position: { x: sx, y: yCursor },
-            data: { label: deviceName, model: deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, displayType: isCore ? 'core-switch' : 'access-switch', handleRole: 'source' } })
+            data: { label: deviceName, model: deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, displayType: getSelectedDisplayType(deviceName, deviceNotes), handleRole: 'source', handleSide: selHandleSide } })
           maxDeviceRight = Math.max(maxDeviceRight, sx + SWITCH_W)
         }
         rowMetas.push({ yStart: rowYStart, maxH: SWITCH_H, maxRight: startX + lw })
@@ -533,13 +589,13 @@ export default function PortTopologyCanvas({
           const dc = getDeviceColor(dev.type)
           const dw = isSwitchDevice(dev) ? SWITCH_W : devW(dev)
           const dh = isSwitchDevice(dev) ? SWITCH_H : devH(dev)
-          if (isSwitchDevice(dev) && dev.ifaces.length > 0) {
-            const niMap = devInfo.get(dev.name)?.neighborIfaceMap  // 远程端口映射
+          if (isSwitchDevice(dev)) {
+            const niMap = devInfo.get(dev.name)?.neighborIfaceMap
             const sTop: { id: string; label: string; color: string; neighborName: string }[] = []
             const sBot: { id: string; label: string; color: string; neighborName: string }[] = []
             for (const iface of dev.ifaces) {
               const nbIface = niMap?.get(iface) || iface
-              const pn = extractPortNumber(nbIface)  // 用邻居侧端口号作标签
+              const pn = extractPortNumber(nbIface)
               const ec = getDeviceColor(dev.type)
               if (pn % 2 === 0) sBot.push({ id: iface, label: String(pn), color: ec, neighborName: dev.name })
               else sTop.push({ id: iface, label: String(pn), color: ec, neighborName: dev.name })
@@ -577,17 +633,21 @@ export default function PortTopologyCanvas({
     const vertPipeX = maxDeviceRight + 100
 
     // ============ 连线 ============
+    // 选中设备 handle 方向会影响源端管道索引
+    const selSrcSide: string = selectedTier === 'wan' ? 'bottom' : 'both'
     const edgeSources: { srcNodeId: string; neighbor: NeighborNode; srcIsTopHandle: boolean }[] = []
     if (hasStack) {
       for (const member of stackMembers!) {
         for (const n of (memberNeighbors![member] || [])) {
           if (!n.device_name || n.device_name === deviceName || isStackLink(n.description) || isLagInterface(n.interface)) continue
-          edgeSources.push({ srcNodeId: `switch-${member}`, neighbor: n, srcIsTopHandle: extractPortNumber(n.interface) % 2 !== 0 })
+          const isTop = selSrcSide === 'bottom' ? false : selSrcSide === 'top' ? true : extractPortNumber(n.interface) % 2 !== 0
+          edgeSources.push({ srcNodeId: `switch-${member}`, neighbor: n, srcIsTopHandle: isTop })
         }
       }
     } else {
       for (const n of valid) {
-        edgeSources.push({ srcNodeId: 'switch', neighbor: n, srcIsTopHandle: extractPortNumber(n.interface) % 2 !== 0 })
+        const isTop = selSrcSide === 'bottom' ? false : selSrcSide === 'top' ? true : extractPortNumber(n.interface) % 2 !== 0
+        edgeSources.push({ srcNodeId: 'switch', neighbor: n, srcIsTopHandle: isTop })
       }
     }
 
@@ -632,13 +692,15 @@ export default function PortTopologyCanvas({
       const pipeSrc = swap ? tgtPipe : srcPipe  // 高层设备的管道
       const pipeTgt = swap ? srcPipe : tgtPipe  // 低层设备的管道
 
-      // 连线颜色：取连接双方中优先级更高者的颜色 (WAN > Core > Access)
+      // 连线颜色：从高级设备出发，用高级设备的颜色 (WAN > Core > Access)
+      const srcDisplayType = getSelectedDisplayType(deviceName, deviceNotes)
       const nbIsCore = /核心|core/i.test((n as any).neighbor_notes || '')
-      const connIsCore = isCore || nbIsCore
-      const isWanConn = isWanDevice(n.device_type, n.device_name)
-      const connType = isWanConn ? n.device_type : (connIsCore ? 'core-switch' : 'access-switch')
+      const srcIsWan = isWanDevice(srcDisplayType, srcDisplayType)  // WAN 类型颜色键在 isWanDevice 也会匹配
+      const nbIsWan = isWanDevice(n.device_type, n.device_name)
+      const connType = (srcIsWan || nbIsWan) ? (srcIsWan ? srcDisplayType : n.device_type)
+        : (isCore || nbIsCore) ? 'core-switch' : 'access-switch'
       const ec = getDeviceColor(connType)
-      const isWan = isWanDevice(n.device_type, n.device_name)
+      const isWan = srcIsWan || nbIsWan
       edges.push({
         id: `e-${srcNodeId}-${n.interface}-${targetName}`,
         source: srcNodeId, sourceHandle: n.interface,

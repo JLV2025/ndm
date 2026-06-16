@@ -63,6 +63,10 @@ class ConfigParser:
         """
         解析 running-config 文本，提取所有 interface + description 配对
 
+        过滤规则：
+          - 跳过 VLAN / mgmt / loopback / port-channel 虚接口
+          - 跳过带 shutdown 的端口（admin down 的端口邻居数据不可靠）
+
         Args:
             config_text: running-config 的完整文本
 
@@ -71,16 +75,26 @@ class ConfigParser:
         """
         entries: List[InterfaceEntry] = []
         current_interface: Optional[str] = None
+        pending_entry: Optional[InterfaceEntry] = None
+        interface_shutdown: bool = False  # 当前 interface 块内是否出现 shutdown
         skip_prefixes = ('vlan', 'mgmt', 'loopback', 'port-channel')
+
+        def _flush_pending():
+            """提交待定条目：仅在接口未被 shutdown 时写入结果"""
+            nonlocal pending_entry, interface_shutdown
+            if pending_entry and not interface_shutdown:
+                entries.append(pending_entry)
+            pending_entry = None
+            interface_shutdown = False
 
         for line in config_text.splitlines():
             stripped = line.strip()
 
-            # 检测 interface 行
+            # 检测 interface 行 → 先提交上一个接口的待定条目
             if_match = re.match(r'^interface\s+(.+?)\s*$', stripped, re.IGNORECASE)
             if if_match:
+                _flush_pending()
                 iface_name = if_match.group(1)
-                # 跳过 VLAN、管理口、Loopback、Port-Channel 等虚拟接口
                 lower_name = iface_name.lower()
                 if any(lower_name.startswith(prefix) for prefix in skip_prefixes):
                     current_interface = None
@@ -88,7 +102,15 @@ class ConfigParser:
                     current_interface = iface_name
                 continue
 
-            # 检测 description 行
+            # shutdown / no shutdown：在 interface 块内任意位置都生效
+            if re.match(r'^\s*shutdown\s*$', line):
+                interface_shutdown = True
+                continue
+            if re.match(r'^\s*no\s+shutdown\s*$', line):
+                interface_shutdown = False
+                continue
+
+            # 检测 description 行（同一接口只取第一个 description）
             desc_match = re.match(r'^\s*description\s+(.+?)\s*$', stripped)
             if desc_match and current_interface:
                 desc_text = desc_match.group(1).strip()
@@ -104,8 +126,12 @@ class ConfigParser:
                     entry.dc = device_info.get('dc')
                     entry.device_number = device_info.get('device_number')
                     entry.is_endpoint = device_info.get('is_endpoint', False)
-                entries.append(entry)
-                current_interface = None  # 重置，避免同一接口重复匹配
+                pending_entry = entry
+                current_interface = None  # 防止同一接口重复匹配
+                continue
+
+        # 文件末尾：提交最后一个待定条目
+        _flush_pending()
 
         return entries
 

@@ -374,6 +374,10 @@ def collect_device(
             cdp_neighbors_raw, lldp_neighbors_raw
         )
 
+        _set_progress(device_name, "complete")
+        # 延迟清除，给前端轮询窗口读取 "complete" 状态
+        import time
+        time.sleep(0.5)
         _clear_progress(device_name)
         return {
             "name": device_name,
