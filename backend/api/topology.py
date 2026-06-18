@@ -7,6 +7,7 @@ import json
 import logging
 from typing import Dict, List
 from analyzers.config_parser import ConfigParser
+from analyzers.role_verifier import RoleVerifier
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -726,4 +727,64 @@ def _expand_physical_devices(location_devices: list[dict]) -> list[dict]:
             expanded.append(d)
 
     return expanded
+
+
+# ============================================================
+# 角色核查 API
+# ============================================================
+
+@router.get("/topology/{device_name}/role-verify")
+async def verify_device_role(device_name: str):
+    """
+    核查单台交换机的角色标注
+
+    交叉验证 YAML notes 与 LLDP 邻居拓扑数据，
+    检测标注缺失、连接不一致、命名冲突等问题。
+
+    Returns:
+        { device, passed, warnings: [{ rule, message, severity }] }
+    """
+    if not device_name or not isinstance(device_name, str):
+        raise HTTPException(status_code=400, detail="设备名称无效")
+    if '..' in device_name or '/' in device_name or '\\' in device_name:
+        raise HTTPException(status_code=400, detail="设备名称包含非法字符")
+
+    data_root = _get_data_root()
+    config_root = os.path.normpath(os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "config"
+    ))
+
+    verifier = RoleVerifier(data_root=data_root, config_root=config_root)
+    warnings = verifier.verify_device(device_name)
+
+    return {
+        "device": device_name,
+        "passed": len(warnings) == 0,
+        "warnings": [
+            {"rule": w.rule, "message": w.message, "severity": w.severity}
+            for w in warnings
+        ],
+    }
+
+
+@router.get("/topology/location/{location}/role-audit")
+async def audit_location_roles(location: str):
+    """
+    整站角色审计
+
+    Returns:
+        { location, devices, warnings, summary }
+    """
+    if not location or not isinstance(location, str):
+        raise HTTPException(status_code=400, detail="站点代码无效")
+
+    data_root = _get_data_root()
+    config_root = os.path.normpath(os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "..", "config"
+    ))
+
+    verifier = RoleVerifier(data_root=data_root, config_root=config_root)
+    result = verifier.audit_location(location.upper())
+
+    return result
 

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-16T09:17:09.261Z
-> Files: 13 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-18T08:54:39.213Z
+> Files: 21 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -64,6 +64,10 @@
 ## .claude/skills/port-topology-canvas/
 
 
+## .claude/skills/work-wrap-up/
+
+- `SKILL.md` — 收工（前台执行五阶段） (~53 tok)
+
 ## .claude/skills/天龙五步/
 
 
@@ -74,6 +78,11 @@
 
 - `CLAUDE.md` — OpenWolf (~157 tok)
 
+## C:/Users/jingl/.claude/plans/
+
+- `pure-scribbling-swan-agent-ae40f92d6c925300d.md` — NDM 端口拓扑图 — 右齐布局 + 设备角色检测 实施计划 (~5389 tok)
+- `pure-scribbling-swan.md` — 端口拓扑图右对齐布局 + 设备角色标注/核查 (~1099 tok)
+
 ## agents/
 
 
@@ -83,9 +92,12 @@
 ## backend/analyzers/
 
 - `config_parser.py` — class: parse (~2461 tok)
+- `role_verifier.py` — 设备角色核查，交叉验证 YAML notes 与 LLDP 拓扑 (~350 tok)
+- `role_verifier.py` — class: devices, device_map, verify_device, audit_location (~3428 tok)
 
 ## backend/api/
 
+- `topology.py` — 拓扑图 API 路由 (~8691 tok)
 
 ## backend/collectors/
 
@@ -111,6 +123,7 @@
 
 ## config/
 
+- `devices.yaml` (~1947 tok)
 
 ## data/
 
@@ -134,7 +147,7 @@
 
 ## frontend/src/components/topology/
 
-- `PortTopologyCanvas.tsx` — 从设备名推断选中设备所属层级 (~12808 tok)
+- `PortTopologyCanvas.tsx` — 解析设备命名规范：PVGD1SWI02 → { site: "PVG", room: "D1", typeCode: "SWI", num: 2 } (~13968 tok)
 
 ## frontend/src/i18n/
 
@@ -147,6 +160,7 @@
 
 ## frontend/src/shared/
 
+- `constants.ts` — 全局共享常量 — 设备颜色、图例、端点前缀 (~1380 tok)
 
 ## frontend/src/test/
 

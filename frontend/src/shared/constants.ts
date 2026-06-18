@@ -35,8 +35,9 @@ export interface NodeColorSet {
 }
 
 export const NODE_COLORS: Record<string, NodeColorSet> = {
-  'core-switch':   { fill: '#1E3A8A', glow: '#3B82F6', border: '#93C5FD' },  // 深蓝 → 蓝 → 浅蓝
-  'access-switch': { fill: '#0F766E', glow: '#14B8A6', border: '#5EEAD4' },  // 深绿 → 绿 → 浅绿
+  'core-switch':    { fill: '#1E3A8A', glow: '#3B82F6', border: '#93C5FD' },  // 深蓝 → 蓝 → 浅蓝
+  'access-switch':  { fill: '#0F766E', glow: '#14B8A6', border: '#5EEAD4' },  // 深绿 → 绿 → 浅绿
+  'cascade-switch': { fill: '#292524', glow: '#A8A29E', border: '#D6D3D1' },  // 暖石灰 → 灰 → 浅灰（串接交换机）
   router:          { fill: '#B45309', glow: '#F59E0B', border: '#FCD34D' },  // 深橙 → 橙 → 浅橙
   firewall:        { fill: '#991B1B', glow: '#EF4444', border: '#FCA5A5' },  // 深红 → 红 → 浅红
   wireless:        { fill: '#5B21B6', glow: '#8B5CF6', border: '#C4B5FD' },  // 深紫 → 紫 → 浅紫

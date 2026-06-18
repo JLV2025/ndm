@@ -122,7 +122,7 @@ devices:
   location: PVG
   model: WS-C3560-48PS-S
   name: PVGD1SWI03
-  notes: null
+  notes: Cascade Switch
   platform: cisco_ios
   serial_number: CAT1016R5C8
   type: cisco_ios
@@ -133,7 +133,7 @@ devices:
   location: PVG
   model: WS-C3560G-48TS-S
   name: PVGD1SWI04
-  notes: null
+  notes: Cascade Switch
   platform: cisco_ios
   serial_number: FOC1218Y00B
   type: cisco_ios
@@ -144,7 +144,7 @@ devices:
   location: PVG
   model: WS-C2960X-48FPD-L
   name: PVGD1SWI05
-  notes: null
+  notes: Cascade Switch
   platform: cisco_ios
   serial_number: FCW2133A1EJ, FCW2133A1KP
   type: cisco_ios
@@ -154,7 +154,7 @@ devices:
   last_synced: 06/16/2026 14:31
   location: SZX
   name: SZXD1SWI02
-  notes: null
+  notes: Access Switch
   platform: aruba_aoscx
   serial_number: JAE244602AG
   type: aruba_aoscx
@@ -187,7 +187,7 @@ devices:
   location: ZGN
   model: JL724A 6200F
   name: ZGND2SWI01
-  notes: null
+  notes: Access Switch
   platform: aruba_aoscx
   serial_number: SG27KW400H
   type: aruba_aoscx
@@ -198,7 +198,7 @@ devices:
   location: ZGN
   model: JL726A 6200F
   name: ZGND2SWI02
-  notes: null
+  notes: Access Switch
   platform: aruba_aoscx
   serial_number: SG27KW605Z
   type: aruba_aoscx
@@ -209,7 +209,7 @@ devices:
   location: ZGN
   model: JL724A 6200F
   name: ZGND3SWI01
-  notes: null
+  notes: Access Switch
   platform: aruba_aoscx
   serial_number: SG27KW402W
   type: aruba_aoscx
@@ -281,7 +281,7 @@ devices:
   location: KOR
   model: JL727B 6200F
   name: KORD1SWI02
-  notes: null
+  notes: Access Switch
   platform: aruba_aoscx
   serial_number: CN5BLM904W, CN5BLM904Z
   type: aruba_aoscx

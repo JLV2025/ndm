@@ -6114,6 +6114,262 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-16T09:16:01.267Z"
+    },
+    {
+      "id": "bug-383",
+      "timestamp": "2026-06-18T06:34:36.712Z",
+      "error_message": "Significant refactor of ",
+      "file": "C:/Users/jingl/.claude/plans/pure-scribbling-swan.md",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 12→24 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-18T06:34:36.712Z"
+    },
+    {
+      "id": "bug-384",
+      "timestamp": "2026-06-18T06:46:07.094Z",
+      "error_message": "Wrong reference: canvasW should be alignRight",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Used \"canvasW\" instead of \"alignRight\"",
+      "fix": "Changed canvasW → alignRight",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-18T06:48:17.110Z"
+    },
+    {
+      "id": "bug-385",
+      "timestamp": "2026-06-18T06:51:33.288Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 13→34 lines (7 removed) | Also: // 管道索引：top handle → pipe[row], bottom handle → pi; const srcPipe = clamp(srcIsTopHandle ? srcRow : sr",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-18T06:52:33.228Z"
+    },
+    {
+      "id": "bug-386",
+      "timestamp": "2026-06-18T06:54:39.707Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Had 'bottom'",
+      "fix": "Changed to 'both'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-18T06:54:39.707Z"
+    },
+    {
+      "id": "bug-387",
+      "timestamp": "2026-06-18T07:01:53.869Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "No early return/throw for edge case: !m",
+      "fix": "Added guard clause: if (!m)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-18T07:01:53.869Z"
+    },
+    {
+      "id": "bug-388",
+      "timestamp": "2026-06-18T07:02:48.088Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 8→51 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-18T07:02:48.088Z"
+    },
+    {
+      "id": "bug-389",
+      "timestamp": "2026-06-18T07:09:52.934Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/topology.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-18T07:09:52.934Z"
+    },
+    {
+      "id": "bug-390",
+      "timestamp": "2026-06-18T07:13:25.833Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/analyzers/role_verifier.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 11→17 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-18T07:13:25.834Z"
+    },
+    {
+      "id": "bug-391",
+      "timestamp": "2026-06-18T07:52:13.054Z",
+      "error_message": "Wrong reference: alignRight should be canvasW",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Used \"alignRight\" instead of \"canvasW\"",
+      "fix": "Changed alignRight → canvasW",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-18T07:52:27.733Z"
+    },
+    {
+      "id": "bug-392",
+      "timestamp": "2026-06-18T07:53:22.521Z",
+      "error_message": "CSS fix: padding",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "padding: 0.08, duration: 300, maxZoom: 1.5 → 0.12, duration: 300",
+      "fix": "Changed padding: 0.08, duration: 300, maxZoom: 1.5 → 0.12, duration: 300",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-18T07:53:22.521Z"
+    },
+    {
+      "id": "bug-393",
+      "timestamp": "2026-06-18T08:04:46.598Z",
+      "error_message": "CSS fix: padding",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "padding: 0.12, duration: 300 → 0.12, duration: 200",
+      "fix": "Changed padding: 0.12, duration: 300 → 0.12, duration: 200",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-18T08:04:46.598Z"
+    },
+    {
+      "id": "bug-394",
+      "timestamp": "2026-06-18T08:33:46.888Z",
+      "error_message": "Wrong reference: panOnDrag should be false",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Used \"panOnDrag\" instead of \"false\"",
+      "fix": "Changed panOnDrag → false",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-18T08:33:46.888Z"
+    },
+    {
+      "id": "bug-395",
+      "timestamp": "2026-06-18T08:35:32.459Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-18T08:35:32.459Z"
+    },
+    {
+      "id": "bug-396",
+      "timestamp": "2026-06-18T08:38:15.869Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 8→12 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-18T08:38:15.869Z"
+    },
+    {
+      "id": "bug-397",
+      "timestamp": "2026-06-18T08:41:37.127Z",
+      "error_message": "CSS fix: padding",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "padding: 0.12, duration: 200 → 0.12, duration: 200, maxZoom: 3",
+      "fix": "Changed padding: 0.12, duration: 200 → 0.12, duration: 200, maxZoom: 3",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-18T08:41:37.127Z"
+    },
+    {
+      "id": "bug-398",
+      "timestamp": "2026-06-18T08:45:29.635Z",
+      "error_message": "Type error",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-18T08:45:29.635Z"
     }
   ]
 }

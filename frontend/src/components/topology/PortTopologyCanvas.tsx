@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
+import { useMemo, useState, useCallback, useRef } from 'react'
 import {
   ReactFlow, Node, Edge, Background, MarkerType, Handle, Position, BaseEdge,
   type NodeProps, type EdgeProps, type ReactFlowInstance,
@@ -33,6 +33,8 @@ const COMPACT_H = 42
 const ROW_GAP = 140
 const DEVICE_GAP = 44
 const STACK_GAP = 24
+const LEFT_MARGIN = 80
+const PIPE_EDGE_GAP = 20
 const SIDEBAR_W = 112
 // ============================================================
 // 设备图标 + 端口工具
@@ -69,18 +71,27 @@ function getHandleX(index: number, total: number, nodeW: number = SWITCH_W): num
   return pad + index * gap
 }
 
+/** 解析设备命名规范：PVGD1SWI02 → { site: "PVG", room: "D1", typeCode: "SWI", num: 2 } */
+function parseDeviceName(name: string): { site: string; room: string; typeCode: string; num: number } | null {
+  const m = name.match(/^([A-Z]{3})(D\d)([A-Z]{3})(\d{2})$/)
+  if (!m) return null
+  return { site: m[1], room: m[2], typeCode: m[3], num: parseInt(m[4], 10) }
+}
+
 function isWanDevice(type: string, name: string): boolean {
   return type === 'router' || type === 'firewall' || type === 'sdwan'
     || name.startsWith('Internet') || name.startsWith('互联网')
 }
 
 /** 从设备名推断选中设备所属层级 */
-function getSelectedTier(deviceName: string, notes?: string): 'wan' | 'core' | 'access' {
+function getSelectedTier(deviceName: string, notes?: string): 'wan' | 'core' | 'access' | 'cascade' {
   const typeCode = deviceName.length >= 8 ? deviceName.substring(5, 8).toUpperCase() : ''
   if (['RTW', 'FWL', 'SDW'].includes(typeCode)) return 'wan'
   if (typeCode === 'SWI' || typeCode === 'QIS') {
     const nLow = (notes || '').toLowerCase()
-    return (nLow.includes('核心') || nLow.includes('core')) ? 'core' : 'access'
+    if (nLow.includes('核心') || nLow.includes('core')) return 'core'
+    if (nLow.includes('串接') || nLow.includes('cascade')) return 'cascade'
+    return 'access'
   }
   return 'access'
 }
@@ -94,7 +105,9 @@ function getSelectedDisplayType(deviceName: string, notes?: string): string {
   if (typeCode === 'WLC') return 'wireless'
   if (typeCode === 'SWI' || typeCode === 'QIS') {
     const nLow = (notes || '').toLowerCase()
-    return (nLow.includes('核心') || nLow.includes('core')) ? 'core-switch' : 'access-switch'
+    if (nLow.includes('核心') || nLow.includes('core')) return 'core-switch'
+    if (nLow.includes('串接') || nLow.includes('cascade')) return 'cascade-switch'
+    return 'access-switch'
   }
   return 'access-switch'
 }
@@ -432,13 +445,56 @@ export default function PortTopologyCanvas({
     const valid = neighbors.filter(n => n.device_name && n.device_name !== deviceName && !isStackLink(n.description) && !isLagInterface(n.interface))
     const hasStack = !!(stackMembers && stackMembers.length > 1 && memberNeighbors)
 
-    // 判断邻居交换机是否为上游核心（YAML notes 含"核心"/"Core"/"core"）
+    // 判断邻居交换机是否为上游核心
+    // 优先级：neighbor_notes 关键词 > YAML notes 标注 > 命名推断
     // 堆叠展开名 PVGD1SWI01-M1 → 原始名 PVGD1SWI01，查找 neighbors
     function isCoreSwitch(name: string): boolean {
       const orig = name.replace(/-M\d+$/, '')
-      const notes = (neighbors.find(n => n.device_name === orig) as any)?.neighbor_notes || ''
+      const nd = neighbors.find(n => n.device_name === orig) as any
+      const notes = nd?.neighbor_notes || ''
       const nLow = notes.toLowerCase()
-      return nLow.includes('核心') || nLow.includes('core')
+      // P1: neighbor_notes / YAML notes 关键词
+      if (nLow.includes('核心') || nLow.includes('core')) return true
+      if (/core\s*switch/i.test(notes)) return true
+      // P2: 命名推断 — 同机房交换机中编号最小 + 邻居数最多
+      const parsed = parseDeviceName(orig)
+      if (parsed && (parsed.typeCode === 'SWI' || parsed.typeCode === 'QIS')) {
+        const sameRoomSwitches = neighbors.filter(n => {
+          const p = parseDeviceName(n.device_name)
+          return p && p.site === parsed.site && p.room === parsed.room
+            && (p.typeCode === 'SWI' || p.typeCode === 'QIS')
+        })
+        return sameRoomSwitches.length === 0
+          || parsed.num === Math.min(...sameRoomSwitches.map(n => parseDeviceName(n.device_name)!.num))
+      }
+      return false
+    }
+
+    // 判断邻居交换机是否为串接交换机（不直连核心、编号偏大）
+    function isCascadeSwitch(name: string): boolean {
+      const orig = name.replace(/-M\d+$/, '')
+      const nd = neighbors.find(n => n.device_name === orig) as any
+      const notes = nd?.neighbor_notes || ''
+      const nLow = notes.toLowerCase()
+      // P1: neighbor_notes / YAML notes 关键词
+      if (nLow.includes('串接') || nLow.includes('cascade')) return true
+      if (/cascade\s*switch/i.test(notes)) return true
+      // P2: 命名推断 — 不直连核心 + 编号 > 同机房最小编号
+      if (!isCoreSwitch(name)) {
+        const parsed = parseDeviceName(orig)
+        if (parsed && (parsed.typeCode === 'SWI' || parsed.typeCode === 'QIS')) {
+          const sameRoomSwitches = neighbors.filter(n => {
+            const p = parseDeviceName(n.device_name)
+            return p && p.site === parsed.site && p.room === parsed.room
+              && (p.typeCode === 'SWI' || p.typeCode === 'QIS')
+          })
+          if (sameRoomSwitches.length > 1) {
+            const minNum = Math.min(...sameRoomSwitches.map(n => parseDeviceName(n.device_name)!.num))
+            return parsed.num > minNum
+          }
+        }
+      }
+      return false
     }
 
     // 分类
@@ -524,9 +580,10 @@ export default function PortTopologyCanvas({
     }
 
     const maxLayerW = Math.max(...activeLayers.map(l => layerW(l)))
-    const canvasW = maxLayerW + 240
+    const canvasW = maxLayerW + 380  // 80左留白 + maxLayerW + 200管道区 + 100右
     let yCursor = 40
     const rowMetas: { yStart: number; maxH: number; maxRight: number; }[] = []
+    const rowHandleModes: { hasTop: boolean; hasBottom: boolean }[] = []
     const switchNodeIdSet = new Set<string>()
     let maxDeviceRight = 0
 
@@ -552,7 +609,7 @@ export default function PortTopologyCanvas({
     for (const layer of activeLayers) {
       const rowYStart = yCursor
       const lw = layerW(layer)
-      const startX = (canvasW - lw) / 2
+      const startX = canvasW - lw - 160  // 右对齐，每层右边缘统一留160px管道通道
 
       if (layer.isSelectedSwitch) {
         // 选中设备 Handle 方向：WAN 设备在第一层，只用底部 Handle
@@ -573,13 +630,14 @@ export default function PortTopologyCanvas({
           }
         } else {
           const { top, bottom } = buildSwitchPorts(valid, selHandleSide)
-          const sx = (canvasW - SWITCH_W) / 2
+          const sx = canvasW - SWITCH_W - 160  // 右对齐
           switchNodeIdSet.add('switch')
           nodes.push({ id: 'switch', type: 'switchNode', position: { x: sx, y: yCursor },
             data: { label: deviceName, model: deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, displayType: getSelectedDisplayType(deviceName, deviceNotes), handleRole: 'source', handleSide: selHandleSide } })
           maxDeviceRight = Math.max(maxDeviceRight, sx + SWITCH_W)
         }
         rowMetas.push({ yStart: rowYStart, maxH: SWITCH_H, maxRight: startX + lw })
+        rowHandleModes.push({ hasTop: selHandleSide === 'both', hasBottom: true })
         yCursor += SWITCH_H + ROW_GAP
       } else {
         const gap = layer.stackGap ? STACK_GAP : DEVICE_GAP
@@ -614,21 +672,47 @@ export default function PortTopologyCanvas({
           cx += dw + gap
         }
         rowMetas.push({ yStart: rowYStart, maxH: rowH, maxRight: startX + lw })
+        const layerIdx = activeLayers.indexOf(layer)
+        const totalLayers = activeLayers.length
+        const hasTop = layer.devs.some(d => { const hm = resolveHandleMode(layerIdx, totalLayers, d); return hm === 'switch' || hm === 'top' })
+        const hasBottom = layer.devs.some(d => { const hm = resolveHandleMode(layerIdx, totalLayers, d); return hm === 'switch' || hm === 'bottom' })
+        rowHandleModes.push({ hasTop, hasBottom })
         yCursor += rowH + ROW_GAP
       }
     }
 
-    // ============ 管道系统 ============
+    // ============ 管道系统（按 Handle 位置按需生成） ============
     const horizPipes: number[] = []
+    const row2pipe: { topPipeIdx: number; bottomPipeIdx: number }[] = []
+    for (let i = 0; i < activeLayers.length; i++) {
+      row2pipe.push({ topPipeIdx: -1, bottomPipeIdx: -1 })
+    }
+
     if (rowMetas.length > 0) {
-      horizPipes.push(rowMetas[0].yStart - ROW_GAP * 0.55)
-      for (let i = 0; i < rowMetas.length - 1; i++) {
-        const prevBottom = rowMetas[i].yStart + rowMetas[i].maxH
-        const nextTop = rowMetas[i + 1].yStart
-        horizPipes.push((prevBottom + nextTop) / 2)
+      // 首层上方管道：仅当首层有 Top handle 时生成
+      if (rowHandleModes[0].hasTop) {
+        row2pipe[0].topPipeIdx = horizPipes.length
+        horizPipes.push(rowMetas[0].yStart - PIPE_EDGE_GAP)
       }
-      const last = rowMetas[rowMetas.length - 1]
-      horizPipes.push(last.yStart + last.maxH + ROW_GAP * 0.55)
+      // 层间管道：上层有 Bottom handle 或 下层有 Top handle 时生成
+      for (let i = 0; i < rowMetas.length - 1; i++) {
+        const upperHasBottom = rowHandleModes[i].hasBottom
+        const lowerHasTop = rowHandleModes[i + 1].hasTop
+        if (upperHasBottom || lowerHasTop) {
+          const midY = (rowMetas[i].yStart + rowMetas[i].maxH + rowMetas[i + 1].yStart) / 2
+          const pipeIdx = horizPipes.length
+          horizPipes.push(midY)
+          if (upperHasBottom) row2pipe[i].bottomPipeIdx = pipeIdx
+          if (lowerHasTop) row2pipe[i + 1].topPipeIdx = pipeIdx
+        }
+      }
+      // 末层下方管道：仅当末层有 Bottom handle 时生成
+      const lastIdx = rowMetas.length - 1
+      if (rowHandleModes[lastIdx].hasBottom) {
+        const lastMeta = rowMetas[lastIdx]
+        row2pipe[lastIdx].bottomPipeIdx = horizPipes.length
+        horizPipes.push(lastMeta.yStart + lastMeta.maxH + PIPE_EDGE_GAP)
+      }
     }
     const vertPipeX = maxDeviceRight + 100
 
@@ -683,9 +767,11 @@ export default function PortTopologyCanvas({
         : tgtRow > srcRow
       const targetHandle = tgtNode?.type === 'switchNode' ? n.interface : (targetIsTop ? 't' : 'b')
 
-      // 管道索引：top handle → pipe[row], bottom handle → pipe[row+1]
-      const srcPipe = clamp(srcIsTopHandle ? srcRow : srcRow + 1, 0, horizPipes.length - 1)
-      const tgtPipe = clamp(targetIsTop ? tgtRow : tgtRow + 1, 0, horizPipes.length - 1)
+      // 管道索引：通过 row2pipe 查找表映射（按 handle 实际位置生成）
+      const srcPipeIdx = srcIsTopHandle ? row2pipe[srcRow].topPipeIdx : row2pipe[srcRow].bottomPipeIdx
+      const tgtPipeIdx = targetIsTop ? row2pipe[tgtRow].topPipeIdx : row2pipe[tgtRow].bottomPipeIdx
+      const srcPipe = clamp(srcPipeIdx, 0, horizPipes.length - 1)
+      const tgtPipe = clamp(tgtPipeIdx, 0, horizPipes.length - 1)
 
       // 物理连线方向：高层设备出发。高层行号更小
       const swap = tgtRow < srcRow  // 邻居在上方（高层）→ swap 路径
@@ -715,14 +801,7 @@ export default function PortTopologyCanvas({
     return { nodes, edges, horizPipes, vertPipeX }
   }, [devInfo, isCore, deviceName, deviceModel, deviceIp, memberModels, neighbors, stackMembers, memberNeighbors, neighborStackMap])
 
-  // ====== 布局完成后自动居中全屏适配 ======
-  useEffect(() => {
-    if (!rfInstance.current || nodes.length === 0) return
-    const timer = setTimeout(() => {
-      rfInstance.current?.fitView({ padding: 0.08, duration: 300, maxZoom: 1.5 })
-    }, 60)  // 等待 ReactFlow 内部渲染管线完成
-    return () => clearTimeout(timer)
-  }, [deviceName])  // 切换设备时重新适配
+  // ====== fitView 由 ReactFlow prop 驱动 ======
 
   // ====== 交互 ======
   const onNodeClick = useCallback((_e: React.MouseEvent, n: Node) => {
@@ -857,9 +936,10 @@ export default function PortTopologyCanvas({
       <Box sx={{ flex: 1, position: 'relative' }}>
         <ReactFlow
           nodes={finalNodes} edges={finalEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
-          fitView fitViewOptions={{ padding: 0.04, duration: 200 }}
-          minZoom={0.1} maxZoom={3}
-          nodesDraggable
+          fitView fitViewOptions={{ padding: 0.12, duration: 200, maxZoom: 3 }}
+          minZoom={0.1} maxZoom={6}
+          nodesDraggable={false} panOnDrag
+          zoomOnScroll zoomOnDoubleClick={false}
           onNodeClick={onNodeClick} onEdgeClick={onEdgeClick} onPaneClick={onPaneClick}
           onInit={(inst) => { rfInstance.current = inst }}
           proOptions={{ hideAttribution: true }}

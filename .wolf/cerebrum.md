@@ -135,7 +135,23 @@
 - [2026-06-12] Handle 仅上下边框，禁止左右
 - [2026-06-12] 连线颜色 WAN 优先 > 核心 > 接入
 - [2026-06-12] 堆叠交换机间距缩短以示区别
+- [2026-06-18] 拓扑图布局右对齐（非居中），最长层为锚点，其他层右边缘对齐
+- [2026-06-18] 设备角色以 YAML notes 标注为准（"Core Switch"/"Access Switch"/"Cascade Switch"），辅以后端核查
+
+## Key Learnings
+- [2026-06-18] 设备命名规范：{site3}{room2}{type3}{num2}，如 PVGD1SWI02。同一机房同一类型交换机编号从 01 开始，SWI01 不一定是核心
+- [2026-06-18] 接入交换机判断硬条件：必须直连核心交换机（LLDP）。串接交换机判断（排除法）：不直连核心 + 编号偏大
+- [2026-06-18] 水平管道应按 handle 实际位置按需生成，不固定 N+1 条。三层 WAN→Core→Access 只需两条管道（层间中点），首层上方和末层下方无 handle 则不需要管道
+- [2026-06-18] 管道索引映射从硬编码 `pipe[row]` 改为查找表 `row2pipe[].topPipeIdx/.bottomPipeIdx`，灵活适配不连续管道
+
+## Key Learnings
+- [2026-06-18] ReactFlow v12 默认给所有节点加 `nopan` CSS class，点击到节点区域会阻止画布拖拽。解决：`nodesDraggable={false}` + `panOnDrag`，所有拖拽统一变成画布平移
+- [2026-06-18] ReactFlow `fitView` prop 在每次 nodes/edges 引用变化时重新执行动画，与用户交互冲突导致拖拽失效。用 `useEffect` + `ref` 防重机制代替 prop 驱动
+- [2026-06-18] 右对齐布局后节点集中右侧，空区域减少，用户更容易点到节点 (nopan)，拖拽失效更明显
+- [2026-06-18] `canvasW` 在右对齐布局中仍需保留——`startX = canvasW - lw - RIGHT_PADDING` 依赖它计算右对齐偏移，删除会导致坐标漂移
 
 ## Do-Not-Repeat
 - [2026-06-12] 删除常量后遗留引用导致 ReferenceError → 改前先 grep 全文件引用的常量名
 - [2026-06-12] Vite 8 + emotion 11.14 白屏 → 生产项目不用最新版，等生态跟上
+- [2026-06-18] ReactFlow `nodesDraggable` 和 `panOnDrag` 同时启用导致节点拖拽与画布拖拽冲突 → 关闭 `nodesDraggable`，仅保留 `panOnDrag`
+- [2026-06-18] `fitView` prop 不可与交互并存 → 用受控的 `useEffect` 替代 `fitView` prop
