@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Routes, Route, Navigate, useLocation, Link, Outlet } from 'react-router-dom'
 import ErrorBoundary from './components/ErrorBoundary'
 import {
@@ -39,9 +39,17 @@ const DRAWER_WIDTH = 260
 function Layout() {
   const { t, lang, setLang } = useI18n()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [version, setVersion] = useState('')
   const user = sessionManager.getSession()
   const location = useLocation()
   const currentPath = location.pathname
+
+  useEffect(() => {
+    fetch('/api/version')
+      .then(r => r.json())
+      .then(d => setVersion(d.version || ''))
+      .catch(() => setVersion(''))
+  }, [])
 
   const navItems = [
     { label: t('nav.dashboard'), icon: <DashboardIcon />, path: '/' },
@@ -134,7 +142,24 @@ function Layout() {
         })}
       </List>
 
-      <Box sx={{ p: 2 }}>
+      {/* 版本号 */}
+      {version && (
+        <Box sx={{ px: 2, pb: 0.5 }}>
+          <Typography
+            sx={{
+              color: 'text.disabled',
+              fontSize: '0.7rem',
+              fontWeight: 600,
+              letterSpacing: '0.04em',
+              fontFamily: '"Fira Code", monospace',
+            }}
+          >
+            v{version}
+          </Typography>
+        </Box>
+      )}
+
+      <Box sx={{ p: 2, pt: version ? 1 : 2 }}>
         {/* 语言切换 */}
         <Button
           onClick={toggleLang}

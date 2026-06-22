@@ -6532,6 +6532,86 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-06-22"
+    },
+    {
+      "id": "bug-409",
+      "timestamp": "2026-06-22T08:04:53.136Z",
+      "error_message": "Function not marked async",
+      "file": "backend/main.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-22T08:04:53.136Z"
+    },
+    {
+      "id": "bug-410",
+      "timestamp": "2026-06-22T08:06:50.460Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-22T08:06:50.460Z"
+    },
+    {
+      "id": "bug-411",
+      "timestamp": "2026-06-22T08:07:26.416Z",
+      "error_message": "CSS fix: p",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "p: 2 → 2, pt: version ? 1 : 2",
+      "fix": "Changed p: 2 → 2, pt: version ? 1 : 2",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-22T08:07:26.416Z"
+    },
+    {
+      "id": "bug-412",
+      "timestamp": "2026-06-22T08:09:35.890Z",
+      "error_message": "Wrong return value",
+      "file": "backend/main.py",
+      "root_cause": "Was returning: {\"version\": \"unknown\"}<",
+      "fix": "Now returns: {\"version\": \"unknown\"}",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-22T08:09:35.890Z"
+    },
+    {
+      "id": "bug-413",
+      "timestamp": "2026-06-22T08:19:03.170Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "Had '0.6rem'",
+      "fix": "Changed to '0.7rem'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-22T08:19:03.170Z"
     }
   ]
 }

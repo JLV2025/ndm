@@ -71,6 +71,20 @@ async def health_check():
     return {"status": "healthy"}
 
 
+VERSION_FILE = os.path.join(BASE_DIR, "VERSION")
+
+
+@app.get("/api/version")
+async def get_version():
+    """返回应用版本号"""
+    try:
+        with open(VERSION_FILE, "r", encoding="utf-8") as f:
+            version = f.read().strip()
+        return {"version": version}
+    except FileNotFoundError:
+        return {"version": "unknown"}
+
+
 # ============ 前端静态文件（生产模式，必须放在所有路由之后）============
 if os.path.exists(FRONTEND_DIST):
     # 静态资源（JS/CSS）

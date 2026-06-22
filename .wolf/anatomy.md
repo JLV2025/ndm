@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-22T07:40:11.866Z
-> Files: 23 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-22T08:22:23.240Z
+> Files: 26 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -51,6 +51,7 @@
 
 ## ./
 
+- `VERSION` (~2 tok)
 
 ## .claude/
 
@@ -88,6 +89,7 @@
 
 ## backend/
 
+- `main.py` — API: 3 endpoints (~1134 tok)
 
 ## backend/analyzers/
 
@@ -138,6 +140,7 @@
 
 ## frontend/src/
 
+- `App.tsx` — DRAWER_WIDTH — renders modal (~2810 tok)
 
 ## frontend/src/components/
 
