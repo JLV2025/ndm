@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-22T05:46:11.214Z
-> Files: 22 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-22T07:40:11.866Z
+> Files: 23 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -111,7 +111,7 @@
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~8565 tok)
+- `collector_service.py` — 配置收集服务 (~8556 tok)
 
 ## backend/storage/
 
@@ -124,7 +124,7 @@
 
 ## config/
 
-- `devices.yaml` (~1947 tok)
+- `devices.yaml` (~2242 tok)
 
 ## data/
 
@@ -155,6 +155,7 @@
 
 ## frontend/src/pages/
 
+- `Dashboard.tsx` — DevicesLink (~9630 tok)
 
 ## frontend/src/services/
 

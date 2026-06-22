@@ -174,14 +174,18 @@ const Dashboard: React.FC = () => {
       }
       // 堆叠设备：拆分成员，逻辑设备自己不显示
       const padWidth = String(snList.length).length
+      const modelRaw = d.model || ''
+      const modelList = modelRaw.split(',').map(m => m.trim()).filter(Boolean)
       snList.forEach((sn, i) => {
         const idx = i + 1
         const suffix = String(idx).padStart(padWidth, '0')
+        const memberModel = modelList[i] || modelList[modelList.length - 1] || ''
         result.push({
           ...d,
           name: `${d.name}-${suffix}`,
           logicalName: d.name,
           serial_number: sn,
+          model: memberModel,
           memberIndex: idx,
           memberCount: snList.length,
         })

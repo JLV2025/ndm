@@ -42,7 +42,7 @@ devices:
 - ip: 10.24.255.10
   last_synced: 06/22/2026 09:32
   location: SZX
-  model: WS-C2960X-48FPD-L, WS-C2960X-48LPD-L
+  model: WS-C2960X-48FPD-L, WS-C2960X-48LPD-L, WS-C2960X-48LPD-L
   name: SZXD1SWI01
   notes: Core Switch
   platform: cisco_ios

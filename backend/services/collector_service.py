@@ -221,11 +221,10 @@ def extract_model(system_output: str, version_output: str, device_type: str) -> 
         models = []
         for line in version_output.splitlines():
             # "Model number                    : WS-C2960X-48FPD-L"
+            # 不去重 — 每个堆叠成员各记一条，与序列号保持 1:1 对应
             m = re.search(r'Model\s+number\s*:\s*(\S+)', line, re.IGNORECASE)
             if m:
-                model = m.group(1).strip()
-                if model not in models:
-                    models.append(model)
+                models.append(m.group(1).strip())
         return ", ".join(models) if models else "未知"
 
     return "未知"

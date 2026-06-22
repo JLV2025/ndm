@@ -163,3 +163,5 @@
 - [2026-06-22] 设备名正则以字母集 `[A-Z]` 硬编码 → 改用 `\w` 放宽 + 锚定类型码，适应含数字站点
 - [2026-06-22] CDP/LLDP 和 ConfigParser 端口名格式不一致（Gi1/1/2 vs GigabitEthernet1/1/2）→ 统一规范化后再去重
 - [2026-06-22] ConfigParser switch/router 类型邻居直接跳过 → CDP 无输出时邻居全丢；`seen_ports` 去重已足够
+- [2026-06-22] `extract_model` 对型号去重（`if model not in models`）→ 堆叠设备多台同型号时型号数 < 序列号数。去掉去重，型号与序列号按行序 1:1 对应
+- [2026-06-22] Dashboard 堆叠拆分原样复制 `model` → 每个成员显示整串逗号拼接型号。需按索引拆分 `model_list[i]` 分配各自型号
