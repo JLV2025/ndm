@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-18T08:54:39.213Z
-> Files: 21 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-22T05:46:11.214Z
+> Files: 22 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -91,13 +91,14 @@
 
 ## backend/analyzers/
 
-- `config_parser.py` — class: parse (~2461 tok)
+- `config_parser.py` — class: parse (~2095 tok)
+- `neighbor_parser.py` — CDP / LLDP 邻居解析器 (~3986 tok)
 - `role_verifier.py` — 设备角色核查，交叉验证 YAML notes 与 LLDP 拓扑 (~350 tok)
 - `role_verifier.py` — class: devices, device_map, verify_device, audit_location (~3428 tok)
 
 ## backend/api/
 
-- `topology.py` — 拓扑图 API 路由 (~8691 tok)
+- `topology.py` — 拓扑图 API 路由 (~9033 tok)
 
 ## backend/collectors/
 
@@ -110,7 +111,7 @@
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~7968 tok)
+- `collector_service.py` — 配置收集服务 (~8565 tok)
 
 ## backend/storage/
 
@@ -147,7 +148,7 @@
 
 ## frontend/src/components/topology/
 
-- `PortTopologyCanvas.tsx` — 解析设备命名规范：PVGD1SWI02 → { site: "PVG", room: "D1", typeCode: "SWI", num: 2 } (~13968 tok)
+- `PortTopologyCanvas.tsx` — 解析设备命名规范：PVGD1SWI02 → { site: "PVG", room: "D1", typeCode: "SWI", num: 2 } (~13972 tok)
 
 ## frontend/src/i18n/
 

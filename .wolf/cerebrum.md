@@ -150,8 +150,16 @@
 - [2026-06-18] 右对齐布局后节点集中右侧，空区域减少，用户更容易点到节点 (nopan)，拖拽失效更明显
 - [2026-06-18] `canvasW` 在右对齐布局中仍需保留——`startX = canvasW - lw - RIGHT_PADDING` 依赖它计算右对齐偏移，删除会导致坐标漂移
 
+- [2026-06-22] 设备名正则不应硬编码 `[A-Z]{3}` 站点前缀——含数字的站点（KR3, KR5）无法匹配。改为以设备类型码（SWI/RTW/FWL/WLC/SDW/QIS）为锚点，固定10位宽度：`\w{3}\w{2}(类型码)\d{2}`
+- [2026-06-22] CDP输出端口名为短格式（Gi1/1/2），ConfigParser running-config 为长格式（GigabitEthernet1/1/2），必须用 `_normalize_port_name` 统一为短名再做去重 key
+- [2026-06-22] 邻居去重三关：① 端口名规范化（Cisco 长→短名）；② `(port, neighbor_name)` 去重 key；③ admin down 端口过滤（解析 running-config 中 shutdown 标记）
+- [2026-06-22] ConfigParser 补充逻辑不应跳过 switch/router 类型——CDP/LLDP 可能因未启用而空输出，`seen_ports` 去重已足够防止重复。硬跳过导致无 CDP 数据时丢失全部邻居
+
 ## Do-Not-Repeat
 - [2026-06-12] 删除常量后遗留引用导致 ReferenceError → 改前先 grep 全文件引用的常量名
 - [2026-06-12] Vite 8 + emotion 11.14 白屏 → 生产项目不用最新版，等生态跟上
 - [2026-06-18] ReactFlow `nodesDraggable` 和 `panOnDrag` 同时启用导致节点拖拽与画布拖拽冲突 → 关闭 `nodesDraggable`，仅保留 `panOnDrag`
 - [2026-06-18] `fitView` prop 不可与交互并存 → 用受控的 `useEffect` 替代 `fitView` prop
+- [2026-06-22] 设备名正则以字母集 `[A-Z]` 硬编码 → 改用 `\w` 放宽 + 锚定类型码，适应含数字站点
+- [2026-06-22] CDP/LLDP 和 ConfigParser 端口名格式不一致（Gi1/1/2 vs GigabitEthernet1/1/2）→ 统一规范化后再去重
+- [2026-06-22] ConfigParser switch/router 类型邻居直接跳过 → CDP 无输出时邻居全丢；`seen_ports` 去重已足够

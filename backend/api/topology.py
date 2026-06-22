@@ -12,6 +12,22 @@ from analyzers.role_verifier import RoleVerifier
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# 端口名规范化: Cisco 长名 → 短名，确保 CDP/LLDP 与 ConfigParser 端口名可比
+_CISCO_PORT_TO_SHORT = {
+    'GigabitEthernet': 'Gi', 'TenGigabitEthernet': 'Te',
+    'TwentyFiveGigE': 'Twe', 'HundredGigE': 'Hu',
+    'FortyGigE': 'Fo', 'FastEthernet': 'Fa',
+    'Port-channel': 'Po', 'Loopback': 'Lo',
+}
+
+
+def _norm_port(port: str) -> str:
+    """将 Cisco 长接口名规范化为短名: GigabitEthernet1/1/2 → Gi1/1/2"""
+    for long_pfx, short_pfx in _CISCO_PORT_TO_SHORT.items():
+        if port.startswith(long_pfx):
+            return short_pfx + port[len(long_pfx):]
+    return port
+
 
 def _get_data_root() -> str:
     """从 settings 读取 data_root，返回绝对路径"""
@@ -99,7 +115,7 @@ async def get_device_topology(device_name: str):
             with open(cdp_lldp_path, "r", encoding="utf-8") as f:
                 cdp_data = json.load(f)
             for nb in cdp_data.get("neighbors", []):
-                iface = nb.get("local_port", "")
+                iface = _norm_port(nb.get("local_port", ""))
                 nb_name = nb.get("neighbor_name", "")
                 if not nb_name or not iface:
                     continue
@@ -174,8 +190,9 @@ async def get_device_topology(device_name: str):
     endpoints_by_member: Dict[str, List[dict]] = {}  # member → [items]
     for entry in config_entries:
         member = _member_for_iface(entry.name)
+        iface_norm = _norm_port(entry.name)
         item = {
-            "interface": entry.name,
+            "interface": iface_norm,
             "description": entry.description,
             "device_name": entry.device_name,
             "device_type": entry.device_type,
@@ -543,7 +560,7 @@ async def get_location_topology(location: str):
                 continue
 
             # source 端口 → 对应物理成员名称
-            local_port = nb.get("local_port", "")
+            local_port = _norm_port(nb.get("local_port", ""))
             member_idx = _member_slot_for_port(local_port, dev.get("type", ""))
             member_name = logical_to_physical.get(logical_name, [])
             source_name = member_name[member_idx - 1] if member_name and member_idx <= len(member_name) else expanded_name
@@ -588,28 +605,43 @@ async def get_location_topology(location: str):
                 "is_cross_location": not is_loc,
             })
 
-    # 去重边: 同向同端口去重 + 双向链路合并
+    # 去重边: 同向同端口去重
     deduped_edges: list[dict] = []
     seen_keys: set[tuple] = set()
     for edge in all_edges:
-        # key 包含 source_interface，保留多端口并行链路
         key = (edge["source"], edge["target"], edge["source_interface"])
         if key not in seen_keys:
             seen_keys.add(key)
             deduped_edges.append(edge)
 
-    # 双向链路合并: 匹配 A→B 和 B→A，填充 target_interface
-    reverse_map: dict[tuple, int] = {}
-    for i, edge in enumerate(deduped_edges):
-        rkey = (edge["target"], edge["source"])
-        reverse_map.setdefault(rkey, []).append(i)
+    # 双向链路合并: 同一设备对+同接口名 → 合并为一条边，取第一方向
+    from collections import defaultdict
+    pair_group: dict = defaultdict(list)
+    for edge in deduped_edges:
+        pair = tuple(sorted([edge["source"], edge["target"]]))
+        pair_group[(pair[0], pair[1], edge["source_interface"])].append(edge)
 
-    for i, edge in enumerate(deduped_edges):
+    final_edges: list[dict] = []
+    for group in pair_group.values():
+        best = group[0].copy()
+        # 从组内其他边补充 target_interface
+        for e in group[1:]:
+            if not best.get("target_interface"):
+                best["target_interface"] = e["source_interface"]
+        final_edges.append(best)
+
+    # 两轮填充 target_interface: 第一轮从组内补, 第二轮从反向边补
+    reverse_map: dict[tuple, list[int]] = defaultdict(list)
+    for i, edge in enumerate(final_edges):
+        rkey = (edge["target"], edge["source"])
+        reverse_map[rkey].append(i)
+
+    for i, edge in enumerate(final_edges):
         fkey = (edge["source"], edge["target"])
         if fkey in reverse_map:
             for ri in reverse_map[fkey]:
                 if ri != i and not edge["target_interface"]:
-                    edge["target_interface"] = deduped_edges[ri]["source_interface"]
+                    edge["target_interface"] = final_edges[ri]["source_interface"]
                     break
 
     return {
@@ -619,7 +651,7 @@ async def get_location_topology(location: str):
         "skipped_count": len(skipped_devices),
         "skipped_devices": skipped_devices,
         "nodes": nodes,
-        "edges": deduped_edges,
+        "edges": final_edges,
     }
 
 

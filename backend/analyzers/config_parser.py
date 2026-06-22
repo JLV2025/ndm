@@ -43,11 +43,10 @@ class ConfigParser:
     # 终端设备关键词匹配
     ENDPOINT_KEYWORDS = ['Phone', 'Printer', 'Laptop', 'AP', 'Internet']
 
-    # Rule 2 正则：数据中心设备 [SITE]D[DATACENTER_DIGIT][TYPE][NN]
-    DC_DEVICE_RE = re.compile(r'\b([A-Z]{3})D(\d)([A-Z]{3,8})(\d{2})\b')
-
-    # Rule 3 正则：非数据中心设备 [SITE][DIGIT][TYPE][NN]
-    NON_DC_DEVICE_RE = re.compile(r'\b([A-Z]{3})(\d)([A-Z]{3,8})(\d{2})\b')
+    # 设备名正则: 3位site + 2位room + 3位类型码 + 2位编号，以类型码为识别锚点
+    DEVICE_FROM_DESC_RE = re.compile(
+        r'\b(\w{3})(\w{2})(SWI|RTW|FWL|WLC|SDW|QIS)(\d{2})\b'
+    )
 
     # 网络设备类型缩写（不是端点）
     NETWORK_TYPES = {'SWI', 'RTW', 'FWL', 'WLC', 'SDW'}
@@ -190,53 +189,23 @@ class ConfigParser:
                 'is_endpoint': True,
             }
 
-        # === Rule 2: 数据中心设备 [SITE]D[DIGIT][TYPE][NN] ===
-        dc_match = self.DC_DEVICE_RE.search(desc)
+        # === Rule 2: 网络设备识别 — [SITE 3位][ROOM 2位][TYPE 3位][NUM 2位] ===
+        # 以 SWI/RTW/FWL/WLC/SDW 类型码为识别锚点，site/room 不限字母数字
+        dc_match = self.DEVICE_FROM_DESC_RE.search(desc)
         if dc_match:
             site = dc_match.group(1)
-            dc_digit = dc_match.group(2)
+            room = dc_match.group(2)
             dev_type_abbr = dc_match.group(3)
             dev_num = dc_match.group(4)
             full_match = dc_match.group(0)
 
-            # 已知网络设备类型 → TYPE_MAP 查找；其余 → server
-            is_known = dev_type_abbr in self.NETWORK_TYPES
             dev_type = self.TYPE_MAP.get(dev_type_abbr, 'server')
 
             return {
                 'device_name': full_match,
                 'device_type': dev_type,
                 'site_code': site,
-                'dc': f'D{dc_digit}',
-                'device_number': dev_num,
-                'is_endpoint': False,
-            }
-
-        # === Rule 3: 非数据中心设备 [SITE][DIGIT][TYPE][NN] ===
-        for match in self.NON_DC_DEVICE_RE.finditer(desc):
-            full_match = match.group(0)
-            site = match.group(1)
-            digit = match.group(2)
-            dev_type_abbr = match.group(3)
-            dev_num = match.group(4)
-
-            # 检查不是 Rule 2 的匹配：完整匹配字符串中，digit 的前一个字符是否为 'D'
-            # Rule 2 格式: [SITE]D[DIGIT][TYPE][NN], Rule 3 格式: [SITE][DIGIT][TYPE][NN]
-            # 在完整匹配中，SITE 占 3 个字符，digit 在第 4 位（索引 3）
-            # 如果 digit 前是 'D'，则说明这实际上是 Rule 2 格式，跳过
-            pos = match.start()
-            if pos >= 1 and desc[pos - 1:pos] == 'D':
-                continue
-
-            # 已知网络设备类型 → TYPE_MAP 查找；其余 → server
-            is_known = dev_type_abbr in self.NETWORK_TYPES
-            dev_type = self.TYPE_MAP.get(dev_type_abbr, 'server')
-
-            return {
-                'device_name': full_match,
-                'device_type': dev_type,
-                'site_code': site,
-                'dc': digit,
+                'dc': room,
                 'device_number': dev_num,
                 'is_endpoint': False,
             }

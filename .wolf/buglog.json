@@ -6370,6 +6370,168 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-18T08:45:29.635Z"
+    },
+    {
+      "id": "bug-399",
+      "timestamp": "2026-06-22T02:29:25.439Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/analyzers/neighbor_parser.py",
+      "root_cause": "Had '\\b([A-Z]{3}D\\d[A-Z]{3,5}\\d{2})\\b'",
+      "fix": "Changed to '\\b([A-Z]{2}[A-Z0-9]D\\d[A-Z]{3,5}\\d{2})\\b'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-22T02:29:25.439Z"
+    },
+    {
+      "id": "bug-400",
+      "timestamp": "2026-06-22T02:44:34.750Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/analyzers/neighbor_parser.py",
+      "root_cause": "Had '\\b([A-Z]{2}[A-Z0-9]D\\d[A-Z]{3,5}\\d{2})\\b'",
+      "fix": "Changed to '\\b(\\w{3}\\w{2}(?:SWI|RTW|FWL|WLC|SDW|QIS)\\d{2})\\b'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-22T02:44:34.750Z"
+    },
+    {
+      "id": "bug-401",
+      "timestamp": "2026-06-22T02:44:49.134Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/analyzers/config_parser.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 5→4 lines (4 removed) | Also: # === Rule 2: 数据中心设备 [SITE]D[DIGIT][TYPE][NN] ===; dc_match = self.DC_DEVICE_RE.search(desc)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-22T02:45:08.770Z"
+    },
+    {
+      "id": "bug-402",
+      "timestamp": "2026-06-22T03:26:28.188Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/analyzers/config_parser.py",
+      "root_cause": "Had '\\b(\\w{3})(\\w{2})(SWI|RTW|FWL|WLC|SDW)(\\d{2})\\b'",
+      "fix": "Changed to '\\b(\\w{3})(\\w{2})(SWI|RTW|FWL|WLC|SDW|QIS)(\\d{2})\\",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-22T03:26:28.188Z"
+    },
+    {
+      "id": "bug-403",
+      "timestamp": "2026-06-22T05:36:22.625Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 33→54 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-22T05:36:22.625Z"
+    },
+    {
+      "id": "bug-404",
+      "timestamp": "2026-06-22T05:37:23.076Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/topology.py",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 23→38 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-22T05:37:23.076Z"
+    },
+    {
+      "id": "bug-405",
+      "timestamp": "2026-06-22T05:38:16.682Z",
+      "error_message": "Wrong reference: deduped_edges should be final_edges",
+      "file": "backend/api/topology.py",
+      "root_cause": "Used \"deduped_edges\" instead of \"final_edges\"",
+      "fix": "Changed deduped_edges → final_edges",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-22T05:38:16.682Z"
+    },
+    {
+      "id": "bug-406",
+      "timestamp": "2026-06-22T05:40:36.265Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/api/topology.py",
+      "root_cause": "Had \")\n                nb_name = nb.get(\"",
+      "fix": "Changed to \"))\n                nb_name = nb.get(\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-22T05:40:36.265Z"
+    },
+    {
+      "id": "bug-407",
+      "timestamp": "2026-06-22T09:00:00Z",
+      "error_message": "KR3D1SWI01 无邻居数据 — site code KR3 含数字正则不匹配",
+      "file": "neighbor_parser.py, config_parser.py, PortTopologyCanvas.tsx",
+      "root_cause": "DEVICE_NAME_RE 硬编码 [A-Z]{3} 站点前缀，KR3/KR5 无法匹配；ConfigParser 跳过 switch/router；端口名 Gi/GigabitEthernet 不一致",
+      "fix": "正则改为锚定类型码 \\w{3}\\w{2}(SWI|...)\\d{2}；添加 _normalize_port_name + shutdown 过滤；移除 switch/router 跳过",
+      "tags": [
+        "regex",
+        "site-code",
+        "neighbor"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-22"
+    },
+    {
+      "id": "bug-408",
+      "timestamp": "2026-06-22T09:30:00Z",
+      "error_message": "KR3D1-KR3R1 之间画了5根连线 — 端口名不一致+双向重复+admin down未过滤",
+      "file": "collector_service.py, topology.py",
+      "root_cause": "CDP短名 Gi1/1/2 vs ConfigParser长名 GigabitEthernet1/1/2 被当不同端口；双向边未合并；shutdown端口CDP邻居未过滤",
+      "fix": "_normalize_port_name + _extract_shutdown_ports；topology.py pair_group 双向合并；修复历史 neighbors.json",
+      "tags": [
+        "edge-dedup",
+        "port-normalization",
+        "admin-down"
+      ],
+      "related_bugs": [
+        "bug-407"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-06-22"
     }
   ]
 }

@@ -73,7 +73,7 @@ function getHandleX(index: number, total: number, nodeW: number = SWITCH_W): num
 
 /** 解析设备命名规范：PVGD1SWI02 → { site: "PVG", room: "D1", typeCode: "SWI", num: 2 } */
 function parseDeviceName(name: string): { site: string; room: string; typeCode: string; num: number } | null {
-  const m = name.match(/^([A-Z]{3})(D\d)([A-Z]{3})(\d{2})$/)
+  const m = name.match(/^(\w{3})(\w{2})(SWI|RTW|FWL|WLC|SDW|QIS)(\d{2})$/)
   if (!m) return null
   return { site: m[1], room: m[2], typeCode: m[3], num: parseInt(m[4], 10) }
 }

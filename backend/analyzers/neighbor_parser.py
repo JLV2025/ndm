@@ -5,8 +5,9 @@ from dataclasses import dataclass, field
 import re
 from typing import List, Optional
 
-# 网络设备名正则: 3字母 + D + 1位数字 + 3-5字母 + 2位数字
-DEVICE_NAME_RE = re.compile(r'\b([A-Z]{3}D\d[A-Z]{3,5}\d{2})\b')
+# 网络设备名正则: 3位site + 2位room + 3位类型码(SWI/RTW/FWL/WLC/SDW/QIS) + 2位编号
+# site/room 不限字母数字；以类型码为识别锚点，位宽固定 10 字符
+DEVICE_NAME_RE = re.compile(r'\b(\w{3}\w{2}(?:SWI|RTW|FWL|WLC|SDW|QIS)\d{2})\b')
 
 # 接口名模式 (Cisco/Aruba 常见缩写)
 IFACE_SHORT_RE = re.compile(

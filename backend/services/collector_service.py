@@ -71,6 +71,27 @@ def _strip_ansi(text: str) -> str:
     return text
 
 
+def _extract_shutdown_ports(config_text: str, norm_fn) -> set:
+    """从 running-config 中提取所有 admin down (shutdown) 端口的规范化名称"""
+    shutdown: set = set()
+    current_iface: str | None = None
+    is_shutdown: bool = False
+    for line in config_text.splitlines():
+        if_match = re.match(r'^interface\s+(\S+)', line)
+        if if_match:
+            if current_iface and is_shutdown:
+                shutdown.add(norm_fn(current_iface))
+            current_iface = if_match.group(1)
+            is_shutdown = False
+        elif re.match(r'^\s*shutdown\s*$', line):
+            is_shutdown = True
+        elif re.match(r'^\s*no\s+shutdown\s*$', line):
+            is_shutdown = False
+    if current_iface and is_shutdown:
+        shutdown.add(norm_fn(current_iface))
+    return shutdown
+
+
 def extract_software_version(version_output: str, device_type: str) -> str:
     """从 show version 输出中提取软件版本号"""
     version_output = _strip_ansi(version_output)
@@ -474,27 +495,55 @@ def _save_data(
         lldp_entries = parse_lldp(lldp_neighbors_raw, device_type) if lldp_neighbors_raw else []
         merged = merge_neighbors(cdp_entries, lldp_entries)
 
+        # 端口名规范化: Cisco 长名 → 短名，确保 CDP/LLDP 与 ConfigParser 的去重 key 可比
+        _CISCO_PORT_SHORT = {
+            'GigabitEthernet': 'Gi', 'TenGigabitEthernet': 'Te',
+            'TwentyFiveGigE': 'Twe', 'HundredGigE': 'Hu',
+            'FortyGigE': 'Fo', 'FastEthernet': 'Fa',
+            'Port-channel': 'Po', 'Loopback': 'Lo',
+        }
+
+        def _normalize_port_name(port: str) -> str:
+            """将 Cisco 长接口名规范化短名: GigabitEthernet1/1/2 → Gi1/1/2"""
+            for long_pfx, short_pfx in _CISCO_PORT_SHORT.items():
+                if port.startswith(long_pfx):
+                    return short_pfx + port[len(long_pfx):]
+            return port
+
+        # 规范化 CDP/LLDP 已有条目的端口名（CDP 输出通常已是短名，LLDP 格式多样）
+        for e in merged:
+            e.local_port = _normalize_port_name(e.local_port)
+
+        # 从 running-config 提取 admin down (shutdown) 端口，过滤不可靠的邻居数据
+        shutdown_ports: set = set()
+        if running_config and not running_config.startswith('%'):
+            shutdown_ports = _extract_shutdown_ports(running_config, _normalize_port_name)
+            if shutdown_ports:
+                merged = [e for e in merged if _normalize_port_name(e.local_port) not in shutdown_ports]
+                print(f"[邻居] 过滤 admin down 端口: {shutdown_ports}")
+
         # 补充: 从 running-config 端口描述中收集 CDP/LLDP 无法发现的设备
         if running_config and not running_config.startswith('%'):
             try:
                 from analyzers.config_parser import ConfigParser
                 cp = ConfigParser(device_type=device_type)
                 config_entries = cp.parse(running_config)
-                # CDP/LLDP 无法发现的网络设备类型（SDW, FWL, WLC 及所有非端点类型）
-                seen_ports = set((e.local_port, e.neighbor_name) for e in merged)
+                seen_ports = set(
+                    (_normalize_port_name(e.local_port), e.neighbor_name)
+                    for e in merged
+                )
                 extra_count = 0
                 for entry in config_entries:
                     if not entry.device_name:
                         continue
                     if entry.is_endpoint or not entry.device_type:
                         continue
-                    if entry.device_type in ('switch', 'router'):
-                        continue  # 交换机/路由器 CDP/LLDP 能发现，不重复补
-                    key = (entry.name, entry.device_name)
+                    # CDP/LLDP 优先；端口描述中同端口+同邻居名则跳过去重
+                    key = (_normalize_port_name(entry.name), entry.device_name)
                     if key not in seen_ports:
                         seen_ports.add(key)
                         merged.append(NeighborEntry(
-                            local_port=entry.name,
+                            local_port=_normalize_port_name(entry.name),
                             neighbor_name=entry.device_name,
                             neighbor_type=entry.device_type,
                             neighbor_platform='',
