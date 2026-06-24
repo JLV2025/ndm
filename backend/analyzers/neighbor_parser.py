@@ -9,6 +9,19 @@ from typing import List, Optional
 # site/room 不限字母数字；以类型码为识别锚点，位宽固定 10 字符
 DEVICE_NAME_RE = re.compile(r'\b(\w{3}\w{2}(?:SWI|RTW|FWL|WLC|SDW|QIS)\d{2})\b')
 
+# GTS 服务器名正则: GTS + 3位site code + 3位类型码(ESX/SRV) + 可选编号
+# 例: GTSPEKESX01, GTSPEKSRV
+GTS_SERVER_NAME_RE = re.compile(r'\b(GTS\w{3}(?:ESX|SRV)\d*)\b')
+
+# 组合设备名搜索正则（任意有效设备名）
+DEVICE_NAME_SEARCH_RE = re.compile(
+    r'\b('
+    r'GTS\w{3}(?:ESX|SRV)\d*'          # GTS 服务器
+    r'|'
+    r'\w{3}\w{2}(?:SWI|RTW|FWL|WLC|SDW|QIS)\d{2}'  # 标准网络设备
+    r')\b'
+)
+
 # 接口名模式 (Cisco/Aruba 常见缩写)
 IFACE_SHORT_RE = re.compile(
     r'\b('
@@ -49,7 +62,13 @@ class NeighborEntry:
 # ============================================================
 
 def _extract_type(device_name: str) -> str:
-    """从设备名提取设备类型 (第6-8位)"""
+    """从设备名提取设备类型：
+    标准格式 PVGD1SWI02 → 第6-8位 (SWI)
+    GTS 服务器 GTSPEKESX01 → 第7-9位 (ESX)
+    """
+    if device_name.startswith('GTS') and len(device_name) >= 9:
+        code = device_name[6:9].upper()
+        return TYPE_MAP.get(code, "unknown")
     if len(device_name) >= 8:
         code = device_name[5:8].upper()
         return TYPE_MAP.get(code, "unknown")
@@ -58,7 +77,7 @@ def _extract_type(device_name: str) -> str:
 
 def _is_valid_network_device(name: str) -> bool:
     """判断是否为有效网络设备名"""
-    return bool(DEVICE_NAME_RE.fullmatch(name))
+    return bool(DEVICE_NAME_RE.fullmatch(name)) or bool(GTS_SERVER_NAME_RE.fullmatch(name))
 
 
 def _is_endpoint(name: str) -> bool:
@@ -99,7 +118,7 @@ def _strip_domain(raw_name: str) -> str:
     name = re.sub(r'\.\w+\.(?:com|net|org)$', '', name)
     # 如果仍然 > 10 位, 用正则提取
     if len(name) > 10:
-        m = DEVICE_NAME_RE.search(name)
+        m = DEVICE_NAME_SEARCH_RE.search(name)
         if m:
             return m.group(1)
     return name
@@ -171,7 +190,7 @@ def parse_cdp_cisco(text: str) -> List[NeighborEntry]:
             merged_lines.append(stripped)
         else:
             # 可能是纯设备名行 (跨行头部) 或无效行
-            if DEVICE_NAME_RE.search(stripped):
+            if DEVICE_NAME_SEARCH_RE.search(stripped):
                 pending = stripped
             # 否则认为无效, 清空缓存
             else:
@@ -182,7 +201,7 @@ def parse_cdp_cisco(text: str) -> List[NeighborEntry]:
     for line in merged_lines:
         stripped = line.strip()
 
-        dm = DEVICE_NAME_RE.search(stripped)
+        dm = DEVICE_NAME_SEARCH_RE.search(stripped)
         if not dm:
             continue
 
@@ -249,7 +268,7 @@ def parse_lldp_cisco(text: str) -> List[NeighborEntry]:
         if not in_data:
             continue
 
-        dm = DEVICE_NAME_RE.search(stripped)
+        dm = DEVICE_NAME_SEARCH_RE.search(stripped)
         if not dm:
             continue
 
@@ -326,7 +345,7 @@ def parse_cdp_aruba(text: str) -> List[NeighborEntry]:
             continue
 
         # 从剩余部分提取网络设备名
-        dm = DEVICE_NAME_RE.search(rest)
+        dm = DEVICE_NAME_SEARCH_RE.search(rest)
         if not dm:
             continue
 

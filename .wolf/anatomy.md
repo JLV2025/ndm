@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-22T08:22:23.240Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-24T08:13:48.214Z
 > Files: 26 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
@@ -94,8 +94,8 @@
 ## backend/analyzers/
 
 - `config_parser.py` — class: parse (~2095 tok)
-- `neighbor_parser.py` — CDP / LLDP 邻居解析器 (~3986 tok)
-- `role_verifier.py` — 设备角色核查，交叉验证 YAML notes 与 LLDP 拓扑 (~350 tok)
+- `neighbor_parser.py` — CDP / LLDP 邻居解析器 (~4176 tok)
+- `role_verifier.py` — class: devices, device_map, verify_device, audit_location (~3557 tok)
 - `role_verifier.py` — class: devices, device_map, verify_device, audit_location (~3428 tok)
 
 ## backend/api/
@@ -151,7 +151,7 @@
 
 ## frontend/src/components/topology/
 
-- `PortTopologyCanvas.tsx` — 解析设备命名规范：PVGD1SWI02 → { site: "PVG", room: "D1", typeCode: "SWI", num: 2 } (~13972 tok)
+- `PortTopologyCanvas.tsx` — 解析设备命名规范：PVGD1SWI02 → { site: "PVG", room: "D1", typeCode: "SWI", num: 2 } (~14051 tok)
 
 ## frontend/src/i18n/
 

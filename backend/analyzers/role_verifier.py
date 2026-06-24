@@ -119,7 +119,19 @@ class RoleVerifier:
     def _parse_device_name(self, name: str) -> Optional[dict]:
         """
         解析设备命名：PVGD1SWI02 → {site, room, typeCode, num}
+        GTS服务器例外：GTSPEKESX01 → {site: GTS, room: PEK, typeCode: ESX, num: 1}
         """
+        # GTS 服务器
+        if name.startswith('GTS'):
+            m = re.match(r"^GTS([A-Z]{3})(ESX|SRV)(\d*)$", name)
+            if m:
+                return {
+                    "site": "GTS",
+                    "room": m.group(1),
+                    "type_code": m.group(2),
+                    "num": int(m.group(3) or "0"),
+                }
+            return None
         m = re.match(r"^([A-Z]{3})(D\d)([A-Z]{3})(\d{2})$", name)
         if not m:
             return None

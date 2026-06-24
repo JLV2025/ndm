@@ -6612,6 +6612,38 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-22T08:19:03.170Z"
+    },
+    {
+      "id": "bug-414",
+      "timestamp": "2026-06-24T08:12:13.191Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/analyzers/neighbor_parser.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 11→17 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T08:12:13.191Z"
+    },
+    {
+      "id": "bug-415",
+      "timestamp": "2026-06-24T08:13:31.816Z",
+      "error_message": "Wrong reference: DEVICE_NAME_RE should be DEVICE_NAME_SEARCH_RE",
+      "file": "backend/analyzers/neighbor_parser.py",
+      "root_cause": "Used \"DEVICE_NAME_RE\" instead of \"DEVICE_NAME_SEARCH_RE\"",
+      "fix": "Changed DEVICE_NAME_RE → DEVICE_NAME_SEARCH_RE",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-24T08:13:31.817Z"
     }
   ]
 }

@@ -165,3 +165,5 @@
 - [2026-06-22] ConfigParser switch/router 类型邻居直接跳过 → CDP 无输出时邻居全丢；`seen_ports` 去重已足够
 - [2026-06-22] `extract_model` 对型号去重（`if model not in models`）→ 堆叠设备多台同型号时型号数 < 序列号数。去掉去重，型号与序列号按行序 1:1 对应
 - [2026-06-22] Dashboard 堆叠拆分原样复制 `model` → 每个成员显示整串逗号拼接型号。需按索引拆分 `model_list[i]` 分配各自型号
+- [2026-06-24] **GTS 服务器命名规范例外**：`GTSPEKESX01` 格式 — GTS + 3位site code + 类型码(ESX/SRV/SVR) + 可选编号。与标准 `3+2+3+2` 不同，site code 占3位而非2位。后端 TYPE_MAP 已有 ESX/SRV 映射但正则未覆盖，需同步更新三处（前端 parseDeviceName、后端 neighbor_parser DEVICE_NAME_RE、后端 role_verifier _parse_device_name）
+- [2026-06-24] 设备名正则变更需同步三处位置，不能只改一处：PortTopologyCanvas.tsx `parseDeviceName()`、neighbor_parser.py `DEVICE_NAME_RE` + `DEVICE_NAME_SEARCH_RE`、role_verifier.py `_parse_device_name()`
