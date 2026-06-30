@@ -9,11 +9,16 @@ max_versions: 10
 # 日志缓冲大小（字节）
 log_buffer_size: 65536
 
+# 收集配置
+collection:
+  # 并行收集最大线程数（控制同时对几台设备 SSH）
+  max_parallel: 4
+
 # SSH 超时设置（秒）
 ssh_timeout:
-  connect: 10
-  read: 30
-  write: 30
+  connect: 20
+  read: 20
+  write: 20
 
 # 分析配置
 analysis:
