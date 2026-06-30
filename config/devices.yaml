@@ -155,9 +155,9 @@ devices:
   location: SZX
   name: SZXD1SWI02
   notes: Access Switch
-  platform: aruba_aoscx
+  platform: cisco_ios
   serial_number: JAE244602AG
-  type: aruba_aoscx
+  type: cisco_ios
   uplink_ports: null
   version: null
 - ip: 10.208.3.2
