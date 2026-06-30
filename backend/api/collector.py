@@ -8,7 +8,7 @@ import yaml
 import subprocess
 import platform
 import socket
-from utils.settings_loader import get_devices_config_path
+from utils.settings_loader import get_devices_config_path, load_settings
 
 router = APIRouter()
 
@@ -94,49 +94,42 @@ def find_device_by_name(device_name: str) -> dict | None:
 
 @router.post("/batch")
 async def collect_batch(request: BatchCollectRequest) -> Dict:
-    """批量收集多台设备配置"""
-    from services.collector_service import collect_device
+    """批量并行收集多台设备配置（默认 4 线程）"""
+    from services.collector_service import collect_all_devices_parallel
     from utils.settings_loader import load_settings
     from models.devices import Device
 
-    results = []
     settings = load_settings()
+    max_workers = settings.get("collection", {}).get("max_parallel", 4)
 
+    # 构建设备对象列表
+    device_objs = []
     for device_name in request.devices:
         device = find_device_by_name(device_name)
         if not device:
-            results.append({
-                "device": device_name,
-                "status": "failed",
-                "error": f"设备 '{device_name}' 不存在"
-            })
+            device_objs.append(None)  # 占位，后面处理
             continue
+        obj = Device(
+            name=device.get("name", device_name),
+            ip=device.get("ip", ""),
+            device_type=device.get("type", "cisco_ios"),
+        )
+        obj.platform = device.get("platform") or ""
+        obj.location = device.get("location") or ""
+        device_objs.append(obj)
 
-        try:
-            device_obj = Device(
-                name=device.get("name", device_name),
-                ip=device.get("ip", ""),
-                device_type=device.get("type", "cisco_ios"),
-            )
-            device_obj.platform = device.get("platform") or ""
-            device_obj.location = device.get("location") or ""
+    # 并行收集
+    valid_devices = [d for d in device_objs if d is not None]
+    missing = sum(1 for d in device_objs if d is None)
 
-            result = collect_device(device_obj, request.username, request.password, settings)
-            result["device"] = device_name
-            results.append(result)
-        except Exception as e:
-            results.append({
-                "device": device_name,
-                "status": "failed",
-                "error": str(e)
-            })
+    results = collect_all_devices_parallel(valid_devices, request.username, request.password, settings, max_workers)
 
     return {
         "success": True,
         "total": len(request.devices),
         "success_count": sum(1 for r in results if r.get("status") == "success"),
-        "failed_count": sum(1 for r in results if r.get("status") != "success"),
-        "results": results
+        "failed_count": sum(1 for r in results if r.get("status") != "success") + missing,
+        "results": results,
     }
 
 
@@ -190,3 +183,37 @@ async def collect_config(
     except Exception as e:
         print(f"收集过程出错: {e}")
         raise HTTPException(status_code=500, detail="收集过程出错，请稍后重试")
+
+
+class Phase2Request(BaseModel):
+    triggers: List[str] = []
+    port_name: str = ""
+    username: str = ""
+    password: str = ""
+
+
+@router.post("/phase2/{device_name}")
+async def collect_phase2(device_name: str, request: Phase2Request) -> Dict:
+    """Phase 2 深度收集——针对已检测到的异常进行深度诊断"""
+    device = find_device_by_name(device_name)
+    if not device:
+        raise HTTPException(status_code=404, detail=f"设备 '{device_name}' 不存在")
+
+    if not request.username or not request.password:
+        raise HTTPException(status_code=400, detail="请提供设备凭据")
+
+    try:
+        from services.collector_service import run_phase2_collection
+        settings = load_settings()
+        result = run_phase2_collection(
+            device_name=device_name,
+            triggers=request.triggers,
+            username=request.username,
+            password=request.password,
+            settings=settings,
+            port_name=request.port_name,
+        )
+        return {"success": result.get("status") == "success", "result": result}
+    except Exception as e:
+        print(f"Phase 2 收集出错: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

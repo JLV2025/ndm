@@ -9,6 +9,7 @@ import yaml
 import threading
 from typing import Dict, List
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def _get_device_connection():
     """延迟导入 DeviceConnection 以支持 mocking"""
@@ -22,6 +23,7 @@ from utils.password import password_manager
 from storage.file_manager import (
     get_week_dir, keep_latest_versions_per_device
 )
+from storage.database import get_connection as get_db
 from models.devices import Device
 
 
@@ -230,6 +232,136 @@ def extract_model(system_output: str, version_output: str, device_type: str) -> 
     return "未知"
 
 
+def extract_uptime_seconds(version_output: str = "", boot_history: str = "", device_type: str = "") -> int | None:
+    """从 show version (Cisco) 或 show boot-history (Aruba) 提取设备运行时间（秒）
+
+    Cisco: System uptime is 2 years, 12 weeks, 3 days, 5 hours, 22 minutes
+    Aruba: Current Boot, up for 545 days 19 hrs 43 mins 22 secs
+    """
+    if device_type == "aruba_aoscx" and boot_history:
+        return _parse_aruba_uptime(boot_history)
+    if device_type.startswith("cisco") and version_output:
+        return _parse_cisco_uptime(version_output)
+    return None
+
+
+def _parse_cisco_uptime(version_output: str) -> int | None:
+    """解析 Cisco show version 中的 System uptime"""
+    output = _strip_ansi(version_output)
+    m = re.search(
+        r'System uptime is\s+'
+        r'(?:(\d+)\s+years?,\s*)?'
+        r'(?:(\d+)\s+weeks?,\s*)?'
+        r'(?:(\d+)\s+days?,\s*)?'
+        r'(?:(\d+)\s+hours?,\s*)?'
+        r'(?:(\d+)\s+minutes?)',
+        output, re.IGNORECASE
+    )
+    if not m:
+        return None
+    years = int(m.group(1) or 0)
+    weeks = int(m.group(2) or 0)
+    days = int(m.group(3) or 0)
+    hours = int(m.group(4) or 0)
+    minutes = int(m.group(5) or 0)
+    total = days + weeks * 7 + years * 365
+    return total * 86400 + hours * 3600 + minutes * 60
+
+
+def _parse_aruba_uptime(boot_history: str) -> int | None:
+    """解析 Aruba show boot-history 中的 Current Boot 运行时间"""
+    output = _strip_ansi(boot_history)
+    m = re.search(
+        r'Current Boot, up for (\d+) days (\d+) hrs (\d+) mins (\d+) secs',
+        output
+    )
+    if not m:
+        return None
+    days = int(m.group(1))
+    hours = int(m.group(2))
+    minutes = int(m.group(3))
+    seconds = int(m.group(4))
+    return days * 86400 + hours * 3600 + minutes * 60 + seconds
+
+
+def parse_syslog_lines(log_output: str, device_type: str) -> list:
+    """将原始日志输出解析为结构化列表
+
+    Cisco Syslog 格式: *Mar  1 00:00:00.000: %FACILITY-SEVERITY-MNEMONIC: message
+    Cisco 无时间戳格式: %FACILITY-SEVERITY-MNEMONIC: message
+    Aruba 格式: YYYY-MM-DDTHH:MM:SS.XXXXXX+XX:XX {facility} {severity} {mnemonic} message
+
+    返回: [{"timestamp": "...", "severity": "...", "facility": "...", "message": "..."}]
+    """
+    if not log_output or log_output.startswith('% 收集失败'):
+        return []
+
+    entries = []
+    output = _strip_ansi(log_output)
+
+    # Aruba 结构化格式
+    if device_type == "aruba_aoscx":
+        for line in output.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            m = re.match(
+                r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+[+-]\d{2}:\d{2})\s+'
+                r'(\S+)\s+(\S+)\s+(\S+)\s+(.*)',
+                stripped
+            )
+            if m:
+                entries.append({
+                    "timestamp": m.group(1),
+                    "facility": m.group(2),
+                    "severity": m.group(3),
+                    "message": f"{m.group(4)}: {m.group(5)}",
+                })
+                continue
+            entries.append({"timestamp": "", "severity": "", "facility": "", "message": stripped})
+        return entries
+
+    # Cisco 格式: %FACILITY-SEVERITY-MNEMONIC: message (severity 为 0-7 单数字)
+    cisco_ts_re = re.compile(
+        r'^(?:\*)?(\w{3}\s+\d+\s+\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:\s+\w+)?):\s*'
+        r'%(\w+)-(\d)-(\w+):\s*(.*)'
+    )
+    cisco_no_ts_re = re.compile(
+        r'^%(\w+)-(\d)-(\w+):\s*(.*)'
+    )
+
+    for line in output.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("Syslog logging:") or stripped.startswith("Buffer logging:"):
+            continue
+        if stripped.startswith("Trap logging:") or stripped.startswith("Log Buffer"):
+            continue
+
+        m = cisco_ts_re.match(stripped)
+        if m:
+            entries.append({
+                "timestamp": m.group(1),
+                "facility": m.group(2),
+                "severity": m.group(3),
+                "message": m.group(5) or "",
+            })
+            continue
+
+        m2 = cisco_no_ts_re.match(stripped)
+        if m2:
+            entries.append({
+                "timestamp": "",
+                "facility": m2.group(1),
+                "severity": m2.group(2),
+                "message": m2.group(4) or "",
+            })
+            continue
+
+    return entries
+
+
 def collect_device(
     device: Device,
     username: str,
@@ -321,11 +453,14 @@ def collect_device(
         system_info = ""
         vsf_info = ""
         switch_info = ""
+        boot_history = ""
         if _is_aruba_device(effective_type):
             print(f"[收集进度] 获取 system info (序列号)...")
             system_info = _safe_collect(conn.collect_system_info, "show system")
             print(f"[收集进度] 获取 vsf info (堆叠成员)...")
             vsf_info = _safe_collect(conn.collect_vsf_info, "show vsf")
+            print(f"[收集进度] 获取 boot-history (运行时间)...")
+            boot_history = _safe_collect(conn.collect_boot_history, "show boot-history")
         elif effective_type == "cisco_ios" and not _is_router_device(device_type):
             print(f"[收集进度] 获取 switch detail (堆叠信息)...")
             switch_info = _safe_collect(conn.collect_switch_detail, "show switch detail")
@@ -348,6 +483,9 @@ def collect_device(
 
         # 提取设备型号（Aruba 从 system.raw, Cisco 从 version.raw）
         device_model = extract_model(system_info, version_info, effective_type)
+
+        # 提取设备运行时间（秒）
+        system_uptime_seconds = extract_uptime_seconds(version_info, boot_history, effective_type)
 
         # 查找基准配置路径
         baseline_path = os.path.join(data_root, device_name, "latest", "running-config.raw")
@@ -385,13 +523,16 @@ def collect_device(
         _set_progress(device_name, "saving")
         week = get_week_dir(data_root)
         _save_data(
-            device_name, device_ip, device_type,
+            device_name, device_ip, effective_type,
             week, data_root, settings,
             running_config, startup_config, logs,
             interface_status, version_info, interface_utilization, system_info, vsf_info, switch_info, route_info,
             validation_results, performance_results, change_results,
             software_version, serial_number, device_model,
-            cdp_neighbors_raw, lldp_neighbors_raw
+            cdp_neighbors_raw, lldp_neighbors_raw,
+            boot_history=boot_history,
+            system_uptime_seconds=system_uptime_seconds,
+            platform=device_platform,
         )
 
         _set_progress(device_name, "complete")
@@ -426,6 +567,188 @@ def collect_device(
         conn.disconnect()
 
 
+def _save_to_sqlite(
+    device_name: str, device_ip: str, device_type: str, device_platform: str,
+    week: str, collected_at: str,
+    running_config: str, logs_raw: str,
+    performance_results: str, validation_results: str, change_results: str,
+    software_version: str, serial_number: str, device_model: str,
+    system_uptime_seconds: int | None,
+    port_details: list, port_errors: list,
+    neighbors_data: list, boot_history: str,
+) -> dict:
+    """将采集数据写入 SQLite 数据库
+
+    返回写入统计信息。
+    此函数与文件写入并行执行，互不影响。
+    """
+    try:
+        db = get_db()
+    except RuntimeError:
+        print("[SQLite] 数据库未初始化，跳过 SQLite 写入")
+        return {"status": "skipped"}
+
+    try:
+        # 显式事务包裹：确保 8 步写入原子化，避免孤儿记录
+        db.execute("BEGIN IMMEDIATE")
+
+        # 1. 确保 device 记录存在
+        db.execute("""
+            INSERT INTO devices (name, ip, type, platform, serial_number, model, version, last_synced)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(name) DO UPDATE SET
+                ip=excluded.ip, type=excluded.type, platform=excluded.platform,
+                serial_number=CASE WHEN excluded.serial_number != '' AND excluded.serial_number != '未知'
+                                   THEN excluded.serial_number ELSE devices.serial_number END,
+                model=CASE WHEN excluded.model != '' AND excluded.model != '未知'
+                           THEN excluded.model ELSE devices.model END,
+                version=CASE WHEN excluded.version != '' AND excluded.version != '未知'
+                              THEN excluded.version ELSE devices.version END,
+                last_synced=excluded.last_synced
+        """, (
+            device_name, device_ip, device_type, device_platform,
+            serial_number if serial_number != "未知" else "",
+            device_model if device_model != "未知" else "",
+            software_version if software_version != "未知" else "",
+            collected_at,
+        ))
+        device_row = db.execute("SELECT id FROM devices WHERE name=?", (device_name,)).fetchone()
+        device_id = device_row["id"]
+
+        # 2. 写入采集会话
+        running_lines = len(running_config.splitlines()) if running_config and not running_config.startswith('%') else 0
+        db.execute("""
+            INSERT INTO collections (device_id, week, phase, collected_at,
+                software_version, serial_number, model, system_uptime_seconds,
+                running_config, running_config_lines, boot_history_raw)
+            VALUES (?, ?, '1', ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            device_id, week, collected_at,
+            software_version, serial_number, device_model,
+            system_uptime_seconds,
+            running_config, running_lines,
+            boot_history,
+        ))
+        collection_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+        # 3. 写入端口快照
+        if port_details:
+            def _safe_str(val) -> str:
+                """安全转字符串：None→''，保留数值 0"""
+                return str(val) if val is not None else ""
+
+            rows = []
+            for p in port_details:
+                rows.append((
+                    collection_id, device_id, p.get("name", ""),
+                    p.get("status", ""), 1 if p.get("status_up") else 0,
+                    _safe_str(p.get("speed")), _safe_str(p.get("mode")),
+                    _safe_str(p.get("type")), _safe_str(p.get("description")),
+                    _safe_str(p.get("native_vlan")),
+                    1 if p.get("is_uplink") else 0,
+                    float(p.get("rx_mbps") or 0), float(p.get("tx_mbps") or 0),
+                    float(p.get("rx_util_pct") or 0), float(p.get("tx_util_pct") or 0),
+                    int(p.get("rx_pps") or 0), int(p.get("tx_pps") or 0),
+                    int(p.get("rxload") or 0), int(p.get("txload") or 0),
+                ))
+            db.executemany("""
+                INSERT INTO port_snapshots
+                    (collection_id, device_id, port_name, status, status_up,
+                     speed, mode, port_type, description, native_vlan, is_uplink,
+                     rx_mbps, tx_mbps, rx_util_pct, tx_util_pct, rx_pps, tx_pps, rxload, txload)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, rows)
+
+        # 4. 写入端口错误
+        if port_errors:
+            err_rows = []
+            for err_type, ports in port_errors.items():
+                for pn in ports:
+                    err_rows.append((collection_id, device_id, pn, err_type, 1))
+            db.executemany(
+                "INSERT INTO port_errors (collection_id, device_id, port_name, error_type, count) VALUES (?, ?, ?, ?, ?)",
+                err_rows,
+            )
+
+        # 5. 写入邻居关系
+        if neighbors_data:
+            neigh_rows = []
+            for n in neighbors_data:
+                neigh_rows.append((
+                    collection_id, device_id,
+                    n.get("local_port", ""), n.get("neighbor_name", ""),
+                    n.get("neighbor_type", ""), n.get("neighbor_platform", ""),
+                    n.get("neighbor_desc", ""), n.get("source", "cdp"),
+                ))
+            db.executemany(
+                "INSERT INTO neighbors (collection_id, device_id, local_port, neighbor_name, neighbor_type, neighbor_platform, neighbor_desc, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                neigh_rows,
+            )
+
+        # 6. 写入配置变更
+        if change_results and change_results != "{}":
+            try:
+                change = json.loads(change_results)
+                has_changes = 1 if change.get("has_changes") else 0
+                summary_json = json.dumps(change.get("changes", []), ensure_ascii=False)
+                db.execute(
+                    "INSERT INTO config_changes (collection_id, device_id, detected_at, has_changes, added_lines, removed_lines, change_summary) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (collection_id, device_id, collected_at, has_changes,
+                     change.get("summary", {}).get("added", 0),
+                     change.get("summary", {}).get("removed", 0),
+                     summary_json),
+                )
+            except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
+                print(f"[SQLite] 配置变更解析失败: {e}")
+
+        # 7. 写入验证结果
+        if validation_results and validation_results != "{}":
+            try:
+                val = json.loads(validation_results)
+                vs = val.get("summary", {})
+                db.execute(
+                    "INSERT INTO validation_results (collection_id, device_id, errors_count, warnings_count, info_count, details) VALUES (?, ?, ?, ?, ?, ?)",
+                    (collection_id, device_id, vs.get("errors", 0), vs.get("warnings", 0), vs.get("info", 0),
+                     json.dumps(val, ensure_ascii=False)),
+                )
+            except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
+                print(f"[SQLite] 验证结果解析失败: {e}")
+
+        # 8. 写入设备日志
+        if logs_raw and not logs_raw.startswith('% 收集失败'):
+            log_entries = parse_syslog_lines(logs_raw, device_type)
+            if log_entries:
+                log_rows = [
+                    (collection_id, device_id, e["timestamp"], e["severity"], e["facility"], e["message"])
+                    for e in log_entries
+                ]
+                db.executemany(
+                    "INSERT INTO device_logs (collection_id, device_id, log_timestamp, severity, facility, message) VALUES (?, ?, ?, ?, ?, ?)",
+                    log_rows,
+                )
+
+        db.commit()
+        stats = {
+            "status": "ok",
+            "collection_id": collection_id,
+            "port_snapshots": len(port_details),
+            "port_errors": sum(len(v) for v in (port_errors or {}).values()),
+            "neighbors": len(neighbors_data),
+            "logs": len(logs_raw.splitlines()) if logs_raw else 0,
+        }
+        print(f"[SQLite] 数据已写入: {stats}")
+        return stats
+
+    except Exception as e:
+        print(f"[SQLite] 写入失败: {e}")
+        traceback.print_exc()
+        try:
+            db.rollback()
+        except Exception:
+            pass
+        return {"status": "error", "error": str(e)}
+
+
 def _save_data(
     device_name: str, device_ip: str, device_type: str,
     week: str, data_dir: str, settings: Dict,
@@ -434,7 +757,9 @@ def _save_data(
     interface_utilization: str, system_info: str, vsf_info: str, switch_info: str, route_info: str,
     validation_results: str, performance_results: str, change_results: str,
     software_version: str, serial_number: str, device_model: str = "",
-    cdp_neighbors_raw: str = "", lldp_neighbors_raw: str = ""
+    cdp_neighbors_raw: str = "", lldp_neighbors_raw: str = "",
+    boot_history: str = "", system_uptime_seconds: int | None = None,
+    platform: str = "",
 ) -> None:
     """保存数据到本地"""
 
@@ -470,6 +795,10 @@ def _save_data(
         with open(os.path.join(week_dir, "vsf.raw"), "w", encoding="utf-8") as f:
             f.write(vsf_info)
 
+    if boot_history:
+        with open(os.path.join(week_dir, "boot-history.raw"), "w", encoding="utf-8") as f:
+            f.write(boot_history)
+
     if switch_info:
         with open(os.path.join(week_dir, "switch-detail.raw"), "w", encoding="utf-8") as f:
             f.write(switch_info)
@@ -488,6 +817,7 @@ def _save_data(
             f.write(lldp_neighbors_raw)
 
     # 生成 neighbors.json (CDP/LLDP + ConfigParser 端口描述补充)
+    _neighbors_in_memory = []  # 供后续 SQLite 写入使用，避免磁盘回读
     try:
         from analyzers.neighbor_parser import parse_cdp, parse_lldp, merge_neighbors, NeighborEntry
         cdp_entries = parse_cdp(cdp_neighbors_raw, device_type) if cdp_neighbors_raw else []
@@ -569,6 +899,7 @@ def _save_data(
                 for e in merged
             ]
         }
+        _neighbors_in_memory = neighbors_data["neighbors"]  # 保存引用供 SQLite 写入
         with open(os.path.join(week_dir, "neighbors.json"), "w", encoding="utf-8") as f:
             json.dump(neighbors_data, f, ensure_ascii=False, indent=2)
         print(f"[保存] neighbors.json: {len(merged)} 条邻居记录")
@@ -606,6 +937,67 @@ def _save_data(
     if software_version and software_version != "未知":
         _update_device_field(device_name, "version", software_version)
     _update_device_field(device_name, "last_synced", datetime.now().strftime("%m/%d/%Y %H:%M"))
+
+    # 双轨写入: 同时写入 SQLite 数据库
+    try:
+        # 从 performance_results JSON 中提取端口详情和错误数据
+        port_details = []
+        port_errors_dict = {}
+        if performance_results and performance_results != "{}":
+            try:
+                perf_json = json.loads(performance_results)
+                iface_summary = perf_json.get("interface_summary", {})
+                port_details = iface_summary.get("details", [])
+                errors = perf_json.get("errors", {})
+                port_errors_dict = errors.get("ports", {})
+            except (json.JSONDecodeError, KeyError, ValueError, TypeError):
+                pass
+
+        # 使用内存中已处理的邻居数据（避免磁盘回读）
+        neighbors_list = _neighbors_in_memory
+
+        sqlite_result = _save_to_sqlite(
+            device_name=device_name,
+            device_ip=device_ip,
+            device_type=device_type,
+            device_platform=platform,
+            week=week,
+            collected_at=datetime.now().isoformat(),
+            running_config=running_config,
+            logs_raw=logs_raw,
+            performance_results=performance_results,
+            validation_results=validation_results,
+            change_results=change_results,
+            software_version=software_version,
+            serial_number=serial_number,
+            device_model=device_model,
+            system_uptime_seconds=system_uptime_seconds,
+            port_details=port_details,
+            port_errors=port_errors_dict,
+            neighbors_data=neighbors_list,
+            boot_history=boot_history,
+        )
+        # 写入完成后自动运行异常检测
+        if isinstance(sqlite_result, dict) and sqlite_result.get("collection_id"):
+            try:
+                dev_id = _get_device_id(device_name)
+                if dev_id is None:
+                    print(f"[异常检测] 跳过 {device_name}: 未找到设备 ID")
+                else:
+                    from analyzers.anomaly_detector import AnomalyDetector
+                    detector = AnomalyDetector(get_db())
+                    alert_count = detector.detect_and_save(
+                        device_id=dev_id,
+                        collection_id=sqlite_result["collection_id"],
+                        week=week,
+                    )
+                    if alert_count:
+                        print(f"[异常检测] {device_name}: {alert_count} 条告警")
+            except Exception as e:
+                print(f"[异常检测] 失败: {e}")
+
+    except Exception as e:
+        print(f"[SQLite] 双轨写入失败（不影响文件存储）: {e}")
 
 
 def _generate_summary(
@@ -731,7 +1123,218 @@ def _update_device_field(device_name: str, field: str, value: any) -> None:
         yaml.dump(data, f, allow_unicode=True, default_flow_style=False, Dumper=yaml.SafeDumper)
 
 
+def _get_device_id(device_name: str) -> int | None:
+    """从 SQLite 中查询设备 ID"""
+    try:
+        db = get_db()
+        row = db.execute("SELECT id FROM devices WHERE name=?", (device_name,)).fetchone()
+        return row["id"] if row else None
+    except Exception:
+        return None
+
+
 def _update_device_serial(device_name: str, serial_number: str) -> None:
     """更新设备清单中的序列号"""
     _update_device_field(device_name, "serial_number", serial_number)
- 
+
+
+# ================================================================
+# Phase 2 深度收集触发规则
+# ================================================================
+
+PHASE2_TRIGGERS = {
+    "device_reboot": {
+        "label": "设备重启",
+        "collect": ["show logging"],
+        "button_text": "收集全量日志诊断重启原因",
+    },
+    "port_sudden_down": {
+        "label": "端口异常 DOWN",
+        "collect": ["show interface {port_name}"],
+        "button_text": "深度检查端口状态",
+    },
+    "port_errors": {
+        "label": "端口错误",
+        "collect": ["show interface {port_name}", "show logging | include {port_name}"],
+        "button_text": "收集端口错误详情",
+    },
+    "topology_changed": {
+        "label": "拓扑变更",
+        "collect": ["show cdp nei detail", "show lldp nei detail"],
+        "button_text": "收集详细邻居信息",
+    },
+    "high_utilization": {
+        "label": "带宽利用率飙升",
+        "collect": ["show interface {port_name}"],
+        "button_text": "检查端口流量详情",
+    },
+    "config_changed": {
+        "label": "配置变更",
+        "collect": [],
+        "button_text": None,
+    },
+    "version_mismatch": {
+        "label": "版本不一致",
+        "collect": [],
+        "button_text": None,
+    },
+}
+
+
+def collect_all_devices_parallel(
+    devices: List[Device],
+    username: str,
+    password: str,
+    settings: Dict,
+    max_workers: int = 4,
+) -> List[Dict]:
+    """并行收集所有设备（Phase 1）
+
+    Args:
+        devices: 设备列表
+        username: SSH 用户名
+        password: SSH 密码
+        settings: 全局设置
+        max_workers: 最大并发线程数
+
+    Returns:
+        每个设备的收集结果列表
+    """
+    results: List[Dict] = []
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_device = {
+            executor.submit(collect_device, device, username, password, settings): device
+            for device in devices
+        }
+        for future in as_completed(future_to_device):
+            device = future_to_device[future]
+            try:
+                result = future.result()
+                results.append(result)
+            except Exception as e:
+                print(f"[并行] 设备 {device.name} 收集异常: {e}")
+                traceback.print_exc()
+                results.append({
+                    "name": device.name,
+                    "ip": device.ip,
+                    "status": "failed",
+                    "error": str(e),
+                })
+
+    return results
+
+
+def run_phase2_collection(
+    device_name: str,
+    triggers: List[str],
+    username: str,
+    password: str,
+    settings: Dict,
+    port_name: str = "",
+) -> Dict:
+    """执行单设备 Phase 2 深度收集
+
+    Args:
+        device_name: 设备名称
+        triggers: 触发条件列表 (如 ["device_reboot", "port_sudden_down"])
+        username: SSH 用户名
+        password: SSH 密码
+        settings: 全局设置
+        port_name: 相关端口名（用于端口类触发条件）
+
+    Returns:
+        收集结果
+    """
+    devices = load_devices()
+    device_config = None
+    for d in devices:
+        if d.name == device_name:
+            device_config = d
+            break
+
+    if device_config is None:
+        return {"status": "failed", "error": f"设备 {device_name} 不存在"}
+
+    _set_progress(device_name, "phase2_connecting")
+
+    conn = _get_device_connection()({
+        "name": device_config.name,
+        "ip": device_config.ip,
+        "type": device_config.type,
+        "platform": getattr(device_config, 'platform', '') or '',
+        "port": 22,
+        "timeout": 120,
+    })
+
+    if not conn.connect(username, password):
+        error_msg = getattr(conn, '_last_error', '') or 'SSH 连接失败'
+        _set_progress(device_name, "failed", error_msg)
+        return {"status": "failed", "error": error_msg}
+
+    collected: Dict[str, str] = {}
+    try:
+        # 根据触发条件收集对应命令
+        dt = conn.actual_device_type or conn.configured_device_type
+        for trigger in triggers:
+            rule = PHASE2_TRIGGERS.get(trigger, {})
+            for cmd_template in rule.get("collect", []):
+                cmd = cmd_template.format(port_name=port_name)
+                print(f"[Phase2] {device_name}: {cmd}")
+                output = conn.send_command(cmd, read_timeout=30)
+                collected[cmd] = output
+
+        _set_progress(device_name, "phase2_saving")
+
+        # 写入 SQLite（Phase 2 标记）
+        week = get_week_dir(settings.get("data_root", "./data"))
+        try:
+            db = get_db()
+            device_row = db.execute("SELECT id FROM devices WHERE name=?", (device_name,)).fetchone()
+            if device_row:
+                device_id = device_row["id"]
+                collected_at = datetime.now().isoformat()
+                db.execute(
+                    "INSERT INTO collections (device_id, week, phase, collected_at) VALUES (?, ?, '2', ?)",
+                    (device_id, week, collected_at),
+                )
+                collection_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
+
+                # 保存全量日志（若收集了）
+                full_logs = collected.get("show logging", "")
+                if full_logs:
+                    log_entries = parse_syslog_lines(full_logs, dt)
+                    if log_entries:
+                        log_rows = [
+                            (collection_id, device_id, e["timestamp"], e["severity"], e["facility"], e["message"])
+                            for e in log_entries
+                        ]
+                        db.executemany(
+                            "INSERT INTO device_logs (collection_id, device_id, log_timestamp, severity, facility, message) VALUES (?, ?, ?, ?, ?, ?)",
+                            log_rows,
+                        )
+                        print(f"[Phase2] {device_name}: {len(log_rows)} 条日志已写入数据库")
+
+                db.commit()
+        except Exception as e:
+            print(f"[Phase2] SQLite 写入失败: {e}")
+
+        _set_progress(device_name, "complete")
+        import time
+        time.sleep(0.5)
+        _clear_progress(device_name)
+
+        return {
+            "status": "success",
+            "device_name": device_name,
+            "triggers": triggers,
+            "collected_commands": list(collected.keys()),
+        }
+
+    except Exception as e:
+        print(f"[Phase2] 异常: {e}")
+        traceback.print_exc()
+        _set_progress(device_name, "failed", str(e))
+        return {"status": "failed", "error": str(e)}
+    finally:
+        conn.disconnect()

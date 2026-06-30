@@ -6644,6 +6644,390 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-24T08:13:31.817Z"
+    },
+    {
+      "id": "bug-416",
+      "timestamp": "2026-06-30T04:35:33.953Z",
+      "error_message": "Significant refactor of ",
+      "file": "C:/Users/jingl/.claude/plans/sqlite-jazzy-bonbon.md",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 31→29 lines (7 removed) | Also: | 命令 | 所有设备 | 预计耗时 |; |------|---------|---------| | Also: # 伪代码; def collect_logs(self) -> str: | Also: 1. **Cisco 2960X/9200 的 `terminal shell` 是否所有版本都支持; 2. **Aruba CX 的 `show interface utilization` 管道语法*",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-06-30T04:37:08.427Z"
+    },
+    {
+      "id": "bug-417",
+      "timestamp": "2026-06-30T04:40:51.219Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/storage/__init__.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 10→19 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T04:40:51.219Z"
+    },
+    {
+      "id": "bug-418",
+      "timestamp": "2026-06-30T04:42:52.579Z",
+      "error_message": "Wrong return value",
+      "file": "backend/collectors/base.py",
+      "root_cause": "Was returning: self.send_command(\"show interfaces | include rate|",
+      "fix": "Now returns: self.send_command(\"show interface utilization\", re",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T04:42:52.579Z"
+    },
+    {
+      "id": "bug-419",
+      "timestamp": "2026-06-30T04:47:34.969Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 9→176 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T04:47:34.969Z"
+    },
+    {
+      "id": "bug-420",
+      "timestamp": "2026-06-30T05:04:22.285Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/scripts/migrate_to_sqlite.py",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 9→10 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T05:04:22.285Z"
+    },
+    {
+      "id": "bug-421",
+      "timestamp": "2026-06-30T05:04:52.754Z",
+      "error_message": "Wrong reference: None should be dict",
+      "file": "backend/scripts/migrate_to_sqlite.py",
+      "root_cause": "Used \"None\" instead of \"dict\"",
+      "fix": "Changed None → dict",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-06-30T05:06:00.518Z"
+    },
+    {
+      "id": "bug-422",
+      "timestamp": "2026-06-30T05:08:12.147Z",
+      "error_message": "Type error",
+      "file": "frontend/src/services/api.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T05:08:12.147Z"
+    },
+    {
+      "id": "bug-423",
+      "timestamp": "2026-06-30T05:10:53.217Z",
+      "error_message": "CSS fix: label",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "label: t('nav.viewer'), icon: <Terminal />, path: '/viewer' → t('reports.title'), icon: <ReportsIcon />, path: '/reports'",
+      "fix": "Changed label: t('nav.viewer'), icon: <Terminal />, path: '/viewer' → t('reports.title'), icon: <ReportsIcon />, path: '/reports'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T05:10:53.217Z"
+    },
+    {
+      "id": "bug-424",
+      "timestamp": "2026-06-30T05:16:55.366Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T05:16:55.366Z"
+    },
+    {
+      "id": "bug-425",
+      "timestamp": "2026-06-30T05:17:14.230Z",
+      "error_message": "CSS fix: accent",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "accent: '#EF4444', label: t('dashboard.errorPorts'), value: dashboardStats?.error_ports ?? 0, danger: true → '#F59E0B', label: t('alerts.title'), value: alertCount, danger: alertCount > 0, link: '/alerts'",
+      "fix": "Changed accent: '#EF4444', label: t('dashboard.errorPorts'), value: dashboardStats?.error_ports ?? 0, danger: true → '#F59E0B', label: t('alerts.title'), value: alertCount, danger: alertCount > 0, link: '/alerts'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T05:17:14.230Z"
+    },
+    {
+      "id": "bug-426",
+      "timestamp": "2026-06-30T05:19:27.318Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/collector.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T05:19:27.318Z"
+    },
+    {
+      "id": "bug-427",
+      "timestamp": "2026-06-30T06:10:33.290Z",
+      "error_message": "Wrong reference: try should be _neighbors_in_memory",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "Used \"try\" instead of \"_neighbors_in_memory\"",
+      "fix": "Changed try → _neighbors_in_memory",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-30T06:12:29.043Z"
+    },
+    {
+      "id": "bug-428",
+      "timestamp": "2026-06-30T06:11:02.158Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 12→4 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T06:11:02.158Z"
+    },
+    {
+      "id": "bug-429",
+      "timestamp": "2026-06-30T06:11:54.152Z",
+      "error_message": "Wrong reference: _get_prev_collection should be _prev_cache",
+      "file": "backend/analyzers/anomaly_detector.py",
+      "root_cause": "Used \"_get_prev_collection\" instead of \"_prev_cache\"",
+      "fix": "Changed _get_prev_collection → _prev_cache",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T06:11:54.152Z"
+    },
+    {
+      "id": "bug-430",
+      "timestamp": "2026-06-30T07:12:15.510Z",
+      "error_message": "CSS fix: px",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "px: 1, pt: 2, flex: 1 → 1, pt: 2, flex: 1, overflowY: 'auto'",
+      "fix": "Changed px: 1, pt: 2, flex: 1 → 1, pt: 2, flex: 1, overflowY: 'auto'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T07:12:15.510Z"
+    },
+    {
+      "id": "bug-431",
+      "timestamp": "2026-06-30T07:13:07.000Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/Alerts.tsx",
+      "root_cause": "Had '../i18n'",
+      "fix": "Changed to '../services/auth'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T07:13:07.000Z"
+    },
+    {
+      "id": "bug-432",
+      "timestamp": "2026-06-30T07:18:06.116Z",
+      "error_message": "CSS fix: px, mb, py",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "px: 2, → 1.5,; mb: 0.5 → 0.25; py: 1.3, → 1,",
+      "fix": "Changed px: 2, → 1.5,; mb: 0.5 → 0.25; py: 1.3, → 1,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-30T07:18:23.538Z"
+    },
+    {
+      "id": "bug-433",
+      "timestamp": "2026-06-30T07:19:15.601Z",
+      "error_message": "Type error",
+      "file": "frontend/src/pages/Alerts.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: <Snackbar; open={!!phase2Msg}",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-30T07:20:10.006Z"
+    },
+    {
+      "id": "bug-434",
+      "timestamp": "2026-06-30T07:31:12.901Z",
+      "error_message": "CSS fix: px",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "px: 1, pt: 2, flex: 1 → 1, pt: 2, flex: 0",
+      "fix": "Changed px: 1, pt: 2, flex: 1 → 1, pt: 2, flex: 0",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-30T07:31:27.950Z"
+    },
+    {
+      "id": "bug-435",
+      "timestamp": "2026-06-30T07:39:29.964Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/Alerts.tsx",
+      "root_cause": "Had '仅未处理'",
+      "fix": "Changed to `仅未处理 (${total})`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T07:39:29.964Z"
+    },
+    {
+      "id": "bug-436",
+      "timestamp": "2026-06-30T07:42:21.276Z",
+      "error_message": "Wrong reference: unreadOnly should be filterDevice",
+      "file": "frontend/src/pages/Alerts.tsx",
+      "root_cause": "Used \"unreadOnly\" instead of \"filterDevice\"",
+      "fix": "Changed unreadOnly → filterDevice",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T07:42:21.276Z"
+    },
+    {
+      "id": "bug-437",
+      "timestamp": "2026-06-30T08:33:38.564Z",
+      "error_message": "Significant refactor of ",
+      "file": "config/settings.yaml",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 5→10 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "yaml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T08:33:38.564Z"
+    },
+    {
+      "id": "bug-438",
+      "timestamp": "2026-06-30T08:47:15.997Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/Alerts.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T08:47:15.997Z"
+    },
+    {
+      "id": "bug-439",
+      "timestamp": "2026-06-30T08:47:34.821Z",
+      "error_message": "CSS fix: mt",
+      "file": "frontend/src/pages/Alerts.tsx",
+      "root_cause": "mt: 1, p: 2, bgcolor: 'grey.50', borderRadius: 1 → 1, p: 2, bgcolor: 'grey.50', borderRadius: 1, maxHeight: 340, overflow: 'auto'",
+      "fix": "Changed mt: 1, p: 2, bgcolor: 'grey.50', borderRadius: 1 → 1, p: 2, bgcolor: 'grey.50', borderRadius: 1, maxHeight: 340, overflow: 'auto'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T08:47:34.821Z"
     }
   ]
 }

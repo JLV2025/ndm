@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-06-24T08:13:48.214Z
-> Files: 26 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-06-30T08:59:52.831Z
+> Files: 40 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -83,16 +83,18 @@
 
 - `pure-scribbling-swan-agent-ae40f92d6c925300d.md` — NDM 端口拓扑图 — 右齐布局 + 设备角色检测 实施计划 (~5389 tok)
 - `pure-scribbling-swan.md` — 端口拓扑图右对齐布局 + 设备角色标注/核查 (~1099 tok)
+- `sqlite-jazzy-bonbon.md` — NDM 智能化改造实施计划 (~4052 tok)
 
 ## agents/
 
 
 ## backend/
 
-- `main.py` — API: 3 endpoints (~1134 tok)
+- `main.py` — API: 3 endpoints (~1227 tok)
 
 ## backend/analyzers/
 
+- `anomaly_detector.py` — AnomalyDetector: detect_all, detect_and_save (~3556 tok)
 - `config_parser.py` — class: parse (~2095 tok)
 - `neighbor_parser.py` — CDP / LLDP 邻居解析器 (~4176 tok)
 - `role_verifier.py` — class: devices, device_map, verify_device, audit_location (~3557 tok)
@@ -100,23 +102,30 @@
 
 ## backend/api/
 
+- `alerts.py` — 告警 API 路由 (~1608 tok)
+- `collector.py` — 配置收集 API 路由 (~2151 tok)
+- `reports.py` — 自定义报告 API 路由 (~1695 tok)
 - `topology.py` — 拓扑图 API 路由 (~9033 tok)
 
 ## backend/collectors/
 
+- `base.py` — DeviceConnection: connect, send_command, collect_config, collect_logs + 11 more (~2527 tok)
 
 ## backend/models/
 
 
 ## backend/scripts/
 
+- `migrate_to_sqlite.py` — 历史数据迁移脚本 (~3472 tok)
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~8556 tok)
+- `collector_service.py` — 配置收集服务 (~15160 tok)
 
 ## backend/storage/
 
+- `__init__.py` — 数据存储服务模块 (~121 tok)
+- `database.py` — init_db, get_connection, close_connection (~3498 tok)
 
 ## backend/tests/
 
@@ -127,6 +136,7 @@
 ## config/
 
 - `devices.yaml` (~2242 tok)
+- `settings.yaml` — 数据存储根目录 - 项目根目录下的 data/ 文件夹 (~146 tok)
 
 ## data/
 
@@ -140,7 +150,7 @@
 
 ## frontend/src/
 
-- `App.tsx` — DRAWER_WIDTH — renders modal (~2810 tok)
+- `App.tsx` — DRAWER_WIDTH — renders modal (~2958 tok)
 
 ## frontend/src/components/
 
@@ -155,13 +165,17 @@
 
 ## frontend/src/i18n/
 
+- `zh.ts` — Declares zh (~3296 tok)
 
 ## frontend/src/pages/
 
-- `Dashboard.tsx` — DevicesLink (~9630 tok)
+- `Alerts.tsx` — 字段中文标签映射 (~4572 tok)
+- `Dashboard.tsx` — DevicesLink (~9810 tok)
+- `Reports.tsx` — ReportsPage — renders form, table (~2394 tok)
 
 ## frontend/src/services/
 
+- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vdx 文件 Blob (~1674 tok)
 
 ## frontend/src/shared/
 

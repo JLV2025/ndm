@@ -22,6 +22,8 @@ import {
   Storage,
   Terminal,
   Hub as HubIcon,
+  Warning as AlertIcon,
+  Assessment as ReportsIcon,
 } from '@mui/icons-material'
 import Login from './pages/Login'
 import DeviceList from './pages/DeviceList'
@@ -30,6 +32,8 @@ import Dashboard from './pages/Dashboard'
 import Viewer from './pages/Viewer'
 import Topology from './pages/PortTopology'
 import NetworkTopology from './pages/NetworkTopology'
+import Alerts from './pages/Alerts'
+import Reports from './pages/Reports'
 import MatrixRain from './components/MatrixRain'
 import { sessionManager } from './services/auth'
 import { useI18n } from './i18n'
@@ -57,6 +61,8 @@ function Layout() {
     { label: t('nav.topology'), icon: <HubIcon />, path: '/network-topology' },
     { label: t('nav.portTopology'), icon: <HubIcon />, path: '/port-topology' },
     { label: t('nav.viewer'), icon: <Terminal />, path: '/viewer' },
+    { label: t('alerts.title'), icon: <AlertIcon />, path: '/alerts' },
+    { label: t('reports.title'), icon: <ReportsIcon />, path: '/reports' },
   ]
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen)
@@ -102,18 +108,19 @@ function Layout() {
 
       <Divider />
 
-      <List sx={{ px: 1, pt: 2, flex: 1 }}>
+      <Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+      <List sx={{ px: 1, pt: 2, flex: 0 }}>
         {navItems.map((item) => {
           const isActive = currentPath === item.path || (item.path !== '/' && currentPath.startsWith(item.path))
           return (
-            <ListItem key={item.path} disablePadding sx={{ mb: 0.5 }}>
+            <ListItem key={item.path} disablePadding sx={{ mb: 0.25 }}>
               <ListItemButton
                 component={Link}
                 to={item.path}
                 sx={{
                   borderRadius: 1.5,
-                  py: 1.3,
-                  px: 2,
+                  py: 1,
+                  px: 1.5,
                   bgcolor: isActive ? 'rgba(45, 212, 110, 0.08)' : 'transparent',
                   border: '1px solid',
                   borderColor: isActive ? 'rgba(45, 212, 110, 0.2)' : 'transparent',
@@ -223,6 +230,7 @@ function Layout() {
           </Box>
         </Box>
       </Box>
+      </Box> {/* scroll */}
       </Box>
     </Box>
   )
@@ -304,6 +312,8 @@ const App: React.FC = () => {
           <Route path="topology" element={<Topology />} />
           <Route path="port-topology" element={<Topology />} />
           <Route path="network-topology" element={<NetworkTopology />} />
+          <Route path="alerts" element={<Alerts />} />
+          <Route path="reports" element={<Reports />} />
         </Route>
       </Routes>
       </ErrorBoundary>
