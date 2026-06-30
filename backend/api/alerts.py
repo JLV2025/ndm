@@ -15,6 +15,8 @@ async def get_alerts(
     device_name: Optional[str] = Query(None, description="按设备名过滤"),
     alert_type: Optional[str] = Query(None, description="告警类型过滤"),
     severity: Optional[str] = Query(None, description="严重级别: INFO/WARNING/HIGH/CRITICAL"),
+    date_from: Optional[str] = Query(None, description="起始日期 ISO 格式 YYYY-MM-DD"),
+    date_to: Optional[str] = Query(None, description="结束日期 ISO 格式 YYYY-MM-DD"),
     unread_only: bool = Query(False, description="仅未读"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
@@ -39,6 +41,14 @@ async def get_alerts(
 
     if unread_only:
         conditions.append("a.is_read = 0 AND a.resolved_at IS NULL")
+
+    if date_from:
+        conditions.append("a.created_at >= ?")
+        params.append(date_from + "T00:00:00")
+
+    if date_to:
+        conditions.append("a.created_at <= ?")
+        params.append(date_to + "T23:59:59")
 
     where = " AND ".join(conditions) if conditions else "1=1"
 

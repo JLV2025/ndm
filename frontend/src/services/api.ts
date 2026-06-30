@@ -152,8 +152,8 @@ export const reportsApi = {
 
 // Phase 2 深度收集
 export const phase2Api = {
-  trigger: (deviceName: string, triggers: string[], portName?: string) =>
-    apiJson.post(`/collect/phase2/${deviceName}`, { triggers, port_name: portName }),
+  trigger: (deviceName: string, triggers: string[], username: string, password: string, portName?: string) =>
+    apiJson.post(`/collect/phase2/${deviceName}`, { triggers, port_name: portName, username, password }),
 }
 
 export default apiJson

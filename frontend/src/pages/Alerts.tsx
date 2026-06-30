@@ -3,7 +3,8 @@ import {
   Box, Container, Typography, Card, CardContent, Chip, Button, Alert as MuiAlert,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, IconButton, Tooltip, CircularProgress, Select, MenuItem,
-  FormControl, InputLabel, Collapse, Divider,
+  FormControl, InputLabel, Collapse, Divider, Snackbar, Alert,
+  TextField,
 } from '@mui/material'
 import {
   Warning as WarningIcon,
@@ -15,6 +16,7 @@ import {
   DoneAll,
 } from '@mui/icons-material'
 import { alertsApi, phase2Api } from '../services/api'
+import { sessionManager } from '../services/auth'
 import { useI18n } from '../i18n'
 
 const SEVERITY_CONFIG: Record<string, { color: 'error' | 'warning' | 'info' | 'success'; icon: typeof WarningIcon; label: string }> = {
@@ -45,9 +47,13 @@ export default function AlertsPage() {
   const [loading, setLoading] = useState(true)
   const [filterType, setFilterType] = useState('')
   const [filterSeverity, setFilterSeverity] = useState('')
+  const [filterDevice, setFilterDevice] = useState('')
+  const [filterDateFrom, setFilterDateFrom] = useState('')
+  const [filterDateTo, setFilterDateTo] = useState('')
   const [unreadOnly, setUnreadOnly] = useState(true)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [phase2Loading, setPhase2Loading] = useState<Set<number>>(new Set())
+  const [phase2Msg, setPhase2Msg] = useState<{ text: string; severity: 'info' | 'success' | 'error' } | null>(null)
   const [suggestions, setSuggestions] = useState<Record<number, string>>({})
 
   const fetchAlerts = useCallback(async () => {
@@ -56,6 +62,9 @@ export default function AlertsPage() {
       const params: Record<string, string | number | boolean> = { limit: 100 }
       if (filterType) params.alert_type = filterType
       if (filterSeverity) params.severity = filterSeverity
+      if (filterDevice) params.device_name = filterDevice
+      if (filterDateFrom) params.date_from = filterDateFrom
+      if (filterDateTo) params.date_to = filterDateTo
       if (unreadOnly) params.unread_only = true
       const res = await alertsApi.list(params)
       setAlerts(res.data.alerts || [])
@@ -65,7 +74,7 @@ export default function AlertsPage() {
     } finally {
       setLoading(false)
     }
-  }, [filterType, filterSeverity, unreadOnly])
+  }, [filterType, filterSeverity, filterDevice, filterDateFrom, filterDateTo, unreadOnly])
 
   useEffect(() => { fetchAlerts() }, [fetchAlerts])
 
@@ -89,10 +98,23 @@ export default function AlertsPage() {
   }
 
   const handlePhase2 = async (alert: AlertItem) => {
+    const session = sessionManager.getSession()
+    if (!session) { alert('请先登录'); return }
+
     setPhase2Loading(prev => new Set(prev).add(alert.id))
+    setPhase2Msg({ text: `正在对 ${alert.device_name} 执行深度诊断...`, severity: 'info' })
     try {
-      await phase2Api.trigger(alert.device_name, [alert.alert_type], alert.detail?.port_name)
+      await phase2Api.trigger(
+        alert.device_name,
+        [alert.alert_type],
+        session.username,
+        session.password,
+        alert.detail?.port_name,
+      )
+      setPhase2Msg({ text: `${alert.device_name} 深度诊断完成`, severity: 'success' })
     } catch (e: any) {
+      const msg = e?.response?.data?.detail || e?.message || 'Phase 2 执行失败'
+      setPhase2Msg({ text: msg, severity: 'error' })
       console.error('Phase 2 failed:', e)
     }
     setPhase2Loading(prev => {
@@ -122,6 +144,32 @@ export default function AlertsPage() {
 
       {/* 过滤栏 */}
       <Paper sx={{ p: 2, mb: 3, display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+        <TextField
+          size="small"
+          label="设备名"
+          placeholder="输入设备名筛选"
+          value={filterDevice}
+          onChange={e => setFilterDevice(e.target.value)}
+          sx={{ minWidth: 160 }}
+        />
+        <TextField
+          size="small"
+          label="起始日期"
+          type="date"
+          value={filterDateFrom}
+          onChange={e => setFilterDateFrom(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 150 }}
+        />
+        <TextField
+          size="small"
+          label="结束日期"
+          type="date"
+          value={filterDateTo}
+          onChange={e => setFilterDateTo(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ minWidth: 150 }}
+        />
         <FormControl size="small" sx={{ minWidth: 160 }}>
           <InputLabel>{t('alerts.allTypes')}</InputLabel>
           <Select value={filterType} label={t('alerts.allTypes')} onChange={e => setFilterType(e.target.value)}>
@@ -146,7 +194,7 @@ export default function AlertsPage() {
           </Select>
         </FormControl>
         <Button variant={unreadOnly ? 'contained' : 'outlined'} size="small" onClick={() => setUnreadOnly(!unreadOnly)}>
-          {unreadOnly ? '仅未处理' : '显示全部'}
+          {unreadOnly ? `仅未处理 (${total})` : `显示全部 (${total})`}
         </Button>
         <Typography variant="body2" color="text.secondary" sx={{ ml: 'auto' }}>
           {t('alerts.summary', { total: String(total) })}
@@ -241,6 +289,18 @@ export default function AlertsPage() {
           </Table>
         </TableContainer>
       )}
+      <Snackbar
+        open={!!phase2Msg}
+        autoHideDuration={4000}
+        onClose={() => setPhase2Msg(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        {phase2Msg ? (
+          <Alert severity={phase2Msg.severity} onClose={() => setPhase2Msg(null)} variant="filled">
+            {phase2Msg.text}
+          </Alert>
+        ) : undefined}
+      </Snackbar>
     </Container>
   )
 }
