@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 # 当前 Schema 版本（每次 schema 变更递增）
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 # 线程本地存储 —— 每个线程持有自己的连接
 _local = threading.local()
@@ -140,7 +140,7 @@ def _seed_remediation_hints(conn: sqlite3.Connection) -> None:
         ),
         (
             "port_sudden_down",
-            "端口突然 DOWN。建议：1) 检查远端设备是否正常运行 "
+            "端口当前为DOWN，上周是UP的。建议：1) 检查远端设备是否正常运行 "
             "2) 检查光模块/光纤/线缆物理连接 3) 检查 spanning-tree 拓扑是否有变更 "
             "4) 检查端口错误计数器",
         ),
@@ -362,9 +362,22 @@ def _migrate_v3(conn: sqlite3.Connection) -> None:
     conn.execute("ALTER TABLE collections ADD COLUMN boot_history_raw TEXT DEFAULT ''")
 
 
+def _migrate_v4(conn: sqlite3.Connection) -> None:
+    """Schema v4: 更新 port_sudden_down 修复建议文本"""
+    conn.execute(
+        "UPDATE remediation_hints SET suggestion = ? WHERE alert_type = 'port_sudden_down'",
+        (
+            "端口当前为DOWN，上周是UP的。建议：1) 检查远端设备是否正常运行 "
+            "2) 检查光模块/光纤/线缆物理连接 3) 检查 spanning-tree 拓扑是否有变更 "
+            "4) 检查端口错误计数器",
+        ),
+    )
+
+
 # 迁移注册表
 _MIGRATIONS = {
     1: _migrate_v1,
     2: _migrate_v2,
     3: _migrate_v3,
+    4: _migrate_v4,
 }

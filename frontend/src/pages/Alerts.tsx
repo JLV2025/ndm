@@ -14,10 +14,101 @@ import {
   ExpandMore,
   ExpandLess,
   DoneAll,
+  Add as AddIcon,
+  Remove as RemoveIcon,
 } from '@mui/icons-material'
 import { alertsApi, phase2Api } from '../services/api'
 import { sessionManager } from '../services/auth'
 import { useI18n } from '../i18n'
+
+/** 字段中文标签映射 */
+const FIELD_LABELS: Record<string, string> = {
+  port_name: '端口', description: '描述', prev_week: '上周',
+  error_type: '错误类型', added_lines: '新增行', removed_lines: '删除行',
+  model: '型号', current_version: '当前版本', other_versions: '其他版本',
+  prev_uptime_seconds: '重启前运行', cur_uptime_seconds: '当前运行', downtime_seconds: '停机时间',
+  rx_util_pct: 'RX 利用率', tx_util_pct: 'TX 利用率',
+  prev_rx_util_pct: '上周 RX', prev_tx_util_pct: '上周 TX',
+  port_name_cur: '当前端口', port_name_prev: '历史端口',
+}
+
+/** 将秒数格式化为可读时间 */
+function formatSeconds(s: number): string {
+  if (s < 60) return `${s} 秒`
+  if (s < 3600) return `${Math.round(s / 60)} 分钟`
+  if (s < 86400) return `${(s / 3600).toFixed(1)} 小时`
+  return `${(s / 86400).toFixed(1)} 天`
+}
+
+/** 根据告警类型渲染结构化详情 */
+function renderDetail(alertType: string, detail: Record<string, any>) {
+  if (!detail || Object.keys(detail).length === 0) {
+    return <Typography variant="body2" color="text.secondary">无额外详情</Typography>
+  }
+
+  // 拓扑变更：紧凑列表展示新增/消失邻居
+  if (alertType === 'topology_changed') {
+    const added = (detail.new_neighbors as any[]) || []
+    const gone = (detail.gone_neighbors as any[]) || []
+    return (
+      <Box sx={{ maxHeight: 200, overflow: 'auto' }}>
+        {added.length > 0 && (
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="caption" color="success.main" fontWeight={700}>
+              <AddIcon sx={{ fontSize: 14, verticalAlign: 'middle', mr: 0.3 }} />
+              新增 {added.length} 条
+            </Typography>
+            {added.map((n, i) => (
+              <Typography key={`add-${i}`} variant="body2" sx={{ pl: 2, fontSize: 12 }}>
+                {n.port} → {n.name} {n.type ? `(${n.type})` : ''}
+              </Typography>
+            ))}
+          </Box>
+        )}
+        {gone.length > 0 && (
+          <Box>
+            <Typography variant="caption" color="error.main" fontWeight={700}>
+              <RemoveIcon sx={{ fontSize: 14, verticalAlign: 'middle', mr: 0.3 }} />
+              消失 {gone.length} 条
+            </Typography>
+            {gone.map((n, i) => (
+              <Typography key={`gone-${i}`} variant="body2" sx={{ pl: 2, fontSize: 12 }}>
+                {n.port} → {n.name} {n.type ? `(${n.type})` : ''}
+              </Typography>
+            ))}
+          </Box>
+        )}
+      </Box>
+    )
+  }
+
+  // 通用：键值对格式
+  return (
+    <Box component="dl" sx={{ m: 0 }}>
+      {Object.entries(detail).filter(([k]) => k !== 'new_neighbors' && k !== 'gone_neighbors').map(([k, v]) => {
+        const label = FIELD_LABELS[k] || k
+        let display: string
+        if (typeof v === 'number' && (k.includes('uptime') || k.includes('downtime'))) {
+          display = formatSeconds(v)
+        } else if (typeof v === 'number' && k.endsWith('_pct')) {
+          display = `${v.toFixed(0)}%`
+        } else if (Array.isArray(v)) {
+          display = v.join(', ')
+        } else {
+          display = String(v ?? '')
+        }
+        return (
+          <Box key={k} sx={{ display: 'flex', gap: 1 }}>
+            <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 90, flexShrink: 0, fontWeight: 600 }}>
+              {label}
+            </Typography>
+            <Typography component="dd" variant="body2">{display || '—'}</Typography>
+          </Box>
+        )
+      })}
+    </Box>
+  )
+}
 
 const SEVERITY_CONFIG: Record<string, { color: 'error' | 'warning' | 'info' | 'success'; icon: typeof WarningIcon; label: string }> = {
   CRITICAL: { color: 'error', icon: ErrorIcon, label: '严重' },
@@ -197,7 +288,7 @@ export default function AlertsPage() {
           {unreadOnly ? `仅未处理 (${total})` : `显示全部 (${total})`}
         </Button>
         <Typography variant="body2" color="text.secondary" sx={{ ml: 'auto' }}>
-          {t('alerts.summary', { total: String(total) })}
+          {total} 条告警
         </Typography>
       </Paper>
 
@@ -243,11 +334,9 @@ export default function AlertsPage() {
                         </IconButton>
                       </Box>
                       <Collapse in={isExpanded}>
-                        <Box sx={{ mt: 1, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
-                          <Typography variant="subtitle2">{t('alerts.detail')}</Typography>
-                          <Box component="pre" sx={{ fontSize: 12, whiteSpace: 'pre-wrap', mb: 1 }}>
-                            {JSON.stringify(a.detail, null, 2)}
-                          </Box>
+                        <Box sx={{ mt: 1, p: 2, bgcolor: 'grey.50', borderRadius: 1, maxHeight: 340, overflow: 'auto' }}>
+                          <Typography variant="subtitle2" sx={{ mb: 0.5 }}>{t('alerts.detail')}</Typography>
+                          {renderDetail(a.alert_type, a.detail)}
                           {suggestions[a.id] && (
                             <>
                               <Divider sx={{ my: 1 }} />

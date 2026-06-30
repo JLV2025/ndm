@@ -106,14 +106,14 @@ class AnomalyDetector:
         return []
 
     def _check_port_down(self, device_id: int, collection_id: int, week: str) -> List[Dict]:
-        """检测端口突然 DOWN：上周 UP 本周 DOWN"""
+        """检测端口突然 DOWN：上周 UP 本周 DOWN，仅关注出现在邻居列表中的端口"""
         prev = self._prev_cache
         if not prev:
             return []
 
         prev_id = prev["id"]
 
-        # 上周 UP ∩ 本周 DOWN（按端口名）
+        # 上周 UP ∩ 本周 DOWN，且端口出现在邻居列表中（过滤终端端口）
         rows = self.db.execute(
             """SELECT cur.port_name, cur.description
                FROM port_snapshots cur
@@ -122,7 +122,11 @@ class AnomalyDetector:
                WHERE cur.collection_id = ?
                  AND prev.collection_id = ?
                  AND cur.status_up = 0
-                 AND prev.status_up = 1""",
+                 AND prev.status_up = 1
+                 AND cur.port_name IN (
+                   SELECT DISTINCT local_port FROM neighbors
+                   WHERE device_id = cur.device_id
+                 )""",
             (collection_id, prev_id),
         ).fetchall()
 
