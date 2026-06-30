@@ -34,7 +34,7 @@ import {
   ResponsiveContainer,
   LineChart, Line, CartesianGrid,
 } from 'recharts'
-import { deviceApi, collectorApi } from '../services/api'
+import { deviceApi, collectorApi, alertsApi } from '../services/api'
 import { sessionManager } from '../services/auth'
 import { useI18n } from '../i18n'
 import { getDeviceColor, getTypeLabel } from '../components/devices/deviceUtils'
@@ -97,12 +97,14 @@ const Dashboard: React.FC = () => {
   const [configHistory, setConfigHistory] = useState<{ weeks: string[]; series: Array<{ device: string; data: Array<{ week: string; config_lines: number; timestamp: string }> }> } | null>(null)
   const [uniqueLocations, setUniqueLocations] = useState<string[]>([])
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null)
+  const [alertCount, setAlertCount] = useState(0)
   const user = sessionManager.getSession()
 
   useEffect(() => {
     loadDevices()
     loadDashboardStats()
     loadConfigHistory()
+    loadAlertCount()
   }, [])
 
   useEffect(() => {
@@ -149,6 +151,13 @@ const Dashboard: React.FC = () => {
     } catch (error: unknown) {
       console.error('加载配置历史失败:', error)
     }
+  }
+
+  const loadAlertCount = async () => {
+    try {
+      const res = await alertsApi.summary()
+      setAlertCount(res.data?.total || 0)
+    } catch { /* ignore */ }
   }
 
   const [sortField, setSortField] = useState<string>('name')
@@ -385,12 +394,21 @@ const Dashboard: React.FC = () => {
     { accent: '#2DD46E', label: t('dashboard.activePorts'), value: dashboardStats?.port_stats.up ?? 0 },
     { accent: '#94A3B8', label: t('dashboard.idlePorts'), value: (dashboardStats?.port_stats.down ?? 0) + (dashboardStats?.port_stats.disabled ?? 0) },
     { accent: '#EF4444', label: t('dashboard.errorPorts'), value: dashboardStats?.error_ports ?? 0, danger: true },
-  ], [dashboardStats, stats.total, t])
+    { accent: '#F59E0B', label: t('alerts.title'), value: alertCount, danger: alertCount > 0, link: '/alerts' },
+  ], [dashboardStats, stats.total, alertCount, t])
 
   const statCardsColumn = (
     <Box sx={{ width: 240, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 0.5, height: '100%' }}>
-      {statCardDefs.map((def, i) => (
-        <Card key={i} sx={{ flex: 1, display: 'flex', bgcolor: `${def.accent}0F`, border: `1px solid ${def.accent}26` }}>
+      {statCardDefs.map((def: any, i) => (
+        <Card
+          key={i}
+          sx={{
+            flex: 1, display: 'flex', bgcolor: `${def.accent}0F`, border: `1px solid ${def.accent}26`,
+            cursor: def.link ? 'pointer' : 'default',
+            '&:hover': def.link ? { boxShadow: 2 } : {},
+          }}
+          onClick={def.link ? () => { window.location.href = def.link } : undefined}
+        >
           <CardContent sx={{ p: '8px 12px !important', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', '&:last-child': { pb: '8px !important' } }}>
             <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem', lineHeight: 1.3 }}>
               {def.label}

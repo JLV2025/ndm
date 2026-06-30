@@ -8,7 +8,7 @@ import yaml
 import subprocess
 import platform
 import socket
-from utils.settings_loader import get_devices_config_path
+from utils.settings_loader import get_devices_config_path, load_settings
 
 router = APIRouter()
 
@@ -190,3 +190,37 @@ async def collect_config(
     except Exception as e:
         print(f"收集过程出错: {e}")
         raise HTTPException(status_code=500, detail="收集过程出错，请稍后重试")
+
+
+class Phase2Request(BaseModel):
+    triggers: List[str] = []
+    port_name: str = ""
+    username: str = ""
+    password: str = ""
+
+
+@router.post("/phase2/{device_name}")
+async def collect_phase2(device_name: str, request: Phase2Request) -> Dict:
+    """Phase 2 深度收集——针对已检测到的异常进行深度诊断"""
+    device = find_device_by_name(device_name)
+    if not device:
+        raise HTTPException(status_code=404, detail=f"设备 '{device_name}' 不存在")
+
+    if not request.username or not request.password:
+        raise HTTPException(status_code=400, detail="请提供设备凭据")
+
+    try:
+        from services.collector_service import run_phase2_collection
+        settings = load_settings()
+        result = run_phase2_collection(
+            device_name=device_name,
+            triggers=request.triggers,
+            username=request.username,
+            password=request.password,
+            settings=settings,
+            port_name=request.port_name,
+        )
+        return {"success": result.get("status") == "success", "result": result}
+    except Exception as e:
+        print(f"Phase 2 收集出错: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

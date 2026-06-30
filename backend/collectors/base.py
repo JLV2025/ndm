@@ -131,37 +131,52 @@ class DeviceConnection:
         return self.configured_platform or ""
 
     def collect_config(self) -> Tuple[str, str]:
-        running = self.send_command("show running-config")
-        startup = self.send_command("show startup-config")
+        # 先发送分页关闭指令，确保一次性全量输出
+        dt = self._device_type()
+        if dt == "aruba_aoscx":
+            self.send_command("no page", read_timeout=20)
+        elif dt.startswith("cisco"):
+            self.send_command("terminal length 0", read_timeout=20)
+        running = self.send_command("show running-config", read_timeout=40)
+        startup = self.send_command("show startup-config", read_timeout=40)
         return running, startup
 
     def collect_logs(self) -> str:
+        """统一收集最新 300 条日志
+
+        Cisco: terminal shell + show logging | tail 300
+        Aruba: show logging -r -n 300
+        """
         dt = self._device_type()
-        platform = self._platform()
-        if dt == "cisco_ios" and platform == "cisco_ios_xe":
-            self.send_command("terminal shell", read_timeout=10)
-            return self.send_command("show logging | tail 100", read_timeout=30)
-        if dt == "cisco_ios":
-            read_timeout = 60 if self.configured_device_type == "cisco_ios_router" else 30
-            return self.send_command("show logging", read_timeout=read_timeout)
+        if dt.startswith("cisco"):
+            self.send_command("terminal shell", read_timeout=20)
+            return self.send_command("show logging | tail 300", read_timeout=20)
         if dt == "aruba_aoscx":
-            return self.send_command("show logging -r -n 100", read_timeout=30)
-        return self.send_command("show log", read_timeout=30)
+            return self.send_command("show logging -r -n 300", read_timeout=20)
+        return self.send_command("show log", read_timeout=20)
 
     def collect_interface_status(self) -> str:
         dt = self._device_type()
         if dt == "aruba_aoscx":
-            return self.send_command("show interface brief", read_timeout=30)
-        return self.send_command("show interface status", read_timeout=30)
+            return self.send_command("show interface brief", read_timeout=20)
+        return self.send_command("show interface status", read_timeout=20)
 
     def collect_show_version(self) -> str:
-        return self.send_command("show version", read_timeout=30)
+        return self.send_command("show version", read_timeout=20)
 
     def collect_show_interface_utilization(self) -> str:
+        """收集端口利用率
+
+        Cisco: show interfaces | include rate|load|packets
+        Aruba: no page → show interface utilization
+        """
         dt = self._device_type()
-        if dt == "cisco_ios":
-            return self.send_command("show interfaces | include rate|load|packets", read_timeout=30)
-        return self.send_command("show interface utilization", read_timeout=30)
+        if dt == "aruba_aoscx":
+            self.send_command("no page", read_timeout=20)
+            return self.send_command("show interface utilization", read_timeout=20)
+        if dt.startswith("cisco"):
+            return self.send_command("show interfaces | include rate|load|packets", read_timeout=20)
+        return self.send_command("show interface utilization", read_timeout=20)
 
     def collect_cdp_neighbors(self) -> str:
         """收集 CDP 邻居信息"""
@@ -173,11 +188,22 @@ class DeviceConnection:
 
     def collect_system_info(self) -> str:
         """收集系统信息（Aruba CX 用于获取序列号和型号）"""
-        return self.send_command("show system", read_timeout=15)
+        return self.send_command("show system", read_timeout=20)
+
+    def collect_boot_history(self) -> str:
+        """收集设备启动历史（Aruba CX 用于获取运行时间）
+
+        Aruba: show boot-history → Current Boot, up for X days X hrs ...
+        Cisco: 运行时间从 show version 中提取，无需单独收集
+        """
+        dt = self._device_type()
+        if dt == "aruba_aoscx":
+            return self.send_command("show boot-history", read_timeout=20)
+        return ""
 
     def collect_vsf_info(self) -> str:
         """收集 VSF 堆叠信息（Aruba CX VSF 成员序列号）"""
-        return self.send_command("show vsf detail", read_timeout=15)
+        return self.send_command("show vsf detail", read_timeout=20)
 
     def collect_switch_detail(self) -> str:
         """收集 Cisco 堆叠信息
@@ -189,8 +215,8 @@ class DeviceConnection:
         if self.configured_device_type == "cisco_ios_router":
             return ""
         if self._platform() == "cisco_ios_xe":
-            return self.send_command("show switch", read_timeout=30)
-        return self.send_command("show switch detail", read_timeout=30)
+            return self.send_command("show switch", read_timeout=20)
+        return self.send_command("show switch detail", read_timeout=20)
 
     def collect_routing_table(self) -> str:
         """收集路由表（Cisco IOS 路由器）"""

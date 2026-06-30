@@ -329,6 +329,46 @@ const zh: Record<string, string> = {
   // 语言
   'lang.switch': 'EN',
   'lang.label': '语言',
+
+  // 告警面板
+  'alerts.title': '问题面板',
+  'alerts.description': '自动检测的设备异常与告警',
+  'alerts.summary': '{total} 条未处理告警',
+  'alerts.allTypes': '全部类型',
+  'alerts.allSeverities': '全部级别',
+  'alerts.noAlerts': '暂无告警',
+  'alerts.noAlertsHint': '系统运行正常，无异常发现',
+  'alerts.markRead': '标记已读',
+  'alerts.resolve': '已处理',
+  'alerts.phase2': '深度诊断',
+  'alerts.phase2Running': '诊断中...',
+  'alerts.suggestion': '处理建议',
+  'alerts.detail': '详情',
+  'alerts.type_device_reboot': '设备重启',
+  'alerts.type_port_sudden_down': '端口异常 DOWN',
+  'alerts.type_port_errors': '端口错误',
+  'alerts.type_config_changed': '配置变更',
+  'alerts.type_topology_changed': '拓扑变更',
+  'alerts.type_version_mismatch': '版本不一致',
+  'alerts.type_high_utilization': '带宽飙升',
+
+  // 报告
+  'reports.title': '自定义报告',
+  'reports.description': '选择报告类型查看数据汇总',
+  'reports.softwareVersions': '软件版本报告',
+  'reports.deviceUptime': '设备在线时间',
+  'reports.bandwidthSummary': '带宽利用率汇总',
+  'reports.filterByType': '按型号筛选',
+  'reports.allTypes': '全部类型',
+  'reports.device': '设备',
+  'reports.type': '类型',
+  'reports.model': '型号',
+  'reports.version': '版本',
+  'reports.uptime': '运行时间',
+  'reports.uptimeDays': '{days} 天',
+  'reports.lastSynced': '最后同步',
+  'reports.versionMismatch': '版本不一致',
+  'reports.versions': '版本列表',
 }
 
 export default zh

@@ -25,7 +25,10 @@ sys.path.insert(0, _BACKEND_DIR)
 from services.collector_service import collect_device
 from utils.settings_loader import load_settings, load_devices
 from utils.password import password_manager
+from storage import init_db
 from api import devices_router, collector_router, data_router, auth_router, stats_router, topology_router, topology_visio_router
+from api.alerts import router as alerts_router
+from api.reports import router as reports_router
 
 app = FastAPI(
     title="网络交换机配置收集系统",
@@ -53,6 +56,10 @@ if not os.path.isabs(data_root):
 os.makedirs(data_root, exist_ok=True)
 app.mount("/data", StaticFiles(directory=data_root), name="data")
 
+# 初始化 SQLite 数据库
+db_path = init_db(data_root)
+print(f"[启动] SQLite 数据库已初始化: {db_path}")
+
 # 注册 API 路由
 app.include_router(devices_router, prefix="/api/devices", tags=["devices"])
 app.include_router(collector_router, prefix="/api/collect", tags=["collection"])
@@ -61,6 +68,8 @@ app.include_router(auth_router, prefix="/api/auth", tags=["authentication"])
 app.include_router(stats_router, prefix="/api/stats", tags=["stats"])
 app.include_router(topology_router, prefix="/api", tags=["topology"])
 app.include_router(topology_visio_router, prefix="/api", tags=["topology"])
+app.include_router(alerts_router, tags=["alerts"])
+app.include_router(reports_router, tags=["reports"])
 
 # ============ 健康检查 ============
 

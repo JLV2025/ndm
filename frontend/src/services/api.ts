@@ -128,4 +128,32 @@ export const topologyApi = {
   },
 }
 
+// 告警
+export const alertsApi = {
+  list: (params?: Record<string, string | number | boolean>) =>
+    apiJson.get('/alerts', { params }),
+  summary: () => apiJson.get('/alerts/summary'),
+  markRead: (id: number) => apiJson.put(`/alerts/${id}/read`),
+  resolve: (id: number) => apiJson.put(`/alerts/${id}/resolve`),
+  getSuggestion: (id: number) => apiJson.get(`/alerts/${id}/suggestion`),
+  getTriggers: () => apiJson.get('/alerts/triggers'),
+}
+
+// 报告
+export const reportsApi = {
+  softwareVersions: (params?: { device_type?: string }) =>
+    apiJson.get('/reports/software-versions', { params }),
+  deviceUptime: () => apiJson.get('/reports/device-uptime'),
+  portTrend: (deviceName: string, portName: string, weeks = 8) =>
+    apiJson.get('/reports/port-trend', { params: { device_name: deviceName, port_name: portName, weeks } }),
+  bandwidthSummary: (deviceName?: string) =>
+    apiJson.get('/reports/bandwidth-summary', { params: deviceName ? { device_name: deviceName } : {} }),
+}
+
+// Phase 2 深度收集
+export const phase2Api = {
+  trigger: (deviceName: string, triggers: string[], portName?: string) =>
+    apiJson.post(`/collect/phase2/${deviceName}`, { triggers, port_name: portName }),
+}
+
 export default apiJson
