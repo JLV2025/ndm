@@ -167,3 +167,16 @@
 - [2026-06-22] Dashboard 堆叠拆分原样复制 `model` → 每个成员显示整串逗号拼接型号。需按索引拆分 `model_list[i]` 分配各自型号
 - [2026-06-24] **GTS 服务器命名规范例外**：`GTSPEKESX01` 格式 — GTS + 3位site code + 类型码(ESX/SRV/SVR) + 可选编号。与标准 `3+2+3+2` 不同，site code 占3位而非2位。后端 TYPE_MAP 已有 ESX/SRV 映射但正则未覆盖，需同步更新三处（前端 parseDeviceName、后端 neighbor_parser DEVICE_NAME_RE、后端 role_verifier _parse_device_name）
 - [2026-06-24] 设备名正则变更需同步三处位置，不能只改一处：PortTopologyCanvas.tsx `parseDeviceName()`、neighbor_parser.py `DEVICE_NAME_RE` + `DEVICE_NAME_SEARCH_RE`、role_verifier.py `_parse_device_name()`
+
+## Key Learnings
+- [2026-06-30] i18n `t(key, fallback?)` 函数不支持占位符替换（如 `{total}`），需直接用 JS 模板字符串拼接
+- [2026-06-30] 告警详情展示：不应 `JSON.stringify(detail, null, 2)` 显示原始 JSON，应渲染中文标签的键值对（`dl/dt/dd`），数值字段自动格式化（秒→天、百分号、数组逗号拼接）
+- [2026-06-30] 拓扑变更详情特殊处理：`new_neighbors`/`gone_neighbors` 数组改为紧凑列表（绿色+图标"新增N条"、红色-图标"消失N条"），`maxHeight: 340` 可滚动
+- [2026-06-30] 端口DOWN异常检测必须加邻居过滤——仅检查 `port_name IN (SELECT local_port FROM neighbors)` 的端口，普通终端口（Fa0/2 之类）不产生告警
+- [2026-06-30] 种子数据 `_seed_remediation_hints` 用 COUNT 检查已有记录，已有数据不覆盖 → 修改种子文本后还需迁移（_migrate_v4）更新已有记录
+- [2026-06-30] SQLite 替代文本文件现状：alerts.py + reports.py 用 SQLite；data.py + stats.py + topology.py + devices.py 仍读文件系统。topology.py 依赖 running-config.raw 和 neighbors.json，切换需小心
+- [2026-06-30] `last_synced` 时间戳自动更新到 devices.yaml，每天收集后自动变更，与业务无关
+
+## Do-Not-Repeat
+- [2026-06-30] 修改种子数据文本后只改 `_seed_remediation_hints()` 不够——数据库已有记录不会更新，必须写迁移（`_migrate_vN`）UPDATE 已有行
+- [2026-06-30] `taskkill //F //PID` 在 Git Bash 下需双斜杠（`//F`），单斜杠会被转义失败
