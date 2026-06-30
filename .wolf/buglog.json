@@ -7028,6 +7028,54 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-30T08:47:34.821Z"
+    },
+    {
+      "id": "bug-440",
+      "timestamp": "2026-06-30T19:59:54.678698",
+      "error_message": "SZXD1SWI02 type=aruba_aoscx, 实际 Cisco Catalyst 9200L (cisco_ios), 版本提取失败+日志端口采集错误",
+      "file": "config/devices.yaml",
+      "root_cause": "设备类型配置错误",
+      "fix": "devices.yaml type/platform 改为 cisco_ios; SQLite 删旧记录后重迁移",
+      "tags": [
+        "config",
+        "device-type",
+        "sqlite"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T19:59:54.678716"
+    },
+    {
+      "id": "bug-441",
+      "timestamp": "2026-06-30T12:16:52.783Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 8→14 lines (5 removed) | Also: # 保存分析结果; with open(os.path.join(week_dir, \"validation.json\"",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-06-30T12:17:22.033Z"
+    },
+    {
+      "id": "bug-442",
+      "timestamp": "2026-06-30T12:18:07.738Z",
+      "error_message": "Wrong reference: yaml should be threading",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "Used \"yaml\" instead of \"threading\"",
+      "fix": "Changed yaml → threading",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-06-30T12:18:07.738Z"
     }
   ]
 }
