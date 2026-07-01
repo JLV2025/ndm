@@ -89,7 +89,7 @@ const Viewer: React.FC = () => {
   const selectedDeviceObj = devices.find((d: Device) => d.name === selectedDevice) || {} as Partial<Device>
   const selectedDeviceType = selectedDeviceObj.type || ''
   const selectedDevicePlatform = selectedDeviceObj.platform || ''
-  const allFileOptions = ['running-config.raw', 'startup-config.raw', 'interface-status.raw', 'version.raw', 'interface-utilization.raw', 'validation.json', 'performance.json', 'change.json', 'summary.txt']
+  const allFileOptions = ['running-config.raw', 'interface-status.raw', 'version.raw', 'interface-utilization.raw', 'validation.json', 'performance.json', 'change.json', 'summary.txt']
   const availableFiles = useMemo(() => {
     if (files.length > 0) return files
     if (!selectedDeviceType) return allFileOptions

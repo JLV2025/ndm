@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, Path
 from fastapi.responses import JSONResponse
 import os
 import re
+from storage.database import get_connection as _get_db
 
 router = APIRouter()
 
@@ -85,62 +86,80 @@ def sanitize_device_name(device_name: str) -> str:
 
 @router.get("/{device_name}/weeks")
 async def get_device_weeks(device_name: str):
-    """获取设备所有可用的周目录列表"""
+    """获取设备所有可用的周目录列表（从 SQLite 查询）"""
     safe_device_name = sanitize_device_name(device_name)
-    data_root = _get_data_root()
-    device_path = os.path.join(data_root, safe_device_name)
-
-    if not os.path.exists(device_path):
+    db = _get_db()
+    if not db:
         return {"weeks": []}
 
-    weeks = sorted(
-        [d for d in os.listdir(device_path)
-         if os.path.isdir(os.path.join(device_path, d)) and re.match(r'^\d{4}-\d{2}$', d)],
-        reverse=True
-    )
-    return {"weeks": weeks}
+    rows = db.execute(
+        "SELECT DISTINCT c.week FROM collections c "
+        "JOIN devices d ON c.device_id = d.id "
+        "WHERE d.name = ? ORDER BY c.week DESC",
+        (safe_device_name,)
+    ).fetchall()
+    return {"weeks": [r["week"] for r in rows]}
 
 
 @router.get("/{device_name}/ports/latest")
 async def get_device_ports(device_name: str):
-    """获取设备最新端口状态和流量数据"""
-    import json
-    from utils.settings_loader import load_settings
-
+    """获取设备最新端口状态和流量数据（从 SQLite 查询）"""
     safe_device_name = sanitize_device_name(device_name)
-    settings = load_settings()
-    data_root_path = settings.get("data_root", os.path.join(os.path.dirname(__file__), "..", "data"))
+    db = _get_db()
+    if not db:
+        raise HTTPException(status_code=404, detail="数据不存在")
 
-    device_dir = os.path.join(data_root_path, safe_device_name)
-    if not os.path.exists(device_dir):
-        raise HTTPException(status_code=404, detail="设备数据不存在")
+    # 查询最新 port_snapshots
+    rows = db.execute("""
+        SELECT ps.* FROM port_snapshots ps
+        JOIN collections c ON ps.collection_id = c.id
+        JOIN devices d ON ps.device_id = d.id
+        WHERE d.name = ?
+        ORDER BY c.id DESC, ps.port_name ASC
+    """, (safe_device_name,)).fetchall()
 
-    weeks = sorted(
-        [d for d in os.listdir(device_dir)
-         if os.path.isdir(os.path.join(device_dir, d)) and "-" in d],
-        reverse=True
-    )
-    if not weeks:
-        raise HTTPException(status_code=404, detail="无数据周")
+    if not rows:
+        raise HTTPException(status_code=404, detail="无端口数据")
 
-    perf_path = os.path.join(device_dir, weeks[0], "performance.json")
-    if not os.path.exists(perf_path):
-        raise HTTPException(status_code=404, detail="无性能数据")
-
-    with open(perf_path, "r", encoding="utf-8") as f:
-        perf = json.load(f)
-
-    iface_summary = perf.get("interface_summary", {})
-    details = iface_summary.get("details", [])
+    # 按最新 collection_id 截断
+    latest_cid = rows[0]["collection_id"]
+    ports = []
+    status_up = 0
+    status_down = 0
+    status_disabled = 0
+    for r in rows:
+        if r["collection_id"] != latest_cid:
+            break
+        status = r["status"] or ""
+        if status == "up":
+            status_up += 1
+        elif status == "down":
+            status_down += 1
+        elif status in ("disabled", "admin down", "err-disabled"):
+            status_disabled += 1
+        ports.append({
+            "name": r["port_name"],
+            "status": status,
+            "speed": r["speed"],
+            "mode": r["mode"],
+            "port_type": r["port_type"],
+            "description": r["description"] or "",
+            "native_vlan": r["native_vlan"],
+            "is_uplink": bool(r["is_uplink"]),
+            "rx_mbps": r["rx_mbps"],
+            "tx_mbps": r["tx_mbps"],
+            "rx_util_pct": r["rx_util_pct"],
+            "tx_util_pct": r["tx_util_pct"],
+        })
 
     return {
-        "device_name": perf.get("device", safe_device_name),
-        "ports": details,
-        "total_ports": iface_summary.get("total", 0),
-        "up_ports": iface_summary.get("up", 0),
-        "down_ports": iface_summary.get("down", 0),
-        "disabled_ports": iface_summary.get("disabled", 0),
-        "error_ports": 0
+        "device_name": safe_device_name,
+        "ports": ports,
+        "total_ports": len(ports),
+        "up_ports": status_up,
+        "down_ports": status_down,
+        "disabled_ports": status_disabled,
+        "error_ports": 0,
     }
 
 

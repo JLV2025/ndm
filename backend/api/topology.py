@@ -3,11 +3,11 @@
 from fastapi import APIRouter, HTTPException
 import os
 import re
-import json
 import logging
 from typing import Dict, List
 from analyzers.config_parser import ConfigParser
 from analyzers.role_verifier import RoleVerifier
+from storage.database import get_connection as _get_db
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -41,13 +41,98 @@ def _get_data_root() -> str:
     return os.path.normpath(data_root)
 
 
+# ============================================================
+# SQLite 查询辅助函数
+# ============================================================
+
+def _get_latest_running_config(device_name: str) -> tuple[str | None, str | None]:
+    """从 SQLite 获取设备最新 running-config
+
+    Returns:
+        (config_text, week) 或 (None, None)
+    """
+    db = _get_db()
+    if not db:
+        return None, None
+    row = db.execute(
+        "SELECT c.running_config, c.week FROM collections c "
+        "JOIN devices d ON c.device_id = d.id "
+        "WHERE d.name = ? AND c.running_config IS NOT NULL AND c.running_config != '' "
+        "ORDER BY c.id DESC LIMIT 1",
+        (device_name,)
+    ).fetchone()
+    if row:
+        return row["running_config"], row["week"]
+    return None, None
+
+
+def _get_latest_neighbors(device_name: str) -> list[dict]:
+    """从 SQLite 获取设备最新邻居数据
+
+    Returns:
+        [{local_port, neighbor_name, neighbor_type, ...}, ...]
+    """
+    db = _get_db()
+    if not db:
+        return []
+    rows = db.execute("""
+        SELECT n.local_port, n.neighbor_name, n.neighbor_type,
+               n.neighbor_platform, n.neighbor_desc, n.source
+        FROM neighbors n
+        JOIN devices d ON n.device_id = d.id
+        WHERE d.name = ?
+          AND n.collection_id = (
+              SELECT c.id FROM collections c
+              WHERE c.device_id = n.device_id
+              ORDER BY c.id DESC LIMIT 1
+          )
+    """, (device_name,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _scan_device_neighbors() -> dict[str, list[dict]]:
+    """一次查询聚合所有设备最新邻居
+
+    Returns:
+        {device_name: [neighbor_dict, ...]}
+    """
+    db = _get_db()
+    if not db:
+        return {}
+    rows = db.execute("""
+        SELECT d.name AS device_name, n.local_port, n.neighbor_name,
+               n.neighbor_type, n.neighbor_platform, n.neighbor_desc, n.source
+        FROM neighbors n
+        JOIN devices d ON n.device_id = d.id
+        WHERE n.collection_id = (
+            SELECT c.id FROM collections c
+            WHERE c.device_id = n.device_id
+            ORDER BY c.id DESC LIMIT 1
+        )
+    """).fetchall()
+    result: dict[str, list[dict]] = {}
+    for r in rows:
+        name = r["device_name"]
+        if name not in result:
+            result[name] = []
+        result[name].append({
+            "local_port": r["local_port"],
+            "neighbor_name": r["neighbor_name"],
+            "neighbor_type": r["neighbor_type"],
+            "neighbor_platform": r["neighbor_platform"],
+            "neighbor_desc": r["neighbor_desc"],
+            "source": r["source"],
+        })
+    return result
+
+
 @router.get("/topology/{device_name}")
 async def get_device_topology(device_name: str):
     """
     获取设备拓扑数据
 
-    从最新 running-config.raw 中解析端口连接关系。
-    数据路径为 data/{YYYY-WW}/{device_name}/running-config.raw
+    从 SQLite 读取最新 running-config 和 CDP/LLDP 邻居数据，
+    解析端口连接关系。
     """
     # 1. 验证设备名称（防止路径遍历攻击）
     if not device_name or not isinstance(device_name, str):
@@ -61,19 +146,11 @@ async def get_device_topology(device_name: str):
     if not os.path.exists(data_root):
         raise HTTPException(status_code=404, detail="数据目录不存在")
 
-    # 2. 查找最新 running-config.raw
-    config_path, found_week = _find_device_data_file(device_name, data_root, "running-config.raw")
+    # 2. 从 SQLite 获取最新 running-config
+    config_text, found_week = _get_latest_running_config(device_name)
 
-    if not config_path:
+    if not config_text:
         raise HTTPException(status_code=404, detail=f"未找到设备 {device_name} 的 running-config 数据")
-
-    # 3. 读取 running-config.raw
-    try:
-        with open(config_path, "r", encoding="utf-8") as f:
-            config_text = f.read()
-    except Exception as e:
-        logger.error(f"读取配置文件失败 ({config_path}): {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="读取配置文件时发生内部错误")
 
     # 4. 推断设备类型
     detected_type = _detect_device_type(config_text)
@@ -107,43 +184,38 @@ async def get_device_topology(device_name: str):
 
     member_neighbors: Dict[str, list] = {m: [] for m in members}
 
-    # ---- 数据源1: CDP/LLDP neighbors.json（网络设备邻居，准确无 LAG 虚口） ----
+    # ---- 数据源1: CDP/LLDP neighbors（网络设备邻居，从 SQLite 读取） ----
     cdp_lldp_neighbors: Dict[str, List[dict]] = {}  # member → [items]
-    cdp_lldp_path, _ = _find_device_data_file(device_name, data_root, "neighbors.json")
-    if cdp_lldp_path:
-        try:
-            with open(cdp_lldp_path, "r", encoding="utf-8") as f:
-                cdp_data = json.load(f)
-            for nb in cdp_data.get("neighbors", []):
-                iface = _norm_port(nb.get("local_port", ""))
-                nb_name = nb.get("neighbor_name", "")
-                if not nb_name or not iface:
-                    continue
-                # 过滤 LAG / Port-Channel 虚接口
-                if re.match(r'^(lag|port-channel)\s*\d', iface, re.IGNORECASE):
-                    continue
-                member = _member_for_iface(iface)
-                item = {
-                    "interface": iface,
-                    "description": nb.get("neighbor_desc", ""),
-                    "device_name": nb_name,
-                    "device_type": nb.get("neighbor_type", ""),
-                    "site_code": None,
-                    "dc": None,
-                    "device_number": None,
-                    "is_endpoint": False,
-                    "member": member,
-                    "neighbor_ip": device_info_map.get(nb_name, {}).get("ip", ""),
-                    "neighbor_model": nb.get("neighbor_platform", ""),
-                    "neighbor_notes": device_info_map.get(nb_name, {}).get("notes", "") or "",
-                    "_source": "cdp_lldp",
-                }
-                cdp_lldp_neighbors.setdefault(member, []).append(item)
-        except Exception as e:
-            logger.warning(f"读取 CDP/LLDP 数据失败: {e}")
+    try:
+        for nb in _get_latest_neighbors(device_name):
+            iface = _norm_port(nb.get("local_port", ""))
+            nb_name = nb.get("neighbor_name", "")
+            if not nb_name or not iface:
+                continue
+            # 过滤 LAG / Port-Channel 虚接口
+            if re.match(r'^(lag|port-channel)\s*\d', iface, re.IGNORECASE):
+                continue
+            member = _member_for_iface(iface)
+            item = {
+                "interface": iface,
+                "description": nb.get("neighbor_desc", ""),
+                "device_name": nb_name,
+                "device_type": nb.get("neighbor_type", ""),
+                "site_code": None,
+                "dc": None,
+                "device_number": None,
+                "is_endpoint": False,
+                "member": member,
+                "neighbor_ip": device_info_map.get(nb_name, {}).get("ip", ""),
+                "neighbor_model": nb.get("neighbor_platform", ""),
+                "neighbor_notes": device_info_map.get(nb_name, {}).get("notes", "") or "",
+                "_source": "cdp_lldp",
+            }
+            cdp_lldp_neighbors.setdefault(member, []).append(item)
+    except Exception as e:
+        logger.warning(f"读取 CDP/LLDP 数据失败: {e}")
 
-    # ---- 反查邻居设备的远程端口 ----
-    # CDP/LLDP 只记录本地端口，需查邻居的 neighbors.json 获取远程端口
+    # ---- 反查邻居设备的远程端口（从 SQLite 批量查询） ----
     neighbor_port_list: Dict[str, list] = {}  # 邻居名 → [(本地接口, member)]
     for member in members:
         for item in cdp_lldp_neighbors.get(member, []):
@@ -153,28 +225,28 @@ async def get_device_topology(device_name: str):
                     neighbor_port_list[nb_name] = []
                 neighbor_port_list[nb_name].append((item["interface"], member))
 
+    # 批量获取所有邻居的邻居数据
+    all_neighbors_map = _scan_device_neighbors()
+
     neighbor_port_map: Dict[tuple, str] = {}  # (邻居名, 本地接口) → 邻居侧端口
     for nb_name, local_ports in neighbor_port_list.items():
         try:
-            nb_nb_path, _ = _find_device_data_file(nb_name, data_root, "neighbors.json")
-            if nb_nb_path:
-                with open(nb_nb_path, "r", encoding="utf-8") as f:
-                    nb_nb_data = json.load(f)
-                # 收集邻居侧所有指向当前设备（device_name）的端口
-                remote_ports: List[str] = []
-                for nb_nb in nb_nb_data.get("neighbors", []):
-                    if nb_nb.get("neighbor_name") == device_name:
-                        rp = nb_nb.get("local_port", "")
-                        if rp and not re.match(r'^(lag|port-channel)\s*\d', rp, re.IGNORECASE):
-                            remote_ports.append(rp)
-                # 排序后按序配对，CDP/LLDP 端口通常有序，排序确保确定性
-                local_ports.sort(key=lambda x: x[0])
-                remote_ports.sort()
-                for i, (local_iface, _member) in enumerate(local_ports):
-                    if i < len(remote_ports):
-                        neighbor_port_map[(nb_name, local_iface)] = remote_ports[i]
-                    elif remote_ports:
-                        neighbor_port_map[(nb_name, local_iface)] = remote_ports[-1]
+            nb_neighbors = all_neighbors_map.get(nb_name, [])
+            # 收集邻居侧所有指向当前设备（device_name）的端口
+            remote_ports: List[str] = []
+            for nb_nb in nb_neighbors:
+                if nb_nb.get("neighbor_name") == device_name:
+                    rp = nb_nb.get("local_port", "")
+                    if rp and not re.match(r'^(lag|port-channel)\s*\d', rp, re.IGNORECASE):
+                        remote_ports.append(rp)
+            # 排序后按序配对，CDP/LLDP 端口通常有序，排序确保确定性
+            local_ports.sort(key=lambda x: x[0])
+            remote_ports.sort()
+            for i, (local_iface, _member) in enumerate(local_ports):
+                if i < len(remote_ports):
+                    neighbor_port_map[(nb_name, local_iface)] = remote_ports[i]
+                elif remote_ports:
+                    neighbor_port_map[(nb_name, local_iface)] = remote_ports[-1]
         except Exception as e:
             logger.warning(f"反查邻居 {nb_name} 远程端口失败: {e}")
     # 把远程端口写入条目
@@ -253,7 +325,7 @@ async def get_device_topology(device_name: str):
     except Exception as e:
         logger.warning(f"加载 YAML 设备信息失败: {e}")
 
-    # 11. 为邻居交换机检测堆叠成员数
+    # 11. 为邻居交换机检测堆叠成员数（从 SQLite 读取配置）
     neighbor_members_map: Dict[str, list] = {}
     for nb in network_devices:
         nb_name = nb["device_name"]
@@ -264,10 +336,8 @@ async def get_device_topology(device_name: str):
         if nb_type not in ("switch", "cisco_ios", "aruba_osswitch"):
             continue
         try:
-            nb_config_path, _ = _find_device_data_file(nb_name, data_root, "running-config.raw")
-            if nb_config_path:
-                with open(nb_config_path, "r", encoding="utf-8") as f:
-                    nb_config = f.read()
+            nb_config, _ = _get_latest_running_config(nb_name)
+            if nb_config:
                 nb_members = _detect_stack_members(nb_config, nb_type)
                 if len(nb_members) > 1:
                     neighbor_members_map[nb_name] = nb_members
@@ -363,7 +433,7 @@ def _detect_stack_members(config_text: str, device_type: str) -> List[str]:
 
 
 # ============================================================
-# 共享辅助: 定位设备数据文件
+# 共享辅助: 定位设备数据文件 (已废弃，保留待清理)
 # ============================================================
 
 def _find_device_data_file(device_name: str, data_root: str, filename: str) -> tuple[str | None, str | None]:
@@ -461,7 +531,7 @@ async def get_location_topology(location: str):
     """
     获取指定 location 下所有网络设备的互联拓扑
 
-    遍历 location 内所有设备, 读取 neighbors.json, 合并为统一节点/边列表。
+    从 SQLite 读取邻居数据，合并为统一节点/边列表。
     """
     # 验证 location
     if not location or not isinstance(location, str):
@@ -505,8 +575,8 @@ async def get_location_topology(location: str):
     all_edges: list[dict] = []
     node_set: set[str] = set()
 
-    # 预扫描 neighbors.json
-    device_file_map = _scan_device_files(data_root, "neighbors.json")
+    # 批量获取所有设备最新邻居
+    device_neighbor_map = _scan_device_neighbors()
 
     # ─── 第一遍：先创建所有本 location 设备节点（确保 YAML 类型优先生效）───
     for dev in physical_devices:
@@ -539,15 +609,15 @@ async def get_location_topology(location: str):
     for dev in physical_devices:
         logical_name = dev["logical_name"]
         expanded_name = dev["expanded_name"]
-        neighbors_path = device_file_map.get(logical_name)
-        if not neighbors_path:
+        neighbor_list = device_neighbor_map.get(logical_name, [])
+        if not neighbor_list:
             if logical_name not in skipped_devices:
                 skipped_devices.append(logical_name)
             continue
 
         try:
-            with open(neighbors_path, "r", encoding="utf-8") as f:
-                neighbor_data = json.load(f)
+            # 包装为 {"neighbors": [...]} 兼容下游迭代逻辑
+            neighbor_data = {"neighbors": neighbor_list}
         except Exception:
             if logical_name not in skipped_devices:
                 skipped_devices.append(logical_name)

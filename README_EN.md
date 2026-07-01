@@ -1,18 +1,20 @@
 # NDM — Network Device Manager
 
-SSH-based configuration and log collection for Cisco IOS and Aruba OS switches and routers, with a web dashboard for viewing, diffing, and analysis.
+SSH-based configuration and log collection for Cisco IOS and Aruba OS switches and routers, with SQLite storage, web dashboard, and AI-powered log analysis.
 
 ## Features
 
 - **Multi-vendor** — Cisco IOS, Cisco IOS XE, Cisco IOS Router, Aruba OS, Aruba OS CX
 - **Web Dashboard** — React + MUI OLED Dark theme, purpose-built for network operations
 - **Device Management** — Add, edit, delete devices; filter by type and location
-- **Config Collection** — One-click retrieval of running-config, startup-config, logs, interface status, routing table, and version info
+- **Config Collection** — One-click retrieval of running-config, logs, interface status, routing table, and version info
+- **AI Log Analysis** — Bring your own LLM API key; auto-extracts error mnemonics with priority-chain fallback (DeepSeek / Qwen); local caching for common errors; sanitized before sending to protect network security
 - **Online Viewer** — Syntax-highlighted config viewer with version diff comparison
+- **Alerts & Reports** — Anomaly detection (port down, config changes, version mismatches) with auto-generated remediation suggestions
 - **Dashboard Charts** — Recharts visualization: device-type donut chart, port-status stacked bar chart, traffic Top 10 ranking, config-change trend line chart + heatmap
 - **Front Panel Visualization** — Switch port status panel + router interface hierarchy tree, with stack support and sub-interface indentation
 - **Basic Analysis** — Config completeness validation, interface status summary, utilization analysis, change detection
-- **Weekly Archival** — `data/{device}/YYYY-WW/` directory structure, retains last 10 weeks
+- **SQLite Storage** — All data in SQLite; running-config dual-tracked (file + DB); log deduplication by timestamp
 - **Bilingual UI** — English / Chinese one-click toggle
 - **Single-Port Deployment** — Frontend static files served directly by FastAPI
 
@@ -20,8 +22,9 @@ SSH-based configuration and log collection for Cisco IOS and Aruba OS switches a
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | React 18 + TypeScript + MUI v5 + Recharts + Vite 8 |
-| Backend | Python FastAPI + Netmiko (SSH) |
+| Frontend | React 18 + TypeScript + MUI v5 + Recharts + React Flow + Vite 7 |
+| Backend | Python FastAPI + Netmiko (SSH) + SQLite |
+| AI | OpenAI-compatible API (DeepSeek / Qwen, etc.), priority-chain fallback, local cache |
 | Theme | OLED Dark (#020617 background, #2DD46E accent), IBM Plex Sans + JetBrains Mono font |
 | i18n | React Context i18n (zh / en) |
 
@@ -156,24 +159,27 @@ ssh_timeout: 30             # SSH connection timeout (seconds)
 4. System SSHs into the device and collects configs, logs, and routing table
 5. View and compare historical versions in the Viewer page
 
-## Data Directory
+## Data Storage
+
+All collected data is stored in SQLite (`data/ndm.db`). Only running-config retains a file copy for emergency recovery.
 
 ```
 data/
-└── {device-name}/
+├── ndm.db                   # SQLite database (primary storage)
+├── YYYY-WW/                 # Weekly archive directories
+│   └── {device-name}/
+│       └── running-config.raw   # Dual-track (the only raw file kept)
+└── {device-name}/           # Legacy data directories (backward compatible)
     └── YYYY-WW/
-        ├── running-config.raw
-        ├── startup-config.raw
-        ├── logs.raw
-        ├── interface-status.raw
-        ├── interface-utilization.raw
-        ├── version.raw
-        ├── routing-table.raw       # Routers only
-        ├── validation.json
-        ├── performance.json
-        ├── change.json
-        └── summary.txt
 ```
+
+## Log AI Analysis
+
+1. Navigate to "Log Analyzer" in sidebar → select device → check log entries → click "AI Analyze"
+2. First time: configure LLM API Key via the settings dialog (gear icon)
+3. Multi-provider priority chain: tried in order, auto-fallback on failure
+4. Results are cached locally; identical errors hit the cache instantly next time
+5. Device names/IPs are sanitized before sending to LLM, then restored in the response
 
 ## API Documentation
 

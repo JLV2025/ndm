@@ -33,3 +33,16 @@ analysis:
 
   # 变更检测对比周期（周数）
   change_detection_lookback: 4
+
+# LLM 配置（用于日志 AI 分析）
+llm:
+  timeout: 30
+  providers:
+    - name: "DeepSeek"
+      base_url: "https://api.deepseek.com/v1"
+      api_key: ""
+      model: "deepseek-chat"
+    - name: "Qwen"
+      base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+      api_key: ""
+      model: "qwen-turbo"

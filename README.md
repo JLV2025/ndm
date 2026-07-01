@@ -1,20 +1,22 @@
 # NDM — 网络设备配置管理系统
 
-通过 SSH 批量收集 Cisco IOS / Aruba OS 交换机与路由器配置和日志，Web 前端可视化查看、对比、分析。
+通过 SSH 批量收集 Cisco IOS / Aruba OS 交换机与路由器配置和日志，SQLite 存储，Web 前端可视化查看、对比、分析，支持 AI 日志诊断。
 
 ## 功能特性
 
 - **多厂商支持** — Cisco IOS、Cisco IOS XE、Cisco IOS Router、Aruba OS、Aruba OS CX
 - **Web 管理面板** — React + MUI OLED Dark 主题，专为网络运维设计
 - **设备管理** — 添加、编辑、删除、批量导入（CSV）设备，按类型 / 位置筛选
-- **配置收集** — 一键收集 running-config、startup-config、日志、接口状态、路由表、版本信息
+- **配置收集** — 一键收集 running-config、日志、接口状态、路由表、版本信息
+- **AI 日志分析** — 用户自配 LLM API Key，自动提取错误助记符 + 优先级链降级（DeepSeek / Qwen），本地缓存常见错误，脱敏保护网络安全
 - **在线查看** — 代码高亮查看配置内容，支持版本对比（diff）
+- **告警与报告** — 端口 DOWN / 配置变更 / 版本不一致等异常检测，自动生成修复建议
 - **Dashboard 图表** — Recharts 可视化：设备类型环形图、端口状态柱状图、流量 Top 10 排行、配置变更趋势折线图 + 热力图
 - **前端面板可视化** — 交换机端口状态前面板 + 路由器接口层级树，支持堆叠设备、子接口缩进，10Gb 端口红色数字标识
 - **设备端口连接图** — CDP/LLDP + ConfigParser 双数据源合并，React Flow 管道走线拓扑画布，四层自动布局（WAN→核心→接入→端点），堆叠展开 + 奇偶端口上下 Handle + 端点聚合计数，管道圆弧转角 + 自动居中适配
 - **多设备网络拓扑图** — CDP + LLDP 邻居自动发现 + ConfigParser 端口描述补充，三层分层布局（WAN → 核心 → 接入），智能连线最短路由，PNG/Visio 导出
 - **基础分析** — 配置完整性验证、接口状态统计、利用率分析、变更检测
-- **按周归档** — `data/设备名/YYYY-WW/` 目录结构，自动保留最近 10 个版本
+- **SQLite 全量存储** — running-config 双轨（文件 + 库），其余数据全量入 SQLite，日志按时间戳自动去重
 - **双语文案** — 中 / 英文界面一键切换
 - **单一端口部署** — 前端静态文件由 FastAPI 直接托管，一个命令启动
 
@@ -22,8 +24,9 @@
 
 | 层 | 技术 |
 |----|------|
-| 前端 | React 18 + TypeScript + MUI v5 + Recharts + React Flow (@xyflow/react) + Vite 8 |
-| 后端 | Python FastAPI + Netmiko (SSH) |
+| 前端 | React 18 + TypeScript + MUI v5 + Recharts + React Flow (@xyflow/react) + Vite 7 |
+| 后端 | Python FastAPI + Netmiko (SSH) + SQLite |
+| AI | OpenAI 兼容接口（DeepSeek / Qwen 等），优先级链降级，本地缓存 |
 | 主题 | OLED Dark (#020617 底色, #2DD46E 强调色)，IBM Plex Sans + JetBrains Mono 字体 |
 | 多语言 | React Context i18n (zh / en) |
 
@@ -149,6 +152,19 @@ devices:
 data_root: "./data"        # 数据存储目录
 max_versions: 10            # 每设备最大保留周数
 ssh_timeout: 30             # SSH 连接超时（秒）
+
+# LLM 配置（可选，用于日志 AI 分析）
+llm:
+  timeout: 30
+  providers:
+    - name: "DeepSeek"
+      base_url: "https://api.deepseek.com/v1"
+      api_key: ""           # 空则从前端设置页填写
+      model: "deepseek-chat"
+    - name: "Qwen"
+      base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+      api_key: ""
+      model: "qwen-turbo"
 ```
 
 ## 使用流程
@@ -159,24 +175,27 @@ ssh_timeout: 30             # SSH 连接超时（秒）
 4. 系统自动通过 SSH 登录设备，收集配置和日志
 5. 在 Viewer 页面查看、对比历史版本
 
-## 数据目录
+## 数据存储
+
+所有采集数据统一存入 SQLite（`data/ndm.db`），仅 running-config 保留文件副本供紧急恢复。
 
 ```
 data/
-└── {设备名称}/
+├── ndm.db                   # SQLite 数据库（所有数据主存储）
+├── YYYY-WW/                 # 周归档目录
+│   └── {设备名称}/
+│       └── running-config.raw   # 双轨保留（唯一文件）
+└── 设备名/                   # 旧版数据目录（向后兼容）
     └── YYYY-WW/
-        ├── running-config.raw
-        ├── startup-config.raw
-        ├── logs.raw
-        ├── interface-status.raw
-        ├── interface-utilization.raw
-        ├── version.raw
-        ├── routing-table.raw       # 仅路由器
-        ├── validation.json
-        ├── performance.json
-        ├── change.json
-        └── summary.txt
 ```
+
+## 日志 AI 分析
+
+1. 侧边栏进入「日志分析」→ 选择设备 → 勾选日志条目 → 点击「AI 分析」
+2. 首次使用需在设置页面（⚙ 图标）配置 LLM API Key
+3. 支持多个 LLM Provider 优先级链：按顺序尝试，第一个失败自动降级
+4. 分析结果自动缓存到本地知识库，同类型错误下次秒级命中
+5. 发送前自动脱敏（设备名 / IP 替换为占位符），回复后再还原
 
 ## API 文档
 

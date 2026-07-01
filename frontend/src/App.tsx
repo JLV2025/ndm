@@ -24,6 +24,7 @@ import {
   Hub as HubIcon,
   Warning as AlertIcon,
   Assessment as ReportsIcon,
+  BugReport as BugIcon,
 } from '@mui/icons-material'
 import Login from './pages/Login'
 import DeviceList from './pages/DeviceList'
@@ -34,6 +35,7 @@ import Topology from './pages/PortTopology'
 import NetworkTopology from './pages/NetworkTopology'
 import Alerts from './pages/Alerts'
 import Reports from './pages/Reports'
+import LogAnalyzer from './pages/LogAnalyzer'
 import MatrixRain from './components/MatrixRain'
 import { sessionManager } from './services/auth'
 import { useI18n } from './i18n'
@@ -63,6 +65,7 @@ function Layout() {
     { label: t('nav.viewer'), icon: <Terminal />, path: '/viewer' },
     { label: t('alerts.title'), icon: <AlertIcon />, path: '/alerts' },
     { label: t('reports.title'), icon: <ReportsIcon />, path: '/reports' },
+    { label: t('logs.title'), icon: <BugIcon />, path: '/log-analyzer' },
   ]
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen)
@@ -314,6 +317,7 @@ const App: React.FC = () => {
           <Route path="network-topology" element={<NetworkTopology />} />
           <Route path="alerts" element={<Alerts />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="log-analyzer" element={<LogAnalyzer />} />
         </Route>
       </Routes>
       </ErrorBoundary>

@@ -156,4 +156,21 @@ export const phase2Api = {
     apiJson.post(`/collect/phase2/${deviceName}`, { triggers, port_name: portName, username, password }),
 }
 
+// 日志分析
+export const logApi = {
+  getLogs: (deviceName: string, params?: { week?: string; severity?: string; limit?: number }) =>
+    apiJson.get(`/logs/${deviceName}`, { params }),
+  analyze: (logIds: number[], deviceName: string) =>
+    apiJson.post('/logs/analyze', { log_ids: logIds, device_name: deviceName }),
+  history: (limit?: number) =>
+    apiJson.get('/logs/analysis-history', { params: { limit } }),
+}
+
+// LLM 配置
+export const llmApi = {
+  getSettings: () => apiJson.get('/settings/llm'),
+  saveSettings: (data: { timeout: number; providers: any[] }) =>
+    apiJson.put('/settings/llm', data),
+}
+
 export default apiJson

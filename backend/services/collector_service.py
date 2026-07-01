@@ -281,22 +281,36 @@ def _parse_aruba_uptime(boot_history: str) -> int | None:
     return days * 86400 + hours * 3600 + minutes * 60 + seconds
 
 
-def parse_syslog_lines(log_output: str, device_type: str) -> list:
+def parse_syslog_lines(log_output: str, device_type: str,
+                       collection_dt: str = "") -> list:
     """将原始日志输出解析为结构化列表
 
     Cisco Syslog 格式: *Mar  1 00:00:00.000: %FACILITY-SEVERITY-MNEMONIC: message
     Cisco 无时间戳格式: %FACILITY-SEVERITY-MNEMONIC: message
     Aruba 格式: YYYY-MM-DDTHH:MM:SS.XXXXXX+XX:XX {facility} {severity} {mnemonic} message
 
-    返回: [{"timestamp": "...", "severity": "...", "facility": "...", "message": "..."}]
+    collection_dt: ISO 格式的收集时间，用于 Cisco 时间戳补年份
+
+    返回: [{"timestamp": "...", "normalized_ts": "YYYY-MM-DDTHH:MM:SS" or "",
+             "severity": "...", "facility": "...", "message": "..."}]
     """
+    from datetime import datetime
+
     if not log_output or log_output.startswith('% 收集失败'):
         return []
+
+    # 从 collection_dt 中提取年份（用于 Cisco 时间戳规范化）
+    collection_year = "2026"
+    try:
+        if collection_dt:
+            collection_year = str(datetime.fromisoformat(collection_dt).year)
+    except (ValueError, TypeError):
+        pass
 
     entries = []
     output = _strip_ansi(log_output)
 
-    # Aruba 结构化格式
+    # Aruba 结构化格式（已 ISO 8601）
     if device_type == "aruba_aoscx":
         for line in output.splitlines():
             stripped = line.strip()
@@ -308,17 +322,38 @@ def parse_syslog_lines(log_output: str, device_type: str) -> list:
                 stripped
             )
             if m:
+                # Aruba 时间戳截断到秒级作为 normalized_ts
+                raw_ts = m.group(1)
+                norm_ts = raw_ts[:19]  # "2026-06-24T14:35:22"
                 entries.append({
-                    "timestamp": m.group(1),
+                    "timestamp": raw_ts,
+                    "normalized_ts": norm_ts,
                     "facility": m.group(2),
                     "severity": m.group(3),
                     "message": f"{m.group(4)}: {m.group(5)}",
                 })
                 continue
-            entries.append({"timestamp": "", "severity": "", "facility": "", "message": stripped})
+            entries.append({"timestamp": "", "normalized_ts": "", "severity": "",
+                            "facility": "", "message": stripped})
         return entries
 
-    # Cisco 格式: %FACILITY-SEVERITY-MNEMONIC: message (severity 为 0-7 单数字)
+    # Cisco 月份映射
+    _CISCO_MONTHS = {
+        'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
+        'May': '05', 'Jun': '06', 'Jul': '07', 'Aug': '08',
+        'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12',
+    }
+
+    def _normalize_cisco_ts(ts: str, year: str) -> str:
+        """将 Cisco 时间戳转为 ISO: '*Mar  1 00:00:00' → '2026-03-01T00:00:00'"""
+        m = re.match(r'\*?(\w{3})\s+(\d{1,2})\s+(\d{2}:\d{2}:\d{2})', ts)
+        if m:
+            month = _CISCO_MONTHS.get(m.group(1), '01')
+            day = m.group(2).zfill(2)
+            return f"{year}-{month}-{day}T{m.group(3)}"
+        return ""
+
+    # Cisco 格式: %FACILITY-SEVERITY-MNEMONIC: message
     cisco_ts_re = re.compile(
         r'^(?:\*)?(\w{3}\s+\d+\s+\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:\s+\w+)?):\s*'
         r'%(\w+)-(\d)-(\w+):\s*(.*)'
@@ -338,8 +373,10 @@ def parse_syslog_lines(log_output: str, device_type: str) -> list:
 
         m = cisco_ts_re.match(stripped)
         if m:
+            raw_ts = m.group(1)
             entries.append({
-                "timestamp": m.group(1),
+                "timestamp": raw_ts,
+                "normalized_ts": _normalize_cisco_ts(raw_ts, collection_year),
                 "facility": m.group(2),
                 "severity": m.group(3),
                 "message": m.group(5) or "",
@@ -350,6 +387,7 @@ def parse_syslog_lines(log_output: str, device_type: str) -> list:
         if m2:
             entries.append({
                 "timestamp": "",
+                "normalized_ts": "",  # 无法规范化
                 "facility": m2.group(1),
                 "severity": m2.group(2),
                 "message": m2.group(4) or "",
@@ -414,27 +452,17 @@ def collect_device(
         # 收集原始数据
         print(f"[收集进度] 获取 running-config...")
         try:
-            running_config, startup_config = conn.collect_config()
+            running_config, _ = conn.collect_config()
         except Exception as e:
             print(f"[收集异常] config: {e}")
             running_config = f"% 收集失败: {str(e)}"
-            startup_config = running_config
-        print(f"[收集进度] running-config: {len(running_config)} 行, startup-config: {len(startup_config)} 行")
+        print(f"[收集进度] running-config: {len(running_config)} 行")
         _set_progress(device_name, "collecting_logs")
 
-        # Cisco IOS 日志无法限制条目数，全量收集太慢，跳过
-        # Cisco IOS XE 支持管道过滤（show logging | tail 100），可以收集
-        if device_platform == "cisco_ios_xe":
-            print(f"[收集进度] Cisco IOS XE 收集日志...")
-            logs = _safe_collect(conn.collect_logs, "logs")
-            print(f"[收集进度] logs: {len(logs)} 行")
-        elif effective_type == "cisco_ios" and not _is_router_device(device_type):
-            print(f"[收集进度] Cisco IOS 跳过日志收集（全量 show logging 太慢）")
-            logs = ""
-        else:
-            print(f"[收集进度] 获取 logs...")
-            logs = _safe_collect(conn.collect_logs, "logs")
-            print(f"[收集进度] logs: {len(logs)} 行")
+        # 所有设备统一收集日志（show logging | tail 300）
+        print(f"[收集进度] 获取 logs...")
+        logs = _safe_collect(conn.collect_logs, "logs")
+        print(f"[收集进度] logs: {len(logs)} 行")
 
         print(f"[收集进度] 获取 interface status...")
         interface_status = _safe_collect(conn.collect_interface_status, "interface status")
@@ -528,7 +556,7 @@ def collect_device(
         _save_data(
             device_name, device_ip, effective_type,
             week, data_root, settings,
-            running_config, startup_config, logs,
+            running_config, logs,
             interface_status, version_info, interface_utilization, system_info, vsf_info, switch_info, route_info,
             validation_results, performance_results, change_results,
             software_version, serial_number, device_model,
@@ -717,14 +745,47 @@ def _save_to_sqlite(
             except (json.JSONDecodeError, KeyError, ValueError, TypeError) as e:
                 print(f"[SQLite] 验证结果解析失败: {e}")
 
-        # 8. 写入设备日志
+        # 8. 写入设备日志（含时间过滤去重）
         if logs_raw and not logs_raw.startswith('% 收集失败'):
-            log_entries = parse_syslog_lines(logs_raw, device_type)
-            if log_entries:
+            log_entries = parse_syslog_lines(logs_raw, device_type, collection_dt=collected_at)
+
+            # 查询上次收集时间，用于过滤重复日志
+            last_row = db.execute(
+                "SELECT collected_at FROM collections "
+                "WHERE device_id = ? AND id < ? AND phase = '1' "
+                "ORDER BY id DESC LIMIT 1",
+                (device_id, collection_id)
+            ).fetchone()
+
+            cutoff = ""
+            if last_row:
+                # 只保留上次收集时间之后的日志
+                cutoff = last_row["collected_at"][:19]  # 截断到秒
+            else:
+                # 首次收集：保留最近 7 天
+                from datetime import datetime as dt, timedelta
+                try:
+                    collected = dt.fromisoformat(collected_at)
+                    cutoff = (collected - timedelta(days=7)).isoformat()[:19]
+                except (ValueError, TypeError):
+                    cutoff = ""
+
+            # 过滤：保留 normalized_ts > cutoff 的条目
+            filtered_entries = []
+            for e in log_entries:
+                norm_ts = e.get("normalized_ts", "")
+                if not norm_ts:
+                    # Cisco 无时间戳日志无法判断时间，全部保留
+                    filtered_entries.append(e)
+                elif not cutoff or norm_ts >= cutoff:
+                    filtered_entries.append(e)
+
+            if filtered_entries:
                 log_rows = [
                     (collection_id, device_id, e["timestamp"], e["severity"], e["facility"], e["message"])
-                    for e in log_entries
+                    for e in filtered_entries
                 ]
+                print(f"[SQLite] 日志过滤: {len(log_entries)}→{len(filtered_entries)} (cutoff={cutoff})")
                 db.executemany(
                     "INSERT INTO device_logs (collection_id, device_id, log_timestamp, severity, facility, message) VALUES (?, ?, ?, ?, ?, ?)",
                     log_rows,
@@ -755,7 +816,7 @@ def _save_to_sqlite(
 def _save_data(
     device_name: str, device_ip: str, device_type: str,
     week: str, data_dir: str, settings: Dict,
-    running_config: str, startup_config: str,
+    running_config: str,
     logs_raw: str, interface_status: str, version_info: str,
     interface_utilization: str, system_info: str, vsf_info: str, switch_info: str, route_info: str,
     validation_results: str, performance_results: str, change_results: str,

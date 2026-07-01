@@ -7076,6 +7076,166 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-06-30T12:18:07.738Z"
+    },
+    {
+      "id": "bug-443",
+      "timestamp": "2026-07-01T07:44:25.168Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/topology.py",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 13→5 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-01T07:44:25.168Z"
+    },
+    {
+      "id": "bug-444",
+      "timestamp": "2026-07-01T07:56:13.246Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 76→114 lines (7 removed) | Also: # 8. 写入设备日志; log_entries = parse_syslog_lines(logs_raw, device_ | Also: # Cisco IOS 日志无法限制条目数，全量收集太慢，跳过; # Cisco IOS XE 支持管道过滤（show logging | tail 100），可以收",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-01T08:02:01.884Z"
+    },
+    {
+      "id": "bug-445",
+      "timestamp": "2026-07-01T07:58:42.244Z",
+      "error_message": "Wrong return value",
+      "file": "backend/collectors/base.py",
+      "root_cause": "Was returning: running, startup",
+      "fix": "Now returns: running, \"\"  # startup-config 已废弃，不再收集",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-01T07:58:42.244Z"
+    },
+    {
+      "id": "bug-446",
+      "timestamp": "2026-07-01T08:00:06.744Z",
+      "error_message": "Wrong reference: startup_config should be logs",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "Used \"startup_config\" instead of \"logs\"",
+      "fix": "Changed startup_config → logs",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-01T08:00:06.744Z"
+    },
+    {
+      "id": "bug-447",
+      "timestamp": "2026-07-01T08:03:16.528Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Had 'startup-config.raw'",
+      "fix": "Changed to 'interface-status.raw'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-01T08:03:16.528Z"
+    },
+    {
+      "id": "bug-448",
+      "timestamp": "2026-07-01T08:27:28.759Z",
+      "error_message": "CSS fix: label",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "label: t('reports.title'), icon: <ReportsIcon />, path: '/reports' → t('logs.title'), icon: <BugIcon />, path: '/log-analyzer'",
+      "fix": "Changed label: t('reports.title'), icon: <ReportsIcon />, path: '/reports' → t('logs.title'), icon: <BugIcon />, path: '/log-analyzer'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-01T08:27:28.759Z"
+    },
+    {
+      "id": "bug-449",
+      "timestamp": "2026-07-01T08:30:51.174Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/LogAnalyzer.tsx",
+      "root_cause": "Had \"primary\"",
+      "fix": "Changed to '{n}'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-01T08:30:51.174Z"
+    },
+    {
+      "id": "bug-450",
+      "timestamp": "2026-07-01T09:10:37.926Z",
+      "error_message": "Wrong reference: Web should be SQLite",
+      "file": "README.md",
+      "root_cause": "Used \"Web\" instead of \"SQLite\"",
+      "fix": "Changed Web → SQLite",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-01T09:10:37.926Z"
+    },
+    {
+      "id": "bug-451",
+      "timestamp": "2026-07-01T09:12:32.438Z",
+      "error_message": "Significant refactor of ",
+      "file": "README_EN.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 8→10 lines (2 removed) | Also: ## Data Directory; └── {device-name}/",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-01T09:13:21.045Z"
+    },
+    {
+      "id": "bug-452",
+      "timestamp": "2026-07-01T09:15:53.284Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/main.py",
+      "root_cause": "Had \"1.0.0\"",
+      "fix": "Changed to \"2.0.0\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-01T09:15:53.284Z"
     }
   ]
 }

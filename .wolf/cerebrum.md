@@ -180,3 +180,12 @@
 ## Do-Not-Repeat
 - [2026-06-30] 修改种子数据文本后只改 `_seed_remediation_hints()` 不够——数据库已有记录不会更新，必须写迁移（`_migrate_vN`）UPDATE 已有行
 - [2026-06-30] `taskkill //F //PID` 在 Git Bash 下需双斜杠（`//F`），单斜杠会被转义失败
+
+## Key Learnings
+- [2026-07-01] SQLite 迁移完成：topology.py、data.py、role_verifier 全部改查 SQLite。`_get_latest_running_config()` / `_get_latest_neighbors()` / `_scan_device_neighbors()` 三个辅助函数统一查询模式
+- [2026-07-01] 日志时间戳规范化：Cisco `*Mar  1 00:00:00` 无年份 → 用月份映射表 + 收集时间年份补全为 ISO 8601。Aruba 已是 ISO 无需处理
+- [2026-07-01] 日志去重：查上次 `collected_at`，`parse_syslog_lines()` 返回 `normalized_ts` 字段，写入前过滤低于 cutoff 的条目。首次收集回退 7 天
+- [2026-07-01] 所有设备统一收集日志（取消 Cisco IOS 跳过），`show logging | tail 300`
+- [2026-07-01] LLM 日志分析：OpenAI 兼容接口，优先级链降级（遍历 providers，按序尝试，全挂才报错）。发送前脱敏（设备名/IP→占位符），LLM 回复后还原。错误助记符精确匹配 `remediation_hints` 表做本地缓存
+- [2026-07-01] LLM 配置：settings.yaml `llm.providers[]` 数组 + 环境变量 `LLM_API_KEY_N` 覆盖 + 前端设置页面三种方式。API key 保存时脱敏显示（`****`），已脱敏的值不覆盖旧 key
+- [2026-07-01] startup-config 完全废弃：`collect_config()` 不再执行 `show startup-config`，前端 Viewer 移除该选项。running-config 保持双轨（文件+SQLite）

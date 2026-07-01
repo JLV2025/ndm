@@ -138,8 +138,7 @@ class DeviceConnection:
         elif dt.startswith("cisco"):
             self.send_command("terminal length 0", read_timeout=20)
         running = self.send_command("show running-config", read_timeout=40)
-        startup = self.send_command("show startup-config", read_timeout=40)
-        return running, startup
+        return running, ""  # startup-config 已废弃，不再收集
 
     def collect_logs(self) -> str:
         """统一收集最新 300 条日志

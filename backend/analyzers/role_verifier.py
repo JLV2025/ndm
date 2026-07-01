@@ -12,7 +12,6 @@
 
 import os
 import re
-import json
 import yaml
 from typing import List, Dict, Optional
 from dataclasses import dataclass, field
@@ -75,29 +74,29 @@ class RoleVerifier:
 
     def _get_switch_neighbors(self, device_name: str) -> List[str]:
         """
-        获取指定交换机的 LLDP 邻居设备名列表
+        获取指定交换机的 LLDP 邻居设备名列表（从 SQLite 查询）
 
-        读取 data/{YYYY-WW}/{device_name}/neighbors.json，返回 neighbor_name 列表
+        查询 neighbors 表的最新采集数据，返回 neighbor_name 列表
         """
-        data_path = os.path.join(self.data_root, str(self.device_map.get(device_name, {}).get("_week_dir", "")))
-        # 尝试查找设备的 neighbors.json
         neighbors = []
-        # 遍历 weeks 目录查找
-        if os.path.isdir(self.data_root):
-            for week_dir in sorted(os.listdir(self.data_root), reverse=True):
-                device_dir = os.path.join(self.data_root, week_dir, device_name)
-                neighbors_file = os.path.join(device_dir, "neighbors.json")
-                if os.path.exists(neighbors_file):
-                    try:
-                        with open(neighbors_file, "r", encoding="utf-8") as f:
-                            data = json.load(f)
-                            for n in data.get("neighbors", []):
-                                nb_name = n.get("neighbor_name", "")
-                                if nb_name:
-                                    neighbors.append(nb_name)
-                    except (json.JSONDecodeError, IOError):
-                        pass
-                    break  # 只读最新一周
+        try:
+            from storage.database import get_connection as _get_db
+            db = _get_db()
+            if db:
+                rows = db.execute("""
+                    SELECT DISTINCT n.neighbor_name
+                    FROM neighbors n
+                    JOIN devices d ON n.device_id = d.id
+                    WHERE d.name = ?
+                      AND n.collection_id = (
+                          SELECT c.id FROM collections c
+                          WHERE c.device_id = n.device_id
+                          ORDER BY c.id DESC LIMIT 1
+                      )
+                """, (device_name,)).fetchall()
+                neighbors = [r["neighbor_name"] for r in rows if r["neighbor_name"]]
+        except Exception:
+            pass
         return list(set(neighbors))  # 去重
 
     def _get_role(self, device: dict) -> Optional[str]:

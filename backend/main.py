@@ -29,11 +29,12 @@ from storage import init_db
 from api import devices_router, collector_router, data_router, auth_router, stats_router, topology_router, topology_visio_router
 from api.alerts import router as alerts_router
 from api.reports import router as reports_router
+from api.logs import router as logs_router
 
 app = FastAPI(
     title="网络交换机配置收集系统",
     description="通过 SSH 从 Cisco 和 Aruba 交换机收集配置文件",
-    version="1.0.0"
+    version="2.0.0"
 )
 
 # CORS 配置
@@ -70,6 +71,7 @@ app.include_router(topology_router, prefix="/api", tags=["topology"])
 app.include_router(topology_visio_router, prefix="/api", tags=["topology"])
 app.include_router(alerts_router, tags=["alerts"])
 app.include_router(reports_router, tags=["reports"])
+app.include_router(logs_router, prefix="/api", tags=["logs"])
 
 # ============ 健康检查 ============
 
