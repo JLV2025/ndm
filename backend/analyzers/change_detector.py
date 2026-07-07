@@ -38,7 +38,6 @@ class ChangeDetector:
             lineterm=''
         )
 
-        changes = []
         current_context = []
         change_type = None
 
@@ -68,9 +67,9 @@ class ChangeDetector:
                         "lines": current_context
                     })
                     current_context = []
-                # 提取行号
+                # 提取行号 — 添加到最新一个 change block（若存在）
                 match = re.search(r'@@ -(\d+),(\d+) \+(\d+),(\d+) @@', line)
-                if match:
+                if match and self.changes:
                     self.changes[-1].update({
                         "start_line_old": int(match.group(1)),
                         "start_line_new": int(match.group(3))
@@ -78,8 +77,10 @@ class ChangeDetector:
                 change_type = 'added' if '+' in line else 'removed'
                 continue
 
-            line_content = line[1:] if line.startswith(' ') or line.startswith('-') else line[2:]
-            current_context.append(line_content)
+            # 跳过仅含行号的 @@ 后续行
+            if line.startswith(' ') or line.startswith('-') or line.startswith('+'):
+                line_content = line[1:]
+                current_context.append(line_content)
 
         # 添加最后的上下文
         if current_context:

@@ -184,8 +184,3 @@ async def get_alert_suggestion(alert_id: int):
     return {"suggestion": "暂无处理建议，请手动排查"}
 
 
-@router.get("/api/alerts/triggers")
-async def get_phase2_triggers():
-    """获取所有可用的 Phase 2 触发条件列表"""
-    from services.collector_service import PHASE2_TRIGGERS
-    return {"triggers": PHASE2_TRIGGERS}

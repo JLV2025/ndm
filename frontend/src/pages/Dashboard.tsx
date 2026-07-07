@@ -68,7 +68,7 @@ const CHART_COLORS = {
   up: '#2DD46E',
   down: '#94A3B8',
   disabled: '#EF4444',
-  rx: '#3B82F6',
+  rx: 'rgba(45, 212, 110, 0.35)',
   tx: '#2DD46E',
   bg: '#0F1223',
   grid: '#1E293B',

@@ -136,7 +136,6 @@ export const alertsApi = {
   markRead: (id: number) => apiJson.put(`/alerts/${id}/read`),
   resolve: (id: number) => apiJson.put(`/alerts/${id}/resolve`),
   getSuggestion: (id: number) => apiJson.get(`/alerts/${id}/suggestion`),
-  getTriggers: () => apiJson.get('/alerts/triggers'),
 }
 
 // 报告
@@ -150,14 +149,11 @@ export const reportsApi = {
     apiJson.get('/reports/bandwidth-summary', { params: deviceName ? { device_name: deviceName } : {} }),
 }
 
-// Phase 2 深度收集
-export const phase2Api = {
-  trigger: (deviceName: string, triggers: string[], username: string, password: string, portName?: string) =>
-    apiJson.post(`/collect/phase2/${deviceName}`, { triggers, port_name: portName, username, password }),
-}
 
 // 日志分析
 export const logApi = {
+  getTree: (params?: { week?: string }) =>
+    apiJson.get('/logs/tree', { params }),
   getLogs: (deviceName: string, params?: { week?: string; severity?: string; limit?: number }) =>
     apiJson.get(`/logs/${deviceName}`, { params }),
   analyze: (logIds: number[], deviceName: string) =>

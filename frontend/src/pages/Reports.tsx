@@ -111,11 +111,15 @@ export default function ReportsPage() {
                 <TableCell>{d.name}</TableCell>
                 <TableCell>{d.type}</TableCell>
                 <TableCell>
-                  <Chip
-                    label={t('reports.uptimeDays', { days: String(d.uptime_days) })}
-                    color={d.uptime_days < 1 ? 'error' : d.uptime_days < 7 ? 'warning' : 'success'}
-                    size="small"
-                  />
+                  {d.uptime_days != null ? (
+                    <Chip
+                      label={`${d.uptime_days} 天`}
+                      color={d.uptime_days < 1 ? 'error' : d.uptime_days < 7 ? 'warning' : 'success'}
+                      size="small"
+                    />
+                  ) : (
+                    <Typography variant="caption" color="text.disabled">—</Typography>
+                  )}
                 </TableCell>
                 <TableCell>{d.software_version}</TableCell>
                 <TableCell>{d.collected_at ? new Date(d.collected_at).toLocaleString('zh-CN') : '-'}</TableCell>

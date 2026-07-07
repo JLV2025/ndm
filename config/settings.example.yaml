@@ -1,0 +1,32 @@
+# NDM 全局配置模板
+# 复制本文件为 settings.yaml 后修改：
+#   cp config/settings.example.yaml config/settings.yaml
+#
+# 敏感信息（如 api_key）请勿直接填写在此文件中，
+# 应通过环境变量设置：LLM_API_KEY_1, LLM_API_KEY_2, ...
+
+data_root: ./data
+max_versions: 10
+log_buffer_size: 65536
+collection:
+  max_parallel: 2
+ssh_timeout:
+  connect: 20
+  read: 20
+  write: 20
+analysis:
+  enable_config_validation: true
+  enable_performance_analysis: true
+  enable_change_detection: true
+  change_detection_lookback: 4
+llm:
+  timeout: 30
+  providers:
+  - name: DeepSeek
+    base_url: https://api.deepseek.com/v1
+    api_key: ""  # 通过环境变量 LLM_API_KEY_1 设置
+    model: deepseek-chat
+  - name: Qwen
+    base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    api_key: ""  # 通过环境变量 LLM_API_KEY_2 设置
+    model: qwen-turbo

@@ -7236,6 +7236,690 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-01T09:15:53.284Z"
+    },
+    {
+      "id": "bug-453",
+      "timestamp": "2026-07-02T01:02:03.039Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/LogAnalyzer.tsx",
+      "root_cause": "Had 'common.cancel'",
+      "fix": "Changed to 'common.close'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T01:02:03.039Z"
+    },
+    {
+      "id": "bug-454",
+      "timestamp": "2026-07-02T01:13:59.987Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/pages/DeviceList.tsx",
+      "root_cause": "No early return/throw for edge case: !session",
+      "fix": "Added guard clause: if (!session)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T01:13:59.987Z"
+    },
+    {
+      "id": "bug-455",
+      "timestamp": "2026-07-02T01:24:43.728Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 26→55 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T01:24:43.728Z"
+    },
+    {
+      "id": "bug-456",
+      "timestamp": "2026-07-02T01:48:19.566Z",
+      "error_message": "Significant refactor of ",
+      "file": "C:/Users/jingl/.claude/plans/1-windows-ai-witty-fox.md",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 10→15 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T01:48:19.566Z"
+    },
+    {
+      "id": "bug-457",
+      "timestamp": "2026-07-02T01:54:43.938Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/logs.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T01:54:43.938Z"
+    },
+    {
+      "id": "bug-458",
+      "timestamp": "2026-07-02T02:07:10.304Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/pages/LogAnalyzer.tsx",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 22→13 lines (9 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T02:07:10.304Z"
+    },
+    {
+      "id": "bug-459",
+      "timestamp": "2026-07-02T02:10:43.882Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/logs.py",
+      "root_cause": "52 lines replaced/restructured",
+      "fix": "Rewrote 75→12 lines (52 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T02:10:43.882Z"
+    },
+    {
+      "id": "bug-460",
+      "timestamp": "2026-07-02T02:11:00.990Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/logs.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T02:11:00.990Z"
+    },
+    {
+      "id": "bug-461",
+      "timestamp": "2026-07-02T02:55:19.729Z",
+      "error_message": "CSS fix: dev",
+      "file": "frontend/src/pages/LogAnalyzer.tsx",
+      "root_cause": "dev: :', '') → :{name",
+      "fix": "Changed dev: :', '') → :{name",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-02T02:55:35.400Z"
+    },
+    {
+      "id": "bug-462",
+      "timestamp": "2026-07-02T02:56:06.297Z",
+      "error_message": "Wrong reference: 2000 should be 1000",
+      "file": "frontend/src/components/devices/BatchCollectionPanel.tsx",
+      "root_cause": "Used \"2000\" instead of \"1000\"",
+      "fix": "Changed 2000 → 1000",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T02:56:06.297Z"
+    },
+    {
+      "id": "bug-463",
+      "timestamp": "2026-07-02T02:56:20.472Z",
+      "error_message": "CSS fix: mt",
+      "file": "frontend/src/components/devices/BatchCollectionPanel.tsx",
+      "root_cause": "mt: 1, bgcolor: 'rgba(255,255,255,0.06)' → 1.5, height: 10, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.06)'",
+      "fix": "Changed mt: 1, bgcolor: 'rgba(255,255,255,0.06)' → 1.5, height: 10, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.06)'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T02:56:20.472Z"
+    },
+    {
+      "id": "bug-464",
+      "timestamp": "2026-07-02T03:01:47.252Z",
+      "error_message": "Missing await",
+      "file": "backend/api/collector.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T03:01:47.252Z"
+    },
+    {
+      "id": "bug-465",
+      "timestamp": "2026-07-02T03:02:07.532Z",
+      "error_message": "CSS fix: s",
+      "file": "frontend/src/components/devices/BatchCollectionPanel.tsx",
+      "root_cause": "s: string | undefined = data.step → string = data.step || ''",
+      "fix": "Changed s: string | undefined = data.step → string = data.step || ''",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T03:02:07.532Z"
+    },
+    {
+      "id": "bug-466",
+      "timestamp": "2026-07-02T03:02:49.489Z",
+      "error_message": "CSS fix: s",
+      "file": "frontend/src/components/devices/CollectionProgress.tsx",
+      "root_cause": "s: string | undefined = data.step → string = data.step || ''",
+      "fix": "Changed s: string | undefined = data.step → string = data.step || ''",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T03:02:49.489Z"
+    },
+    {
+      "id": "bug-467",
+      "timestamp": "2026-07-02T03:03:05.060Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/devices/CollectionProgress.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 6→5 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T03:03:05.060Z"
+    },
+    {
+      "id": "bug-468",
+      "timestamp": "2026-07-02T03:11:27.865Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/Alerts.tsx",
+      "root_cause": "Had '../services/auth'",
+      "fix": "Changed to '../i18n'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T03:11:27.865Z"
+    },
+    {
+      "id": "bug-469",
+      "timestamp": "2026-07-02T03:13:09.844Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/pages/Alerts.tsx",
+      "root_cause": "12 lines replaced/restructured",
+      "fix": "Rewrote 16→4 lines (12 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T03:13:09.844Z"
+    },
+    {
+      "id": "bug-470",
+      "timestamp": "2026-07-02T03:17:39.485Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/i18n/zh.ts",
+      "root_cause": "Had 'alerts.phase2'",
+      "fix": "Changed to 'alerts.suggestion'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T03:17:39.485Z"
+    },
+    {
+      "id": "bug-471",
+      "timestamp": "2026-07-02T03:34:55.007Z",
+      "error_message": "CSS fix: fontFamily",
+      "file": "frontend/src/pages/LogAnalyzer.tsx",
+      "root_cause": "fontFamily: 'monospace', fontSize: '0.7rem', → '\"Fira Code\", monospace', fontSize: '0.72rem',",
+      "fix": "Changed fontFamily: 'monospace', fontSize: '0.7rem', → '\"Fira Code\", monospace', fontSize: '0.72rem',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T03:34:55.007Z"
+    },
+    {
+      "id": "bug-472",
+      "timestamp": "2026-07-02T03:35:09.501Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/LogAnalyzer.tsx",
+      "root_cause": "Had \"monospace\"",
+      "fix": "Changed to \"Fira Code\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-02T03:35:39.597Z"
+    },
+    {
+      "id": "bug-473",
+      "timestamp": "2026-07-02T04:26:09.932Z",
+      "error_message": "CSS fix: fontWeight, fontSize, letterSpacing",
+      "file": "frontend/src/main.tsx",
+      "root_cause": "fontWeight: 600, → 700,; fontSize: '0.7rem', → '0.72rem',; letterSpacing: '0.05em', → '0.03em',",
+      "fix": "Changed fontWeight: 600, → 700,; fontSize: '0.7rem', → '0.72rem',; letterSpacing: '0.05em', → '0.03em',",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-02T04:26:26.739Z"
+    },
+    {
+      "id": "bug-474",
+      "timestamp": "2026-07-02T04:29:11.595Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "Had '#3B82F6'",
+      "fix": "Changed to 'rgba(45, 212, 110, 0.35)'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T04:29:11.595Z"
+    },
+    {
+      "id": "bug-475",
+      "timestamp": "2026-07-02T04:36:32.692Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/Reports.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T04:36:32.692Z"
+    },
+    {
+      "id": "bug-476",
+      "timestamp": "2026-07-02T05:29:51.163Z",
+      "error_message": "Missing await",
+      "file": "backend/api/collector.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call | Also: results = await asyncio.to_thread(collect_all_devices_parall; valid_devices, request.username, request.password, settings, | Also: result = await asyncio.to_thread(collect_device, device_obj,",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-02T05:30:21.426Z"
+    },
+    {
+      "id": "bug-477",
+      "timestamp": "2026-07-02T05:40:00.454Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 8→16 lines (2 removed) | Also: _set_progress(device_name, \"collecting_config\"); def _safe_collect(collect_func, label: str) -> str | Also: running_config_raw, _ = _stepped_collect(\"running-; running_config = running_config_raw",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-07-02T05:40:59.193Z"
+    },
+    {
+      "id": "bug-478",
+      "timestamp": "2026-07-02T05:41:58.920Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/collector.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→10 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T05:41:58.920Z"
+    },
+    {
+      "id": "bug-479",
+      "timestamp": "2026-07-02T05:42:14.869Z",
+      "error_message": "Wrong reference: last_step should be last_state",
+      "file": "backend/api/collector.py",
+      "root_cause": "Used \"last_step\" instead of \"last_state\"",
+      "fix": "Changed last_step → last_state",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T05:42:14.869Z"
+    },
+    {
+      "id": "bug-480",
+      "timestamp": "2026-07-02T05:43:02.202Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/components/devices/BatchCollectionPanel.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T05:43:02.202Z"
+    },
+    {
+      "id": "bug-481",
+      "timestamp": "2026-07-02T05:44:04.713Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/components/devices/CollectionProgress.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T05:44:04.713Z"
+    },
+    {
+      "id": "bug-482",
+      "timestamp": "2026-07-02T05:50:48.006Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/collectors/base.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 9→3 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T05:50:48.006Z"
+    },
+    {
+      "id": "bug-483",
+      "timestamp": "2026-07-02T06:19:04.623Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 61→92 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T06:19:04.623Z"
+    },
+    {
+      "id": "bug-484",
+      "timestamp": "2026-07-02T06:19:47.936Z",
+      "error_message": "CSS fix: 100",
+      "file": "frontend/src/components/devices/CollectionProgress.tsx",
+      "root_cause": "100: isPinging ? 8 → progressPct",
+      "fix": "Changed 100: isPinging ? 8 → progressPct",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T06:19:47.936Z"
+    },
+    {
+      "id": "bug-485",
+      "timestamp": "2026-07-02T06:20:01.165Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/devices/BatchCollectionPanel.tsx",
+      "root_cause": "Had `collect.stepCollectingConfig`",
+      "fix": "Changed to 'devices.pinging'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T06:20:01.165Z"
+    },
+    {
+      "id": "bug-486",
+      "timestamp": "2026-07-02T08:23:37.361Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 21→41 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T08:23:37.361Z"
+    },
+    {
+      "id": "bug-487",
+      "timestamp": "2026-07-02T08:31:28.814Z",
+      "error_message": "Wrong reference: LLM_DEEPSEEK_KEY should be LLM_API_KEY_1",
+      "file": "config/settings.yaml",
+      "root_cause": "Used \"LLM_DEEPSEEK_KEY\" instead of \"LLM_API_KEY_1\"",
+      "fix": "Changed LLM_DEEPSEEK_KEY → LLM_API_KEY_1",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "yaml"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-02T08:31:38.079Z"
+    },
+    {
+      "id": "bug-488",
+      "timestamp": "2026-07-02T08:37:11.677Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/utils/settings_loader.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→18 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T08:37:11.677Z"
+    },
+    {
+      "id": "bug-489",
+      "timestamp": "2026-07-02T09:00:00.000Z",
+      "error_message": "ImportError: cannot import name 'collect_all_devices_parallel' — POST /api/collect/batch 运行时段错误",
+      "file": "backend/api/collector.py",
+      "root_cause": "collect_all_devices_parallel 函数从 collector_service.py 删除，但 collector.py 仍 import 并调用",
+      "fix": "删除 /batch 端点 + BatchCollectRequest 模型，前端已改用独立并发队列",
+      "tags": ["import-error", "dead-code", "batch-collection"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T09:00:00.000Z"
+    },
+    {
+      "id": "bug-490",
+      "timestamp": "2026-07-02T09:00:00.000Z",
+      "error_message": "API Key 明文提交到版本控制（DeepSeek + Qwen）",
+      "file": "config/settings.yaml",
+      "root_cause": "live API key 直接写在 YAML 配置文件中，未被 .gitignore 排除",
+      "fix": "清空 key → 环境变量 LLM_API_KEY_N 覆盖；settings.yaml 加入 .gitignore 并从 git rm --cached；创建 settings.example.yaml 模板；settings_loader.py 增加回退链",
+      "tags": ["security", "api-key", "gitignore"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T09:00:00.000Z"
+    },
+    {
+      "id": "bug-491",
+      "timestamp": "2026-07-02T09:00:00.000Z",
+      "error_message": "collect_device() 内联 Ping 缺少 TCP/22 回退，防火墙屏蔽 ICMP 的设备误判不可达",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "新增的 ping 逻辑只做 ICMP，_ping_blocking() 已有的 TCP 22 端口检测未复用",
+      "fix": "增加 TCP 22 socket 回退 + 通用 Exception 捕获",
+      "tags": ["ping", "tcp-fallback", "reachability"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T09:00:00.000Z"
+    },
+    {
+      "id": "bug-492",
+      "timestamp": "2026-07-02T09:00:00.000Z",
+      "error_message": "进度条回退：_advance('ping') 设置 ~12% 后被 _set_progress('connecting') 覆写为 0%",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "_set_progress() 默认 progress=0，步骤切换时未保留当前百分比",
+      "fix": "步骤切换时传入 current_pct = cmd_done / total_cmds * 100",
+      "tags": ["progress-bar", "ux", "regression"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T09:00:00.000Z"
+    },
+    {
+      "id": "bug-493",
+      "timestamp": "2026-07-02T09:00:00.000Z",
+      "error_message": "SSE 断连时 onComplete 被调用，收集未完成就标记成功",
+      "file": "frontend/src/components/devices/CollectionProgress.tsx",
+      "root_cause": "onerror 中 seenActiveRef.current=true 时直接调 onComplete，未区分正常完成 vs 网络中断",
+      "fix": "改为调用 onError + 新增 i18n key 'collect.connectionLost'",
+      "tags": ["sse", "event-source", "error-handling"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T09:00:00.000Z"
+    },
+    {
+      "id": "bug-494",
+      "timestamp": "2026-07-02T09:00:00.000Z",
+      "error_message": "handleBatchCollect 丢失 try/finally → Promise.all 异常时 UI 永久卡在'运行中'",
+      "file": "frontend/src/pages/DeviceList.tsx",
+      "root_cause": "旧代码有 try { ... } finally { setBatchRunning(false) }，重构后丢失",
+      "fix": "恢复 try { await Promise.all(workers) } finally { setBatchRunning(false); loadDevices() }",
+      "tags": ["finally", "cleanup", "ui-stuck"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T09:00:00.000Z"
+    },
+    {
+      "id": "bug-495",
+      "timestamp": "2026-07-02T09:00:00.000Z",
+      "error_message": "批量收集 N=2 时只启动 1 个 worker",
+      "file": "frontend/src/pages/DeviceList.tsx",
+      "root_cause": "for (i=0; i < min(2, queue.length); i++) 每次迭代重算 queue.length，runNext() 内 shift 递减导致第二次迭代 queue.length=1 < 2",
+      "fix": "预计算 numWorkers = min(maxConcurrent, queue.length) 再循环",
+      "tags": ["off-by-one", "closure", "queue"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T09:00:00.000Z"
+    },
+    {
+      "id": "bug-496",
+      "timestamp": "2026-07-02T09:00:00.000Z",
+      "error_message": "total_cmds 防御性重算混用 device_type 和 effective_type",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "设备类型不匹配时重算命令数，router 检查用旧 device_type 而非探测后的 effective_type",
+      "fix": "统一使用 effective_type",
+      "tags": ["variable-mismatch", "edge-case"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-02T09:00:00.000Z"
+    },
+    {
+      "id": "bug-497",
+      "timestamp": "2026-07-07T07:30:00.000Z",
+      "error_message": "收工技能 git push 静默失败，第二台电脑 pull 不到更新",
+      "file": ".claude/skills/work-wrap-up/SKILL.md",
+      "root_cause": "Phase 5 Step 6 只执行 git push，缺少错误码检查和推送后验证（git fetch + git log origin/branch），SSH 认证失败被静默忽略",
+      "fix": "Step 6 改为检查退出码 + Step 7 新增 git fetch 验证远程已收到提交",
+      "tags": ["git", "skill", "silent-failure", "push"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-07T07:30:00.000Z"
     }
   ]
 }

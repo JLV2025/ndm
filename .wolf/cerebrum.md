@@ -189,3 +189,20 @@
 - [2026-07-01] LLM 日志分析：OpenAI 兼容接口，优先级链降级（遍历 providers，按序尝试，全挂才报错）。发送前脱敏（设备名/IP→占位符），LLM 回复后还原。错误助记符精确匹配 `remediation_hints` 表做本地缓存
 - [2026-07-01] LLM 配置：settings.yaml `llm.providers[]` 数组 + 环境变量 `LLM_API_KEY_N` 覆盖 + 前端设置页面三种方式。API key 保存时脱敏显示（`****`），已脱敏的值不覆盖旧 key
 - [2026-07-01] startup-config 完全废弃：`collect_config()` 不再执行 `show startup-config`，前端 Viewer 移除该选项。running-config 保持双轨（文件+SQLite）
+
+- [2026-07-02] API key 保护机制：① `config/settings.yaml` 加入 `.gitignore` 永不提交 → ② 创建 `config/settings.example.yaml` 模板（api_key 为空）→ ③ `settings_loader.py` 回退链：环境变量 `SETTINGS_CONFIG_PATH` → `settings.yaml` → `settings.example.yaml` → ④ LLM provider 加载时环境变量 `LLM_API_KEY_N` 覆盖文件中的 key
+- [2026-07-02] `terminal length 0` / `no page` 是 session 级命令，在 `connect()` 中发送一次即可，整个会话有效。之前每个方法都发是多余的
+- [2026-07-02] Aruba CX 日志格式为 3 字段（`TIMESTAMP HOSTNAME PROCESS[PID]: MESSAGE`），严重级别在消息体内。与 Cisco syslog 的 4 字段格式完全不同
+- [2026-07-02] 设备类型 `cisco_ios_router` 在 DB 中存为 `cisco_ios`（Netmiko 驱动映射），SQL 查询过滤路由器需 `IN ('cisco_ios', 'cisco_ios_router')`
+- [2026-07-02] FastAPI 路由注册顺序决定匹配优先级：`/{device_name}` 会贪心匹配任意路径，分页/分析端点必须在它之前定义
+- [2026-07-02] `i18n.t(key, fallback?)` 第二个参数是 fallback 字符串，不是占位符对象。模板变量必须用 JS 字符串拼接
+- [2026-07-02] `t()` 的 fallback 不能含花括号（`{days}`），会导致 i18n 库尝试查找嵌套 key 失败 → 直接用字符串拼接
+
+## Do-Not-Repeat
+- [2026-07-02] for 循环中 `queue.length` 每次迭代重新求值 → `runNext()` 内部 `queue.shift()` 同步递减 length，N=2 时只启动 1 个 worker。**必须预计算**：`const n = queue.length; for (i=0; i<n; i++)`
+- [2026-07-02] 删除函数前必须 grep 全仓确认无调用方 → `collect_all_devices_parallel` 删除后 collector.py 仍 import 调用，运行时段错误
+- [2026-07-02] `_set_progress("connecting")` 默认 `progress=0` 会覆盖上一步 ping 的进度 → 步骤切换时传入当前百分比 `_set_progress("connecting", progress=current_pct)`
+- [2026-07-02] SSE `onerror` 不能一概而论：收到数据后断连 → 报错；从未收到数据 → 让 EventSource 自动重连（后端可能尚未启动）
+- [2026-07-02] `total_cmds` 防御性重算中混用 `device_type` 和 `effective_type` → 应统一使用探测后的实际类型
+- [2026-07-02] `try { await Promise.all() } setBatchRunning(false)` 缺少 `finally` → worker 抛出未捕获异常时 UI 永久卡死
+- [2026-07-07] `git push origin <branch>` 无错误处理和验证 → SSH 认证失败被静默忽略，第二台电脑 pull 不到更新。必须：① 检查 push 退出码 ② `git fetch` + `git log origin/<branch>` 验证远程已收到

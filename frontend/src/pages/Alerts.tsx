@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  Box, Container, Typography, Card, CardContent, Chip, Button, Alert as MuiAlert,
+  Box, Container, Typography, Chip, Button,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, IconButton, Tooltip, CircularProgress, Select, MenuItem,
-  FormControl, InputLabel, Collapse, Divider, Snackbar, Alert,
+  FormControl, InputLabel, Collapse, Divider,
   TextField,
 } from '@mui/material'
 import {
@@ -17,8 +17,7 @@ import {
   Add as AddIcon,
   Remove as RemoveIcon,
 } from '@mui/icons-material'
-import { alertsApi, phase2Api } from '../services/api'
-import { sessionManager } from '../services/auth'
+import { alertsApi } from '../services/api'
 import { useI18n } from '../i18n'
 
 /** 字段中文标签映射 */
@@ -143,8 +142,6 @@ export default function AlertsPage() {
   const [filterDateTo, setFilterDateTo] = useState('')
   const [unreadOnly, setUnreadOnly] = useState(true)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
-  const [phase2Loading, setPhase2Loading] = useState<Set<number>>(new Set())
-  const [phase2Msg, setPhase2Msg] = useState<{ text: string; severity: 'info' | 'success' | 'error' } | null>(null)
   const [suggestions, setSuggestions] = useState<Record<number, string>>({})
 
   const fetchAlerts = useCallback(async () => {
@@ -188,33 +185,6 @@ export default function AlertsPage() {
     fetchAlerts()
   }
 
-  const handlePhase2 = async (alert: AlertItem) => {
-    const session = sessionManager.getSession()
-    if (!session) { alert('请先登录'); return }
-
-    setPhase2Loading(prev => new Set(prev).add(alert.id))
-    setPhase2Msg({ text: `正在对 ${alert.device_name} 执行深度诊断...`, severity: 'info' })
-    try {
-      await phase2Api.trigger(
-        alert.device_name,
-        [alert.alert_type],
-        session.username,
-        session.password,
-        alert.detail?.port_name,
-      )
-      setPhase2Msg({ text: `${alert.device_name} 深度诊断完成`, severity: 'success' })
-    } catch (e: any) {
-      const msg = e?.response?.data?.detail || e?.message || 'Phase 2 执行失败'
-      setPhase2Msg({ text: msg, severity: 'error' })
-      console.error('Phase 2 failed:', e)
-    }
-    setPhase2Loading(prev => {
-      const next = new Set(prev)
-      next.delete(alert.id)
-      return next
-    })
-  }
-
   const loadSuggestion = async (alert: AlertItem) => {
     if (suggestions[alert.id]) return
     try {
@@ -222,9 +192,6 @@ export default function AlertsPage() {
       setSuggestions(prev => ({ ...prev, [alert.id]: res.data.suggestion }))
     } catch (e) { /* ignore */ }
   }
-
-  const hasPhase2 = (alertType: string) =>
-    ['device_reboot', 'port_sudden_down', 'port_errors', 'topology_changed', 'high_utilization'].includes(alertType)
 
   return (
     <Container maxWidth="lg" sx={{ mt: 4, mb: 8 }}>
@@ -360,15 +327,6 @@ export default function AlertsPage() {
                             <IconButton size="small" color="success" onClick={() => handleResolve(a.id)}><CheckCircle /></IconButton>
                           </Tooltip>
                         )}
-                        {hasPhase2(a.alert_type) && !a.resolved_at && (
-                          <Button
-                            size="small" variant="contained" color="primary"
-                            disabled={phase2Loading.has(a.id)}
-                            onClick={() => handlePhase2(a)}
-                          >
-                            {phase2Loading.has(a.id) ? t('alerts.phase2Running') : t('alerts.phase2')}
-                          </Button>
-                        )}
                       </Box>
                     </TableCell>
                   </TableRow>
@@ -378,18 +336,6 @@ export default function AlertsPage() {
           </Table>
         </TableContainer>
       )}
-      <Snackbar
-        open={!!phase2Msg}
-        autoHideDuration={4000}
-        onClose={() => setPhase2Msg(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        {phase2Msg ? (
-          <Alert severity={phase2Msg.severity} onClose={() => setPhase2Msg(null)} variant="filled">
-            {phase2Msg.text}
-          </Alert>
-        ) : undefined}
-      </Snackbar>
     </Container>
   )
 }

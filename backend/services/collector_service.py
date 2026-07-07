@@ -35,13 +35,21 @@ def get_collection_progress(device_name: str) -> Dict | None:
         return _collection_progress.get(device_name)
 
 
-def _set_progress(device_name: str, step: str, error: str = ""):
-    """设置设备收集进度（线程安全）"""
+def _set_progress(device_name: str, step: str, error: str = "", progress: float = 0):
+    """设置设备收集进度（线程安全）
+
+    Args:
+        device_name: 设备名
+        step: 当前步骤标识 (connecting / collecting / analyzing / saving / complete / failed)
+        error: 错误信息
+        progress: 当前步骤进度百分比 (0~100)
+    """
     with _progress_lock:
         _collection_progress[device_name] = {
             "step": step,
             "started_at": datetime.now().isoformat(),
             "error": error,
+            "progress": progress,
         }
 
 
@@ -98,7 +106,8 @@ def extract_software_version(version_output: str, device_type: str) -> str:
 
     if device_type in ("cisco_ios", "cisco_ios_router"):
         for line in lines:
-            match = re.search(r'Version\s+(\d+\.\d+(?:\.\d+)?(?:\(\d+\))?)', line, re.IGNORECASE)
+            # 支持: 15.7(3)M5, 17.9.4a, 15.2(4), 16.09.03 等格式
+            match = re.search(r'Version\s+(\d+\.\d+(?:\.\d+)?(?:\(\d+\))?[A-Za-z]?\d*)', line, re.IGNORECASE)
             if match:
                 return match.group(1)
     elif _is_aruba_device(device_type):
@@ -310,29 +319,58 @@ def parse_syslog_lines(log_output: str, device_type: str,
     entries = []
     output = _strip_ansi(log_output)
 
-    # Aruba 结构化格式（已 ISO 8601）
+    # Aruba CX show logging -r 格式:
+    #   YYYY-MM-DDTHH:MM:SS.mmmmmm+ZZ:ZZ  HOSTNAME  PROCESS[PID]:  MESSAGE
+    #   消息体内的 LOG_INFO/LOG_ERR/... 是真正的严重级别，进程名作为 facility
     if device_type == "aruba_aoscx":
+        _ARUBA_LOG_RE = re.compile(
+            r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+[+-]\d{2}:\d{2})\s+'
+            r'\S+\s+'                       # hostname（跳过）
+            r'([^\[\s]+)\[\d+\]:\s*'        # process（用作 facility）
+            r'(.*)',                        # message
+        )
+        _ARUBA_SEV_RE = re.compile(
+            r'LOG_(EMERG|ALERT|CRIT|ERR|WARNING|NOTICE|INFO|DEBUG)'
+        )
+        _ARUBA_SEV_MAP = {
+            'LOG_EMERG': '0', 'LOG_ALERT': '1', 'LOG_CRIT': '2',
+            'LOG_ERR': '3', 'LOG_WARNING': '4', 'LOG_NOTICE': '5',
+            'LOG_INFO': '6', 'LOG_DEBUG': '7',
+        }
+
         for line in output.splitlines():
             stripped = line.strip()
             if not stripped:
                 continue
-            m = re.match(
-                r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+[+-]\d{2}:\d{2})\s+'
-                r'(\S+)\s+(\S+)\s+(\S+)\s+(.*)',
-                stripped
-            )
+            # 跳过表头/分隔线
+            if (stripped.startswith('---')
+                    or stripped.startswith('Event logs')
+                    or stripped.startswith('show logging')):
+                continue
+
+            m = _ARUBA_LOG_RE.match(stripped)
             if m:
-                # Aruba 时间戳截断到秒级作为 normalized_ts
                 raw_ts = m.group(1)
                 norm_ts = raw_ts[:19]  # "2026-06-24T14:35:22"
+                facility = m.group(2)  # 进程名 (如 log-proxyd)
+                message = m.group(3)
+
+                # 从消息体提取严重级别
+                sev_match = _ARUBA_SEV_RE.search(message)
+                severity = _ARUBA_SEV_MAP.get(
+                    sev_match.group(0), ''
+                ) if sev_match else ''
+
                 entries.append({
                     "timestamp": raw_ts,
                     "normalized_ts": norm_ts,
-                    "facility": m.group(2),
-                    "severity": m.group(3),
-                    "message": f"{m.group(4)}: {m.group(5)}",
+                    "facility": facility,
+                    "severity": severity,
+                    "message": message,
                 })
                 continue
+
+            # 无法解析的 Aruba 行仍保留（方便排查）
             entries.append({"timestamp": "", "normalized_ts": "", "severity": "",
                             "facility": "", "message": stripped})
         return entries
@@ -411,7 +449,67 @@ def collect_device(
     device_platform = getattr(device, 'platform', '') or ''
     data_root = settings.get("data_root", "./data")
 
-    _set_progress(device_name, "connecting")
+    # ---- 预计算命令总数（含 Ping），用于进度条百分比 ----
+    # 基础命令（所有设备）：running-config, logs, interface status, version, utilization, cdp, lldp
+    total_cmds = 1 + 5 + 2  # ping + 5 base + 2 (cdp + lldp)
+    if _is_aruba_device(device_type):
+        total_cmds += 3  # system, vsf, boot-history
+    elif device_type == "cisco_ios" and not _is_router_device(device_type):
+        total_cmds += 1  # switch detail
+    if _is_router_device(device_type):
+        total_cmds += 1  # routing table
+    cmd_done = 0
+
+    def _advance(label: str = ""):
+        """完成一条命令后推进进度条"""
+        nonlocal cmd_done
+        cmd_done += 1
+        pct = cmd_done / total_cmds * 100
+        _set_progress(device_name, "collecting", progress=pct)
+        if label:
+            print(f"[收集进度] {label}: {cmd_done}/{total_cmds} ({pct:.0f}%)")
+
+    # Step 1: Ping 可达性检测（含 TCP/22 回退）
+    _set_progress(device_name, "ping", progress=0)
+    import subprocess as _sp
+    import platform as _pf
+    import socket as _sock
+    sys_name = _pf.system().lower()
+    ping_cmd = ["ping", "-n", "1", "-w", "2000", device_ip] if sys_name == "windows" \
+        else ["ping", "-c", "1", "-W", "2", device_ip]
+    try:
+        ping_result = _sp.run(ping_cmd, capture_output=True, text=True, timeout=5)
+    except _sp.TimeoutExpired:
+        _set_progress(device_name, "failed", f"Ping 超时（{device_ip}）")
+        return {"name": device_name, "ip": device_ip, "status": "failed", "error": f"Ping 超时（{device_ip}）"}
+    except Exception as e:
+        _set_progress(device_name, "failed", f"Ping 异常: {e}")
+        return {"name": device_name, "ip": device_ip, "status": "failed", "error": str(e)}
+
+    if ping_result.returncode != 0:
+        # ICMP 被拦截时，尝试 TCP 22 端口回退
+        try:
+            sock = _sock.socket(_sock.AF_INET, _sock.SOCK_STREAM)
+            sock.settimeout(3)
+            tcp_result = sock.connect_ex((device_ip, 22))
+            sock.close()
+            if tcp_result != 0:
+                _set_progress(device_name, "failed", f"设备不可达（Ping {device_ip} 失败）")
+                return {
+                    "name": device_name, "ip": device_ip,
+                    "status": "failed", "error": f"设备不可达（Ping {device_ip} 失败）"
+                }
+        except (_sock.timeout, ConnectionRefusedError, OSError):
+            _set_progress(device_name, "failed", f"设备不可达（Ping {device_ip} 失败）")
+            return {
+                "name": device_name, "ip": device_ip,
+                "status": "failed", "error": f"设备不可达（Ping {device_ip} 失败）"
+            }
+    _advance("ping")
+
+    # 保持 ping 步骤的进度，不重置为 0
+    current_pct = cmd_done / total_cmds * 100
+    _set_progress(device_name, "connecting", progress=current_pct)
 
     conn = _get_device_connection()({
         "name": device_name,
@@ -434,16 +532,27 @@ def collect_device(
         }
 
     print(f"[收集进度] SSH 连接成功，开始收集数据...")
-    _set_progress(device_name, "collecting_config")
 
     # 使用实际探测到的设备类型（可能与配置不同）
     effective_type = conn.actual_device_type or device_type
     type_mismatch = conn.type_mismatch
 
+    # 如果实际设备类型与预计算时不同，重新调整 total_cmds
+    # （mismatch 极少发生，这里做防御性处理）
+    if effective_type != device_type:
+        total_cmds = 1 + 5 + 2  # 重新计算：ping + 5 base + 2
+        if _is_aruba_device(effective_type):
+            total_cmds += 3
+        elif effective_type == "cisco_ios" and not _is_router_device(effective_type):
+            total_cmds += 1
+        if _is_router_device(effective_type):
+            total_cmds += 1
+
     def _safe_collect(collect_func, label: str) -> str:
         """安全执行单条命令收集，失败时返回错误信息但不抛异常"""
         try:
-            return collect_func()
+            result = collect_func()
+            return result
         except Exception as e:
             print(f"[收集异常] {label}: {e}")
             return f"% 收集失败: {str(e)}"
@@ -456,23 +565,27 @@ def collect_device(
         except Exception as e:
             print(f"[收集异常] config: {e}")
             running_config = f"% 收集失败: {str(e)}"
-        print(f"[收集进度] running-config: {len(running_config)} 行")
-        _set_progress(device_name, "collecting_logs")
+        _advance(f"running-config: {len(running_config) if running_config else 0} 行")
 
-        # 所有设备统一收集日志（show logging | tail 300）
+        # 日志
         print(f"[收集进度] 获取 logs...")
         logs = _safe_collect(conn.collect_logs, "logs")
-        print(f"[收集进度] logs: {len(logs)} 行")
+        _advance(f"logs: {len(logs)} 行")
 
+        # 接口状态
         print(f"[收集进度] 获取 interface status...")
         interface_status = _safe_collect(conn.collect_interface_status, "interface status")
-        _set_progress(device_name, "collecting_logs")
+        _advance("interface status")
 
+        # 版本
         print(f"[收集进度] 获取 version...")
         version_info = _safe_collect(conn.collect_show_version, "version")
-        _set_progress(device_name, "collecting_interface")
+        _advance("version")
+
+        # 利用率
         print(f"[收集进度] 获取 interface utilization...")
         interface_utilization = _safe_collect(conn.collect_show_interface_utilization, "interface utilization")
+        _advance("interface utilization")
 
         # Aruba CX show version 不含序列号，需要 show system + show vsf
         system_info = ""
@@ -482,25 +595,35 @@ def collect_device(
         if _is_aruba_device(effective_type):
             print(f"[收集进度] 获取 system info (序列号)...")
             system_info = _safe_collect(conn.collect_system_info, "show system")
+            _advance("show system")
+
             print(f"[收集进度] 获取 vsf info (堆叠成员)...")
             vsf_info = _safe_collect(conn.collect_vsf_info, "show vsf")
+            _advance("show vsf")
+
             print(f"[收集进度] 获取 boot-history (运行时间)...")
             boot_history = _safe_collect(conn.collect_boot_history, "show boot-history")
+            _advance("show boot-history")
         elif effective_type == "cisco_ios" and not _is_router_device(device_type):
             print(f"[收集进度] 获取 switch detail (堆叠信息)...")
             switch_info = _safe_collect(conn.collect_switch_detail, "show switch detail")
+            _advance("show switch detail")
 
         # 路由器专属：收集路由表
         route_info = ""
         if _is_router_device(device_type):
             print(f"[收集进度] 获取 routing table...")
             route_info = _safe_collect(conn.collect_routing_table, "show ip route")
+            _advance("show ip route")
 
         # 收集 CDP / LLDP 邻居信息 (所有设备类型)
         print(f"[收集进度] 获取 CDP neighbors...")
         cdp_neighbors_raw = _safe_collect(conn.collect_cdp_neighbors, "show cdp nei")
+        _advance("show cdp nei")
+
         print(f"[收集进度] 获取 LLDP neighbors...")
         lldp_neighbors_raw = _safe_collect(conn.collect_lldp_neighbors, "show lldp nei")
+        _advance("show lldp nei")
 
         # 提取版本号和序列号（使用实际设备类型，传入 system + vsf 信息）
         software_version = extract_software_version(version_info, effective_type)
@@ -536,11 +659,16 @@ def collect_device(
             validation_results = "{}"
 
         if settings.get("analysis", {}).get("enable_performance_analysis", True):
-            perf_analyzer = PerformanceAnalyzer(
-                interface_status, running_config, device_type,
-                interface_utilization, uplink_ports=device.uplink_ports
-            )
-            performance_results = json.dumps(perf_analyzer.analyze(), indent=2, ensure_ascii=False)
+            try:
+                perf_analyzer = PerformanceAnalyzer(
+                    interface_status, running_config, device_type,
+                    interface_utilization, uplink_ports=device.uplink_ports
+                )
+                performance_results = json.dumps(perf_analyzer.analyze(), indent=2, ensure_ascii=False)
+            except Exception as e:
+                print(f"[分析异常] PerformanceAnalyzer: {e}")
+                traceback.print_exc()
+                performance_results = "{}"
         else:
             performance_results = "{}"
 
@@ -1004,202 +1132,3 @@ def _get_device_id(device_name: str) -> int | None:
 
 
 # ================================================================
-# Phase 2 深度收集触发规则
-# ================================================================
-
-PHASE2_TRIGGERS = {
-    "device_reboot": {
-        "label": "设备重启",
-        "collect": ["show logging"],
-        "button_text": "收集全量日志诊断重启原因",
-    },
-    "port_sudden_down": {
-        "label": "端口异常 DOWN",
-        "collect": ["show interface {port_name}"],
-        "button_text": "深度检查端口状态",
-    },
-    "port_errors": {
-        "label": "端口错误",
-        "collect": ["show interface {port_name}", "show logging | include {port_name}"],
-        "button_text": "收集端口错误详情",
-    },
-    "topology_changed": {
-        "label": "拓扑变更",
-        "collect": ["show cdp nei detail", "show lldp nei detail"],
-        "button_text": "收集详细邻居信息",
-    },
-    "high_utilization": {
-        "label": "带宽利用率飙升",
-        "collect": ["show interface {port_name}"],
-        "button_text": "检查端口流量详情",
-    },
-    "config_changed": {
-        "label": "配置变更",
-        "collect": [],
-        "button_text": None,
-    },
-    "version_mismatch": {
-        "label": "版本不一致",
-        "collect": [],
-        "button_text": None,
-    },
-}
-
-
-def collect_all_devices_parallel(
-    devices: List[Device],
-    username: str,
-    password: str,
-    settings: Dict,
-    max_workers: int = 4,
-) -> List[Dict]:
-    """并行收集所有设备（Phase 1）
-
-    Args:
-        devices: 设备列表
-        username: SSH 用户名
-        password: SSH 密码
-        settings: 全局设置
-        max_workers: 最大并发线程数
-
-    Returns:
-        每个设备的收集结果列表
-    """
-    results: List[Dict] = []
-
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        future_to_device = {
-            executor.submit(collect_device, device, username, password, settings): device
-            for device in devices
-        }
-        for future in as_completed(future_to_device):
-            device = future_to_device[future]
-            try:
-                result = future.result()
-                results.append(result)
-            except Exception as e:
-                print(f"[并行] 设备 {device.name} 收集异常: {e}")
-                traceback.print_exc()
-                results.append({
-                    "name": device.name,
-                    "ip": device.ip,
-                    "status": "failed",
-                    "error": str(e),
-                })
-
-    return results
-
-
-def run_phase2_collection(
-    device_name: str,
-    triggers: List[str],
-    username: str,
-    password: str,
-    settings: Dict,
-    port_name: str = "",
-) -> Dict:
-    """执行单设备 Phase 2 深度收集
-
-    Args:
-        device_name: 设备名称
-        triggers: 触发条件列表 (如 ["device_reboot", "port_sudden_down"])
-        username: SSH 用户名
-        password: SSH 密码
-        settings: 全局设置
-        port_name: 相关端口名（用于端口类触发条件）
-
-    Returns:
-        收集结果
-    """
-    devices = load_devices()
-    device_config = None
-    for d in devices:
-        if d.name == device_name:
-            device_config = d
-            break
-
-    if device_config is None:
-        return {"status": "failed", "error": f"设备 {device_name} 不存在"}
-
-    _set_progress(device_name, "phase2_connecting")
-
-    conn = _get_device_connection()({
-        "name": device_config.name,
-        "ip": device_config.ip,
-        "type": device_config.type,
-        "platform": getattr(device_config, 'platform', '') or '',
-        "port": 22,
-        "timeout": 120,
-    })
-
-    if not conn.connect(username, password):
-        error_msg = getattr(conn, '_last_error', '') or 'SSH 连接失败'
-        _set_progress(device_name, "failed", error_msg)
-        return {"status": "failed", "error": error_msg}
-
-    collected: Dict[str, str] = {}
-    try:
-        # 根据触发条件收集对应命令
-        dt = conn.actual_device_type or conn.configured_device_type
-        for trigger in triggers:
-            rule = PHASE2_TRIGGERS.get(trigger, {})
-            for cmd_template in rule.get("collect", []):
-                cmd = cmd_template.format(port_name=port_name)
-                print(f"[Phase2] {device_name}: {cmd}")
-                output = conn.send_command(cmd, read_timeout=30)
-                collected[cmd] = output
-
-        _set_progress(device_name, "phase2_saving")
-
-        # 写入 SQLite（Phase 2 标记）
-        week = get_week_dir(settings.get("data_root", "./data"))
-        try:
-            db = get_db()
-            device_row = db.execute("SELECT id FROM devices WHERE name=?", (device_name,)).fetchone()
-            if device_row:
-                device_id = device_row["id"]
-                collected_at = datetime.now().isoformat()
-                db.execute(
-                    "INSERT INTO collections (device_id, week, phase, collected_at) VALUES (?, ?, '2', ?)",
-                    (device_id, week, collected_at),
-                )
-                collection_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
-
-                # 保存全量日志（若收集了）
-                full_logs = collected.get("show logging", "")
-                if full_logs:
-                    log_entries = parse_syslog_lines(full_logs, dt)
-                    if log_entries:
-                        log_rows = [
-                            (collection_id, device_id, e["timestamp"], e["severity"], e["facility"], e["message"])
-                            for e in log_entries
-                        ]
-                        db.executemany(
-                            "INSERT INTO device_logs (collection_id, device_id, log_timestamp, severity, facility, message) VALUES (?, ?, ?, ?, ?, ?)",
-                            log_rows,
-                        )
-                        print(f"[Phase2] {device_name}: {len(log_rows)} 条日志已写入数据库")
-
-                db.commit()
-        except Exception as e:
-            print(f"[Phase2] SQLite 写入失败: {e}")
-
-        _set_progress(device_name, "complete")
-        import time
-        time.sleep(0.5)
-        _clear_progress(device_name)
-
-        return {
-            "status": "success",
-            "device_name": device_name,
-            "triggers": triggers,
-            "collected_commands": list(collected.keys()),
-        }
-
-    except Exception as e:
-        print(f"[Phase2] 异常: {e}")
-        traceback.print_exc()
-        _set_progress(device_name, "failed", str(e))
-        return {"status": "failed", "error": str(e)}
-    finally:
-        conn.disconnect()

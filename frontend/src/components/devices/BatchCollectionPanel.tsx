@@ -1,105 +1,179 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Box, Paper, Typography, Chip, CircularProgress, LinearProgress } from '@mui/material'
-import type { BatchItemStatus } from '../../types'
+import { Box, Paper, Typography, Chip, LinearProgress } from '@mui/material'
+import type { BatchItemStatus, Device } from '../../types'
 import { useI18n } from '../../i18n'
 
 interface BatchCollectionPanelProps {
   running: boolean
   statuses: Record<string, BatchItemStatus>
+  devices: Device[]
 }
 
-const BatchCollectionPanel: React.FC<BatchCollectionPanelProps> = React.memo(({ running, statuses }) => {
+/** 单个活跃设备的进度行 — 通过 SSE 实时获取后端推送的步骤 */
+function ActiveDeviceRow({
+  name,
+  ip,
+  polling,
+}: {
+  name: string
+  ip: string
+  polling: boolean
+}) {
   const { t } = useI18n()
-  const successCount = Object.values(statuses).filter((s) => s.status === 'success').length
-  const failedCount = Object.values(statuses).filter((s) => s.status === 'failed').length
-  const totalCount = Object.keys(statuses).length
-  const doneCount = successCount + failedCount
-
-  // 找到当前正在处理的设备，轮询其进度
-  const activeEntries = Object.entries(statuses).filter(([, s]) => s.status === 'pinging' || s.status === 'collecting')
-  const activeEntry = activeEntries.length > 0 ? activeEntries[0] : null
-  const [currentStep, setCurrentStep] = useState('')
-  const activeDeviceName = activeEntry ? activeEntry[0] : null
-  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null)
+  const [step, setStep] = useState('')
+  const [progressPct, setProgressPct] = useState(0)
+  const seenActiveRef = useRef(false)
 
   useEffect(() => {
-    if (!activeDeviceName) {
-      setCurrentStep('')
-      return
-    }
-    // 查找设备 IP
-    const poll = async () => {
+    if (!polling) return
+
+    const es = new EventSource(`/api/collect/progress/stream/${name}`)
+
+    es.onmessage = (e) => {
       try {
-        const res = await fetch(`/api/collect/progress/${activeDeviceName}`)
-        if (!res.ok) return
-        const data = await res.json()
-        const STEP_MAP: Record<string, string> = {
-          connecting: t('collect.stepConnecting'),
-          collecting_config: t('collect.stepCollectingConfig'),
-          collecting_logs: t('collect.stepCollectingLogs'),
-          collecting_interface: t('collect.stepCollectingInterface'),
-          analyzing: t('collect.stepAnalyzing'),
-          saving: t('collect.stepSaving'),
+        const data = JSON.parse(e.data)
+        const s: string = data.step || ''
+        const pct: number = data.progress ?? 0
+        if (s === 'complete') {
+          es.close()
+        } else if (s === 'failed') {
+          es.close()
+        } else if (s && s !== 'idle') {
+          seenActiveRef.current = true
+          setStep(s)
+          setProgressPct(pct)
         }
-        setCurrentStep(STEP_MAP[data.step] || data.step || '')
       } catch { /* ignore */ }
     }
-    poll()
-    pollTimer.current = setInterval(poll, 2000)
-    return () => {
-      if (pollTimer.current) clearInterval(pollTimer.current)
+
+    es.onerror = () => {
+      if (seenActiveRef.current) {
+        es.close()
+      }
+      // 尚未收到任何数据：后端可能尚未启动，让 EventSource 自动重连
     }
-  }, [activeDeviceName, t])
+
+    return () => {
+      es.close()
+    }
+  }, [name, polling])
+
+  const stepLabel = !step
+    ? t('devices.pinging').replace('{ip}', ip)
+    : t(`collect.stepCollectingConfig`)
 
   return (
-    <>
-      {running && (
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
-            <CircularProgress size={24} />
-            <Box sx={{ flex: 1 }}>
-              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                {t('collect.title')} ({doneCount}/{totalCount})
-              </Typography>
-              {activeDeviceName && (
-                <Typography variant="caption" color="text.secondary">
-                  {t('collect.batchCollecting').replace('{name}', activeDeviceName)}
-                  {currentStep ? ` — ${currentStep}` : ''}
-                </Typography>
-              )}
-            </Box>
-          </Box>
-          <LinearProgress
-            variant="determinate"
-            value={totalCount > 0 ? (doneCount / totalCount) * 100 : 0}
-            sx={{ bgcolor: 'rgba(255,255,255,0.06)' }}
-          />
-        </Paper>
-      )}
-
-      {!running && totalCount > 0 && (
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
-            {t('collect.result')} ({t('collect.progress').replace('{done}', String(successCount)).replace('{total}', String(totalCount))})
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {Object.entries(statuses).map(([name, s]) => (
-              <Chip
-                key={name}
-                label={`${name}: ${s.status === 'success' ? t('collect.success') : s.error || t('collect.failed')}`}
-                size="small"
-                sx={{
-                  bgcolor: s.status === 'success' ? 'rgba(45,212,110,0.1)' : 'rgba(239,68,68,0.1)',
-                  color: s.status === 'success' ? 'success.main' : 'error.main',
-                  fontSize: '0.7rem',
-                }}
-              />
-            ))}
-          </Box>
-        </Paper>
-      )}
-    </>
+    <Box sx={{ mb: 1.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+          {name}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          {step ? `${Math.round(progressPct)}%` : stepLabel}
+        </Typography>
+      </Box>
+      <LinearProgress
+        variant="determinate"
+        value={progressPct}
+        sx={{ bgcolor: 'rgba(255,255,255,0.06)', height: 6, borderRadius: 1 }}
+      />
+    </Box>
   )
-})
+}
+
+const BatchCollectionPanel: React.FC<BatchCollectionPanelProps> = React.memo(
+  ({ running, statuses, devices }) => {
+    const { t } = useI18n()
+
+    const deviceMap = new Map<string, Device>()
+    devices.forEach((d) => deviceMap.set(d.name, d))
+
+    const successCount = Object.values(statuses).filter((s) => s.status === 'success').length
+    const failedCount = Object.values(statuses).filter((s) => s.status === 'failed').length
+    const totalCount = Object.keys(statuses).length
+    const doneCount = successCount + failedCount
+
+    // 找出所有当前活跃的设备（pinging 或 collecting）
+    const activeNames = Object.entries(statuses)
+      .filter(([, s]) => s.status === 'pinging' || s.status === 'collecting')
+      .map(([name]) => name)
+
+    // 已完成/失败设备
+    const doneEntries = Object.entries(statuses).filter(
+      ([, s]) => s.status === 'success' || s.status === 'failed'
+    )
+
+    return (
+      <>
+        {/* 运行中：显示活跃设备进度 */}
+        {running && totalCount > 0 && (
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
+              {t('collect.title')} — {t('collect.progress')
+                .replace('{done}', String(doneCount))
+                .replace('{total}', String(totalCount))}
+            </Typography>
+
+            {activeNames.length > 0 ? (
+              activeNames.map((name) => {
+                const dev = deviceMap.get(name)
+                return (
+                  <ActiveDeviceRow
+                    key={name}
+                    name={name}
+                    ip={dev?.ip || ''}
+                    polling={running}
+                  />
+                )
+              })
+            ) : (
+              <Typography variant="caption" color="text.secondary">
+                {t('devices.batchRunning')}
+              </Typography>
+            )}
+
+            {/* 总进度条 */}
+            <LinearProgress
+              variant="determinate"
+              value={totalCount > 0 ? (doneCount / totalCount) * 100 : 0}
+              sx={{ mt: 1.5, height: 10, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.06)' }}
+            />
+          </Paper>
+        )}
+
+        {/* 完成：显示结果汇总 */}
+        {!running && totalCount > 0 && (
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
+              {t('devices.batchResult')} ({successCount}/{totalCount})
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {doneEntries.map(([name, s]) => (
+                <Chip
+                  key={name}
+                  label={`${name}: ${
+                    s.status === 'success'
+                      ? t('collect.success')
+                      : s.error || t('collect.failed')
+                  }`}
+                  size="small"
+                  sx={{
+                    bgcolor:
+                      s.status === 'success'
+                        ? 'rgba(45,212,110,0.1)'
+                        : 'rgba(239,68,68,0.1)',
+                    color:
+                      s.status === 'success' ? 'success.main' : 'error.main',
+                    fontSize: '0.7rem',
+                  }}
+                />
+              ))}
+            </Box>
+          </Paper>
+        )}
+      </>
+    )
+  }
+)
 
 export default BatchCollectionPanel

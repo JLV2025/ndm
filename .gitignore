@@ -46,6 +46,9 @@ yarn-error.log*
 data/
 !data/.gitkeep
 
+# 禁止提交含密钥的配置文件，请使用环境变量
+config/settings.yaml
+
 # IDE
 .vscode/
 .idea/

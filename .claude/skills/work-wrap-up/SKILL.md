@@ -65,7 +65,8 @@ grep -r "password\|secret\|token\|key" --include="*.ts" --include="*.tsx" --incl
 3. `git diff --cached --stat` — 查看统计
 4. 生成中文 commit message，格式：`简短动词短语：详细说明`
 5. `git commit -m "..."` — 提交
-6. `git push origin <current-branch>` — 推送
+6. `git push origin <current-branch>` — 推送，失败立即报错
+7. `git fetch origin` 后 `git log origin/<current-branch> --oneline -3` — 验证远程已收到
 
 ---
 

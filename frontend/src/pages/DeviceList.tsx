@@ -173,59 +173,70 @@ const DeviceList: React.FC = () => {
     if (deviceNames.length === 0) { alert(t('common.pleaseSelectDevice')); return }
 
     setBatchRunning(true)
-    try {
-      const deviceMap = new Map<string, Device>()
-      devices.forEach(d => deviceMap.set(d.name, d))
 
-      const initial: Record<string, BatchItemStatus> = {}
-      deviceNames.forEach((n) => { initial[n] = { status: 'pending' } })
-      setBatchStatus(initial)
+    const initial: Record<string, BatchItemStatus> = {}
+    deviceNames.forEach((n) => { initial[n] = { status: 'pending' } })
+    setBatchStatus(initial)
 
-      for (const deviceName of deviceNames) {
-        const dev = deviceMap.get(deviceName)
-        if (!dev) {
+    const queue = [...deviceNames]
+    const maxConcurrent = 2
+
+    /** 单个设备的完整收集流程（Ping → Collect） */
+    const worker = async (deviceName: string) => {
+      // Ping 预检
+      setBatchStatus(prev => ({ ...prev, [deviceName]: { status: 'pinging' } }))
+      try {
+        const pingResult = await collectorApi.ping(deviceName)
+        if (!pingResult.reachable) {
           setBatchStatus(prev => ({
             ...prev,
-            [deviceName]: { status: 'failed', error: t('form.loadFailed') },
+            [deviceName]: { status: 'failed', error: pingResult.detail },
           }))
-          continue
+          return
         }
-
-        // Ping first
-        setBatchStatus(prev => ({ ...prev, [deviceName]: { status: 'pinging' } }))
-        try {
-          const pingResult = await collectorApi.ping(deviceName)
-          if (!pingResult.reachable) {
-            setBatchStatus(prev => ({
-              ...prev,
-              [deviceName]: { status: 'failed', error: pingResult.detail },
-            }))
-            continue
-          }
-        } catch (e) {
-          setBatchStatus(prev => ({
-            ...prev,
-            [deviceName]: { status: 'failed', error: t('devices.pinging') },
-          }))
-          continue
-        }
-
-        // Collect
-        setBatchStatus(prev => ({ ...prev, [deviceName]: { status: 'collecting' } }))
-        try {
-          const data = await collectorApi.collect(deviceName, session.username, session.password)
-          setBatchStatus(prev => ({
-            ...prev,
-            [deviceName]: { status: 'success', result: data.result },
-          }))
-        } catch (error: unknown) {
-          const errMsg = error instanceof Error ? error.message : t('common.collectFailed')
-          setBatchStatus(prev => ({
-            ...prev,
-            [deviceName]: { status: 'failed', error: errMsg },
-          }))
-        }
+      } catch {
+        setBatchStatus(prev => ({
+          ...prev,
+          [deviceName]: { status: 'failed', error: t('devices.pinging') },
+        }))
+        return
       }
+
+      // SSH 收集
+      setBatchStatus(prev => ({ ...prev, [deviceName]: { status: 'collecting' } }))
+      try {
+        const data = await collectorApi.collect(deviceName, session.username, session.password)
+        setBatchStatus(prev => ({
+          ...prev,
+          [deviceName]: { status: 'success', result: data.result },
+        }))
+      } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : t('common.collectFailed')
+        setBatchStatus(prev => ({
+          ...prev,
+          [deviceName]: { status: 'failed', error: errMsg },
+        }))
+      }
+    }
+
+    /** 从队列取一个设备执行，完成后递归取下一个 */
+    const runNext = async (): Promise<void> => {
+      const next = queue.shift()
+      if (!next) return
+      await worker(next)
+      await runNext()
+    }
+
+    // 启动初始并发 workers（最多 maxConcurrent 个）
+    // 注意：必须在 for 循环外预计算 worker 数量，因为 runNext() 内部会 shift queue，
+    // 导致每次迭代 queue.length 递减，N=2 时只启动 1 个 worker
+    const workers: Promise<void>[] = []
+    const numWorkers = Math.min(maxConcurrent, queue.length)
+    for (let i = 0; i < numWorkers; i++) {
+      workers.push(runNext())
+    }
+    try {
+      await Promise.all(workers)
     } finally {
       setBatchRunning(false)
       loadDevices()
@@ -324,7 +335,7 @@ const DeviceList: React.FC = () => {
       )}
 
       {/* 批量收集进度 */}
-      <BatchCollectionPanel running={batchRunning} statuses={batchStatus} />
+      <BatchCollectionPanel running={batchRunning} statuses={batchStatus} devices={devices} />
 
       {/* 设备卡片网格 */}
       {selectedLocation && (

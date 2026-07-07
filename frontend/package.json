@@ -22,6 +22,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@mui/icons-material": "^5.16.13",
     "@mui/material": "^5.16.13",
+    "@mui/x-tree-view": "^6.17.0",
     "@types/dagre": "^0.7.54",
     "@vitest/mocker": "3.1.1",
     "@xyflow/react": "^12.11.0",

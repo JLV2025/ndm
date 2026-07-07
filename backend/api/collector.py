@@ -1,8 +1,10 @@
 """配置收集 API 路由"""
 
+import asyncio
+import json
 from fastapi import APIRouter, Form, HTTPException
-from typing import Dict, List
-from pydantic import BaseModel
+from fastapi.responses import StreamingResponse
+from typing import Dict
 import os
 import yaml
 import subprocess
@@ -15,7 +17,7 @@ router = APIRouter()
 
 @router.get("/progress/{device_name}")
 async def get_collect_progress(device_name: str) -> dict:
-    """查询设备收集进度（前端轮询用）"""
+    """查询设备收集进度（前端轮询用——保留兼容，SSE 端点 /progress/stream/{device_name} 为首选）"""
     from services.collector_service import get_collection_progress
     progress = get_collection_progress(device_name)
     if progress is None:
@@ -23,10 +25,68 @@ async def get_collect_progress(device_name: str) -> dict:
     return {"step": progress.get("step", "unknown"), "error": progress.get("error", "")}
 
 
-class BatchCollectRequest(BaseModel):
-    devices: List[str]
-    username: str
-    password: str
+@router.get("/progress/stream/{device_name}")
+async def stream_collect_progress(device_name: str):
+    """SSE 实时推送设备收集进度（替代轮询）"""
+    from services.collector_service import get_collection_progress
+
+    async def event_stream():
+        last_state = ""
+        while True:
+            progress = get_collection_progress(device_name)
+            step = progress.get("step", "idle") if progress else "idle"
+            error = progress.get("error", "") if progress else ""
+            pct = progress.get("progress", 0) if progress else 0
+
+            # 在步骤变化或进度数值变化时推送
+            payload = json.dumps(
+                {"step": step, "error": error, "progress": pct},
+                ensure_ascii=False
+            )
+            state_key = f"{step}:{pct:.1f}:{error}"
+            if state_key != last_state:
+                last_state = state_key
+                yield f"data: {payload}\n\n"
+
+            # complete 或 failed → 推送最后一次后断开
+            if step in ("complete", "failed"):
+                return
+
+            await asyncio.sleep(0.5)
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
+
+
+def _ping_blocking(ip: str, sys_name: str) -> Dict:
+    """同步 Ping 逻辑，由 asyncio.to_thread 调度，避免阻塞事件循环"""
+    if sys_name == "windows":
+        cmd = ["ping", "-n", "1", "-w", "2000", ip]
+    else:
+        cmd = ["ping", "-c", "1", "-W", "2", ip]
+
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+    reachable = result.returncode == 0
+
+    if not reachable:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(3)
+            tcp_result = sock.connect_ex((ip, 22))
+            sock.close()
+            if tcp_result == 0:
+                return {
+                    "reachable": True,
+                    "ip": ip,
+                    "detail": "设备可达（Ping 被拦截，但 TCP 22 端口开放）"
+                }
+        except (socket.timeout, ConnectionRefusedError, OSError):
+            pass
+
+    return {
+        "reachable": reachable,
+        "ip": ip,
+        "detail": "设备可达" if reachable else f"设备不可达（Ping {ip} 失败）"
+    }
 
 
 @router.post("/ping/{device_name}")
@@ -41,37 +101,8 @@ async def ping_device(device_name: str) -> Dict:
         return {"reachable": False, "error": "设备未配置 IP 地址"}
 
     try:
-        # Windows: ping -n 1 -w 2000; Linux/Mac: ping -c 1 -W 2
-        sys = platform.system().lower()
-        if sys == "windows":
-            cmd = ["ping", "-n", "1", "-w", "2000", ip]
-        else:
-            cmd = ["ping", "-c", "1", "-W", "2", ip]
-
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
-        reachable = result.returncode == 0
-        # 如果 Ping 失败，再尝试 TCP 22 端口检测（防火墙可能禁 ICMP）
-        if not reachable:
-            try:
-                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                sock.settimeout(3)
-                tcp_result = sock.connect_ex((ip, 22))
-                sock.close()
-                if tcp_result == 0:
-                    reachable = True
-                    return {
-                        "reachable": True,
-                        "ip": ip,
-                        "detail": f"设备可达（Ping 被拦截，但 TCP 22 端口开放）"
-                    }
-            except (socket.timeout, ConnectionRefusedError, OSError):
-                pass
-
-        return {
-            "reachable": reachable,
-            "ip": ip,
-            "detail": "设备可达" if reachable else f"设备不可达（Ping {ip} 失败）"
-        }
+        sys_name = platform.system().lower()
+        return await asyncio.to_thread(_ping_blocking, ip, sys_name)
     except subprocess.TimeoutExpired:
         return {"reachable": False, "ip": ip, "detail": f"Ping 超时（{ip}）"}
     except Exception as e:
@@ -90,47 +121,6 @@ def find_device_by_name(device_name: str) -> dict | None:
         if device.get("name") == device_name:
             return device
     return None
-
-
-@router.post("/batch")
-async def collect_batch(request: BatchCollectRequest) -> Dict:
-    """批量并行收集多台设备配置（默认 4 线程）"""
-    from services.collector_service import collect_all_devices_parallel
-    from utils.settings_loader import load_settings
-    from models.devices import Device
-
-    settings = load_settings()
-    max_workers = settings.get("collection", {}).get("max_parallel", 4)
-
-    # 构建设备对象列表
-    device_objs = []
-    for device_name in request.devices:
-        device = find_device_by_name(device_name)
-        if not device:
-            device_objs.append(None)  # 占位，后面处理
-            continue
-        obj = Device(
-            name=device.get("name", device_name),
-            ip=device.get("ip", ""),
-            device_type=device.get("type", "cisco_ios"),
-        )
-        obj.platform = device.get("platform") or ""
-        obj.location = device.get("location") or ""
-        device_objs.append(obj)
-
-    # 并行收集
-    valid_devices = [d for d in device_objs if d is not None]
-    missing = sum(1 for d in device_objs if d is None)
-
-    results = collect_all_devices_parallel(valid_devices, request.username, request.password, settings, max_workers)
-
-    return {
-        "success": True,
-        "total": len(request.devices),
-        "success_count": sum(1 for r in results if r.get("status") == "success"),
-        "failed_count": sum(1 for r in results if r.get("status") != "success") + missing,
-        "results": results,
-    }
 
 
 @router.post("/{device_name}")
@@ -165,7 +155,7 @@ async def collect_config(
         device_obj.username = device.get("username") or ""
 
         settings = load_settings()
-        result = collect_device(device_obj, username, password, settings)
+        result = await asyncio.to_thread(collect_device, device_obj, username, password, settings)
 
         if result["status"] == "failed":
             return {
@@ -185,35 +175,3 @@ async def collect_config(
         raise HTTPException(status_code=500, detail="收集过程出错，请稍后重试")
 
 
-class Phase2Request(BaseModel):
-    triggers: List[str] = []
-    port_name: str = ""
-    username: str = ""
-    password: str = ""
-
-
-@router.post("/phase2/{device_name}")
-async def collect_phase2(device_name: str, request: Phase2Request) -> Dict:
-    """Phase 2 深度收集——针对已检测到的异常进行深度诊断"""
-    device = find_device_by_name(device_name)
-    if not device:
-        raise HTTPException(status_code=404, detail=f"设备 '{device_name}' 不存在")
-
-    if not request.username or not request.password:
-        raise HTTPException(status_code=400, detail="请提供设备凭据")
-
-    try:
-        from services.collector_service import run_phase2_collection
-        settings = load_settings()
-        result = run_phase2_collection(
-            device_name=device_name,
-            triggers=request.triggers,
-            username=request.username,
-            password=request.password,
-            settings=settings,
-            port_name=request.port_name,
-        )
-        return {"success": result.get("status") == "success", "result": result}
-    except Exception as e:
-        print(f"Phase 2 收集出错: {e}")
-        raise HTTPException(status_code=500, detail=str(e))

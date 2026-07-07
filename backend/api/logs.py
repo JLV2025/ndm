@@ -32,6 +32,89 @@ class LLMSettingsUpdate(BaseModel):
     providers: List[LLMProviderUpdate] = []
 
 
+SEVERITY_LABELS = {
+    "0": "Emergency", "1": "Alert", "2": "Critical",
+    "3": "Error", "4": "Warning", "5": "Notice",
+    "6": "Info", "7": "Debug",
+}
+
+
+@router.get("/logs/tree")
+async def logs_tree(week: Optional[str] = None):
+    """返回所有设备的日志树结构（设备 + 严重级别计数）"""
+    db = _get_db()
+    if not db:
+        raise HTTPException(status_code=404, detail="数据库未就绪")
+
+    params = []
+    week_condition = ""
+    if week:
+        week_condition = "AND c.week = ?"
+        params.append(week)
+
+    query = f"""
+        SELECT d.id as device_id, d.name, d.ip, d.model, d.version,
+               dl.severity, COUNT(*) as cnt
+        FROM device_logs dl
+        JOIN devices d ON dl.device_id = d.id
+        JOIN collections c ON dl.collection_id = c.id
+        WHERE typeof(dl.severity) = 'text' AND dl.severity IN ('0','1','2','3','4','5','6','7') {week_condition}
+        GROUP BY d.id, dl.severity
+        ORDER BY d.name, CAST(dl.severity AS INTEGER)
+    """
+    rows = db.execute(query, params).fetchall()
+
+    devices_map: dict = {}
+    for r in rows:
+        did = r["device_id"]
+        if did not in devices_map:
+            devices_map[did] = {
+                "device_name": r["name"],
+                "device_info": {
+                    "ip": r["ip"] or "",
+                    "model": r["model"] or "",
+                    "version": r["version"] or "",
+                },
+                "total_logs": 0,
+                "severity_groups": [],
+            }
+        sev = r["severity"]
+        cnt = r["cnt"]
+        devices_map[did]["total_logs"] += cnt
+        devices_map[did]["severity_groups"].append({
+            "severity": sev,
+            "label": SEVERITY_LABELS.get(sev, sev),
+            "count": cnt,
+        })
+
+    return {"devices": list(devices_map.values())}
+
+@router.get("/logs/analysis-history")
+async def analysis_history(limit: int = 20):
+    """返回最近的 AI 分析历史记录"""
+    db = _get_db()
+    if not db:
+        return {"history": []}
+
+    rows = db.execute(
+        "SELECT id, alert_type, keyword, suggestion FROM remediation_hints "
+        "WHERE alert_type='log_analysis' ORDER BY id DESC LIMIT ?",
+        (limit,)
+    ).fetchall()
+
+    return {
+        "history": [
+            {"id": r["id"], "keyword": r["keyword"],
+             "suggestion": r["suggestion"],
+             "created_at": f"#{r['id']}"}
+            for r in rows
+        ]
+    }
+
+
+
+
+
 @router.get("/logs/{device_name}")
 async def get_device_logs(
     device_name: str,
@@ -155,29 +238,6 @@ async def analyze_device_logs(req: AnalyzeRequest):
         "source": result.get("source", "unknown"),
         "provider": result.get("provider"),
         "suggestion": result.get("suggestion"),
-    }
-
-
-@router.get("/logs/analysis-history")
-async def analysis_history(limit: int = 20):
-    """返回最近的 AI 分析历史记录"""
-    db = _get_db()
-    if not db:
-        return {"history": []}
-
-    rows = db.execute(
-        "SELECT id, alert_type, keyword, suggestion, created_at "
-        "FROM remediation_hints WHERE alert_type='log_analysis' "
-        "ORDER BY id DESC LIMIT ?",
-        (limit,)
-    ).fetchall()
-
-    return {
-        "history": [
-            {"id": r["id"], "keyword": r["keyword"],
-             "suggestion": r["suggestion"], "created_at": r["created_at"]}
-            for r in rows
-        ]
     }
 
 

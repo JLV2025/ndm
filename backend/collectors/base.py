@@ -79,13 +79,19 @@ class DeviceConnection:
             return False
 
     def connect(self, username: str, password: str) -> bool:
-        """建立 SSH 连接"""
+        """建立 SSH 连接，同时关闭分页（整个会话有效）"""
         platform = self.config.get("platform", "")
         device_type = self._resolve_device_type(self.configured_device_type, platform)
 
         if self._do_connect(username, password, device_type):
             self.actual_device_type = device_type
             self.type_mismatch = (device_type != self.configured_device_type)
+            # 会话级关闭分页，后续所有命令无需重复发送
+            dt = self.actual_device_type
+            if dt == "aruba_aoscx":
+                self.send_command("no page", read_timeout=20)
+            elif dt.startswith("cisco"):
+                self.send_command("terminal length 0", read_timeout=20)
             return True
         return False
 
@@ -131,14 +137,8 @@ class DeviceConnection:
         return self.configured_platform or ""
 
     def collect_config(self) -> Tuple[str, str]:
-        # 先发送分页关闭指令，确保一次性全量输出
-        dt = self._device_type()
-        if dt == "aruba_aoscx":
-            self.send_command("no page", read_timeout=20)
-        elif dt.startswith("cisco"):
-            self.send_command("terminal length 0", read_timeout=20)
         running = self.send_command("show running-config", read_timeout=40)
-        return running, ""  # startup-config 已废弃，不再收集
+        return running, ""
 
     def collect_logs(self) -> str:
         """统一收集最新 300 条日志
@@ -167,11 +167,10 @@ class DeviceConnection:
         """收集端口利用率
 
         Cisco: show interfaces | include rate|load|packets
-        Aruba: no page → show interface utilization
+        Aruba: show interface utilization
         """
         dt = self._device_type()
         if dt == "aruba_aoscx":
-            self.send_command("no page", read_timeout=20)
             return self.send_command("show interface utilization", read_timeout=20)
         if dt.startswith("cisco"):
             return self.send_command("show interfaces | include rate|load|packets", read_timeout=20)

@@ -19,8 +19,12 @@ async def report_software_versions(
     conditions = ["d.version != ''", "d.version != '未知'"]
     params = []
     if device_type:
-        conditions.append("d.type = ?")
-        params.append(device_type)
+        # cisco_ios_router 在 SQLite 中存储为 cisco_ios（Netmiko 驱动映射）
+        if device_type == "cisco_ios_router":
+            conditions.append("d.type IN ('cisco_ios', 'cisco_ios_router')")
+        else:
+            conditions.append("d.type = ?")
+            params.append(device_type)
 
     where = " AND ".join(conditions)
     rows = db.execute(
@@ -58,31 +62,28 @@ async def report_software_versions(
 
 @router.get("/api/reports/device-uptime")
 async def report_device_uptime():
-    """所有设备的最新在线时间报告"""
+    """所有设备的最新在线时间报告（含暂无数据的设备）"""
     db = _get_db()
 
     rows = db.execute(
         """SELECT d.name, d.type, c.system_uptime_seconds, c.collected_at, c.software_version
-           FROM collections c
-           JOIN devices d ON d.id = c.device_id
-           WHERE c.id IN (
-               SELECT MAX(c2.id) FROM collections c2
-               WHERE c2.phase = '1' AND c2.system_uptime_seconds IS NOT NULL
-               GROUP BY c2.device_id
-           )
+           FROM devices d
+           LEFT JOIN collections c ON c.device_id = d.id
+               AND c.id = (SELECT MAX(c2.id) FROM collections c2
+                           WHERE c2.device_id = d.id AND c2.phase = '1')
            ORDER BY d.name"""
     ).fetchall()
 
     devices = []
     for r in rows:
-        uptime_days = r["system_uptime_seconds"] / 86400 if r["system_uptime_seconds"] else 0
+        secs = r["system_uptime_seconds"]
         devices.append({
             "name": r["name"],
             "type": r["type"],
-            "system_uptime_seconds": r["system_uptime_seconds"],
-            "uptime_days": round(uptime_days, 1),
+            "system_uptime_seconds": secs,
+            "uptime_days": round(secs / 86400, 1) if secs else None,
             "collected_at": r["collected_at"],
-            "software_version": r["software_version"],
+            "software_version": r["software_version"] or "",
         })
 
     return {"devices": devices}

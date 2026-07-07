@@ -11,9 +11,23 @@ _CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
 
 
 def load_settings(config_path: str = None) -> Dict:
-    """加载全局配置"""
+    """加载全局配置
+
+    读取顺序：指定路径 > 环境变量 SETTINGS_CONFIG_PATH > config/settings.yaml > config/settings.example.yaml
+    """
     if config_path is None:
-        config_path = str(_CONFIG_DIR / "settings.yaml")
+        config_path = os.environ.get("SETTINGS_CONFIG_PATH", "")
+    if not config_path:
+        local = str(_CONFIG_DIR / "settings.yaml")
+        example = str(_CONFIG_DIR / "settings.example.yaml")
+        if os.path.exists(local):
+            config_path = local
+        elif os.path.exists(example):
+            config_path = example
+        else:
+            raise FileNotFoundError(
+                f"配置文件不存在：请复制 config/settings.example.yaml 为 config/settings.yaml 并填写配置"
+            )
     with open(config_path, "r", encoding="utf-8") as f:
         settings = yaml.safe_load(f)
 

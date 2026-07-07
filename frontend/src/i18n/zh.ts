@@ -252,6 +252,7 @@ const zh: Record<string, string> = {
   'collect.stepAnalyzing': '分析配置数据...',
   'collect.stepSaving': '保存数据...',
   'collect.stepFailed': '收集失败',
+  'collect.connectionLost': '连接中断，请重试',
   'collect.stepIdle': '等待开始',
   'collect.singleTitle': '正在收集',
   'collect.batchCollecting': '正在收集 {name} ({ip}) ...',
@@ -340,8 +341,6 @@ const zh: Record<string, string> = {
   'alerts.noAlertsHint': '系统运行正常，无异常发现',
   'alerts.markRead': '标记已读',
   'alerts.resolve': '已处理',
-  'alerts.phase2': '深度诊断',
-  'alerts.phase2Running': '诊断中...',
   'alerts.suggestion': '处理建议',
   'alerts.detail': '详情',
   'alerts.type_device_reboot': '设备重启',
@@ -373,7 +372,7 @@ const zh: Record<string, string> = {
   // 日志分析
   'logs.title': '日志分析',
   'logs.selectDevice': '选择设备',
-  'logs.selectDeviceHint': '请选择要查看日志的设备',
+  'logs.selectDeviceHint': '请在左侧树中选择日志条目查看详情',
   'logs.loading': '加载日志...',
   'logs.noLogs': '暂无日志',
   'logs.filterSeverity': '过滤级别',
@@ -384,13 +383,13 @@ const zh: Record<string, string> = {
   'logs.selectedCount': '已选择 {n} 条',
   'logs.analyze': 'AI 分析',
   'logs.analyzing': '分析中...',
-  'logs.analysisResult': '分析结果',
+  'logs.analysisResult': 'AI 分析结果',
   'logs.sourceLLM': 'AI 分析',
   'logs.sourceCache': '本地知识库',
   'logs.sourceError': '分析失败',
   'logs.provider': '来源',
-  'logs.noResult': '尚未进行分析',
-  'logs.noResultHint': '请在左侧选择日志条目，然后点击"AI 分析"按钮',
+  'logs.noResult': '未选择日志条目',
+  'logs.noResultHint': '请在左侧树中展开设备 → 级别 → 点击日志条目',
   'logs.history': '历史记录',
   'logs.noHistory': '暂无历史记录',
   'logs.historyTitle': '分析历史',
@@ -416,6 +415,23 @@ const zh: Record<string, string> = {
   'logs.rootCause': '根因分析',
   'logs.suggestion': '建议操作',
   'logs.relatedErrors': '关联错误',
+
+  // 日志级别标签
+  'logs.levelEmergency': 'Emergency',
+  'logs.levelAlert': 'Alert',
+  'logs.levelCritical': 'Critical',
+  'logs.levelError': '错误',
+  'logs.levelWarning': '警告',
+  'logs.levelNotice': 'Notice',
+  'logs.levelInfo': '信息',
+  'logs.levelDebug': 'Debug',
+
+  // 日志详情面板
+  'logs.logDetail': '日志详情',
+  'logs.analyzeThis': '分析这条日志',
+  'logs.totalLogs': '共 {n} 条',
+  'logs.selectHint': '点击左侧日志条目查看详情',
+  'logs.loadingTree': '加载树结构...',
 }
 
 export default zh

@@ -71,46 +71,42 @@ if exist "venv\Scripts\activate.bat" (
 REM ============================================================
 REM 3. Frontend build
 REM ============================================================
-if not exist "frontend\dist\index.html" (
-    if not exist "frontend" (
-        echo([ERROR] frontend/ directory missing.
-        pause
-        exit /b 1
-    )
-    echo([1/2] Building frontend...
+if not exist "frontend" (
+    echo([ERROR] frontend/ directory missing.
+    pause
+    exit /b 1
+)
+echo([1/2] Building frontend...
 
-    if not exist "frontend\node_modules" (
-        echo(  Installing frontend dependencies...
-        pushd frontend
-        call npm install
-        if !ERRORLEVEL! neq 0 (
-            echo([ERROR] npm install failed.
-            popd
-            pause
-            exit /b 1
-        )
-        popd
-    )
-
+if not exist "frontend\node_modules" (
+    echo(  Installing frontend dependencies...
     pushd frontend
-    call npm run build
+    call npm install
     if !ERRORLEVEL! neq 0 (
-        echo([ERROR] Build failed.
+        echo([ERROR] npm install failed.
         popd
         pause
         exit /b 1
     )
     popd
-
-    if not exist "frontend\dist\index.html" (
-        echo([ERROR] dist/index.html not generated after build.
-        pause
-        exit /b 1
-    )
-    echo(  Build OK
-) else (
-    echo([1/2] Frontend already built, skip
 )
+
+pushd frontend
+call npm run build
+if !ERRORLEVEL! neq 0 (
+    echo([ERROR] Build failed.
+    popd
+    pause
+    exit /b 1
+)
+popd
+
+if not exist "frontend\dist\index.html" (
+    echo([ERROR] dist/index.html not generated after build.
+    pause
+    exit /b 1
+)
+echo(  Build OK
 
 REM ============================================================
 REM 4. Start backend

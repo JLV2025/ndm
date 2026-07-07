@@ -250,6 +250,7 @@ const en: Record<string, string> = {
   'collect.stepAnalyzing': 'Analyzing config data...',
   'collect.stepSaving': 'Saving data...',
   'collect.stepFailed': 'Collection failed',
+  'collect.connectionLost': 'Connection lost, please retry',
   'collect.stepIdle': 'Waiting to start',
   'collect.singleTitle': 'Collecting',
   'collect.batchCollecting': 'Collecting {name} ({ip}) ...',
@@ -374,6 +375,23 @@ const en: Record<string, string> = {
   'logs.rootCause': 'Root Cause',
   'logs.suggestion': 'Suggestion',
   'logs.relatedErrors': 'Related Errors',
+
+  // Log level labels
+  'logs.levelEmergency': 'Emergency',
+  'logs.levelAlert': 'Alert',
+  'logs.levelCritical': 'Critical',
+  'logs.levelError': 'Error',
+  'logs.levelWarning': 'Warning',
+  'logs.levelNotice': 'Notice',
+  'logs.levelInfo': 'Info',
+  'logs.levelDebug': 'Debug',
+
+  // Log detail panel
+  'logs.logDetail': 'Log Detail',
+  'logs.analyzeThis': 'AI Analyze',
+  'logs.totalLogs': '{n} total',
+  'logs.selectHint': 'Click a log entry to view details',
+  'logs.loadingTree': 'Loading tree...',
 }
 
 export default en
