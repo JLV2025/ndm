@@ -160,14 +160,14 @@ async def get_device_topology(device_name: str):
     if len(members) < 2:
         members = ["1"]
 
-    # 6. 预加载 YAML 设备信息
+    # 6. 预加载设备信息
     device_info_map: Dict[str, dict] = {}
     try:
-        from utils.settings_loader import load_devices
-        for dev in load_devices().get("devices", []):
+        from storage.device_dal import get_all_devices
+        for dev in get_all_devices():
             device_info_map[dev.get("name", "")] = dev
     except Exception as e:
-        logger.warning(f"加载 YAML 设备信息失败: {e}")
+        logger.warning(f"加载设备信息失败: {e}")
 
     # 7. 按堆叠成员分配端口
     def _member_for_iface(iface: str) -> str:
@@ -314,16 +314,14 @@ async def get_device_topology(device_name: str):
     device_model = ""
     device_ip = ""
     try:
-        from utils.settings_loader import load_devices
-        devices_config = load_devices()
-        for dev in devices_config.get("devices", []):
-            if dev.get("name") == device_name:
-                device_notes = dev.get("notes", "") or ""
-                device_model = dev.get("model", "") or ""
-                device_ip = dev.get("ip", "") or ""
-                break
+        from storage.device_dal import get_device_by_name
+        dev = get_device_by_name(device_name)
+        if dev:
+            device_notes = dev.get("notes", "") or ""
+            device_model = dev.get("model", "") or ""
+            device_ip = dev.get("ip", "") or ""
     except Exception as e:
-        logger.warning(f"加载 YAML 设备信息失败: {e}")
+        logger.warning(f"加载设备信息失败: {e}")
 
     # 11. 为邻居交换机检测堆叠成员数（从 SQLite 读取配置）
     neighbor_members_map: Dict[str, list] = {}
@@ -546,8 +544,8 @@ async def get_location_topology(location: str):
         raise HTTPException(status_code=404, detail="数据目录不存在")
 
     # 加载所有设备, 按 location 过滤 → 然后拆分为物理设备
-    from utils.settings_loader import load_devices
-    all_devices = load_devices().get("devices", [])
+    from storage.device_dal import get_all_devices
+    all_devices = get_all_devices()
     raw_location_devices = [d for d in all_devices if d.get("location", "").upper() == location.upper()]
     if not raw_location_devices:
         raise HTTPException(status_code=404, detail=f"未找到 location={location} 的设备")

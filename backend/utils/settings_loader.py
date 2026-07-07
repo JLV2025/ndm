@@ -40,7 +40,10 @@ def load_settings(config_path: str = None) -> Dict:
 
 
 def load_devices(config_path: str = None) -> Dict:
-    """加载设备清单"""
+    """[已废弃] 加载设备清单 — 请使用 storage.device_dal.get_all_devices()
+
+    保留此函数仅用于兼容旧脚本和迁移工具。
+    """
     if config_path is None:
         config_path = str(_CONFIG_DIR / "devices.yaml")
     with open(config_path, "r", encoding="utf-8") as f:
@@ -48,7 +51,10 @@ def load_devices(config_path: str = None) -> Dict:
 
 
 def get_devices_config_path() -> str:
-    """获取 devices.yaml 的绝对路径，支持环境变量覆盖"""
+    """[已废弃] 获取 devices.yaml 路径 — 请使用 storage.device_dal
+
+    保留此函数仅用于兼容旧脚本和迁移工具。
+    """
     config_path = os.environ.get("DEVICES_CONFIG_PATH")
     if config_path:
         return config_path

@@ -1,6 +1,6 @@
 devices:
 - ip: 10.210.255.1
-  last_synced: 06/30/2026 16:04
+  last_synced: '2026-07-07T13:47:20.512349'
   location: BJQ
   model: JL659A 6300M
   name: BJQD1SWI01
@@ -14,7 +14,7 @@ devices:
   - lag1
   version: FL.10.10.1070
 - ip: 10.210.255.2
-  last_synced: 06/30/2026 16:07
+  last_synced: '2026-07-07T13:47:25.460483'
   location: BJQ
   model: R8Q70A 6200M
   name: BJQD1SWI02
@@ -27,7 +27,7 @@ devices:
   - 1/1/50
   version: ML.10.11.1021
 - ip: 10.210.255.51
-  last_synced: 06/30/2026 16:09
+  last_synced: '2026-07-07T13:47:48.064545'
   location: BJQ
   model: R8Q70A 6200M
   name: BJQD2QIS01
@@ -40,7 +40,7 @@ devices:
   - 1/1/50
   version: ML.10.11.1021
 - ip: 10.24.255.10
-  last_synced: 06/30/2026 09:57
+  last_synced: '2026-07-07T10:05:06.685604'
   location: SZX
   model: WS-C2960X-48FPD-L, WS-C2960X-48LPD-L, WS-C2960X-48LPD-L
   name: SZXD1SWI01
@@ -51,9 +51,9 @@ devices:
   uplink_ports:
   - Te3/0/1
   - Te3/0/2
-  version: 15.2(4)
+  version: 15.2(4)E8
 - ip: 10.67.255.1
-  last_synced: 06/30/2026 16:16
+  last_synced: '2026-07-07T10:03:44.799130'
   location: SHA
   model: C9500-24Y4C, C9500-24Y4C
   name: SHAD1SWI01
@@ -64,7 +64,7 @@ devices:
   uplink_ports: null
   version: 16.09.03
 - ip: 10.67.255.2
-  last_synced: 06/30/2026 16:18
+  last_synced: '2026-07-07T10:05:36.641254'
   location: SHA
   model: JL727A 6200F
   name: SHAD1SWI02
@@ -75,7 +75,7 @@ devices:
   uplink_ports: null
   version: ML.10.10.1030
 - ip: 10.210.213.14
-  last_synced: 06/30/2026 16:02
+  last_synced: '2026-07-07T13:45:43.847553'
   location: BJQ
   name: BJQD1RTW01
   notes: Voice Gateway
@@ -83,9 +83,9 @@ devices:
   serial_number: FDO2814M031
   type: cisco_ios_router
   uplink_ports: null
-  version: 17.09.04
+  version: 17.09.04a
 - ip: 10.211.255.1
-  last_synced: 06/30/2026 09:40
+  last_synced: '2026-07-07T11:19:52.231043'
   location: DZN
   model: JL659A 6300M
   name: DZND1SWI01
@@ -96,7 +96,7 @@ devices:
   uplink_ports: null
   version: FL.10.10.1070
 - ip: 10.22.255.1
-  last_synced: 06/30/2026 16:12
+  last_synced: '2026-07-07T14:20:57.907829'
   location: PVG
   model: JL658A 6300M
   name: PVGD1SWI01
@@ -107,7 +107,7 @@ devices:
   uplink_ports: null
   version: FL.10.10.1070
 - ip: 10.22.255.11
-  last_synced: 06/30/2026 16:14
+  last_synced: '2026-07-07T14:20:52.442942'
   location: PVG
   model: JL659A 6300M
   name: PVGD1SWI02
@@ -118,7 +118,7 @@ devices:
   uplink_ports: null
   version: FL.10.10.1070
 - ip: 10.22.255.12
-  last_synced: 06/30/2026 16:15
+  last_synced: '2026-07-07T14:19:47.801805'
   location: PVG
   model: WS-C3560-48PS-S
   name: PVGD1SWI03
@@ -127,9 +127,9 @@ devices:
   serial_number: CAT1016R5C8
   type: cisco_ios
   uplink_ports: null
-  version: 12.2(55)
+  version: 12.2(55)S
 - ip: 10.22.255.13
-  last_synced: 06/30/2026 16:15
+  last_synced: '2026-07-07T14:20:17.904080'
   location: PVG
   model: WS-C3560G-48TS-S
   name: PVGD1SWI04
@@ -138,9 +138,9 @@ devices:
   serial_number: FOC1218Y00B
   type: cisco_ios
   uplink_ports: null
-  version: 12.2(58)
+  version: 12.2(58)S
 - ip: 10.22.255.10
-  last_synced: 06/30/2026 16:16
+  last_synced: '2026-07-07T14:20:50.372476'
   location: PVG
   model: WS-C2960X-48FPD-L, WS-C2960X-48FPD-L
   name: PVGD1SWI05
@@ -149,9 +149,9 @@ devices:
   serial_number: FCW2133A1EJ, FCW2133A1KP
   type: cisco_ios
   uplink_ports: null
-  version: 15.2(4)
+  version: 15.2(4)E8
 - ip: 10.24.255.11
-  last_synced: 06/30/2026 09:59
+  last_synced: '2026-07-07T10:05:33.692610'
   location: SZX
   name: SZXD1SWI02
   notes: Access Switch
@@ -159,9 +159,10 @@ devices:
   serial_number: JAE244602AG
   type: cisco_ios
   uplink_ports: null
-  version: null
+  version: 16.12.04
+  model: C9200L-48P-4X
 - ip: 10.208.3.2
-  last_synced: 06/30/2026 15:02
+  last_synced: '2026-07-07T11:32:02.690694'
   location: BJD
   model: JL728A 6200F
   name: BJDD1SWI01
@@ -172,7 +173,7 @@ devices:
   uplink_ports: null
   version: ML.10.10.1030
 - ip: 10.26.255.1
-  last_synced: 06/30/2026 10:00
+  last_synced: '2026-07-07T10:05:59.055715'
   location: ZGN
   model: C9200L-48T-4X
   name: ZGND1SWI01
@@ -181,9 +182,9 @@ devices:
   serial_number: JAE242622E6
   type: cisco_ios
   uplink_ports: null
-  version: 16.12.03
+  version: 16.12.03a
 - ip: 10.26.255.3
-  last_synced: 06/30/2026 15:05
+  last_synced: '2026-07-07T11:34:12.627753'
   location: ZGN
   model: JL724A 6200F
   name: ZGND2SWI01
@@ -194,7 +195,7 @@ devices:
   uplink_ports: null
   version: ML.10.07.0030
 - ip: 10.26.255.5
-  last_synced: 06/30/2026 10:03
+  last_synced: '2026-07-07T10:08:01.020228'
   location: ZGN
   model: JL726A 6200F
   name: ZGND2SWI02
@@ -205,7 +206,7 @@ devices:
   uplink_ports: null
   version: ML.10.07.0030
 - ip: 10.26.255.4
-  last_synced: 06/30/2026 15:06
+  last_synced: '2026-07-07T11:34:17.644682'
   location: ZGN
   model: JL724A 6200F
   name: ZGND3SWI01
@@ -216,7 +217,7 @@ devices:
   uplink_ports: null
   version: ML.10.07.0030
 - ip: 10.161.255.1
-  last_synced: 06/30/2026 09:41
+  last_synced: '2026-07-07T09:58:12.803140'
   location: ITM
   model: JL728B 6200F
   name: ITMD1SWI01
@@ -227,7 +228,7 @@ devices:
   uplink_ports: null
   version: ML.10.13.1040
 - ip: 10.22.213.14
-  last_synced: 06/30/2026 16:10
+  last_synced: '2026-07-07T14:19:17.323568'
   location: PVG
   name: PVGD1RTW01
   notes: Voice Gateway
@@ -235,9 +236,9 @@ devices:
   serial_number: FTX1538ALHB
   type: cisco_ios_router
   uplink_ports: null
-  version: 15.7(3)
+  version: 15.7(3)M5
 - ip: 10.218.32.2
-  last_synced: 06/16/2026 14:23
+  last_synced: '2026-07-02T14:39:15.348280'
   location: PEK
   model: JL726B 6200F
   name: PEKD1SWI01
@@ -247,7 +248,7 @@ devices:
   type: aruba_aoscx
   version: ML.10.13.1120
 - ip: 10.67.255.3
-  last_synced: 06/30/2026 16:19
+  last_synced: '2026-07-07T10:04:11.979669'
   location: SHA
   model: WS-C2960X-48FPD-L
   name: SHAD2SWI02
@@ -255,18 +256,18 @@ devices:
   platform: cisco_ios
   serial_number: FJC2313W11A
   type: cisco_ios
-  version: 15.2(4)
+  version: 15.2(4)E8
 - ip: 10.24.213.14
-  last_synced: 06/30/2026 09:57
+  last_synced: '2026-07-07T10:04:35.903926'
   location: SZX
   name: SZXD1RTW03
   notes: Router
   platform: cisco_ios_router
   serial_number: FGL213081KP
   type: cisco_ios_router
-  version: 15.4(3)
+  version: 15.4(3)M3
 - ip: 10.242.255.1
-  last_synced: 06/30/2026 09:43
+  last_synced: '2026-07-07T14:18:33.544844'
   location: KOR
   model: JL659A 6300M
   name: KORD1SWI01
@@ -277,7 +278,7 @@ devices:
   uplink_ports: null
   version: FL.10.16.1040
 - ip: 10.242.255.2
-  last_synced: 06/30/2026 09:45
+  last_synced: '2026-07-07T14:18:36.493925'
   location: KOR
   model: JL727B 6200F
   name: KORD1SWI02
@@ -288,7 +289,7 @@ devices:
   uplink_ports: null
   version: ML.10.16.1020
 - ip: 10.167.255.2
-  last_synced: 06/30/2026 09:46
+  last_synced: '2026-07-07T11:28:31.211905'
   location: KR3
   model: C9200L-24P-4G
   name: KR3D1SWI01
@@ -299,7 +300,7 @@ devices:
   uplink_ports: null
   version: 16.09.03
 - ip: 10.167.255.3
-  last_synced: 06/30/2026 09:46
+  last_synced: '2026-07-07T11:28:33.518375'
   location: KR3
   model: C9200L-24P-4G
   name: KR3R1SWI01
@@ -310,7 +311,7 @@ devices:
   uplink_ports: null
   version: 16.09.03
 - ip: 10.164.255.2
-  last_synced: 06/30/2026 09:47
+  last_synced: '2026-07-07T11:29:28.762781'
   location: KR5
   model: WS-C2960X-24PD-L
   name: KR5D1SWI01
@@ -319,9 +320,9 @@ devices:
   serial_number: FOC2138T07K
   type: cisco_ios
   uplink_ports: null
-  version: 15.2(4)
+  version: 15.2(4)E8
 - ip: 10.164.255.3
-  last_synced: 06/30/2026 09:47
+  last_synced: '2026-07-07T11:29:28.913228'
   location: KR5
   model: WS-C2960X-24PD-L
   name: KR5R1SWI01
@@ -330,4 +331,4 @@ devices:
   serial_number: FOC2138T07M
   type: cisco_ios
   uplink_ports: null
-  version: 15.2(4)
+  version: 15.2(4)E8

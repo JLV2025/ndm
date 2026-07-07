@@ -80,7 +80,9 @@ const DeviceTable: React.FC<DeviceTableProps> = React.memo(({
               </TableCell>
               <TableCell>{t('devices.platform')}</TableCell>
               <TableCell>{t('dashboard.model')}</TableCell>
-              <TableCell>{t('devices.lastSync')}</TableCell>
+              <TableCell onClick={() => onSort('last_synced')} sx={sortStyle('last_synced')}>
+                {t('devices.lastSync')} {sortField === 'last_synced' ? (sortDir === 'asc' ? '▲' : '▼') : ''}
+              </TableCell>
               <TableCell>{t('devices.actions')}</TableCell>
             </TableRow>
           </TableHead>
@@ -138,7 +140,14 @@ const DeviceTable: React.FC<DeviceTableProps> = React.memo(({
                   </TableCell>
                   <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>
                     {device.last_synced
-                      ? (() => { const [d, t2] = device.last_synced.split(' '); return `${d} ${t2 || ''}`; })()
+                      ? (() => {
+                          const ts = device.last_synced!;
+                          // SQLite ISO 格式: "2026-07-07T13:45:43.847553" → MM/DD/YYYY HH:MM:SS
+                          const m = ts.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/);
+                          if (m) return `${m[2]}/${m[3]}/${m[1]} ${m[4]}:${m[5]}:${m[6]}`;
+                          // 已经是 MM/DD/YYYY HH:MM 格式（旧 YAML 数据），直接返回
+                          return ts;
+                        })()
                       : '-'}
                   </TableCell>
                   <TableCell align="right">

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-07T04:59:36.324Z
-> Files: 36 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-07T09:23:30.502Z
+> Files: 46 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -78,28 +78,32 @@
 ## C:/Users/jingl/.claude/plans/
 
 - `1-windows-ai-witty-fox.md` — 日志分析页面改版计划 (~1132 tok)
+- `soft-dazzling-orbit.md` — 计划：设备管理 YAML → SQLite 统一迁移 (~806 tok)
 
 ## agents/
 
 
 ## backend/
 
-- `main.py` — API: 3 endpoints (~1258 tok)
+- `main.py` — API: 3 endpoints (~1254 tok)
 - `requirements.txt` — Python dependencies (~45 tok)
 
 ## backend/analyzers/
 
 - `change_detector.py` — ChangeDetector: detect (~1181 tok)
-- `role_verifier.py` — class: devices, device_map, verify_device, audit_location (~3478 tok)
+- `role_verifier.py` — class: devices, device_map, verify_device, audit_location (~3408 tok)
 
 ## backend/api/
 
 - `alerts.py` — 告警 API 路由 (~1603 tok)
-- `collector.py` — 配置收集 API 路由 (~1705 tok)
+- `auth.py` — 认证 API 路由 (~863 tok)
+- `collector.py` — 配置收集 API 路由 (~1590 tok)
 - `data.py` — 数据文件 API 路由 (~1704 tok)
+- `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~2664 tok)
 - `logs.py` — 日志分析 API 路由 (~2560 tok)
 - `reports.py` — 自定义报告 API 路由 (~1780 tok)
-- `topology.py` — 拓扑图 API 路由 (~9507 tok)
+- `stats.py` — Dashboard 统计 API — 全量从 SQLite 读取 (~1839 tok)
+- `topology.py` — 拓扑图 API 路由 (~9461 tok)
 
 ## backend/collectors/
 
@@ -110,21 +114,24 @@
 
 ## backend/scripts/
 
+- `manage_devices.py` — 设备清单管理工具 — SQLite 数据源 (~1692 tok)
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~12911 tok)
+- `collector_service.py` — 配置收集服务 (~13153 tok)
 - `log_analyzer.py` — 日志 AI 分析服务 (~3096 tok)
 
 ## backend/storage/
 
+- `database.py` — init_db, get_connection, close_connection (~3997 tok)
+- `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~1696 tok)
 
 ## backend/tests/
 
 
 ## backend/utils/
 
-- `settings_loader.py` — 配置加载器 (~489 tok)
+- `settings_loader.py` — 配置加载器 (~527 tok)
 
 ## config/
 
@@ -139,6 +146,7 @@
 
 ## frontend/
 
+- `vite.config.ts` (~239 tok)
 
 ## frontend/src/
 
@@ -150,8 +158,9 @@
 
 ## frontend/src/components/devices/
 
-- `BatchCollectionPanel.tsx` — 单个活跃设备的进度行 — 通过 SSE 实时获取后端推送的步骤 (~1560 tok)
+- `BatchCollectionPanel.tsx` — 由父组件更新设备的实时进度（0-100） (~1784 tok)
 - `CollectionProgress.tsx` — CollectionProgress (~964 tok)
+- `DeviceTable.tsx` — DeviceTable — renders table (~2494 tok)
 
 ## frontend/src/components/topology/
 
@@ -165,7 +174,7 @@
 
 - `Alerts.tsx` — 字段中文标签映射 (~4026 tok)
 - `Dashboard.tsx` — DevicesLink (~10054 tok)
-- `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~4111 tok)
+- `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~4166 tok)
 - `LogAnalyzer.tsx` — 严重级别 → 颜色 (数字→hex) (~8010 tok)
 - `Reports.tsx` — ReportsPage — renders form, table (~2500 tok)
 - `Viewer.tsx` — 语义颜色常量 — 对应 MUI OLED Dark 主题 (~8228 tok)
@@ -182,6 +191,7 @@
 
 ## frontend/src/types/
 
+- `index.ts` — 物理设备（堆叠拆分后的展示用对象） (~552 tok)
 
 ## tests/
 

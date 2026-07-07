@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 # 当前 Schema 版本（每次 schema 变更递增）
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 # 线程本地存储 —— 每个线程持有自己的连接
 _local = threading.local()
@@ -39,6 +39,9 @@ def init_db(data_root: str = "./data") -> str:
         _seed_data(conn)
     finally:
         conn.close()
+
+    # YAML → SQLite 迁移（启动时自动执行，幂等）
+    _migrate_yaml_if_needed(data_root)
     return _db_path
 
 
@@ -175,6 +178,32 @@ def _seed_remediation_hints(conn: sqlite3.Connection) -> None:
         hints,
     )
     print(f"[数据库] 种子数据: {len(hints)} 条修复建议已写入")
+
+
+def _migrate_yaml_if_needed(data_root: str) -> None:
+    """启动时自动从 devices.yaml 迁移数据到 SQLite（仅运行一次）"""
+    try:
+        from pathlib import Path
+        yaml_path = Path(data_root).parent / "config" / "devices.yaml"
+        if not yaml_path.exists():
+            return
+
+        conn = _create_connection()
+        try:
+            count = conn.execute("SELECT COUNT(*) FROM devices").fetchone()[0]
+        finally:
+            conn.close()
+
+        # 仅当 SQLite 中无设备数据时才执行迁移
+        if count > 0:
+            return
+
+        print("[数据库] 检测到 YAML 设备数据，正在迁移到 SQLite...")
+        from storage.device_dal import migrate_from_yaml
+        n = migrate_from_yaml(str(yaml_path))
+        print(f"[数据库] YAML→SQLite 迁移完成: {n} 台设备")
+    except Exception as e:
+        print(f"[数据库] YAML 迁移跳过: {e}")
 
 
 # ================================================================
@@ -374,10 +403,24 @@ def _migrate_v4(conn: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_v5(conn: sqlite3.Connection) -> None:
+    """Schema v5: devices 表添加 notes / uplink_ports / username 列"""
+    for col, col_type in [
+        ("notes", "TEXT DEFAULT ''"),
+        ("uplink_ports", "TEXT DEFAULT ''"),
+        ("username", "TEXT DEFAULT ''"),
+    ]:
+        try:
+            conn.execute(f"ALTER TABLE devices ADD COLUMN {col} {col_type}")
+        except sqlite3.OperationalError:
+            pass  # 列已存在
+
+
 # 迁移注册表
 _MIGRATIONS = {
     1: _migrate_v1,
     2: _migrate_v2,
     3: _migrate_v3,
     4: _migrate_v4,
+    5: _migrate_v5,
 }

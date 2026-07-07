@@ -10,7 +10,6 @@ import os
 import hashlib
 
 from utils.password import PasswordManager
-from utils.settings_loader import load_devices
 
 router = APIRouter()
 

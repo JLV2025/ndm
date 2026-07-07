@@ -1,7 +1,7 @@
 """Dashboard 统计 API — 全量从 SQLite 读取"""
 from fastapi import APIRouter
 from storage.database import get_connection as _get_db
-from utils.settings_loader import load_devices
+from storage.device_dal import get_all_devices
 
 router = APIRouter()
 
@@ -36,8 +36,8 @@ def _count_physical_for_type(devices_list: list[dict], device_type: str) -> int:
 async def get_overview():
     """Dashboard 汇总数据：设备数、端口统计、Top 10 上行流量、最近采集时间（全量 SQLite）"""
     db = _get_db()
-    yaml_data = load_devices()
-    devices_list = yaml_data.get("devices", [])
+    yaml_data = get_all_devices()
+    devices_list = yaml_data
 
     device_count = _count_physical_devices(devices_list)
     device_types = {}
@@ -50,7 +50,7 @@ async def get_overview():
         if c > 0:
             device_types[dt] = c
 
-    # 从 YAML 获取位置（SQLite devices 表暂不存储 location）
+    # 从 SQLite 获取位置
     for dev in devices_list:
         loc = dev.get("location", "")
         if loc:

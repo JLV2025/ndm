@@ -23,7 +23,7 @@ FRONTEND_DIST = os.path.join(BASE_DIR, "frontend", "dist")
 sys.path.insert(0, _BACKEND_DIR)
 
 from services.collector_service import collect_device
-from utils.settings_loader import load_settings, load_devices
+from utils.settings_loader import load_settings
 from utils.password import password_manager
 from storage import init_db
 from api import devices_router, collector_router, data_router, auth_router, stats_router, topology_router, topology_visio_router

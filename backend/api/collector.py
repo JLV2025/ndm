@@ -6,11 +6,11 @@ from fastapi import APIRouter, Form, HTTPException
 from fastapi.responses import StreamingResponse
 from typing import Dict
 import os
-import yaml
 import subprocess
 import platform
 import socket
-from utils.settings_loader import get_devices_config_path, load_settings
+from utils.settings_loader import load_settings
+from storage.device_dal import get_device_by_name
 
 router = APIRouter()
 
@@ -92,7 +92,7 @@ def _ping_blocking(ip: str, sys_name: str) -> Dict:
 @router.post("/ping/{device_name}")
 async def ping_device(device_name: str) -> Dict:
     """Ping 设备 IP 检查可达性"""
-    device = find_device_by_name(device_name)
+    device = get_device_by_name(device_name)
     if not device:
         raise HTTPException(status_code=404, detail=f"设备 '{device_name}' 不存在")
 
@@ -110,19 +110,6 @@ async def ping_device(device_name: str) -> Dict:
         return {"reachable": False, "ip": ip, "detail": "Ping 检测失败"}
 
 
-def find_device_by_name(device_name: str) -> dict | None:
-    """查找设备配置"""
-    config_path = get_devices_config_path()
-    if not os.path.exists(config_path):
-        return None
-    with open(config_path, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
-    for device in data.get("devices", []):
-        if device.get("name") == device_name:
-            return device
-    return None
-
-
 @router.post("/{device_name}")
 async def collect_config(
     device_name: str,
@@ -131,7 +118,7 @@ async def collect_config(
 ) -> Dict:
     """收集设备配置 — SSH 登录交换机获取 running-config 等数据"""
     # 查找设备信息
-    device = find_device_by_name(device_name)
+    device = get_device_by_name(device_name)
     if not device:
         raise HTTPException(status_code=404, detail=f"设备 '{device_name}' 不存在")
 

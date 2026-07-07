@@ -205,4 +205,10 @@
 - [2026-07-02] SSE `onerror` 不能一概而论：收到数据后断连 → 报错；从未收到数据 → 让 EventSource 自动重连（后端可能尚未启动）
 - [2026-07-02] `total_cmds` 防御性重算中混用 `device_type` 和 `effective_type` → 应统一使用探测后的实际类型
 - [2026-07-02] `try { await Promise.all() } setBatchRunning(false)` 缺少 `finally` → worker 抛出未捕获异常时 UI 永久卡死
+- [2026-07-07] N=2 批量收集总进度条不动的根因：React 18 auto-batching 把 `setBatchStatus('success') × 2` + `setBatchRunning(false)` 合并为一次渲染，进度条从未显示。N≥3 时递归 runNext 取下一设备的间隙给了 React 渲染窗口。最终方案：改为步骤级进度——每个设备的 SSE progress 实时汇总 `overallPct = sum / totalCount`，无需 flushSync/setTimeout
 - [2026-07-07] `git push origin <branch>` 无错误处理和验证 → SSH 认证失败被静默忽略，第二台电脑 pull 不到更新。必须：① 检查 push 退出码 ② `git fetch` + `git log origin/<branch>` 验证远程已收到
+- [2026-07-07] 收集流程将 model/version/serial_number/last_synced 写入 SQLite 但不回写 YAML，设备列表 API 只读 YAML → 这些字段在前端永远为空。修复：YAML→SQLite 统一迁移，device_dal.py 为唯一数据源
+- [2026-07-07] Cisco 路由器 show version 无 `Model number :` 行，型号在处理器行：`cisco C8300-1N1S-4T2X (1RU) processor` 或 `Cisco CISCO2921/K9 (revision 1.0) with`。正则回退：`r'cisco\s+(\S+)\s*\('`
+- [2026-07-07] SQLite last_synced 为 ISO 8601 (`2026-07-07T13:45:43`)，前端显示时需正则提取转为 `MM/DD/YYYY HH:MM:SS`
+- [2026-07-07] Aruba VSF `extract_model` 从 `show system` 只提取一条 Product Name，但序列号有多个（从 `show vsf detail` 提取），导致前端只显示一个型号。修复：`extract_model` 后按 serial_number 数量补齐型号
+- [2026-07-07] 批量收集进度条最终方案：每个设备 SSE 推送实时 progress% → `onDeviceProgress` 回调父组件更新 `BatchItemStatus.progress` → `overallPct = sum(progress) / totalCount`，按步骤平滑推进，不再依赖设备完成事件

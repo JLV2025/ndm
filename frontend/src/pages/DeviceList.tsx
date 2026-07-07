@@ -179,7 +179,7 @@ const DeviceList: React.FC = () => {
     setBatchStatus(initial)
 
     const queue = [...deviceNames]
-    const maxConcurrent = 2
+    const maxConcurrent = 3
 
     /** 单个设备的完整收集流程（Ping → Collect） */
     const worker = async (deviceName: string) => {
@@ -228,19 +228,14 @@ const DeviceList: React.FC = () => {
     }
 
     // 启动初始并发 workers（最多 maxConcurrent 个）
-    // 注意：必须在 for 循环外预计算 worker 数量，因为 runNext() 内部会 shift queue，
-    // 导致每次迭代 queue.length 递减，N=2 时只启动 1 个 worker
     const workers: Promise<void>[] = []
     const numWorkers = Math.min(maxConcurrent, queue.length)
     for (let i = 0; i < numWorkers; i++) {
       workers.push(runNext())
     }
-    try {
-      await Promise.all(workers)
-    } finally {
-      setBatchRunning(false)
-      loadDevices()
-    }
+    await Promise.all(workers)
+    setBatchRunning(false)
+    loadDevices()
   }
 
   const handleSort = (field: string) => {
@@ -335,7 +330,18 @@ const DeviceList: React.FC = () => {
       )}
 
       {/* 批量收集进度 */}
-      <BatchCollectionPanel running={batchRunning} statuses={batchStatus} devices={devices} />
+      <BatchCollectionPanel
+          running={batchRunning}
+          statuses={batchStatus}
+          devices={devices}
+          onDeviceProgress={(name, pct) => {
+            setBatchStatus(prev => {
+              const cur = prev[name]
+              if (!cur || cur.status === 'success' || cur.status === 'failed') return prev
+              return { ...prev, [name]: { ...cur, progress: pct } }
+            })
+          }}
+        />
 
       {/* 设备卡片网格 */}
       {selectedLocation && (

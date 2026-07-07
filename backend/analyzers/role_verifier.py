@@ -1,18 +1,17 @@
 """
 设备角色核查模块
 
-交叉验证 YAML devices.yaml 中的交换机角色标注与 LLDP 邻居拓扑数据，
+交叉验证设备的角色标注与 LLDP 邻居拓扑数据，
 检测标注缺失、连接不一致、命名冲突等问题。
 
 用法：
-    verifier = RoleVerifier(data_root="data")
+    verifier = RoleVerifier()
     warnings = verifier.verify_device("PVGD1SWI01")
     audit = verifier.audit_location("PVG")
 """
 
 import os
 import re
-import yaml
 from typing import List, Dict, Optional
 from dataclasses import dataclass, field
 
@@ -38,24 +37,21 @@ class RoleVerifier:
         """
         Args:
             data_root: 数据目录根路径
-            config_root: 配置文件目录根路径
+            config_root: 保留兼容，不再使用（数据从 SQLite 读取）
         """
         self.data_root = data_root
-        self.config_root = config_root
         self._devices_yaml: Optional[List[dict]] = None
         self._device_map: Optional[Dict[str, dict]] = None
 
     @property
     def devices(self) -> List[dict]:
-        """加载 devices.yaml"""
+        """从 SQLite 加载所有设备"""
         if self._devices_yaml is None:
-            yaml_path = os.path.join(self.config_root, "devices.yaml")
-            if not os.path.exists(yaml_path):
+            try:
+                from storage.device_dal import get_all_devices
+                self._devices_yaml = get_all_devices()
+            except Exception:
                 self._devices_yaml = []
-            else:
-                with open(yaml_path, "r", encoding="utf-8") as f:
-                    data = yaml.safe_load(f)
-                    self._devices_yaml = data.get("devices", []) if data else []
         return self._devices_yaml
 
     @property
@@ -274,7 +270,7 @@ class RoleVerifier:
             return [RoleWarning(
                 device=device_name,
                 rule="设备不存在",
-                message=f"设备 {device_name} 不在 devices.yaml 中",
+                message=f"设备 {device_name} 不在设备清单中",
                 severity="error",
             )]
         if not self._is_switch(dev):

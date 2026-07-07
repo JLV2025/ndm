@@ -17,7 +17,7 @@ def _get_device_connection():
 from analyzers.config_validator import ConfigValidator
 from analyzers.performance import PerformanceAnalyzer
 from analyzers.change_detector import ChangeDetector
-from utils.settings_loader import load_settings, load_devices, get_devices_config_path
+from utils.settings_loader import load_settings
 from utils.password import password_manager
 from storage.file_manager import get_week_dir
 from storage.database import get_connection as get_db
@@ -233,6 +233,16 @@ def extract_model(system_output: str, version_output: str, device_type: str) -> 
             m = re.search(r'Model\s+number\s*:\s*(\S+)', line, re.IGNORECASE)
             if m:
                 models.append(m.group(1).strip())
+
+        # 回退：路由器 show version 无 Model number 行，型号在处理器行
+        # "cisco ISR4331/K9 (1RU) processor with ..." → 提取 ISR4331/K9
+        if not models:
+            for line in version_output.splitlines():
+                m = re.search(r'cisco\s+(\S+)\s*\(', line, re.IGNORECASE)
+                if m:
+                    models.append(m.group(1).strip())
+                    break  # 路由器非堆叠，取第一个即可
+
         return ", ".join(models) if models else "未知"
 
     return "未知"
@@ -631,6 +641,14 @@ def collect_device(
 
         # 提取设备型号（Aruba 从 system.raw, Cisco 从 version.raw）
         device_model = extract_model(system_info, version_info, effective_type)
+
+        # Aruba VSF 所有成员同型号，extract_model 只返回一条，需按序列号数量补齐
+        # Cisco 堆叠 show version 有多条 Model number，无需此处理
+        if serial_number and serial_number != "未知" and device_model and device_model != "未知":
+            serial_cnt = len([s for s in serial_number.split(",") if s.strip()])
+            model_cnt = len([m for m in device_model.split(",") if m.strip()])
+            if serial_cnt > 1 and model_cnt == 1:
+                device_model = ", ".join([device_model] * serial_cnt)
 
         # 提取设备运行时间（秒）
         system_uptime_seconds = extract_uptime_seconds(version_info, boot_history, effective_type)

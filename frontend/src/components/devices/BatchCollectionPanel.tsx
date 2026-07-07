@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { Box, Paper, Typography, Chip, LinearProgress } from '@mui/material'
 import type { BatchItemStatus, Device } from '../../types'
 import { useI18n } from '../../i18n'
@@ -7,22 +7,28 @@ interface BatchCollectionPanelProps {
   running: boolean
   statuses: Record<string, BatchItemStatus>
   devices: Device[]
+  /** 由父组件更新设备的实时进度（0-100） */
+  onDeviceProgress?: (name: string, pct: number) => void
 }
 
-/** 单个活跃设备的进度行 — 通过 SSE 实时获取后端推送的步骤 */
+/** 单个活跃设备的进度行 —— 通过 SSE 实时获取后端推送的步骤 */
 function ActiveDeviceRow({
   name,
   ip,
   polling,
+  onProgress,
 }: {
   name: string
   ip: string
   polling: boolean
+  onProgress?: (pct: number) => void
 }) {
   const { t } = useI18n()
   const [step, setStep] = useState('')
   const [progressPct, setProgressPct] = useState(0)
   const seenActiveRef = useRef(false)
+  const onProgressRef = useRef(onProgress)
+  onProgressRef.current = onProgress
 
   useEffect(() => {
     if (!polling) return
@@ -35,13 +41,16 @@ function ActiveDeviceRow({
         const s: string = data.step || ''
         const pct: number = data.progress ?? 0
         if (s === 'complete') {
+          onProgressRef.current?.(100)
           es.close()
         } else if (s === 'failed') {
+          onProgressRef.current?.(100)
           es.close()
         } else if (s && s !== 'idle') {
           seenActiveRef.current = true
           setStep(s)
           setProgressPct(pct)
+          onProgressRef.current?.(pct)
         }
       } catch { /* ignore */ }
     }
@@ -50,7 +59,6 @@ function ActiveDeviceRow({
       if (seenActiveRef.current) {
         es.close()
       }
-      // 尚未收到任何数据：后端可能尚未启动，让 EventSource 自动重连
     }
 
     return () => {
@@ -82,7 +90,7 @@ function ActiveDeviceRow({
 }
 
 const BatchCollectionPanel: React.FC<BatchCollectionPanelProps> = React.memo(
-  ({ running, statuses, devices }) => {
+  ({ running, statuses, devices, onDeviceProgress }) => {
     const { t } = useI18n()
 
     const deviceMap = new Map<string, Device>()
@@ -93,19 +101,34 @@ const BatchCollectionPanel: React.FC<BatchCollectionPanelProps> = React.memo(
     const totalCount = Object.keys(statuses).length
     const doneCount = successCount + failedCount
 
-    // 找出所有当前活跃的设备（pinging 或 collecting）
+    // 活跃设备
     const activeNames = Object.entries(statuses)
       .filter(([, s]) => s.status === 'pinging' || s.status === 'collecting')
       .map(([name]) => name)
 
-    // 已完成/失败设备
     const doneEntries = Object.entries(statuses).filter(
       ([, s]) => s.status === 'success' || s.status === 'failed'
     )
 
+    // 总进度 = 所有设备进度的平均值
+    // success/failed → 100%, pending → 0%, pinging/collecting → SSE 推送的实时值
+    const overallPct = useMemo(() => {
+      if (totalCount === 0) return 0
+      let sum = 0
+      for (const s of Object.values(statuses)) {
+        if (s.status === 'success' || s.status === 'failed') {
+          sum += 100
+        } else if (s.status === 'pending') {
+          sum += 0
+        } else {
+          sum += s.progress ?? 0
+        }
+      }
+      return sum / totalCount
+    }, [statuses, totalCount])
+
     return (
       <>
-        {/* 运行中：显示活跃设备进度 */}
         {running && totalCount > 0 && (
           <Paper sx={{ p: 2, mb: 3 }}>
             <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600 }}>
@@ -123,6 +146,7 @@ const BatchCollectionPanel: React.FC<BatchCollectionPanelProps> = React.memo(
                     name={name}
                     ip={dev?.ip || ''}
                     polling={running}
+                    onProgress={(pct) => onDeviceProgress?.(name, pct)}
                   />
                 )
               })
@@ -132,16 +156,15 @@ const BatchCollectionPanel: React.FC<BatchCollectionPanelProps> = React.memo(
               </Typography>
             )}
 
-            {/* 总进度条 */}
+            {/* 总进度条 —— 按所有设备的步骤数累计 */}
             <LinearProgress
               variant="determinate"
-              value={totalCount > 0 ? (doneCount / totalCount) * 100 : 0}
+              value={overallPct}
               sx={{ mt: 1.5, height: 10, borderRadius: 1, bgcolor: 'rgba(255,255,255,0.06)' }}
             />
           </Paper>
         )}
 
-        {/* 完成：显示结果汇总 */}
         {!running && totalCount > 0 && (
           <Paper sx={{ p: 2, mb: 3 }}>
             <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600 }}>
