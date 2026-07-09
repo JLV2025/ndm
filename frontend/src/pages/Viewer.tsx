@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
-  Box, Container, Paper, Typography, Grid, Tabs, Tab, Chip, Alert,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Box, Container, Paper, Typography, Grid, Chip, Alert,
   Select, MenuItem, CircularProgress,
   ToggleButton, ToggleButtonGroup,
+  IconButton, Snackbar,
 } from '@mui/material'
 import {
-  Description, Timeline, Terminal, Visibility, Compare, Storage,
+  Visibility, Compare, Storage, ContentCopy,
 } from '@mui/icons-material'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import type { AxiosResponse } from 'axios'
@@ -67,12 +67,13 @@ const Viewer: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null)
   const [selectedDevice, setSelectedDevice] = useState(initialDevice)
   const [weeks, setWeeks] = useState<string[]>([])
-  const [files, setFiles] = useState<string[]>([])
 
   const [selectedWeek, setSelectedWeek] = useState('')
-  const [selectedFile, setSelectedFile] = useState('')
+  const [selectedDataType, setSelectedDataType] = useState('')
+  const [availableTypes, setAvailableTypes] = useState<string[]>([])
+  const [collectionMeta, setCollectionMeta] = useState<Record<string, any> | null>(null)
   const [content, setContent] = useState('')
-  const [activeTab, setActiveTab] = useState(0)
+  const [copySnackOpen, setCopySnackOpen] = useState(false)
 
   const [compareMode, setCompareMode] = useState(false)
   const [compareWeek1, setCompareWeek1] = useState('')
@@ -85,27 +86,7 @@ const Viewer: React.FC = () => {
   const [loadingContent, setLoadingContent] = useState(false)
   const [error, setError] = useState('')
 
-  // 根据选中设备类型和平台动态计算可用文件列表
-  const selectedDeviceObj = devices.find((d: Device) => d.name === selectedDevice) || {} as Partial<Device>
-  const selectedDeviceType = selectedDeviceObj.type || ''
-  const selectedDevicePlatform = selectedDeviceObj.platform || ''
-  const allFileOptions = ['running-config.raw', 'interface-status.raw', 'version.raw', 'interface-utilization.raw', 'validation.json', 'performance.json', 'change.json', 'summary.txt']
-  const availableFiles = useMemo(() => {
-    if (files.length > 0) return files
-    if (!selectedDeviceType) return allFileOptions
-    if (selectedDeviceType === 'cisco_ios') {
-      if (selectedDevicePlatform === 'cisco_ios_xe') {
-        // Cisco IOS XE：支持日志收集（show logging | tail 100）
-        return [...allFileOptions, 'logs.raw', 'switch-detail.raw']
-      }
-      // Cisco IOS：日志不收集，只加堆叠
-      return [...allFileOptions.filter((f) => !['logs.raw'].includes(f)), 'switch-detail.raw']
-    }
-    if (selectedDeviceType === 'aruba_aoscx') {
-      return [...allFileOptions, 'system.raw', 'vsf.raw']
-    }
-    return allFileOptions
-  }, [files, selectedDeviceType, selectedDevicePlatform])
+  // Compare 模式下的文件选项（仍从文件系统读取 running-config.raw）
 
   useEffect(() => {
     if (!sessionManager.getSession()) { navigate('/login'); return }
@@ -120,21 +101,34 @@ const Viewer: React.FC = () => {
     }).catch(() => setWeeks([])).finally(() => setLoading(false))
   }, [selectedDevice])
 
+  // 选完周 → 拉取采集元信息和可用数据类型
   useEffect(() => {
-    if (compareMode || !selectedDevice || !selectedWeek || !selectedFile) return
+    if (compareMode || !selectedDevice || !selectedWeek) return
+    setSelectedDataType('')
+    setContent('')
+    setError('')
+    setLoadingContent(true)
+    dataApi.getCollection(selectedDevice, selectedWeek).then((res: AxiosResponse<{
+      available_types: string[]; collected_at: string; metadata: Record<string, any>
+    }>) => {
+      const types = res.data?.available_types || []
+      setAvailableTypes(types)
+      setCollectionMeta(res.data?.metadata || null)
+      if (types.length > 0) {
+        setSelectedDataType(types[0])
+      }
+    }).catch(() => setError(t('common.loadFileFailed'))).finally(() => setLoadingContent(false))
+  }, [compareMode, selectedDevice, selectedWeek])
+
+  // 选完数据类型 → 拉取原始数据
+  useEffect(() => {
+    if (compareMode || !selectedDevice || !selectedWeek || !selectedDataType) return
     setLoadingContent(true)
     setError('')
-    dataApi.getFile(selectedDevice, selectedWeek, selectedFile).then((res: AxiosResponse<{ content: string }>) => {
+    dataApi.getRawData(selectedDevice, selectedWeek, selectedDataType).then((res: AxiosResponse<{ content: string }>) => {
       setContent(res.data?.content || '')
     }).catch(() => setError(t('common.loadFileFailed'))).finally(() => setLoadingContent(false))
-  }, [selectedDevice, selectedWeek, selectedFile, compareMode])
-
-  useEffect(() => {
-    if (!selectedDevice || !selectedWeek) return
-    dataApi.getFilesList(selectedDevice, selectedWeek).then((res: AxiosResponse<{ files: string[] }>) => {
-      setFiles(res.data?.files || [])
-    }).catch(() => setFiles([]))
-  }, [selectedDevice, selectedWeek])
+  }, [compareMode, selectedDevice, selectedWeek, selectedDataType])
 
   useEffect(() => {
     if (!compareMode || !selectedDevice || !compareWeek1 || !compareWeek2 || !compareFile) return
@@ -222,159 +216,20 @@ const Viewer: React.FC = () => {
     },
   }
 
-  const renderContentTabs = (text: string) => {
-    if (!text) return null
-    return (
-      <>
-        <Tabs value={activeTab} onChange={(_, v) => setActiveTab(v)} sx={{ mb: 2 }}>
-          <Tab icon={<Terminal />} label="Raw" sx={{ fontSize: '0.7rem' }} />
-          <Tab icon={<Description />} label="Formatted" sx={{ fontSize: '0.7rem' }} />
-          <Tab icon={<Timeline />} label="Analysis" sx={{ fontSize: '0.7rem' }} />
-        </Tabs>
-        {renderTabContent(text, activeTab)}
-      </>
-    )
-  }
-
-  const renderTabContent = (text: string, tab: number) => {
-    if (tab === 0) {
-      return (
-        <Paper sx={{ p: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
-            <Terminal sx={{ color: 'primary.main', fontSize: 16 }} />
-            <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>Raw Content</Typography>
-          </Box>
-          <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"Fira Code","Fira Code",monospace', margin: 0, fontSize: '0.75rem', color: '#F8FAFC', lineHeight: 1.6 }}>{text}</pre>
-        </Paper>
-      )
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopySnackOpen(true)
+    } catch {
+      // 降级方案
+      const ta = document.createElement('textarea')
+      ta.value = content
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+      setCopySnackOpen(true)
     }
-    if (tab === 1) {
-      try {
-        const json = JSON.parse(text)
-        return (
-          <Paper sx={{ p: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
-              <Description sx={{ color: 'primary.main', fontSize: 16 }} />
-              <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>JSON Formatted</Typography>
-            </Box>
-            <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"Fira Code","Fira Code",monospace', margin: 0, fontSize: '0.75rem', color: '#F8FAFC', lineHeight: 1.6 }}>{JSON.stringify(json, null, 2)}</pre>
-          </Paper>
-        )
-      } catch { return null }
-    }
-    if (tab === 2) {
-      try {
-        const json = JSON.parse(text)
-
-        // 性能分析（必须最先检查，避免 performance.json 的 errors dict 误入 validation 分支）
-        if (json.interface_summary) {
-          return (
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Performance Analysis</Typography>
-              <Grid container spacing={2} sx={{ mb: 2 }}>
-                {[{ label: 'Total', value: json.interface_summary.total, color: '#3B82F6' }, { label: 'UP', value: json.interface_summary.up, color: '#2DD46E' }, { label: 'DOWN', value: json.interface_summary.down, color: '#EF4444' }].map((item) => (
-                  <Grid item xs={4} key={item.label}>
-                    <Box sx={{ p: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1, textAlign: 'center' }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>{item.label}</Typography>
-                      <Typography variant="h4" sx={{ color: item.color, fontWeight: 700 }}>{item.value}</Typography>
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Interface</TableCell>
-                      <TableCell>Status</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {json.interface_summary.details?.slice(0, 10).map((d: { name: string; status: string; status_up: boolean }, idx: number) => (
-                      <TableRow key={idx} hover>
-                        <TableCell sx={{ fontSize: '0.75rem' }}>{d.name}</TableCell>
-                        <TableCell>
-                          <Chip label={d.status} size="small" sx={{
-                            bgcolor: d.status_up ? 'rgba(45,212,110,0.1)' : 'rgba(239,68,68,0.1)',
-                            color: d.status_up ? 'success.main' : 'error.main',
-                            height: 18, fontSize: '0.65rem',
-                          }} />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Paper>
-          )
-        }
-
-        // 配置验证（errors 必须是数组类型，避免与 performance.json 的 errors dict 冲突）
-        if (Array.isArray(json.errors)) {
-          return (
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Config Validation</Typography>
-              <Grid container spacing={2} sx={{ mb: 2 }}>
-                {[{ label: 'Errors', value: json.summary?.errors ?? 0, color: '#EF4444' }, { label: 'Warnings', value: json.summary?.warnings ?? 0, color: '#F59E0B' }, { label: 'Info', value: json.summary?.info ?? 0, color: '#3B82F6' }].map((item) => (
-                  <Grid item xs={4} key={item.label}>
-                    <Box sx={{ p: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1, textAlign: 'center' }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>{item.label}</Typography>
-                      <Typography variant="h4" sx={{ color: item.color, fontWeight: 700 }}>{item.value}</Typography>
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Type</TableCell>
-                      <TableCell>Message</TableCell>
-                      <TableCell align="right">Level</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {json.errors.map((err: { type: string; message: string; severity: string }, idx: number) => (
-                      <TableRow key={idx} hover>
-                        <TableCell sx={{ fontSize: '0.75rem' }}>{err.type}</TableCell>
-                        <TableCell sx={{ color: 'text.secondary', fontSize: '0.75rem' }}>{err.message}</TableCell>
-                        <TableCell align="right">
-                          <Chip label={err.severity} size="small" sx={{
-                            bgcolor: err.severity === 'error' ? 'rgba(239,68,68,0.1)' : err.severity === 'warning' ? 'rgba(245,158,11,0.1)' : 'rgba(59,130,246,0.1)',
-                            color: err.severity === 'error' ? 'error.main' : err.severity === 'warning' ? 'warning.main' : 'info.main',
-                            fontWeight: 500, height: 18, fontSize: '0.65rem',
-                          }} />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Paper>
-          )
-        }
-
-        // 变更检测
-        if (json.summary) {
-          return (
-            <Paper sx={{ p: 2 }}>
-              <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Change Detection</Typography>
-              <Grid container spacing={2}>
-                {[{ label: 'Added', value: json.summary.added, color: '#2DD46E' }, { label: 'Removed', value: json.summary.removed, color: '#EF4444' }, { label: 'Has Changes', value: json.has_changes ? 'Yes' : 'No', color: json.has_changes ? '#F59E0B' : '#3B82F6' }].map((item) => (
-                  <Grid item xs={4} key={item.label}>
-                    <Box sx={{ p: 2, bgcolor: 'background.paper', border: '1px solid', borderColor: 'divider', borderRadius: 1, textAlign: 'center' }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', fontSize: '0.65rem' }}>{item.label}</Typography>
-                      <Typography variant="h4" sx={{ color: item.color, fontWeight: 700 }}>{item.value}</Typography>
-                    </Box>
-                  </Grid>
-                ))}
-              </Grid>
-            </Paper>
-          )
-        }
-      } catch { return null }
-    }
-    return null
   }
 
   return (
@@ -407,7 +262,7 @@ const Viewer: React.FC = () => {
 
         <Box sx={{ mt: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
           <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>{t('viewer.deviceLabel')}</Typography>
-          <Select value={selectedDevice} onChange={(e) => setSelectedDevice(e.target.value)} displayEmpty fullWidth size="small">
+          <Select value={selectedDevice} onChange={(e) => setSelectedDevice(e.target.value)} displayEmpty size="small" sx={{ minWidth: 240 }}>
             <MenuItem value="" disabled><em>{t('viewer.selectDevice')}</em></MenuItem>
             {filteredDevices.map((d: Device) => (
               <MenuItem key={d.name} value={d.name}>{d.name} ({d.ip})</MenuItem>
@@ -435,29 +290,73 @@ const Viewer: React.FC = () => {
           <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem' }}>
             {t('viewer.configHistory')} ({selectedDevice})
           </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
-              <Select value={selectedWeek} onChange={(e) => { setSelectedWeek(e.target.value); setSelectedFile(''); }} displayEmpty fullWidth size="small">
+          <Grid container spacing={2} alignItems="center">
+            <Grid item xs={12} sm={2}>
+              <Select value={selectedWeek} onChange={(e) => { setSelectedWeek(e.target.value); }} displayEmpty fullWidth size="small">
                 <MenuItem value="" disabled><em>{t('viewer.selectWeek')}</em></MenuItem>
                 {weeks.map((w) => <MenuItem key={w} value={w}>{w}</MenuItem>)}
               </Select>
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <Select value={selectedFile} onChange={(e) => setSelectedFile(e.target.value)} displayEmpty fullWidth size="small" disabled={!selectedWeek}>
-                <MenuItem value="" disabled><em>{t('viewer.selectFile')}</em></MenuItem>
-                {files.map((f) => <MenuItem key={f} value={f}>{f}</MenuItem>)}
-              </Select>
-            </Grid>
+
+            {/* 数据类型按钮组 — 动态显示 */}
+            {availableTypes.length > 0 && (
+              <Grid item>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>{t('viewer.dataTypeLabel')}:</Typography>
+                  <ToggleButtonGroup value={selectedDataType} exclusive size="small"
+                    onChange={(_, v) => { if (v) setSelectedDataType(v); }}
+                    sx={toggleGroupSx}>
+                    {availableTypes.map((dt) => (
+                      <ToggleButton key={dt} value={dt}>
+                        {t(`viewer.dataTypes.${dt}` as any, dt)}
+                      </ToggleButton>
+                    ))}
+                  </ToggleButtonGroup>
+                </Box>
+              </Grid>
+            )}
           </Grid>
+
+          {/* 元信息 */}
+          {collectionMeta && (
+            <Box sx={{ mt: 1.5, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              {collectionMeta.software_version && (
+                <Chip label={`${t('viewer.version')}: ${collectionMeta.software_version}`} size="small"
+                  sx={{ bgcolor: 'rgba(59,130,246,0.1)', color: 'info.main', height: 20, fontSize: '0.65rem' }} />
+              )}
+              {collectionMeta.model && (
+                <Chip label={collectionMeta.model} size="small"
+                  sx={{ bgcolor: 'rgba(45,212,110,0.1)', color: 'success.main', height: 20, fontSize: '0.65rem' }} />
+              )}
+              {collectionMeta.running_config_lines > 0 && (
+                <Chip label={`${collectionMeta.running_config_lines} ${t('viewer.lines')}`} size="small"
+                  sx={{ bgcolor: 'rgba(245,158,11,0.1)', color: 'warning.main', height: 20, fontSize: '0.65rem' }} />
+              )}
+            </Box>
+          )}
 
           {loadingContent && <Box sx={{ textAlign: 'center', py: 3 }}><CircularProgress /></Box>}
           {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
 
           {!loadingContent && content && (
             <Box sx={{ mt: 2 }}>
-              {renderContentTabs(content)}
+              <Paper sx={{ p: 2, bgcolor: 'background.default', border: '1px solid', borderColor: 'divider' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5, pb: 1, borderBottom: '1px solid', borderColor: 'divider' }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
+                    {t(`viewer.dataTypes.${selectedDataType}` as any, selectedDataType)}
+                  </Typography>
+                  <IconButton size="small" onClick={handleCopy} title={t('viewer.copyButton')}
+                    sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}>
+                    <ContentCopy sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Box>
+                <pre style={{ whiteSpace: 'pre-wrap', fontFamily: '"Fira Code","Fira Code",monospace', margin: 0, fontSize: '0.75rem', color: '#F8FAFC', lineHeight: 1.6, maxHeight: '65vh', overflow: 'auto' }}>{content}</pre>
+              </Paper>
             </Box>
           )}
+
+          <Snackbar open={copySnackOpen} autoHideDuration={2000} onClose={() => setCopySnackOpen(false)}
+            message={t('viewer.copied')} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} />
         </Paper>
       )}
 
@@ -486,7 +385,7 @@ const Viewer: React.FC = () => {
               <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>{t('viewer.fileLabel')}</Typography>
               <Select value={compareFile} onChange={(e) => setCompareFile(e.target.value)} displayEmpty fullWidth size="small">
                 <MenuItem value="" disabled><em>{t('viewer.selectFile')}</em></MenuItem>
-                {availableFiles.map((f) => <MenuItem key={f} value={f}>{f}</MenuItem>)}
+                <MenuItem value="running-config.raw">running-config.raw</MenuItem>
               </Select>
             </Grid>
           </Grid>

@@ -163,6 +163,188 @@ async def get_device_ports(device_name: str):
     }
 
 
+@router.get("/{device_name}/{week}/collection")
+async def get_collection_meta(device_name: str, week: str):
+    """获取某设备某周的采集元信息和可用数据类型列表（从 SQLite 查询）"""
+    safe_device_name = sanitize_device_name(device_name)
+    db = _get_db()
+    if not db:
+        raise HTTPException(status_code=404, detail="数据不存在")
+
+    row = db.execute(
+        """SELECT c.id, c.collected_at, c.software_version, c.serial_number,
+                  c.model, c.system_uptime_seconds, c.running_config_lines,
+                  c.boot_history_raw,
+                  (SELECT COUNT(*) FROM device_logs dl WHERE dl.collection_id = c.id) AS log_count,
+                  (SELECT COUNT(*) FROM port_snapshots ps WHERE ps.collection_id = c.id) AS port_count,
+                  (SELECT COUNT(*) FROM neighbors n WHERE n.collection_id = c.id) AS neighbor_count,
+                  (SELECT COUNT(*) FROM config_changes cc WHERE cc.collection_id = c.id AND cc.has_changes = 1) AS change_count
+           FROM collections c
+           JOIN devices d ON c.device_id = d.id
+           WHERE d.name = ? AND c.week = ?
+           ORDER BY c.id DESC LIMIT 1""",
+        (safe_device_name, week),
+    ).fetchone()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="该周无采集记录")
+
+    available_types = ["running-config"]
+    if row["boot_history_raw"]:
+        available_types.append("boot-history")
+    if row["log_count"] > 0:
+        available_types.append("logs")
+    if row["port_count"] > 0:
+        available_types.append("port-status")
+    if row["neighbor_count"] > 0:
+        available_types.append("neighbors")
+    if row["change_count"] > 0:
+        available_types.append("config-changes")
+
+    return {
+        "device_name": safe_device_name,
+        "week": week,
+        "collected_at": row["collected_at"],
+        "available_types": available_types,
+        "metadata": {
+            "software_version": row["software_version"] or "",
+            "serial_number": row["serial_number"] or "",
+            "model": row["model"] or "",
+            "system_uptime_seconds": row["system_uptime_seconds"],
+            "running_config_lines": row["running_config_lines"] or 0,
+        },
+    }
+
+
+@router.get("/{device_name}/{week}/raw/{data_type}")
+async def get_raw_data(device_name: str, week: str, data_type: str):
+    """从 SQLite 获取指定类型的原始数据"""
+    if data_type not in ("running-config", "boot-history", "logs", "port-status", "neighbors", "config-changes"):
+        raise HTTPException(status_code=400, detail=f"不支持的数据类型：{data_type}")
+
+    safe_device_name = sanitize_device_name(device_name)
+    db = _get_db()
+    if not db:
+        raise HTTPException(status_code=404, detail="数据不存在")
+
+    # 获取 collection_id
+    coll = db.execute(
+        """SELECT c.id FROM collections c
+           JOIN devices d ON c.device_id = d.id
+           WHERE d.name = ? AND c.week = ?
+           ORDER BY c.id DESC LIMIT 1""",
+        (safe_device_name, week),
+    ).fetchone()
+
+    if not coll:
+        raise HTTPException(status_code=404, detail="该周无采集记录")
+
+    cid = coll["id"]
+
+    if data_type == "running-config":
+        row = db.execute(
+            "SELECT running_config FROM collections WHERE id = ?", (cid,)
+        ).fetchone()
+        content = row["running_config"] if row else ""
+
+    elif data_type == "boot-history":
+        row = db.execute(
+            "SELECT boot_history_raw FROM collections WHERE id = ?", (cid,)
+        ).fetchone()
+        content = row["boot_history_raw"] if row else ""
+        if not content:
+            raise HTTPException(status_code=404, detail="该设备该周无 boot-history 数据")
+
+    elif data_type == "logs":
+        rows = db.execute(
+            """SELECT log_timestamp, severity, facility, message
+               FROM device_logs
+               WHERE collection_id = ?
+               ORDER BY log_timestamp""",
+            (cid,),
+        ).fetchall()
+        if not rows:
+            raise HTTPException(status_code=404, detail="该设备该周无日志数据")
+        content = "\n".join(
+            f"{r['log_timestamp'] or '----'}  {r['severity'] or '-'}  {r['facility'] or '-'}  {r['message']}"
+            for r in rows
+        )
+
+    elif data_type == "port-status":
+        rows = db.execute(
+            """SELECT port_name, status, speed, mode, port_type, description,
+                      rx_mbps, tx_mbps, rx_util_pct, tx_util_pct
+               FROM port_snapshots
+               WHERE collection_id = ?
+               ORDER BY port_name""",
+            (cid,),
+        ).fetchall()
+        if not rows:
+            raise HTTPException(status_code=404, detail="该设备该周无端口数据")
+        header = f"{'Port':<16s} {'Status':<10s} {'Speed':<8s} {'Mode':<8s} {'Type':<8s} {'Rx Mbps':>8s} {'Tx Mbps':>8s} {'Rx%':>5s} {'Tx%':>5s}  Description"
+        lines = [header, "-" * len(header)]
+        for r in rows:
+            desc = (r["description"] or "")[:40]
+            lines.append(
+                f"{r['port_name']:<16s} {r['status']:<10s} {r['speed']:<8s} {r['mode']:<8s} "
+                f"{r['port_type'] or '':<8s} {r['rx_mbps'] or 0:>8.1f} {r['tx_mbps'] or 0:>8.1f} "
+                f"{r['rx_util_pct'] or 0:>5.0f} {r['tx_util_pct'] or 0:>5.0f}  {desc}"
+            )
+        content = "\n".join(lines)
+
+    elif data_type == "neighbors":
+        rows = db.execute(
+            """SELECT local_port, neighbor_name, neighbor_type, neighbor_platform,
+                      neighbor_desc, source
+               FROM neighbors
+               WHERE collection_id = ?
+               ORDER BY local_port""",
+            (cid,),
+        ).fetchall()
+        if not rows:
+            raise HTTPException(status_code=404, detail="该设备该周无邻居数据")
+        header = f"{'Local Port':<16s} {'Neighbor':<24s} {'Type':<12s} {'Platform':<10s} {'Source':<6s}  Description"
+        lines = [header, "-" * len(header)]
+        for r in rows:
+            desc = (r["neighbor_desc"] or "")[:40]
+            lines.append(
+                f"{r['local_port']:<16s} {r['neighbor_name']:<24s} {r['neighbor_type'] or '':<12s} "
+                f"{r['neighbor_platform'] or '':<10s} {r['source'] or '':<6s}  {desc}"
+            )
+        content = "\n".join(lines)
+
+    elif data_type == "config-changes":
+        row = db.execute(
+            """SELECT has_changes, added_lines, removed_lines, change_summary
+               FROM config_changes
+               WHERE collection_id = ?""",
+            (cid,),
+        ).fetchone()
+        if not row or not row["has_changes"]:
+            raise HTTPException(status_code=404, detail="该设备该周无配置变更")
+        lines = [
+            f"配置变更 — 新增 {row['added_lines']} 行，删除 {row['removed_lines']} 行",
+            "=" * 60,
+        ]
+        if row["change_summary"]:
+            import json
+            try:
+                changes = json.loads(row["change_summary"])
+                for i, group in enumerate(changes):
+                    group_type = group.get("type", "?")
+                    group_lines = group.get("lines", [])
+                    lines.append(f"\n[{i+1}] {group_type} ({len(group_lines)} 行):")
+                    lines.append("-" * 40)
+                    for line in group_lines:
+                        prefix = "+ " if group_type == "added" else "- "
+                        lines.append(f"{prefix}{line}")
+            except (json.JSONDecodeError, TypeError):
+                lines.append(row["change_summary"])
+        content = "\n".join(lines)
+
+    return {"type": data_type, "content": content}
+
+
 @router.get("/{device_name}/{week}/files")
 async def get_files_list(device_name: str, week: str):
     """获取文件列表 - 添加输入验证"""

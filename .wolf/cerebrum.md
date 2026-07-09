@@ -212,3 +212,14 @@
 - [2026-07-07] SQLite last_synced 为 ISO 8601 (`2026-07-07T13:45:43`)，前端显示时需正则提取转为 `MM/DD/YYYY HH:MM:SS`
 - [2026-07-07] Aruba VSF `extract_model` 从 `show system` 只提取一条 Product Name，但序列号有多个（从 `show vsf detail` 提取），导致前端只显示一个型号。修复：`extract_model` 后按 serial_number 数量补齐型号
 - [2026-07-07] 批量收集进度条最终方案：每个设备 SSE 推送实时 progress% → `onDeviceProgress` 回调父组件更新 `BatchItemStatus.progress` → `overallPct = sum(progress) / totalCount`，按步骤平滑推进，不再依赖设备完成事件
+
+- [2026-07-09] `device_dal._extract_fields()` 返回 10 个字段但 INSERT 需要 11 个（遗漏 `name`），导致添加设备时 SQLite `ProgrammingError: Incorrect number of bindings supplied` → HTTP 500。`update_device` 不受影响（手动追加了 name）。修复：`(data["name"], *_extract_fields(data))`
+- [2026-07-09] 配置查看器 SQLite 数据流：`GET /api/data/{device}/{week}/collection` → 返回 `available_types` + `metadata`；`GET /api/data/{device}/{week}/raw/{type}` → 返回格式化文本。6 种数据类型：running-config、boot-history、logs、port-status、neighbors、config-changes
+- [2026-07-09] 端口状态格式化输出：固定列宽文本表格（Port/Status/Speed/Mode/Type/Rx Mbps/Tx Mbps/Rx%/Tx%/Description），`ORDER BY port_name`
+- [2026-07-09] 邻居列表格式化输出：固定列宽文本表格（Local Port/Neighbor/Type/Platform/Source/Description），`ORDER BY local_port`
+- [2026-07-09] 配置变更格式化输出：汇总行（新增/删除行数） + 分组列出具体变更内容（`change_summary` JSON 数组），按组标注 `+ ` / `- ` 前缀
+- [2026-07-09] 版本号方案：大版本 2，小版本用日期 `2.M.D`（如 7 月 9 日 = 2.7.9）。涉及文件：VERSION（API 动态读取）、start.bat（banner）、frontend/package.json
+
+## User Preferences
+- [2026-07-09] 数据类型按钮组：仅显示实际存在数据的类型（动态渲染），不用灰掉/隐藏不可用的按钮
+- [2026-07-09] 页面布局偏好紧凑：关联控件同行排列（周下拉 + 数据类型按钮同行），下拉宽度适当减半不撑满

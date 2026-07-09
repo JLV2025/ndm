@@ -286,6 +286,15 @@ const zh: Record<string, string> = {
   'viewer.selectHint': '选择 Location 和设备后查看配置历史',
   'viewer.deviceLabel': '设备:',
   'viewer.fileLabel': '文件',
+  'viewer.dataTypeLabel': '数据类型',
+  'viewer.copyButton': '复制到剪贴板',
+  'viewer.copied': '已复制',
+  'viewer.dataTypes.running-config': 'Running Config',
+  'viewer.dataTypes.boot-history': 'Boot History',
+  'viewer.dataTypes.logs': '日志',
+  'viewer.dataTypes.port-status': '端口状态',
+  'viewer.dataTypes.neighbors': '邻居列表',
+  'viewer.dataTypes.config-changes': '配置变更',
 
   // 拓扑图
   'topology.title': '设备端口连接图',

@@ -61,7 +61,7 @@ def create_device(data: dict) -> int:
                                 serial_number, model, version,
                                 uplink_ports, username)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        _extract_fields(data),
+        (data["name"], *_extract_fields(data)),
     ).lastrowid
     conn.commit()
     return row

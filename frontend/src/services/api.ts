@@ -92,6 +92,10 @@ export const dataApi = {
     apiJson.get(`/data/${deviceName}/${week}/files`),
   getDeviceWeeks: (deviceName: string) =>
     apiJson.get(`/data/${deviceName}/weeks`),
+  getCollection: (deviceName: string, week: string) =>
+    apiJson.get(`/data/${deviceName}/${week}/collection`),
+  getRawData: (deviceName: string, week: string, dataType: string) =>
+    apiJson.get(`/data/${deviceName}/${week}/raw/${dataType}`),
 }
 
 // 认证 - 使用 fetch 发送 FormData

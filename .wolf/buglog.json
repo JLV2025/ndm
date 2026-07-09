@@ -8233,6 +8233,119 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-07T09:23:30.567Z"
+    },
+    {
+      "id": "bug-017",
+      "timestamp": "2026-07-09T09:38:26.539218",
+      "error_message": "添加新设备时返回 HTTP 500 Internal Server Error",
+      "file": "backend/storage/device_dal.py",
+      "root_cause": "_extract_fields() 返回 10 个字段，遗漏了 name，导致 INSERT 参数数量不匹配（11 占位符 vs 10 绑定值）。sqlite3 抛出 ProgrammingError。",
+      "fix": "在 create_device 调用 _extract_fields 时补上 data[name]",
+      "tags": [
+        "500",
+        "SQLite",
+        "设备管理",
+        "参数绑定错误"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-09T09:38:26.539259"
+    },
+    {
+      "id": "bug-516",
+      "timestamp": "2026-07-09T05:53:13.266Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 7→8 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-09T05:53:13.266Z"
+    },
+    {
+      "id": "bug-517",
+      "timestamp": "2026-07-09T05:53:48.469Z",
+      "error_message": "CSS fix: res",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "res: AxiosResponse<{ files: string[] → AxiosResponse<{ content: string",
+      "fix": "Changed res: AxiosResponse<{ files: string[] → AxiosResponse<{ content: string",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-09T05:53:48.469Z"
+    },
+    {
+      "id": "bug-518",
+      "timestamp": "2026-07-09T05:54:55.895Z",
+      "error_message": "Missing await",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-09T05:54:55.895Z"
+    },
+    {
+      "id": "bug-519",
+      "timestamp": "2026-07-09T05:55:41.017Z",
+      "error_message": "Type error",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-09T05:55:41.017Z"
+    },
+    {
+      "id": "bug-520",
+      "timestamp": "2026-07-09T06:24:17.358Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/api/data.py",
+      "root_cause": "Had \"不支持的数据类型：{data_type}\"",
+      "fix": "Changed to \"port-status\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-09T06:24:17.358Z"
+    },
+    {
+      "id": "bug-521",
+      "timestamp": "2026-07-09T06:35:22.125Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/package.json",
+      "root_cause": "Had \"1.0.0\"",
+      "fix": "Changed to \"2.7.9\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-09T06:35:22.125Z"
     }
   ]
 }

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-07T09:23:30.502Z
-> Files: 46 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-09T06:36:09.707Z
+> Files: 48 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -78,6 +78,7 @@
 ## C:/Users/jingl/.claude/plans/
 
 - `1-windows-ai-witty-fox.md` — 日志分析页面改版计划 (~1132 tok)
+- `no-no-no-sqlite-running-config-raw-runni-twinkly-sutherland.md` — 配置查看器重构：SQLite 数据源 + 直接显示 + 复制按钮 (~801 tok)
 - `soft-dazzling-orbit.md` — 计划：设备管理 YAML → SQLite 统一迁移 (~806 tok)
 
 ## agents/
@@ -98,7 +99,7 @@
 - `alerts.py` — 告警 API 路由 (~1603 tok)
 - `auth.py` — 认证 API 路由 (~863 tok)
 - `collector.py` — 配置收集 API 路由 (~1590 tok)
-- `data.py` — 数据文件 API 路由 (~1704 tok)
+- `data.py` — 数据文件 API 路由 (~3884 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~2664 tok)
 - `logs.py` — 日志分析 API 路由 (~2560 tok)
 - `reports.py` — 自定义报告 API 路由 (~1780 tok)
@@ -124,7 +125,7 @@
 ## backend/storage/
 
 - `database.py` — init_db, get_connection, close_connection (~3997 tok)
-- `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~1696 tok)
+- `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~1701 tok)
 
 ## backend/tests/
 
@@ -146,6 +147,7 @@
 
 ## frontend/
 
+- `package.json` — Node.js package manifest (~421 tok)
 - `vite.config.ts` (~239 tok)
 
 ## frontend/src/
@@ -167,8 +169,8 @@
 
 ## frontend/src/i18n/
 
-- `en.ts` — en: location (~4454 tok)
-- `zh.ts` — Declares zh (~3818 tok)
+- `en.ts` — Declares en (~4573 tok)
+- `zh.ts` — Declares zh (~3923 tok)
 
 ## frontend/src/pages/
 
@@ -177,11 +179,11 @@
 - `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~4166 tok)
 - `LogAnalyzer.tsx` — 严重级别 → 颜色 (数字→hex) (~8010 tok)
 - `Reports.tsx` — ReportsPage — renders form, table (~2500 tok)
-- `Viewer.tsx` — 语义颜色常量 — 对应 MUI OLED Dark 主题 (~8228 tok)
+- `Viewer.tsx` — 语义颜色常量 — 对应 MUI OLED Dark 主题 (~6450 tok)
 
 ## frontend/src/services/
 
-- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vdx 文件 Blob (~1847 tok)
+- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vdx 文件 Blob (~1853 tok)
 
 ## frontend/src/shared/
 

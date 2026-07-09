@@ -284,6 +284,15 @@ const en: Record<string, string> = {
   'viewer.selectHint': 'Select a Location and Device to view configuration history',
   'viewer.deviceLabel': 'Device:',
   'viewer.fileLabel': 'File',
+  'viewer.dataTypeLabel': 'Data Type',
+  'viewer.copyButton': 'Copy to Clipboard',
+  'viewer.copied': 'Copied',
+  'viewer.dataTypes.running-config': 'Running Config',
+  'viewer.dataTypes.boot-history': 'Boot History',
+  'viewer.dataTypes.logs': 'Device Logs',
+  'viewer.dataTypes.port-status': 'Port Status',
+  'viewer.dataTypes.neighbors': 'Neighbors',
+  'viewer.dataTypes.config-changes': 'Config Changes',
 
   // Topology
   'topology.title': 'Port Connection Topology',
