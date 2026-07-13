@@ -7,11 +7,11 @@ interface BatchCollectionPanelProps {
   running: boolean
   statuses: Record<string, BatchItemStatus>
   devices: Device[]
-  /** 由父组件更新设备的实时进度（0-100） */
-  onDeviceProgress?: (name: string, pct: number) => void
+  /** 由父组件更新设备的实时进度（0-100）+ 步骤信息 */
+  onDeviceProgress?: (name: string, pct: number, cmdDone: number, totalCmds: number) => void
 }
 
-/** 单个活跃设备的进度行 —— 通过 SSE 实时获取后端推送的步骤 */
+/** 单个活跃设备的进度行 —— 通过轮询获取后端实时步骤 */
 function ActiveDeviceRow({
   name,
   ip,
@@ -21,48 +21,54 @@ function ActiveDeviceRow({
   name: string
   ip: string
   polling: boolean
-  onProgress?: (pct: number) => void
+  onProgress?: (pct: number, cmdDone: number, totalCmds: number) => void
 }) {
   const { t } = useI18n()
   const [step, setStep] = useState('')
   const [progressPct, setProgressPct] = useState(0)
   const seenActiveRef = useRef(false)
+  const completedRef = useRef(false)
   const onProgressRef = useRef(onProgress)
   onProgressRef.current = onProgress
 
   useEffect(() => {
     if (!polling) return
 
-    const es = new EventSource(`/api/collect/progress/stream/${name}`)
+    seenActiveRef.current = false
+    completedRef.current = false
 
-    es.onmessage = (e) => {
+    const poll = async () => {
+      if (completedRef.current) return
       try {
-        const data = JSON.parse(e.data)
+        const res = await fetch(`/api/collect/progress/${name}`)
+        const data = await res.json()
         const s: string = data.step || ''
         const pct: number = data.progress ?? 0
+        const cd: number = data.cmd_done ?? 0
+        const tc: number = data.total_cmds ?? 0
+
         if (s === 'complete') {
-          onProgressRef.current?.(100)
-          es.close()
+          completedRef.current = true
+          setProgressPct(100)
+          onProgressRef.current?.(100, cd || tc, tc) // 完成后全部计满
         } else if (s === 'failed') {
-          onProgressRef.current?.(100)
-          es.close()
+          completedRef.current = true
+          setProgressPct(100)
+          onProgressRef.current?.(100, cd, tc)
         } else if (s && s !== 'idle') {
           seenActiveRef.current = true
           setStep(s)
           setProgressPct(pct)
-          onProgressRef.current?.(pct)
+          onProgressRef.current?.(pct, cd, tc)
         }
-      } catch { /* ignore */ }
+      } catch { /* 网络抖动忽略 */ }
     }
 
-    es.onerror = () => {
-      if (seenActiveRef.current) {
-        es.close()
-      }
-    }
+    poll() // 立即查一次
+    const id = setInterval(poll, 800)
 
     return () => {
-      es.close()
+      clearInterval(id)
     }
   }, [name, polling])
 
@@ -110,21 +116,28 @@ const BatchCollectionPanel: React.FC<BatchCollectionPanelProps> = React.memo(
       ([, s]) => s.status === 'success' || s.status === 'failed'
     )
 
-    // 总进度 = 所有设备进度的平均值
-    // success/failed → 100%, pending → 0%, pinging/collecting → SSE 推送的实时值
+    // 总进度 = 按所有设备的步骤数加权计算
+    // success/failed → 该设备 totalCmds 步全部完成
+    // pending → 只计入总步骤数，完成 0 步
+    // pinging/collecting → cmdDone 步完成，totalCmds 步总计
     const overallPct = useMemo(() => {
       if (totalCount === 0) return 0
-      let sum = 0
+      let totalStepsDone = 0
+      let totalStepsAll = 0
       for (const s of Object.values(statuses)) {
+        const tc = s.totalCmds || 0
+        const cd = s.cmdDone || 0
         if (s.status === 'success' || s.status === 'failed') {
-          sum += 100
+          totalStepsDone += tc || 8
+          totalStepsAll += tc || 8
         } else if (s.status === 'pending') {
-          sum += 0
+          totalStepsAll += tc || 8
         } else {
-          sum += s.progress ?? 0
+          totalStepsDone += cd
+          totalStepsAll += tc || 8
         }
       }
-      return sum / totalCount
+      return totalStepsAll > 0 ? (totalStepsDone / totalStepsAll) * 100 : 0
     }, [statuses, totalCount])
 
     return (
@@ -146,7 +159,7 @@ const BatchCollectionPanel: React.FC<BatchCollectionPanelProps> = React.memo(
                     name={name}
                     ip={dev?.ip || ''}
                     polling={running}
-                    onProgress={(pct) => onDeviceProgress?.(name, pct)}
+                    onProgress={(pct, cd, tc) => onDeviceProgress?.(name, pct, cd, tc)}
                   />
                 )
               })

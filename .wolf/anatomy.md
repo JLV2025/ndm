@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-09T06:36:09.707Z
-> Files: 48 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-13T07:09:44.997Z
+> Files: 52 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -47,7 +47,8 @@
 - `.gitignore` — Git ignore rules (~317 tok)
 - `README_EN.md` — NDM — Network Device Manager (~1953 tok)
 - `README.md` — Project documentation (~1410 tok)
-- `start.bat` (~1018 tok)
+- `start.bat` (~1019 tok)
+- `VERSION` (~2 tok)
 
 ## .claude/
 
@@ -78,6 +79,7 @@
 ## C:/Users/jingl/.claude/plans/
 
 - `1-windows-ai-witty-fox.md` — 日志分析页面改版计划 (~1132 tok)
+- `bug-zgn-0-tingly-haven.md` — 修复 ConfigParser 无法识别 GTS 服务器和自定义设备名 (~648 tok)
 - `no-no-no-sqlite-running-config-raw-runni-twinkly-sutherland.md` — 配置查看器重构：SQLite 数据源 + 直接显示 + 复制按钮 (~801 tok)
 - `soft-dazzling-orbit.md` — 计划：设备管理 YAML → SQLite 统一迁移 (~806 tok)
 
@@ -92,13 +94,14 @@
 ## backend/analyzers/
 
 - `change_detector.py` — ChangeDetector: detect (~1181 tok)
+- `config_parser.py` — class: parse (~2402 tok)
 - `role_verifier.py` — class: devices, device_map, verify_device, audit_location (~3408 tok)
 
 ## backend/api/
 
 - `alerts.py` — 告警 API 路由 (~1603 tok)
 - `auth.py` — 认证 API 路由 (~863 tok)
-- `collector.py` — 配置收集 API 路由 (~1590 tok)
+- `collector.py` — 配置收集 API 路由 (~1654 tok)
 - `data.py` — 数据文件 API 路由 (~3884 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~2664 tok)
 - `logs.py` — 日志分析 API 路由 (~2560 tok)
@@ -160,7 +163,7 @@
 
 ## frontend/src/components/devices/
 
-- `BatchCollectionPanel.tsx` — 由父组件更新设备的实时进度（0-100） (~1784 tok)
+- `BatchCollectionPanel.tsx` — 由父组件更新设备的实时进度（0-100） (~1903 tok)
 - `CollectionProgress.tsx` — CollectionProgress (~964 tok)
 - `DeviceTable.tsx` — DeviceTable — renders table (~2494 tok)
 
@@ -176,7 +179,7 @@
 
 - `Alerts.tsx` — 字段中文标签映射 (~4026 tok)
 - `Dashboard.tsx` — DevicesLink (~10054 tok)
-- `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~4166 tok)
+- `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~4189 tok)
 - `LogAnalyzer.tsx` — 严重级别 → 颜色 (数字→hex) (~8010 tok)
 - `Reports.tsx` — ReportsPage — renders form, table (~2500 tok)
 - `Viewer.tsx` — 语义颜色常量 — 对应 MUI OLED Dark 主题 (~6450 tok)
@@ -187,6 +190,7 @@
 
 ## frontend/src/shared/
 
+- `constants.ts` — 全局共享常量 — 设备颜色、图例、端点前缀 (~1384 tok)
 
 ## frontend/src/test/
 

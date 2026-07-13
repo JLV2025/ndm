@@ -35,7 +35,8 @@ def get_collection_progress(device_name: str) -> Dict | None:
         return _collection_progress.get(device_name)
 
 
-def _set_progress(device_name: str, step: str, error: str = "", progress: float = 0):
+def _set_progress(device_name: str, step: str, error: str = "", progress: float = 0,
+                  cmd_done: int = 0, total_cmds: int = 0):
     """设置设备收集进度（线程安全）
 
     Args:
@@ -43,6 +44,8 @@ def _set_progress(device_name: str, step: str, error: str = "", progress: float 
         step: 当前步骤标识 (connecting / collecting / analyzing / saving / complete / failed)
         error: 错误信息
         progress: 当前步骤进度百分比 (0~100)
+        cmd_done: 已完成的命令数
+        total_cmds: 总命令数
     """
     with _progress_lock:
         _collection_progress[device_name] = {
@@ -50,6 +53,8 @@ def _set_progress(device_name: str, step: str, error: str = "", progress: float 
             "started_at": datetime.now().isoformat(),
             "error": error,
             "progress": progress,
+            "cmd_done": cmd_done,
+            "total_cmds": total_cmds,
         }
 
 
@@ -475,12 +480,12 @@ def collect_device(
         nonlocal cmd_done
         cmd_done += 1
         pct = cmd_done / total_cmds * 100
-        _set_progress(device_name, "collecting", progress=pct)
+        _set_progress(device_name, "collecting", progress=pct, cmd_done=cmd_done, total_cmds=total_cmds)
         if label:
             print(f"[收集进度] {label}: {cmd_done}/{total_cmds} ({pct:.0f}%)")
 
     # Step 1: Ping 可达性检测（含 TCP/22 回退）
-    _set_progress(device_name, "ping", progress=0)
+    _set_progress(device_name, "ping", progress=0, cmd_done=0, total_cmds=total_cmds)
     import subprocess as _sp
     import platform as _pf
     import socket as _sock
@@ -490,10 +495,10 @@ def collect_device(
     try:
         ping_result = _sp.run(ping_cmd, capture_output=True, text=True, timeout=5)
     except _sp.TimeoutExpired:
-        _set_progress(device_name, "failed", f"Ping 超时（{device_ip}）")
+        _set_progress(device_name, "failed", f"Ping 超时（{device_ip}）", cmd_done=0, total_cmds=total_cmds)
         return {"name": device_name, "ip": device_ip, "status": "failed", "error": f"Ping 超时（{device_ip}）"}
     except Exception as e:
-        _set_progress(device_name, "failed", f"Ping 异常: {e}")
+        _set_progress(device_name, "failed", f"Ping 异常: {e}", cmd_done=0, total_cmds=total_cmds)
         return {"name": device_name, "ip": device_ip, "status": "failed", "error": str(e)}
 
     if ping_result.returncode != 0:
@@ -504,13 +509,13 @@ def collect_device(
             tcp_result = sock.connect_ex((device_ip, 22))
             sock.close()
             if tcp_result != 0:
-                _set_progress(device_name, "failed", f"设备不可达（Ping {device_ip} 失败）")
+                _set_progress(device_name, "failed", f"设备不可达（Ping {device_ip} 失败）", cmd_done=0, total_cmds=total_cmds)
                 return {
                     "name": device_name, "ip": device_ip,
                     "status": "failed", "error": f"设备不可达（Ping {device_ip} 失败）"
                 }
         except (_sock.timeout, ConnectionRefusedError, OSError):
-            _set_progress(device_name, "failed", f"设备不可达（Ping {device_ip} 失败）")
+            _set_progress(device_name, "failed", f"设备不可达（Ping {device_ip} 失败）", cmd_done=0, total_cmds=total_cmds)
             return {
                 "name": device_name, "ip": device_ip,
                 "status": "failed", "error": f"设备不可达（Ping {device_ip} 失败）"
@@ -519,7 +524,7 @@ def collect_device(
 
     # 保持 ping 步骤的进度，不重置为 0
     current_pct = cmd_done / total_cmds * 100
-    _set_progress(device_name, "connecting", progress=current_pct)
+    _set_progress(device_name, "connecting", progress=current_pct, cmd_done=cmd_done, total_cmds=total_cmds)
 
     conn = _get_device_connection()({
         "name": device_name,
@@ -533,7 +538,7 @@ def collect_device(
     if not conn.connect(username, password):
         error_msg = getattr(conn, '_last_error', '') or 'SSH 连接失败'
         print(f"[收集失败] 连接失败: {error_msg}")
-        _set_progress(device_name, "failed", error_msg)
+        _set_progress(device_name, "failed", error_msg, cmd_done=cmd_done, total_cmds=total_cmds)
         return {
             "name": device_name,
             "ip": device_ip,
@@ -669,7 +674,9 @@ def collect_device(
             pass
 
         # 运行分析
-        _set_progress(device_name, "analyzing")
+        # 保持当前命令完成进度，不重置为 0
+        analyzing_pct = cmd_done / total_cmds * 100
+        _set_progress(device_name, "analyzing", progress=analyzing_pct, cmd_done=cmd_done, total_cmds=total_cmds)
         if settings.get("analysis", {}).get("enable_config_validation", True):
             validator = ConfigValidator(running_config)
             validation_results = json.dumps(validator.validate(), indent=2, ensure_ascii=False)
@@ -697,7 +704,8 @@ def collect_device(
             change_results = "{}"
 
         # 保存数据
-        _set_progress(device_name, "saving")
+        saving_pct = cmd_done / total_cmds * 100
+        _set_progress(device_name, "saving", progress=saving_pct, cmd_done=cmd_done, total_cmds=total_cmds)
         week = get_week_dir(data_root)
         _save_data(
             device_name, device_ip, effective_type,
@@ -712,7 +720,7 @@ def collect_device(
             platform=device_platform,
         )
 
-        _set_progress(device_name, "complete")
+        _set_progress(device_name, "complete", progress=100, cmd_done=total_cmds, total_cmds=total_cmds)
         # 延迟清除，给前端轮询窗口读取 "complete" 状态
         import time
         time.sleep(0.5)
@@ -733,7 +741,7 @@ def collect_device(
     except Exception as e:
         print(f"[收集异常] {e}")
         traceback.print_exc()
-        _set_progress(device_name, "failed", str(e))
+        _set_progress(device_name, "failed", str(e), cmd_done=cmd_done, total_cmds=total_cmds)
         return {
             "name": device_name,
             "ip": device_ip,

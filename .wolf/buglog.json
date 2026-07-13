@@ -8346,6 +8346,126 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-09T06:35:22.125Z"
+    },
+    {
+      "id": "bug-522",
+      "timestamp": "2026-07-13T02:05:03.116Z",
+      "error_message": "Missing await",
+      "file": "frontend/src/components/devices/BatchCollectionPanel.tsx",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T02:05:03.116Z"
+    },
+    {
+      "id": "bug-523",
+      "timestamp": "2026-07-13T10:00:00.000Z",
+      "error_message": "批量收集进度条不动：SSE EventSource 在 Vite 代理下无法接收实时事件",
+      "file": "frontend/src/components/devices/BatchCollectionPanel.tsx",
+      "root_cause": "ActiveDeviceRow 使用 EventSource (SSE) 连接后端获取进度，Vite http-proxy 代理可能缓冲流式响应导致 onmessage 永远不触发，三个进度条都停留在 0%",
+      "fix": "将 ActiveDeviceRow 从 SSE 改为轮询（setInterval + fetch），每 800ms 请求一次 /api/collect/progress/{name}；同时补全后端轮询端点缺少的 progress 字段",
+      "tags": [
+        "前端",
+        "进度条",
+        "SSE",
+        "Vite代理",
+        "批量收集"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13"
+    },
+    {
+      "id": "bug-524",
+      "timestamp": "2026-07-13T04:39:16.800Z",
+      "error_message": "Wrong return value",
+      "file": "backend/api/collector.py",
+      "root_cause": "Was returning: {\"step\": \"idle\", \"error\": \"\"}",
+      "fix": "Now returns: {\"step\": \"idle\", \"error\": \"\", \"progress\": 0, \"cmd_",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T04:39:16.800Z"
+    },
+    {
+      "id": "bug-525",
+      "timestamp": "2026-07-13T05:15:53.023Z",
+      "error_message": "CSS fix: progress",
+      "file": "frontend/src/pages/DeviceList.tsx",
+      "root_cause": "progress: pct → pct, cmdDone, totalCmds",
+      "fix": "Changed progress: pct → pct, cmdDone, totalCmds",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T05:15:53.023Z"
+    },
+    {
+      "id": "bug-526",
+      "timestamp": "2026-07-13T07:30:00.000Z",
+      "error_message": "批量收集进度条不动：SSE EventSource 不触发 + 状态转换丢失 progress 字段 + 总进度与单设备进度同步",
+      "file": "frontend/src/components/devices/BatchCollectionPanel.tsx, frontend/src/pages/DeviceList.tsx, backend/services/collector_service.py, backend/api/collector.py",
+      "root_cause": "1) SSE 通过 Vite 代理时流式响应被缓冲，onmessage 不触发；2) worker 中 setBatchStatus({status:'collecting'}) 用新对象覆盖丢失 progress；3) _set_progress('analyzing'/'saving') 默认 progress=0 导致进度回退；4) overallPct 简单平均导致多设备并发时总进度与单设备同步",
+      "fix": "SSE 改 800ms 轮询；状态转换改为 spread prev[name] 保留字段；analyzing/saving 步骤传入当前 pct；总进度改为步骤加权计算 (sum cmdDone / sum totalCmds)；_set_progress 扩展 cmd_done/total_cmds 字段；polling 端点补全字段",
+      "tags": [
+        "批量收集",
+        "进度条",
+        "SSE",
+        "轮询",
+        "状态管理"
+      ],
+      "related_bugs": [
+        "bug-523"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T07:30:00.000Z"
+    },
+    {
+      "id": "bug-527",
+      "timestamp": "2026-07-13T07:45:00.000Z",
+      "error_message": "拓扑图中缺失 GTS 服务器和 UC3200 存储设备 — PEKD1SWI01 邻居发现不全",
+      "file": "backend/analyzers/config_parser.py",
+      "root_cause": "DEVICE_FROM_DESC_RE 严格白名单 (SWI|RTW|FWL|WLC|SDW|QIS) 不包含 ESX/SRV，GTS 格式 (GTSPEKESX01) 和自定义设备名 (UC3200-A-MGT) 无法匹配 → _extract_device_from_desc 返回 None → 被 collector_service 两层过滤丢弃",
+      "fix": "新增两条规则：Rule 1.5a GTS 服务器正则 (GTS\\w{3}(?:ESX|SRV)\\d*)；Rule 2.5 通用 DEVICE-PURPOSE 回退 (如 UC3200-A-MGT → UC3200-A)，过滤纯通用词 (NAS/AP/PC/UPS 等)",
+      "tags": [
+        "邻居发现",
+        "GTS服务器",
+        "ConfigParser",
+        "正则",
+        "白名单"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T07:45:00.000Z"
+    },
+    {
+      "id": "bug-528",
+      "timestamp": "2026-07-13T07:09:45.048Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/package.json",
+      "root_cause": "Had \"2.7.9\"",
+      "fix": "Changed to \"2.7.13\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-13T07:09:45.048Z"
     }
   ]
 }

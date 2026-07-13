@@ -220,6 +220,11 @@
 - [2026-07-09] 配置变更格式化输出：汇总行（新增/删除行数） + 分组列出具体变更内容（`change_summary` JSON 数组），按组标注 `+ ` / `- ` 前缀
 - [2026-07-09] 版本号方案：大版本 2，小版本用日期 `2.M.D`（如 7 月 9 日 = 2.7.9）。涉及文件：VERSION（API 动态读取）、start.bat（banner）、frontend/package.json
 
+- [2026-07-13] 批量收集进度条：SSE EventSource 在 Vite 代理下不可靠（http-proxy 缓冲流式响应，onmessage 不触发），改用 800ms 轮询 `GET /progress/{name}` 更稳定
+- [2026-07-13] `setBatchStatus` 状态转换必须 spread `prev[name]` 保留已有字段（progress/cmdDone/totalCmds），否则 `{status:'collecting'}` 覆盖掉轮询写入的数据
+- [2026-07-13] `_set_progress('analyzing'/'saving')` 必须传入当前 `progress=current_pct`，不能依赖默认 `progress=0`，否则进度条会明显回退
+- [2026-07-13] 总进度条与单设备进度条不应同步：总进度应按步骤数加权 (`sum cmdDone / sum totalCmds`)，不是简单平均设备百分比
+
 ## User Preferences
 - [2026-07-09] 数据类型按钮组：仅显示实际存在数据的类型（动态渲染），不用灰掉/隐藏不可用的按钮
 - [2026-07-09] 页面布局偏好紧凑：关联控件同行排列（周下拉 + 数据类型按钮同行），下拉宽度适当减半不撑满

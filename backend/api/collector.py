@@ -21,8 +21,14 @@ async def get_collect_progress(device_name: str) -> dict:
     from services.collector_service import get_collection_progress
     progress = get_collection_progress(device_name)
     if progress is None:
-        return {"step": "idle", "error": ""}
-    return {"step": progress.get("step", "unknown"), "error": progress.get("error", "")}
+        return {"step": "idle", "error": "", "progress": 0, "cmd_done": 0, "total_cmds": 0}
+    return {
+        "step": progress.get("step", "unknown"),
+        "error": progress.get("error", ""),
+        "progress": progress.get("progress", 0),
+        "cmd_done": progress.get("cmd_done", 0),
+        "total_cmds": progress.get("total_cmds", 0),
+    }
 
 
 @router.get("/progress/stream/{device_name}")

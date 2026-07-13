@@ -184,7 +184,7 @@ const DeviceList: React.FC = () => {
     /** 单个设备的完整收集流程（Ping → Collect） */
     const worker = async (deviceName: string) => {
       // Ping 预检
-      setBatchStatus(prev => ({ ...prev, [deviceName]: { status: 'pinging' } }))
+      setBatchStatus(prev => ({ ...prev, [deviceName]: { ...prev[deviceName], status: 'pinging' } }))
       try {
         const pingResult = await collectorApi.ping(deviceName)
         if (!pingResult.reachable) {
@@ -203,7 +203,7 @@ const DeviceList: React.FC = () => {
       }
 
       // SSH 收集
-      setBatchStatus(prev => ({ ...prev, [deviceName]: { status: 'collecting' } }))
+      setBatchStatus(prev => ({ ...prev, [deviceName]: { ...prev[deviceName], status: 'collecting' } }))
       try {
         const data = await collectorApi.collect(deviceName, session.username, session.password)
         setBatchStatus(prev => ({
@@ -334,11 +334,11 @@ const DeviceList: React.FC = () => {
           running={batchRunning}
           statuses={batchStatus}
           devices={devices}
-          onDeviceProgress={(name, pct) => {
+          onDeviceProgress={(name, pct, cmdDone, totalCmds) => {
             setBatchStatus(prev => {
               const cur = prev[name]
               if (!cur || cur.status === 'success' || cur.status === 'failed') return prev
-              return { ...prev, [name]: { ...cur, progress: pct } }
+              return { ...prev, [name]: { ...cur, progress: pct, cmdDone, totalCmds } }
             })
           }}
         />

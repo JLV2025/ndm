@@ -115,5 +115,5 @@ export const ENDPOINT_PREFIXES = [
 /** 后端 device_type → 端点聚合标签（config_parser 的端点名不以 "AP" 等前缀开头时用） */
 export const ENDPOINT_TYPE_MAP: Record<string, string> = {
   'Phone': '电话', 'Printer': '打印机', 'AP': '无线AP',
-  'Laptop': '笔记本', 'Internet': '互联网',
+  'Laptop': '笔记本', 'Internet': '互联网', 'ISP': 'ISP',
 }

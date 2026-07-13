@@ -34,7 +34,9 @@ export interface BatchItemStatus {
   status: 'pending' | 'pinging' | 'collecting' | 'success' | 'failed'
   error?: string
   result?: Record<string, unknown>
-  progress?: number  // 0-100，由 SSE 实时推送
+  progress?: number  // 0-100，由轮询实时更新
+  cmdDone?: number   // 已完成的命令数
+  totalCmds?: number // 总命令数
 }
 
 export interface Session {

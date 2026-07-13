@@ -181,12 +181,22 @@ class ConfigParser:
                 'is_endpoint': True,
             }
 
-        # Internet 关键词
+        # Internet 关键词 → ISP 类型
         if re.search(r'\bInternet\b', desc, re.IGNORECASE):
             return {
                 'device_name': desc,
-                'device_type': 'Internet',
+                'device_type': 'ISP',
                 'is_endpoint': True,
+            }
+
+        # === Rule 1.5a: GTS 服务器识别 — GTS + 3位site + ESX/SRV + 可选编号 ===
+        # 例: GTSPEKESX01, GTSPEKSRV
+        gts_match = re.search(r'\b(GTS\w{3}(?:ESX|SRV)\d*)\b', desc)
+        if gts_match:
+            return {
+                'device_name': gts_match.group(1),
+                'device_type': 'server',
+                'is_endpoint': False,
             }
 
         # === Rule 2: 网络设备识别 — [SITE 3位][ROOM 2位][TYPE 3位][NUM 2位] ===
@@ -209,6 +219,22 @@ class ConfigParser:
                 'device_number': dev_num,
                 'is_endpoint': False,
             }
+
+        # === Rule 2.5: 通用设备名回退 — DEVICE-PURPOSE 模式 ===
+        # 例: UC3200-A-MGT → UC3200-A, Synology-RS1221-LAN → Synology-RS1221
+        gen_match = re.match(
+            r'^([A-Za-z0-9][A-Za-z0-9._-]{2,40})-(?:MGT|MGMT|LAN|WAN|iSCSI|iLO|VM|Vm\d*|DATA|CTRL|NIC|LAG)',
+            desc
+        )
+        if gen_match:
+            dev_name = gen_match.group(1)
+            generic_words = {'NAS', 'AP', 'PC', 'UPS', 'PRINTER', 'IP-PHONE', 'CAMERA'}
+            if dev_name.upper() not in generic_words:
+                return {
+                    'device_name': dev_name,
+                    'device_type': 'server',
+                    'is_endpoint': False,
+                }
 
         # 无法识别
         return None
