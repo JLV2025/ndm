@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-13T07:09:44.997Z
-> Files: 52 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-21T09:20:27.448Z
+> Files: 60 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -42,6 +42,10 @@
 ## ../../downloads/claude-fable-5-system-prompt-main/system-prompt/analysis/
 
 
+## ../../temp/
+
+- `gen_vsdx_tests.py` — 生成多个 VSDX 变体用于对比诊断 (~3267 tok)
+
 ## ./
 
 - `.gitignore` — Git ignore rules (~317 tok)
@@ -81,7 +85,9 @@
 - `1-windows-ai-witty-fox.md` — 日志分析页面改版计划 (~1132 tok)
 - `bug-zgn-0-tingly-haven.md` — 修复 ConfigParser 无法识别 GTS 服务器和自定义设备名 (~648 tok)
 - `no-no-no-sqlite-running-config-raw-runni-twinkly-sutherland.md` — 配置查看器重构：SQLite 数据源 + 直接显示 + 复制按钮 (~801 tok)
+- `parallel-stargazing-rocket.md` — 拓扑图 PNG 导出浅色主题 (~543 tok)
 - `soft-dazzling-orbit.md` — 计划：设备管理 YAML → SQLite 统一迁移 (~806 tok)
+- `vdx-visio-velvety-pillow.md` — VSDX Visio 导出修复计划 (~1241 tok)
 
 ## agents/
 
@@ -103,11 +109,12 @@
 - `auth.py` — 认证 API 路由 (~863 tok)
 - `collector.py` — 配置收集 API 路由 (~1654 tok)
 - `data.py` — 数据文件 API 路由 (~3884 tok)
-- `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~2664 tok)
+- `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~2818 tok)
 - `logs.py` — 日志分析 API 路由 (~2560 tok)
 - `reports.py` — 自定义报告 API 路由 (~1780 tok)
 - `stats.py` — Dashboard 统计 API — 全量从 SQLite 读取 (~1839 tok)
-- `topology.py` — 拓扑图 API 路由 (~9461 tok)
+- `topology_visio.py` — Visio .vsdx 拓扑图导出 (~4536 tok)
+- `topology.py` — 拓扑图 API 路由 (~9720 tok)
 
 ## backend/collectors/
 
@@ -128,7 +135,7 @@
 ## backend/storage/
 
 - `database.py` — init_db, get_connection, close_connection (~3997 tok)
-- `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~1701 tok)
+- `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~1824 tok)
 
 ## backend/tests/
 
@@ -169,6 +176,9 @@
 
 ## frontend/src/components/topology/
 
+- `LocationTopologyCanvas.tsx` — NODE_H (~6552 tok)
+- `PortTopologyCanvas.tsx` — 解析设备命名规范：PVGD1SWI02 → { site: "PVG", room: "D1", typeCode: "SWI", num: 2 } (~14010 tok)
+- `TopologyCanvas.tsx` — 判断端口拓扑是否符合三层结构：有 WAN 设备 + 中心交换机 + 终端设备 (~6246 tok)
 
 ## frontend/src/i18n/
 
@@ -186,11 +196,12 @@
 
 ## frontend/src/services/
 
-- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vdx 文件 Blob (~1853 tok)
+- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~1854 tok)
 
 ## frontend/src/shared/
 
 - `constants.ts` — 全局共享常量 — 设备颜色、图例、端点前缀 (~1384 tok)
+- `exportUtils.ts` — 导出拓扑画布为浅色背景 PNG (~235 tok)
 
 ## frontend/src/test/
 

@@ -8466,6 +8466,407 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-13T07:09:45.048Z"
+    },
+    {
+      "id": "bug-529",
+      "timestamp": "2026-07-15T07:31:56.613Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/api/topology_visio.py",
+      "root_cause": "Had \"utf-8\"",
+      "fix": "Changed to \"yes\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-15T07:32:14.842Z"
+    },
+    {
+      "id": "bug-530",
+      "timestamp": "2026-07-15T08:20:00.000Z",
+      "error_message": "Visio 无法打开导出的 .vdx 文件：\"Visio is unable to open the XML file. It does not contain valid XML\"",
+      "file": "backend/api/topology_visio.py",
+      "root_cause": "ET.tostring(xml_declaration=True) 产生了一个 XML 声明，第 176 行又手动拼接了另一个，导致文件以两个 XML 声明开头（无效 XML）。同时 TYPE_COLORS 颜色值包含 # 前缀（注释说\"不带 #\"但实际都有），Visio 不认识 # 前缀的颜色格式。",
+      "fix": "1) 移除 ET.tostring 的 xml_declaration=True，只保留手动拼接的完整声明（含 standalone=\"yes\"）；2) 移除所有颜色值的 # 前缀（TYPE_COLORS 字典 + 硬编码颜色值）",
+      "tags": [
+        "visio",
+        "vdx",
+        "xml",
+        "double-declaration",
+        "color-format",
+        "py"
+      ],
+      "related_bugs": [
+        "bug-529"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T08:20:00.000Z"
+    },
+    {
+      "id": "bug-531",
+      "timestamp": "2026-07-15T07:47:20.834Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/topology/TopologyCanvas.tsx",
+      "root_cause": "Had 'html-to-image'",
+      "fix": "Changed to '../../i18n'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T07:47:20.834Z"
+    },
+    {
+      "id": "bug-532",
+      "timestamp": "2026-07-15T07:47:30.862Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/TopologyCanvas.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 7→5 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T07:47:30.862Z"
+    },
+    {
+      "id": "bug-533",
+      "timestamp": "2026-07-15T07:47:54.873Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Had '../../i18n'",
+      "fix": "Changed to '../../shared/exportUtils'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-15T07:48:10.984Z"
+    },
+    {
+      "id": "bug-534",
+      "timestamp": "2026-07-15T07:48:21.828Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 7→5 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T07:48:21.828Z"
+    },
+    {
+      "id": "bug-535",
+      "timestamp": "2026-07-15T07:48:47.232Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "Had 'html-to-image'",
+      "fix": "Changed to '../../shared/exportUtils'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T07:48:47.232Z"
+    },
+    {
+      "id": "bug-536",
+      "timestamp": "2026-07-15T07:48:56.692Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 7→5 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T07:48:56.692Z"
+    },
+    {
+      "id": "bug-537",
+      "timestamp": "2026-07-15T07:59:54.464Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/api/topology_visio.py",
+      "root_cause": "Had \"1e293b\"",
+      "fix": "Changed to \"#1e293b\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T07:59:54.464Z"
+    },
+    {
+      "id": "bug-538",
+      "timestamp": "2026-07-15T09:46:35.754Z",
+      "error_message": "Wrong reference: vdx should be vsdx",
+      "file": "frontend/src/services/api.ts",
+      "root_cause": "Used \"vdx\" instead of \"vsdx\"",
+      "fix": "Changed vdx → vsdx",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T09:46:35.754Z"
+    },
+    {
+      "id": "bug-539",
+      "timestamp": "2026-07-15T09:46:44.260Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/topology/TopologyCanvas.tsx",
+      "root_cause": "Had `port-topology-${deviceName}.vdx`",
+      "fix": "Changed to `port-topology-${deviceName}.vsdx`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T09:46:44.260Z"
+    },
+    {
+      "id": "bug-540",
+      "timestamp": "2026-07-15T09:46:54.695Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Had `port-topology-${deviceName}.vdx`",
+      "fix": "Changed to `port-topology-${deviceName}.vsdx`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T09:46:54.695Z"
+    },
+    {
+      "id": "bug-541",
+      "timestamp": "2026-07-15T09:47:04.290Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "Had `topology-${location}.vdx`",
+      "fix": "Changed to `topology-${location}.vsdx`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-15T09:47:04.290Z"
+    },
+    {
+      "id": "bug-542",
+      "timestamp": "2026-07-16T09:30:00.000Z",
+      "error_message": "Visio 无法打开导出的 .vsdx 文件：\"Visio is unable to open the XML file. It does not contain valid XML\" — 经过多轮修复（bug-529~541）仍未解决",
+      "file": "backend/api/topology_visio.py",
+      "root_cause": "_build_styles_xml() 中 Char.Size、Char.Color、Para.HorzAlign 使用了 Visio API 的点号表示法作为 StyleSheet 顶层 Cell 名称，但 VSDX XML 规范要求这些单元格必须放在 <Section N=\"Character\"><Row IX=\"0\"> / <Section N=\"Paragraph\"><Row IX=\"0\"> 内。程序生成的文件被 Visio 视为\"不受信任\"，执行严格 schema 验证，不认识的 Cell 名称导致文件被拒载。此前所有修复（XML声明、颜色#前缀、扩展名）都未触及这个 schema 层面的根因。",
+      "fix": "重写 _build_styles_xml()：将 Char.Size→Size、Char.Color→Color 放入 <Section N=\"Character\"><Row IX=\"0\">；Para.HorzAlign→HorzAlign 放入 <Section N=\"Paragraph\"><Row IX=\"0\">。同时添加可选的 <DocumentSheet> 增强兼容性。颜色 # 前缀保持不变（VSDX 格式中 # 是正确的）。",
+      "tags": [
+        "visio",
+        "vsdx",
+        "xml-schema",
+        "stylesheet",
+        "section-row-structure",
+        "untrusted-file-validation",
+        "py"
+      ],
+      "related_bugs": [
+        "bug-529",
+        "bug-530",
+        "bug-537"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-16T09:30:00.000Z"
+    },
+    {
+      "id": "bug-543",
+      "timestamp": "2026-07-16T09:48:53.408Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/topology_visio.py",
+      "root_cause": "29 lines replaced/restructured",
+      "fix": "Rewrote 37→16 lines (29 removed) | Also: f'<VisioDocument xmlns=\"{NS}\" xmlns:r=\"{REL_NS}\" x; '<DocumentSettings DefaultTextStyle=\"0\" DefaultLin | Also: + _shape_cell(\"PageScale\", \"0.03937007874015748\", ; + _shape_cell(\"DrawingScale\", \"0.03937007874015748 | Also: # 8. docProps/core.xml; zf.writestr(\"docProps/core.xml\", (",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-07-16T09:50:22.235Z"
+    },
+    {
+      "id": "bug-544",
+      "timestamp": "2026-07-21T07:34:41.091Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/topology.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 6→22 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T07:34:41.091Z"
+    },
+    {
+      "id": "bug-545",
+      "timestamp": "2026-07-21T13:36:00",
+      "error_message": "拓扑图中路由器/SD-WAN/FW颜色错误，全显示为交换机色",
+      "file": "backend/api/topology.py",
+      "root_cause": "_map_device_type只检查Netmiko驱动名，忽略设备名类型码",
+      "fix": "从设备名提取类型码(RTW->router等)，复用neighbor_parser.TYPE_MAP",
+      "tags": [
+        "topology",
+        "color",
+        "device-type",
+        "router"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21"
+    },
+    {
+      "id": "bug-546",
+      "timestamp": "2026-07-21T08:07:20.709Z",
+      "error_message": "Wrong return value",
+      "file": "backend/api/devices.py",
+      "root_cause": "Was returning: {\"success\": True, \"message\": \"设备更新成功\", \"device\": g",
+      "fix": "Now returns: {\"success\": True, \"message\": \"设备更新成功\", \"device\": g",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-21T08:07:30.694Z"
+    },
+    {
+      "id": "bug-547",
+      "timestamp": "2026-07-21T08:14:56.820Z",
+      "error_message": "Wrong operator: != should be ==",
+      "file": "backend/api/topology.py",
+      "root_cause": "Used \"!=\" instead of \"==\"",
+      "fix": "Changed operator != → ==",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T08:14:56.820Z"
+    },
+    {
+      "id": "bug-548",
+      "timestamp": "2026-07-21T09:18:28.490Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/storage/device_dal.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 21→35 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T09:18:28.490Z"
+    },
+    {
+      "id": "bug-549",
+      "timestamp": "2026-07-21T09:18:32.710Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/devices.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 8→16 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T09:18:32.710Z"
+    },
+    {
+      "id": "bug-550",
+      "timestamp": "2026-07-21T09:18:48.936Z",
+      "error_message": "Wrong operator: >= should be !=",
+      "file": "backend/api/topology.py",
+      "root_cause": "Used \">=\" instead of \"!=\"",
+      "fix": "Changed operator >= → !=",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T09:18:48.936Z"
+    },
+    {
+      "id": "bug-551",
+      "timestamp": "2026-07-21T09:19:05.923Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/topology.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 17→25 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-21T09:19:05.923Z"
+    },
+    {
+      "id": "bug-552",
+      "timestamp": "2026-07-21T17:00:00",
+      "error_message": "TOCTOU竞态：设备改名冲突检查非原子操作",
+      "file": "backend/storage/device_dal.py, backend/api/devices.py",
+      "root_cause": "device_exists()检查与dal_update()非原子，WAL模式下并发可绕过冲突检测",
+      "fix": "DAL层try/except IntegrityError+检查rowcount，API层转ValueError为409",
+      "tags": [
+        "race-condition",
+        "rename",
+        "sqlite",
+        "back-end"
+      ],
+      "related_bugs": [
+        "bug-545"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-07-21"
     }
   ]
 }

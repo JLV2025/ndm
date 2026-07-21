@@ -68,7 +68,13 @@ def create_device(data: dict) -> int:
 
 
 def update_device(name: str, data: dict) -> bool:
-    """更新设备。仅更新传入的字段，未传入的保留原值。返回是否找到设备"""
+    """更新设备。仅更新传入的字段，未传入的保留原值。返回是否找到设备
+
+    Raises:
+        ValueError: 改名时目标名已被占用（UNIQUE 约束冲突）
+    """
+    import sqlite3
+
     conn = get_connection()
     existing = get_device_by_name(name)
     if not existing:
@@ -76,17 +82,26 @@ def update_device(name: str, data: dict) -> bool:
 
     # 合并：传入值覆盖已有值
     merged = {**existing, **data}
-    merged["name"] = name  # 不允许改名
-    conn.execute(
-        """UPDATE devices SET
-             ip=?, type=?, platform=?, location=?, notes=?,
-             serial_number=?, model=?, version=?,
-             uplink_ports=?, username=?
-           WHERE name=?""",
-        (*_extract_fields(merged), name),
-    )
-    conn.commit()
-    return True
+    new_name = merged.get("name", name)
+    merged["name"] = new_name
+    try:
+        cursor = conn.execute(
+            """UPDATE devices SET
+                 name=?, ip=?, type=?, platform=?, location=?, notes=?,
+                 serial_number=?, model=?, version=?,
+                 uplink_ports=?, username=?
+               WHERE name=?""",
+            (new_name, *_extract_fields(merged), name),
+        )
+        conn.commit()
+        # 检查 rowcount：并发场景下设备可能已被删除/改名
+        return cursor.rowcount > 0
+    except sqlite3.IntegrityError:
+        # 唯一约束冲突 → 目标名已被占用
+        raise ValueError(f"设备名 '{new_name}' 已存在")
+    except sqlite3.Error:
+        conn.rollback()
+        return False
 
 
 def delete_device(name: str) -> bool:

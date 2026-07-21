@@ -223,8 +223,20 @@
 - [2026-07-13] 批量收集进度条：SSE EventSource 在 Vite 代理下不可靠（http-proxy 缓冲流式响应，onmessage 不触发），改用 800ms 轮询 `GET /progress/{name}` 更稳定
 - [2026-07-13] `setBatchStatus` 状态转换必须 spread `prev[name]` 保留已有字段（progress/cmdDone/totalCmds），否则 `{status:'collecting'}` 覆盖掉轮询写入的数据
 - [2026-07-13] `_set_progress('analyzing'/'saving')` 必须传入当前 `progress=current_pct`，不能依赖默认 `progress=0`，否则进度条会明显回退
+- [2026-07-16] VSDX 导出调试关键教训：① bug-530 说颜色 `#` 前缀导致 Visio 打不开是误诊——VSDX 格式颜色用 `#rrggbb` 是对的，当时真正的问题是 StyleSheet 中 `Char.Size` 等点号表示法 ② 程序生成的 VSDX 被 Visio 视为"不受信任"文件，执行严格 schema 验证，Cell 名称不对就拒载 ③ `bpmn-to-visio` (Mgabr90) 是 GitHub 上已验证可工作的纯 Python VSDX 生成器，可直接对照其结构 ④ StyleSheet 极简（5 个 Cell，无 Section/Row）即可，复杂的 Section/Row 反而容易触发 schema 问题 ⑤ VSDX 的 DocumentSettings/Colors/FaceNames 三个空元素要按顺序出现在 VisioDocument 中 ⑥ Visio Y 轴从下往上增长，代码的 Y 轴是自上而下，需要翻转 ⑦ 1-D Shape 的连线用 BeginX/EndX 定位端点而不是 Geometry MoveTo/LineTo
 - [2026-07-13] 总进度条与单设备进度条不应同步：总进度应按步骤数加权 (`sum cmdDone / sum totalCmds`)，不是简单平均设备百分比
 
 ## User Preferences
 - [2026-07-09] 数据类型按钮组：仅显示实际存在数据的类型（动态渲染），不用灰掉/隐藏不可用的按钮
 - [2026-07-09] 页面布局偏好紧凑：关联控件同行排列（周下拉 + 数据类型按钮同行），下拉宽度适当减半不撑满
+
+## Key Learnings
+- [2026-07-21] 拓扑图设备类型应从设备名提取（如 `RTW`→router），而非 DB 的 Netmiko 驱动名。DB `type` 字段存的是驱动名（`cisco_ios`），不含设备角色信息。`neighbor_parser._extract_type()` 是设备名→类型的唯一事实来源，`_map_device_type` 应直接复用。
+- [2026-07-21] CDP/LLDP 双向边合并：按设备对分组后分离 fwd/rev 方向，端口配对按索引对应（`fwd[i] ↔ rev[i]`）。SQLite 无 ORDER BY 时顺序不确定，多端口 LAG 场景下索引配对可能错位，但单链路始终正确。
+- [2026-07-21] 设备改名 API：`PATCH /api/devices/{name}` 支持 `{"name": "new_name"}`，API 层 `device_exists` 预检查 + DAL 层 `IntegrityError` 捕获双重防护，并发冲突返回 409。
+- [2026-07-21] `if new_name and ...` 在 Python 中把空字符串当 falsy，应写 `if new_name is not None and ...` 避免未来校验器变化导致空字符串绕过检查。
+
+## Do-Not-Repeat
+- [2026-07-21] `_extract_type` 返回的是类型值（`"router"`）不是类型码（`"RTW"`），不要对其返回值再做 `TYPE_MAP[code]` 二次查表。
+- [2026-07-21] DAL 层 `UPDATE` 后应检查 `cursor.rowcount > 0`，不能无条件 `return True`。WAL 模式下并发场景可能导致 WHERE 匹配 0 行。
+- [2026-07-21] 类型提取逻辑全局共 4 处重复（neighbor_parser._extract_type、topology._map_device_type、topology._compute_tier、config_parser.TYPE_MAP），新增类型相关逻辑前先查 `_extract_type` 是否可用。

@@ -279,6 +279,19 @@ async def update_device(name: str, device: DeviceUpdate):
     updates = {k: v for k, v in device.model_dump().items() if v is not None}
     if not updates:
         raise HTTPException(status_code=400, detail="没有要更新的字段")
-    if not dal_update(name, updates):
+    # 改名冲突检查：目标名已存在且不属于当前设备 → 409
+    new_name = updates.get("name")
+    if new_name is not None and new_name != name and device_exists(new_name):
+        raise HTTPException(status_code=409, detail=f"设备名 '{new_name}' 已存在")
+    try:
+        ok = dal_update(name, updates)
+    except ValueError as e:
+        # DAL 层 UNIQUE 约束冲突（并发场景下 device_exists 未覆盖到的竞态）
+        raise HTTPException(status_code=409, detail=str(e))
+    if not ok:
         raise HTTPException(status_code=404, detail="设备不存在")
-    return {"success": True, "message": "设备更新成功", "device": get_device_by_name(name)}
+    lookup_name = new_name or name
+    updated = get_device_by_name(lookup_name)
+    if not updated:
+        raise HTTPException(status_code=404, detail="设备不存在")
+    return {"success": True, "message": "设备更新成功", "device": updated}

@@ -6,6 +6,8 @@ import re
 import logging
 from typing import Dict, List
 from analyzers.config_parser import ConfigParser
+from analyzers.neighbor_parser import TYPE_MAP as DEVICE_TYPE_MAP
+from analyzers.neighbor_parser import _extract_type as _extract_device_type
 from analyzers.role_verifier import RoleVerifier
 from storage.database import get_connection as _get_db
 
@@ -591,7 +593,7 @@ async def get_location_topology(location: str):
         nodes.append({
             "id": expanded_name,
             "label": expanded_name,
-            "type": _map_device_type(device_type),
+            "type": _map_device_type(device_type, logical_name),
             "platform": device_platform or device_info_map.get(logical_name, {}).get("platform", ""),
             "model": device_model or device_info_map.get(logical_name, {}).get("model", ""),
             "ip": device_ip or device_info_map.get(logical_name, {}).get("ip", ""),
@@ -651,7 +653,7 @@ async def get_location_topology(location: str):
                 nodes.append({
                     "id": target_name,
                     "label": target_name,
-                    "type": nb.get("neighbor_type", "unknown"),
+                    "type": _map_device_type(nb.get("neighbor_type", ""), neighbor_name),
                     "platform": nb.get("neighbor_platform", "") or nb_info.get("platform", ""),
                     "model": nb_info.get("model", ""),
                     "ip": nb_info.get("ip", ""),
@@ -682,35 +684,39 @@ async def get_location_topology(location: str):
             seen_keys.add(key)
             deduped_edges.append(edge)
 
-    # 双向链路合并: 同一设备对+同接口名 → 合并为一条边，取第一方向
+    # 双向链路合并: 同一设备对 → 合并为一条边
+    # CDP/LLDP 双向发现会产生对称的两条边，需按设备对分组合并
     from collections import defaultdict
-    pair_group: dict = defaultdict(list)
+    pair_group: dict[tuple, list[dict]] = defaultdict(list)
     for edge in deduped_edges:
         pair = tuple(sorted([edge["source"], edge["target"]]))
-        pair_group[(pair[0], pair[1], edge["source_interface"])].append(edge)
+        pair_group[pair].append(edge)
 
     final_edges: list[dict] = []
-    for group in pair_group.values():
-        best = group[0].copy()
-        # 从组内其他边补充 target_interface
-        for e in group[1:]:
-            if not best.get("target_interface"):
-                best["target_interface"] = e["source_interface"]
-        final_edges.append(best)
-
-    # 两轮填充 target_interface: 第一轮从组内补, 第二轮从反向边补
-    reverse_map: dict[tuple, list[int]] = defaultdict(list)
-    for i, edge in enumerate(final_edges):
-        rkey = (edge["target"], edge["source"])
-        reverse_map[rkey].append(i)
-
-    for i, edge in enumerate(final_edges):
-        fkey = (edge["source"], edge["target"])
-        if fkey in reverse_map:
-            for ri in reverse_map[fkey]:
-                if ri != i and not edge["target_interface"]:
-                    edge["target_interface"] = final_edges[ri]["source_interface"]
-                    break
+    for pair, group in pair_group.items():
+        # 分离正反两个方向
+        fwd = [e for e in group if e["source"] == pair[0] and e["target"] == pair[1]]
+        rev = [e for e in group if e["source"] == pair[1] and e["target"] == pair[0]]
+        # 以边数多的方向为主方向，保留每个端口的独立边（支持多端口聚合链路）
+        fwd_longer = len(fwd) >= len(rev)
+        primary = fwd if fwd_longer else rev
+        other = rev if fwd_longer else fwd
+        # 构建反向边源端口查找表（匹配 1:1 链路和回退场景）
+        other_source_map: dict[int, str] = {}
+        for o in other:
+            port = o.get("source_interface", "")
+            if port not in other_source_map.values():
+                other_source_map[len(other_source_map)] = port
+        for i, pe in enumerate(primary):
+            edge = pe.copy()
+            # 从反向边补充 target_interface
+            if i < len(other):
+                edge["target_interface"] = other[i].get("source_interface", "")
+            elif other:
+                # 回退：多出的主方向边共享第一条尚未用过的反向边端口
+                fallback = other_source_map.get(i % len(other), other[0].get("source_interface", ""))
+                edge["target_interface"] = fallback
+            final_edges.append(edge)
 
     return {
         "location": location,
@@ -723,9 +729,20 @@ async def get_location_topology(location: str):
     }
 
 
-def _map_device_type(device_type: str) -> str:
-    """映射设备类型字符串"""
-    dt = device_type.lower() if device_type else ""
+def _map_device_type(device_type: str, device_name: str = "") -> str:
+    """从 DB 类型和设备名映射到前端显示类型
+
+    优先从设备名提取类型码（如 RTW→router, FWL→firewall），
+    因为 DB 里的 type 存的是 Netmiko 驱动名（cisco_ios 等），不含设备角色信息。
+    """
+    # 1. 从设备名提取类型（命名规范优先于 DB 驱动名）
+    if device_name:
+        base_name = _logical_name(device_name)
+        extracted = _extract_device_type(base_name)
+        if extracted != "unknown":
+            return extracted
+    # 2. DB 类型直接包含 router → router（兼容显式标注的遗留数据）
+    dt = (device_type or "").lower()
     if "router" in dt:
         return "router"
     return "switch"
