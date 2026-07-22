@@ -119,7 +119,7 @@ export const topologyApi = {
   getLocationTopology: (location: string): Promise<import('../types/topology').LocationTopologyData> =>
     apiJson.get(`/topology/location/${encodeURIComponent(location)}`).then(res => res.data),
 
-  /** Visio 导出 — 发送拓扑数据，返回 .vdx 文件 Blob */
+  /** Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob */
   exportVisio: async (data: any): Promise<Blob> => {
     const res = await fetch(apiUrl('/topology/export/visio'), {
       method: 'POST',

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-21T09:20:27.448Z
-> Files: 60 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-22T09:51:38.833Z
+> Files: 63 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -84,6 +84,7 @@
 
 - `1-windows-ai-witty-fox.md` — 日志分析页面改版计划 (~1132 tok)
 - `bug-zgn-0-tingly-haven.md` — 修复 ConfigParser 无法识别 GTS 服务器和自定义设备名 (~648 tok)
+- `crispy-percolating-bubble.md` — 拓扑图端点端口标签重构 (~667 tok)
 - `no-no-no-sqlite-running-config-raw-runni-twinkly-sutherland.md` — 配置查看器重构：SQLite 数据源 + 直接显示 + 复制按钮 (~801 tok)
 - `parallel-stargazing-rocket.md` — 拓扑图 PNG 导出浅色主题 (~543 tok)
 - `soft-dazzling-orbit.md` — 计划：设备管理 YAML → SQLite 统一迁移 (~806 tok)
@@ -101,6 +102,7 @@
 
 - `change_detector.py` — ChangeDetector: detect (~1181 tok)
 - `config_parser.py` — class: parse (~2402 tok)
+- `neighbor_parser.py` — CDP / LLDP 邻居解析器 (~4211 tok)
 - `role_verifier.py` — class: devices, device_map, verify_device, audit_location (~3408 tok)
 
 ## backend/api/
@@ -114,7 +116,7 @@
 - `reports.py` — 自定义报告 API 路由 (~1780 tok)
 - `stats.py` — Dashboard 统计 API — 全量从 SQLite 读取 (~1839 tok)
 - `topology_visio.py` — Visio .vsdx 拓扑图导出 (~4536 tok)
-- `topology.py` — 拓扑图 API 路由 (~9720 tok)
+- `topology.py` — 拓扑图 API 路由 (~9869 tok)
 
 ## backend/collectors/
 
@@ -129,12 +131,12 @@
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~13153 tok)
+- `collector_service.py` — 配置收集服务 (~13427 tok)
 - `log_analyzer.py` — 日志 AI 分析服务 (~3096 tok)
 
 ## backend/storage/
 
-- `database.py` — init_db, get_connection, close_connection (~3997 tok)
+- `database.py` — init_db, get_connection, close_connection (~4092 tok)
 - `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~1824 tok)
 
 ## backend/tests/
@@ -176,9 +178,10 @@
 
 ## frontend/src/components/topology/
 
-- `LocationTopologyCanvas.tsx` — NODE_H (~6552 tok)
-- `PortTopologyCanvas.tsx` — 解析设备命名规范：PVGD1SWI02 → { site: "PVG", room: "D1", typeCode: "SWI", num: 2 } (~14010 tok)
-- `TopologyCanvas.tsx` — 判断端口拓扑是否符合三层结构：有 WAN 设备 + 中心交换机 + 终端设备 (~6246 tok)
+- `LabeledSmoothstepEdge.tsx` — 带端点端口标签的 smoothstep 边。 (~695 tok)
+- `LocationTopologyCanvas.tsx` — NODE_H (~7282 tok)
+- `PortTopologyCanvas.tsx` — 解析设备命名规范：PVGD1SWI02 → { site: "PVG", room: "D1", typeCode: "SWI", num: 2 } (~14159 tok)
+- `TopologyCanvas.tsx` — 判断端口拓扑是否符合三层结构：有 WAN 设备 + 中心交换机 + 终端设备 (~6637 tok)
 
 ## frontend/src/i18n/
 
@@ -201,7 +204,7 @@
 ## frontend/src/shared/
 
 - `constants.ts` — 全局共享常量 — 设备颜色、图例、端点前缀 (~1384 tok)
-- `exportUtils.ts` — 导出拓扑画布为浅色背景 PNG (~235 tok)
+- `exportUtils.ts` — 端点标签碰撞避免 — 贪心分配垂直行。 (~1525 tok)
 
 ## frontend/src/test/
 

@@ -12,8 +12,8 @@ import {
   Security as SecurityIcon, Public as PublicIcon,
   Wifi as WifiIcon, Dns as DnsIcon, DevicesOther as DevicesOtherIcon,
 } from '@mui/icons-material'
-import { toPng } from 'html-to-image'
 import { getDeviceColor, getNodeColors, ENDPOINT_PREFIXES, ENDPOINT_TYPE_MAP, isStackLink, isLagInterface, PORT_TOPOLOGY_LEGEND } from '../../shared/constants'
+import { exportTopologyAsPng } from '../../shared/exportUtils'
 import { useI18n } from '../../i18n'
 import type { NeighborNode } from '../../types/topology'
 import DirectionPad from './DirectionPad'
@@ -350,6 +350,8 @@ export default function PortTopologyCanvas({
   const [selectedTarget, setSelectedTarget] = useState<string | null>(null)
   const [offsets, setOffsets] = useState<Record<string, { dx: number; dy: number }>>({})
   const rfInstance = useRef<ReactFlowInstance | null>(null)
+  const rfContainerRef = useRef<HTMLDivElement>(null)
+  const [exporting, setExporting] = useState(false)
   const { t, lang } = useI18n()
 
   // ====== 邻居堆叠检测 ======
@@ -853,7 +855,7 @@ export default function PortTopologyCanvas({
   }
 
   return (
-    <Box sx={{ width: '100%', height: '100%', display: 'flex', borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider', bgcolor: '#0a0e1a' }}>
+    <Box ref={rfContainerRef} sx={{ width: '100%', height: '100%', display: 'flex', borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider', bgcolor: '#0a0e1a' }}>
       <style>{`.react-flow__edge{cursor:pointer!important}`}</style>
 
       {/* 左侧控件栏 — 图例 / 导出 / 方向键 / 缩放，均分垂直空间 */}
@@ -897,22 +899,24 @@ export default function PortTopologyCanvas({
         >
           <Stack direction="row" spacing={0.1} alignItems="center">
             <Tooltip title="Export PNG">
-              <IconButton size="small" onClick={() => {
-                const el = document.querySelector('.react-flow') as HTMLElement
-                if (el) toPng(el, { backgroundColor: '#0a0e1a', pixelRatio: 2 }).then((u: string) => {
-                  const a = document.createElement('a'); a.download = `port-topology-${deviceName}.png`; a.href = u; a.click()
-                })
+              <IconButton size="small" disabled={exporting} onClick={() => {
+                const el = rfContainerRef.current?.querySelector('.react-flow') as HTMLElement | null
+                if (!el) return
+                setExporting(true)
+                exportTopologyAsPng(el, `port-topology-${deviceName}-${Date.now()}.png`).finally(() => setExporting(false))
               }} sx={{ color: '#94a3b8', '&:hover': { color: '#2DD46E' }, p: 0.4 }}>
                 <ImageIcon fontSize="small" />
               </IconButton>
             </Tooltip>
             <Tooltip title="Export Visio">
-              <IconButton size="small" onClick={() => {
+              <IconButton size="small" disabled={exporting} onClick={() => {
+                setExporting(true)
                 import('../../services/api').then(({ topologyApi }) => {
                   topologyApi.exportVisio({ nodes: finalNodes.map(n => ({ id: n.id, label: n.data.label, type: n.data.deviceType, platform: n.data.platform || '' })), edges: finalEdges.map(e => ({ source: e.source, target: e.target, source_interface: e.data?.label || e.label || '' })) }).then((b: Blob) => {
                     const u = URL.createObjectURL(b); const a = document.createElement('a')
-                    a.download = `port-topology-${deviceName}.vdx`; a.href = u; a.click()
-                  })
+                    a.download = `port-topology-${deviceName}-${Date.now()}.vsdx`; a.href = u; document.body.appendChild(a); a.click()
+                    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(u) }, 1000)
+                  }).finally(() => setExporting(false))
                 })
               }} sx={{ color: '#94a3b8', '&:hover': { color: '#8B5CF6' }, p: 0.4 }}>
                 <VisioIcon fontSize="small" />

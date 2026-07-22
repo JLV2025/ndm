@@ -300,6 +300,7 @@ def _migrate_v1(conn: sqlite3.Connection) -> None:
             neighbor_type TEXT DEFAULT '',
             neighbor_platform TEXT DEFAULT '',
             neighbor_desc TEXT DEFAULT '',
+            neighbor_port TEXT DEFAULT '',
             source TEXT DEFAULT 'cdp',
             FOREIGN KEY (collection_id) REFERENCES collections(id)
         );
@@ -416,6 +417,14 @@ def _migrate_v5(conn: sqlite3.Connection) -> None:
             pass  # 列已存在
 
 
+def _migrate_v6(conn: sqlite3.Connection) -> None:
+    """Schema v6: neighbors 表添加 neighbor_port 列"""
+    try:
+        conn.execute("ALTER TABLE neighbors ADD COLUMN neighbor_port TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass  # 列已存在
+
+
 # 迁移注册表
 _MIGRATIONS = {
     1: _migrate_v1,
@@ -423,4 +432,5 @@ _MIGRATIONS = {
     3: _migrate_v3,
     4: _migrate_v4,
     5: _migrate_v5,
+    6: _migrate_v6,
 }

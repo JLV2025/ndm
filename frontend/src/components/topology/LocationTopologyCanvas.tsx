@@ -13,7 +13,8 @@ import {
   Security as SecurityIcon, Public as PublicIcon,
   Wifi as WifiIcon, Dns as DnsIcon,
 } from '@mui/icons-material'
-import { toPng } from 'html-to-image'
+import { exportTopologyAsPng, assignEndpointLabels } from '../../shared/exportUtils'
+import LabeledSmoothstepEdge from './LabeledSmoothstepEdge'
 import type { LocationTopologyData } from '../../types/topology'
 import DirectionPad from './DirectionPad'
 import { getNodeColors, getDisplayType } from '../../shared/constants'
@@ -36,8 +37,9 @@ function DetourEdge({
   id, sourceX, sourceY, targetX, targetY,
   data, markerEnd, markerStart, style, label,
 }: EdgeProps) {
-  const { gap1Y, gap2Y, detourX, highlighted } = (data || {}) as { gap1Y?: number; gap2Y?: number; detourX?: number; highlighted?: boolean }
-  // 防御：缺少绕行坐标时退化为普通直线
+  const { gap1Y, gap2Y, detourX, highlighted, srcPort, tgtPort, srcLabelRow, tgtLabelRow } = (data || {}) as any
+  const hl = !!highlighted
+  const dimmed = (style?.opacity as number) != null && (style.opacity as number) < 0.1
   if (gap1Y == null || gap2Y == null || detourX == null) {
     return <BaseEdge id={id} path={`M ${sourceX} ${sourceY} L ${targetX} ${targetY}`} style={{ stroke: (style?.stroke as string) || '#94A3B8', strokeWidth: (style?.strokeWidth as number) || 2.5, fill: 'none', opacity: (style?.opacity as number) ?? 1 }} markerEnd={markerEnd} markerStart={markerStart} />
   }
@@ -45,7 +47,6 @@ function DetourEdge({
   const lc = (style?.stroke as string) || '#94A3B8'
   const sw = (style?.strokeWidth as number) || 2.5
   const opacity = (style?.opacity as number) ?? 1
-  const dimmed = opacity < 0.1
 
   let path = ''
   let labelX = 0
@@ -53,8 +54,6 @@ function DetourEdge({
 
   // SVG Y 轴向下。CW(sweep=1): 右→下→左→上→右；CCW(sweep=0): 右→上→左→下→右
   if ((sourceY || 0) < (targetY || 0)) {
-    // 方向 ↓：WAN(bottom) → Access(top)
-    // 弧 1: 下→右(CCW=0), 弧 2: 右→下(CW=1), 弧 3: 下→左(CW=1), 弧 4: 左→下(CCW=0)
     path = [
       `M ${sourceX} ${sourceY}`,
       `L ${sourceX} ${gap1Y - R}`,
@@ -70,8 +69,6 @@ function DetourEdge({
     labelX = ((sourceX + (detourX || 0)) / 2)
     labelY = gap1Y - 15
   } else {
-    // 方向 ↑：Access(top) → WAN(bottom)
-    // 弧 1: 上→右(CW=1), 弧 2: 右→上(CCW=0), 弧 3: 上→左(CCW=0), 弧 4: 左→上(CW=1)
     path = [
       `M ${sourceX} ${sourceY}`,
       `L ${sourceX} ${gap2Y + R}`,
@@ -88,6 +85,22 @@ function DetourEdge({
     labelY = gap2Y - 15
   }
 
+  const epLab = {
+    fontSize: hl ? 14 : 12, fontWeight: hl ? 700 : (500 as const),
+    color: hl ? '#2DD46E' : '#1e293b',
+    fontFamily: '"Fira Code", monospace',
+    pointerEvents: 'all' as const, whiteSpace: 'nowrap' as const,
+    background: hl ? '#DCFCE7' : 'rgba(255,255,255,0.92)',
+    padding: hl ? '2px 6px' : '1px 5px', borderRadius: 3,
+    opacity: dimmed ? 0 : 1,
+  }
+
+  const srcDY = 20 + (srcLabelRow || 0) * 22
+  const tgtDY = 20 + (tgtLabelRow || 0) * 22
+  // 绕行边的 source 用 bottom handle, target 用 top handle
+  // 方向 ↓: source 在上, target 在下
+  // 方向 ↑: source 在下, target 在上
+
   return (
     <>
       <BaseEdge id={id} path={path} style={{ stroke: lc, strokeWidth: sw, fill: 'none', opacity }} markerEnd={markerEnd} markerStart={markerStart} />
@@ -97,15 +110,12 @@ function DetourEdge({
             style={{
               position: 'absolute',
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
-              background: highlighted ? '#0A1A0F' : '#0F172A',
-              padding: highlighted ? '3px 8px' : '2px 6px',
-              borderRadius: 4,
-              fontSize: highlighted ? 14 : 13,
-              fontWeight: highlighted ? 700 : 500,
-              color: highlighted ? '#2DD46E' : '#E2E8F0',
+              background: hl ? '#0A1A0F' : '#0F172A',
+              padding: hl ? '3px 8px' : '2px 6px', borderRadius: 4,
+              fontSize: hl ? 14 : 13, fontWeight: hl ? 700 : 500,
+              color: hl ? '#2DD46E' : '#E2E8F0',
               fontFamily: '"Fira Code", monospace',
-              pointerEvents: 'all',
-              whiteSpace: 'nowrap',
+              pointerEvents: 'all' as const, whiteSpace: 'nowrap' as const,
               opacity: dimmed ? 0 : 0.92,
             }}
             className="nodrag nopan"
@@ -114,6 +124,14 @@ function DetourEdge({
           </div>
         </EdgeLabelRenderer>
       )}
+      <EdgeLabelRenderer>
+        {srcPort && (
+          <div style={{ ...epLab, position: 'absolute', transform: `translate(-50%, -50%) translate(${sourceX}px, ${sourceY + srcDY}px)` }} className="nodrag nopan">{srcPort}</div>
+        )}
+        {tgtPort && (
+          <div style={{ ...epLab, position: 'absolute', transform: `translate(-50%, -50%) translate(${targetX}px, ${targetY - tgtDY}px)` }} className="nodrag nopan">{tgtPort}</div>
+        )}
+      </EdgeLabelRenderer>
     </>
   )
 }
@@ -255,7 +273,7 @@ function DeviceNode({ data }: NodeProps) {
 }
 
 const nodeTypes = { deviceNode: DeviceNode }
-const edgeTypes = { detour: DetourEdge }
+const edgeTypes = { detour: DetourEdge, labeledSmoothstep: LabeledSmoothstepEdge }
 
 // ============================================================
 // 三层固定行布局：WAN → Core → Access
@@ -307,6 +325,7 @@ interface Props { location: string; data: LocationTopologyData }
 export default function LocationTopologyCanvas({ location, data }: Props) {
   const rfRef = useRef<HTMLDivElement>(null)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
 
   const { initialNodes, initialEdges } = useMemo(() => {
     const tierMap: Record<string, string> = {}
@@ -383,40 +402,72 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
       const higherDisp = sr >= tr ? srcDisp : tgtDisp
       const lineColor = getNodeColors(higherDisp).border
 
-      const srcPort = shortPort(e.source_interface || '')
-      const tgtPort = shortPort(e.target_interface || '')
-      const label = [srcPort, tgtPort].filter(Boolean).join(' / ') || undefined
+      const srcPort = shortPort(e.source_interface || '') || undefined
+      const tgtPort = shortPort(e.target_interface || '') || undefined
 
-      // 跨层（WAN↔Access）用绕行边，其他用 smoothstep
+      // srcSide / tgtSide 由 handle 前缀决定（st=source top, sb=source bottom, tt=target top, tb=target bottom）
+      const srcSide = (srcHandle.startsWith('st') ? 'top' : 'bottom') as 'top' | 'bottom'
+      const tgtSide = (tgtHandle.startsWith('tt') ? 'top' : 'bottom') as 'top' | 'bottom'
+
+      // 跨层（WAN↔Access）用绕行边，其他用 smoothstep + 端点标签
       const cross = Math.abs(sr - tr) >= 2
 
       const base: Edge = {
         id: `e-${e.source}-${e.target}-${ei}`,
         source: e.source, target: e.target,
         sourceHandle: srcHandle, targetHandle: tgtHandle,
-        type: cross ? 'detour' : 'smoothstep',
-        label,
+        type: cross ? 'detour' : 'labeledSmoothstep',
         style: { stroke: lineColor, strokeWidth: 2.5 },
         markerEnd: { type: MarkerType.ArrowClosed, color: lineColor, width: 8, height: 8 },
         markerStart: { type: MarkerType.ArrowClosed, color: lineColor, width: 8, height: 8 },
+        data: { srcPort, tgtPort, srcSide, tgtSide },
       }
 
       if (cross) {
+        // 绕行边：保留原 label（中点）用于 DetourEdge 渲染
+        const midLabel = [srcPort, tgtPort].filter(Boolean).join(' / ') || undefined
         rfEdges.push({
           ...base,
-          data: { gap1Y, gap2Y, detourX },
+          data: { ...base.data, gap1Y, gap2Y, detourX, label: midLabel },
         })
       } else {
         rfEdges.push({
           ...base,
           pathOptions: sameTier ? { borderRadius: 40, offset: 50 } : { borderRadius: 40, offset: 40 },
-          labelStyle: { fontFamily: '"Fira Code", monospace', fontSize: 13, fill: '#E2E8F0', fontWeight: 500, transform: 'translateY(-14px)' },
-          labelBgStyle: { fill: '#0F172A', fillOpacity: 0.92, borderRadius: 4 },
         })
       }
     }
 
-    return { initialNodes: rfNodes, initialEdges: rfEdges }
+    // 端点标签碰撞避免 — 预计算每 (nodeId, side) 的 handle 总数
+    const hc = new Map<string, number>()
+    for (const e of rfEdges) {
+      for (const [nodeId, handle] of [[e.source, e.sourceHandle], [e.target, e.targetHandle]] as const) {
+        if (!handle) continue
+        const idx = parseInt(handle.split('-').pop() || '0') || 0
+        const side = handle.startsWith('st') || handle.startsWith('tt') ? 'top' : 'bottom'
+        hc.set(`${nodeId}:${side}`, Math.max(hc.get(`${nodeId}:${side}`) || 0, idx + 1))
+      }
+    }
+
+    const labeledEdges = assignEndpointLabels(
+      rfEdges,
+      (e, side) => {
+        const nodeId = side === 'src' ? e.source : e.target
+        const pos = positions[nodeId]
+        if (!pos) return 0
+        const handle = side === 'src' ? e.sourceHandle : e.targetHandle
+        const idx = parseInt((handle || '').split('-').pop() || '0') || 0
+        const tier = data.nodes.find(n => n.id === nodeId)?.tier || 'access'
+        const w = nodeW(tier)
+        const sd = (handle || '').startsWith('st') || (handle || '').startsWith('tt') ? 'top' : 'bottom'
+        const total = hc.get(`${nodeId}:${sd}`) || 1
+        return pos.x + w * (idx + 1) / (total + 1)
+      },
+      e => (e.data as any)?.srcPort || '',
+      e => (e.data as any)?.tgtPort || '',
+    )
+
+    return { initialNodes: rfNodes, initialEdges: labeledEdges }
   }, [data])
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
@@ -425,7 +476,7 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
   const prevRef = useRef(data)
   if (prevRef.current !== data) { prevRef.current = data; setNodes(initialNodes); setEdges(initialEdges) }
 
-  // 高亮 — 选中节点的连线绿色加粗提至顶层，标签同步放大亮化
+  // 高亮 — 选中节点的连线绿色加粗提至顶层
   const finalEdges = useMemo(() => {
     if (!selectedNodeId) return edges
     return edges.map(e => {
@@ -433,16 +484,14 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
         return {
           ...e,
           data: { ...(e.data || {}), highlighted: true },
+          className: 'ndm-edge-highlighted',
           style: { ...e.style, stroke: '#2DD46E', strokeWidth: 4 },
-          labelStyle: { fontFamily: '"Fira Code", monospace', fontSize: 14, fill: '#2DD46E', fontWeight: 700, transform: 'translateY(-14px)' },
-          labelBgStyle: { fill: '#0A1A0F', fillOpacity: 0.95, borderRadius: 4 },
           animated: true,
           zIndex: 10,
         }
       return {
         ...e,
         style: { ...e.style, stroke: e.style?.stroke, opacity: 0.06 },
-        labelStyle: { ...e.labelStyle, opacity: 0.06 },
         zIndex: 0,
       }
     })
@@ -461,17 +510,19 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
   const exportPng = useCallback(() => {
     if (!rfRef.current) return
     const el = rfRef.current.querySelector('.react-flow') as HTMLElement
-    if (el) toPng(el, { backgroundColor: '#0a0d1a', pixelRatio: 2 }).then(u => {
-      const a = document.createElement('a'); a.download = `topology-${location}-${Date.now()}.png`; a.href = u; a.click()
-    })
+    if (!el) return
+    setExporting(true)
+    exportTopologyAsPng(el, `topology-${location}-${Date.now()}.png`).finally(() => setExporting(false))
   }, [location])
 
   const exportVisio = useCallback(() => {
+    setExporting(true)
     import('../../services/api').then(({ topologyApi }) => {
       topologyApi.exportVisio(data).then(b => {
         const u = URL.createObjectURL(b); const a = document.createElement('a')
-        a.download = `topology-${location}.vdx`; a.href = u; a.click(); URL.revokeObjectURL(u)
-      }).catch(console.error)
+        a.download = `topology-${location}.vsdx`; a.href = u; document.body.appendChild(a); a.click()
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(u) }, 1000)
+      }).catch(console.error).finally(() => setExporting(false))
     })
   }, [location, data])
 
@@ -495,7 +546,7 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
       >
         <Background color="#1E293B" gap={32} size={0.6} />
 
-        <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 0.08, zIndex: 0 }}>
+        <svg className="ndm-hex-grid" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', opacity: 0.08, zIndex: 0 }}>
           <pattern id="hexGrid" width="40" height="69.28" patternUnits="userSpaceOnUse">
             <path d="M40 11.55l-10-5.77-10 5.77v11.55l10 5.77 10-5.77V11.55zM20 46.19l-10-5.77-10 5.77v11.55l10 5.77 10-5.77V46.19zM0 11.55l-10-5.77-10 5.77v11.55l10 5.77 10-5.77V11.55z" fill="none" stroke="#3B82F6" strokeWidth="0.5" />
           </pattern>
@@ -526,8 +577,8 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
 
       <Paper sx={{ position: 'absolute', top: 16, right: 16, zIndex: 10, borderRadius: 2, bgcolor: 'rgba(15,23,42,0.88)', backdropFilter: 'blur(10px)', border: '1px solid #334155', px: 0.5, py: 0.3, boxShadow: '0 4px 16px rgba(0,0,0,0.3)' }}>
         <Stack direction="row" spacing={0.5} alignItems="center">
-          <Tooltip title="导出 PNG"><IconButton size="small" onClick={exportPng} sx={{ color:'#94A3B8','&:hover':{color:'#2DD46E'}, p:0.5 }}><ImageIcon fontSize="small" /></IconButton></Tooltip>
-          <Tooltip title="导出 Visio"><IconButton size="small" onClick={exportVisio} sx={{ color:'#94A3B8','&:hover':{color:'#8B5CF6'}, p:0.5 }}><VisioIcon fontSize="small" /></IconButton></Tooltip>
+          <Tooltip title="导出 PNG"><IconButton size="small" disabled={exporting} onClick={exportPng} sx={{ color:'#94A3B8','&:hover':{color:'#2DD46E'}, p:0.5 }}><ImageIcon fontSize="small" /></IconButton></Tooltip>
+          <Tooltip title="导出 Visio"><IconButton size="small" disabled={exporting} onClick={exportVisio} sx={{ color:'#94A3B8','&:hover':{color:'#8B5CF6'}, p:0.5 }}><VisioIcon fontSize="small" /></IconButton></Tooltip>
         </Stack>
       </Paper>
     </Box>

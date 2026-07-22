@@ -240,3 +240,14 @@
 - [2026-07-21] `_extract_type` 返回的是类型值（`"router"`）不是类型码（`"RTW"`），不要对其返回值再做 `TYPE_MAP[code]` 二次查表。
 - [2026-07-21] DAL 层 `UPDATE` 后应检查 `cursor.rowcount > 0`，不能无条件 `return True`。WAL 模式下并发场景可能导致 WHERE 匹配 0 行。
 - [2026-07-21] 类型提取逻辑全局共 4 处重复（neighbor_parser._extract_type、topology._map_device_type、topology._compute_tier、config_parser.TYPE_MAP），新增类型相关逻辑前先查 `_extract_type` 是否可用。
+
+## Key Learnings
+- [2026-07-22] Aruba CX LLDP `PORT-ID` 列就是远端端口号（如 `1/1/14`）。之前只解析了 SYS-NAME 和 PORT-DESC，漏掉了 PORT-ID。
+- [2026-07-22] `html-to-image` 序列化 SVG 元素时读的是 `getAttribute('style')` 属性字符串，不是 JS `el.style` 对象。修改 JS style 对象对导出无效——必须操作 style 属性字符串。
+- [2026-07-22] `EdgeLabelRenderer` 通过 React portal 渲染标签 DOM，不在 edge SVG `<g>` 子树内。查询标签时需用 `document.querySelectorAll` 而非从 edge 元素向下查找。
+- [2026-07-22] CDP/LLDP 双向合并策略：合并只为补全 target_interface，绝不裁剪边。堆叠设备 CDP 数据不对称（逻辑名统一），需用 LLDP PORT-ID 确定正确的堆叠成员，避免复杂猜测逻辑。
+
+## User Preferences
+- [2026-07-22] 端点端口标签优于中点标签——网络工程师需要看"哪个端口连哪个设备"，标签靠近节点边框更方便日常维护。
+- [2026-07-22] 导出 PNG 为白底浅色主题，不用 CSS filter 反转（SVG 渲染不一致），而是直接操作 DOM style 属性字符串。
+- [2026-07-22] LAG 和 Port-Channel 虚接口在所有拓扑图中都应过滤，不显示。

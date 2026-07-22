@@ -1,12 +1,13 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, useRef } from 'react'
 import {
   ReactFlow, Node, Edge, Background, Controls, MarkerType, type NodeTypes,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { Box, Typography, IconButton, Stack, Tooltip, Paper, keyframes } from '@mui/material'
 import { Image as ImageIcon, AccountTree as VisioIcon } from '@mui/icons-material'
-import { toPng } from 'html-to-image'
 import { useI18n } from '../../i18n'
+import { exportTopologyAsPng, assignEndpointLabels } from '../../shared/exportUtils'
+import LabeledSmoothstepEdge from './LabeledSmoothstepEdge'
 import type { NeighborNode } from '../../types/topology'
 import type { LocationTopologyData, LocationNode, LocationEdge } from '../../types/topology'
 import FrontPanelNode, { getPortParity } from './FrontPanelNode'
@@ -16,6 +17,7 @@ import { getDeviceColor, isStackLink, ENDPOINT_PREFIXES } from '../../shared/con
 import LocationTopologyCanvas from './LocationTopologyCanvas'
 
 const nodeTypes: NodeTypes = { frontPanel: FrontPanelNode }
+const edgeTypes = { labeledSmoothstep: LabeledSmoothstepEdge }
 
 const canvasFadeIn = keyframes`
   from { opacity: 0; }
@@ -178,6 +180,8 @@ interface Props {
 
 export default function TopologyCanvas({ deviceName, neighbors, stackMembers, memberNeighbors }: Props) {
   const { t } = useI18n()
+  const rfRef = useRef<HTMLDivElement>(null)
+  const [exporting, setExporting] = useState(false)
 
   const validNeighbors = useMemo(() => neighbors.filter((n) => n.device_name && n.device_name !== ''), [neighbors])
   const externalNeighbors = useMemo(() => validNeighbors.filter((n) => !isStackLink(n.description)), [validNeighbors])
@@ -317,7 +321,7 @@ export default function TopologyCanvas({ deviceName, neighbors, stackMembers, me
           label: sp.map((n) => n.interface).join(', ') || 'VSF Stack',
           style: { stroke: '#2DD46E', strokeWidth: 5, strokeDasharray: '12,6' },
           labelStyle: { fontSize: 13, fill: '#2DD46E', fontWeight: 600 },
-          labelBgStyle: { fill: '#0f172a', fillOpacity: 0.9 }, animated: true,
+          labelBgStyle: { fill: '#0f172a', fillOpacity: 1 }, animated: true,
         })
       }
     } else {
@@ -375,11 +379,13 @@ export default function TopologyCanvas({ deviceName, neighbors, stackMembers, me
       dev.entries.forEach((e) => {
         const sourceId = hasStack ? `center-${e.member || '1'}` : 'center'
         const ep = dev.is_endpoint
+        const multi = dev.entries.length > 1
+        const isTop = dev.row === 'top'
         edges.push({
           id: `e-${sourceId}-${dev.name}-${e.interface}`,
           source: sourceId, sourceHandle: e.interface,
           target: dev.name, targetHandle: e.interface,
-          type: 'smoothstep',
+          type: 'labeledSmoothstep',
           pathOptions: { borderRadius: 40, offset: 50 },
           style: {
             stroke: ep ? '#64748b' : dev.color,
@@ -387,14 +393,32 @@ export default function TopologyCanvas({ deviceName, neighbors, stackMembers, me
             opacity: ep ? 0.5 : 1,
           },
           markerEnd: { type: MarkerType.ArrowClosed, color: ep ? '#64748b' : dev.color, width: 10, height: 10 },
-          label: dev.entries.length <= 1 ? undefined : e.interface,
-          labelStyle: { fontSize: 11, fill: '#cbd5e1', fontWeight: 500 },
-          labelBgStyle: { fill: '#0f172a', fillOpacity: 0.9 },
+          data: {
+            srcPort: multi ? e.interface : undefined,
+            tgtPort: multi ? e.interface : undefined,
+            srcSide: isTop ? 'top' : 'bottom',
+            tgtSide: isTop ? 'bottom' : 'top',
+          },
         })
       })
     })
 
-    return { nodes, edges }
+    return { nodes, edges: assignEndpointLabels(
+      edges,
+      (e, side) => {
+        // 近似 X：中心交换机用 switchStartX，邻居用节点位置
+        if (side === 'src') {
+          const mIdx = e.source.startsWith('center-')
+            ? parseInt(e.source.split('-')[1] || '1') - 1 : 0
+          return switchStartX + mIdx * (CENTER_W + H_GAP) + CENTER_W / 2
+        }
+        // target: 邻居节点 — 在 nodes 里查找
+        const n = nodes.find(nd => nd.id === e.target)
+        return n ? n.position.x + (n.width || NEIGHBOR_W) / 2 : 0
+      },
+      e => (e.data as any).srcPort || '',
+      e => (e.data as any).tgtPort || '',
+    ) }
   }, [topDevs, bottomDevs, topRows, bottomRows, maxW, centerY, hasStack, members, memberNeighbors, stackLinks, externalNeighbors, deviceName, t, memberCount, switchesW])
 
   // ====== 点击高亮 ======
@@ -456,9 +480,9 @@ export default function TopologyCanvas({ deviceName, neighbors, stackMembers, me
   }
 
   return (
-    <Box sx={{ width: '100%', height: '100%', minHeight: 650, borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider', bgcolor: '#0a0e1a', animation: `${canvasFadeIn} 0.5s ease`, position: 'relative' }}>
+    <Box ref={rfRef} sx={{ width: '100%', height: '100%', minHeight: 650, borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider', bgcolor: '#0a0e1a', animation: `${canvasFadeIn} 0.5s ease`, position: 'relative' }}>
       <style>{`.react-flow__controls-button{background:#1e293b!important;border:1px solid #334155!important;fill:#e2e8f0!important;width:32px!important;height:32px!important}.react-flow__controls-button svg{fill:#e2e8f0!important;max-width:16px!important;max-height:16px!important}.react-flow__controls-button:hover{background:#334155!important}.react-flow__controls{background:#0f172a!important;border:1px solid #1e293b!important;border-radius:8px!important;overflow:hidden!important}.react-flow__edge{cursor:pointer!important}`}</style>
-      <ReactFlow nodes={finalNodes} edges={finalEdges} nodeTypes={nodeTypes}
+      <ReactFlow nodes={finalNodes} edges={finalEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
         fitView fitViewOptions={{ padding: 0.3 }}
         minZoom={0.06} maxZoom={3}
         nodesConnectable={false} elementsSelectable nodesFocusable={false}
@@ -495,26 +519,28 @@ export default function TopologyCanvas({ deviceName, neighbors, stackMembers, me
         >
           <Stack direction="row" spacing={0.5} alignItems="center">
             <Tooltip title="Export PNG">
-              <IconButton size="small" onClick={() => {
-                const el = document.querySelector('.react-flow') as HTMLElement
-                if (el) toPng(el, { backgroundColor: '#0f1223', pixelRatio: 2 }).then((u: string) => {
-                  const a = document.createElement('a'); a.download = `port-topology-${deviceName}.png`; a.href = u; a.click()
-                })
+              <IconButton size="small" disabled={exporting} onClick={() => {
+                const el = rfRef.current?.querySelector('.react-flow') as HTMLElement | null
+                if (!el) return
+                setExporting(true)
+                exportTopologyAsPng(el, `port-topology-${deviceName}-${Date.now()}.png`).finally(() => setExporting(false))
               }} sx={{ color: '#94a3b8', '&:hover': { color: '#2DD46E' }, p: 0.5 }}>
                 <ImageIcon fontSize="small" />
               </IconButton>
             </Tooltip>
             <Tooltip title="Export Visio">
-              <IconButton size="small" onClick={() => {
+              <IconButton size="small" disabled={exporting} onClick={() => {
                 const exportData = {
                   nodes: finalNodes.map(n => ({ id: n.id, label: n.data.label, type: n.data.deviceType, platform: n.data.platform || '' })),
                   edges: finalEdges.map(e => ({ source: e.source, target: e.target, source_interface: e.data?.label || e.label || '' })),
                 }
+                setExporting(true)
                 import('../../services/api').then(({ topologyApi }) => {
                   topologyApi.exportVisio(exportData).then(b => {
                     const u = URL.createObjectURL(b); const a = document.createElement('a')
-                    a.download = `port-topology-${deviceName}.vdx`; a.href = u; a.click()
-                  })
+                    a.download = `port-topology-${deviceName}-${Date.now()}.vsdx`; a.href = u; document.body.appendChild(a); a.click()
+                    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(u) }, 1000)
+                  }).finally(() => setExporting(false))
                 })
               }} sx={{ color: '#94a3b8', '&:hover': { color: '#8B5CF6' }, p: 0.5 }}>
                 <VisioIcon fontSize="small" />

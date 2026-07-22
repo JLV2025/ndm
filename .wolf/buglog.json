@@ -8867,6 +8867,468 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-07-21"
+    },
+    {
+      "id": "bug-553",
+      "timestamp": "2026-07-22T06:55:32.232Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/shared/exportUtils.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T06:55:32.232Z"
+    },
+    {
+      "id": "bug-554",
+      "timestamp": "2026-07-22T06:56:12.447Z",
+      "error_message": "Wrong return value",
+      "file": "frontend/src/components/topology/TopologyCanvas.tsx",
+      "root_cause": "Was returning: { nodes, edges }",
+      "fix": "Now returns: { nodes, edges: applyLabelCollisionAvoidance(edges",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T06:56:12.447Z"
+    },
+    {
+      "id": "bug-555",
+      "timestamp": "2026-07-22T06:57:26.484Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/components/topology/TopologyCanvas.tsx",
+      "root_cause": "No early return/throw for edge case: !el",
+      "fix": "Added guard clause: if (!el)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T06:57:26.484Z"
+    },
+    {
+      "id": "bug-556",
+      "timestamp": "2026-07-22T06:58:30.207Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "No early return/throw for edge case: !el",
+      "fix": "Added guard clause: if (!el)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T06:58:30.207Z"
+    },
+    {
+      "id": "bug-557",
+      "timestamp": "2026-07-22T06:59:06.736Z",
+      "error_message": "Wrong reference: rfEdges should be applyLabelCollisionAvoidance",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "Used \"rfEdges\" instead of \"applyLabelCollisionAvoidance\"",
+      "fix": "Changed rfEdges → applyLabelCollisionAvoidance",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T06:59:06.736Z"
+    },
+    {
+      "id": "bug-558",
+      "timestamp": "2026-07-22T06:59:15.733Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "Had 'absolute'",
+      "fix": "Changed to \"ndm-hex-grid\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T06:59:15.733Z"
+    },
+    {
+      "id": "bug-559",
+      "timestamp": "2026-07-22T06:59:26.789Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 14→18 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T06:59:26.789Z"
+    },
+    {
+      "id": "bug-560",
+      "timestamp": "2026-07-22T07:11:26.683Z",
+      "error_message": "Wrong operator: === should be !==",
+      "file": "frontend/src/shared/exportUtils.ts",
+      "root_cause": "Used \"===\" instead of \"!==\"",
+      "fix": "Changed operator === → !==",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T07:11:26.683Z"
+    },
+    {
+      "id": "bug-561",
+      "timestamp": "2026-07-22T07:11:49.851Z",
+      "error_message": "CSS fix: labelBgStyle",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "labelBgStyle: { fill: '#0F172A', fillOpacity: 0.92, borderRadius: 4 → { fill: '#0F172A', fillOpacity: 1, borderRadius: 4",
+      "fix": "Changed labelBgStyle: { fill: '#0F172A', fillOpacity: 0.92, borderRadius: 4 → { fill: '#0F172A', fillOpacity: 1, borderRadius: 4",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-22T07:11:55.785Z"
+    },
+    {
+      "id": "bug-562",
+      "timestamp": "2026-07-22T07:12:08.148Z",
+      "error_message": "CSS fix: fillOpacity",
+      "file": "frontend/src/components/topology/TopologyCanvas.tsx",
+      "root_cause": "fillOpacity: 0.9 → 1",
+      "fix": "Changed fillOpacity: 0.9 → 1",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T07:12:08.148Z"
+    },
+    {
+      "id": "bug-563",
+      "timestamp": "2026-07-22T07:20:23.713Z",
+      "error_message": "Type error",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T07:20:23.713Z"
+    },
+    {
+      "id": "bug-564",
+      "timestamp": "2026-07-22T07:33:33.343Z",
+      "error_message": "Type error",
+      "file": "frontend/src/shared/exportUtils.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T07:33:33.343Z"
+    },
+    {
+      "id": "bug-565",
+      "timestamp": "2026-07-22T07:42:07.271Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/shared/exportUtils.ts",
+      "root_cause": "24 lines replaced/restructured",
+      "fix": "Rewrote 72→91 lines (24 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T07:42:07.271Z"
+    },
+    {
+      "id": "bug-566",
+      "timestamp": "2026-07-22T08:36:11.803Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/shared/exportUtils.ts",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T08:36:11.803Z"
+    },
+    {
+      "id": "bug-567",
+      "timestamp": "2026-07-22T08:37:28.093Z",
+      "error_message": "CSS fix: detour",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "detour: DetourEdge → DetourEdge, labeledSmoothstep: LabeledSmoothstepEdge",
+      "fix": "Changed detour: DetourEdge → DetourEdge, labeledSmoothstep: LabeledSmoothstepEdge",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T08:37:28.093Z"
+    },
+    {
+      "id": "bug-568",
+      "timestamp": "2026-07-22T08:37:58.720Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T08:37:58.720Z"
+    },
+    {
+      "id": "bug-569",
+      "timestamp": "2026-07-22T08:38:23.899Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 27→20 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T08:38:23.899Z"
+    },
+    {
+      "id": "bug-570",
+      "timestamp": "2026-07-22T08:39:39.546Z",
+      "error_message": "Wrong reference: applyLabelCollisionAvoidance should be assignEndpointLabels",
+      "file": "frontend/src/components/topology/TopologyCanvas.tsx",
+      "root_cause": "Used \"applyLabelCollisionAvoidance\" instead of \"assignEndpointLabels\"",
+      "fix": "Changed applyLabelCollisionAvoidance → assignEndpointLabels",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T08:39:39.546Z"
+    },
+    {
+      "id": "bug-571",
+      "timestamp": "2026-07-22T08:40:16.935Z",
+      "error_message": "Wrong operator: <= should be ===",
+      "file": "frontend/src/components/topology/TopologyCanvas.tsx",
+      "root_cause": "Used \"<=\" instead of \"===\"",
+      "fix": "Changed operator <= → ===",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T08:40:16.935Z"
+    },
+    {
+      "id": "bug-572",
+      "timestamp": "2026-07-22T08:52:06.867Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/shared/exportUtils.ts",
+      "root_cause": "No early return/throw for edge case: !port",
+      "fix": "Added guard clause: if (!port)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T08:52:06.867Z"
+    },
+    {
+      "id": "bug-573",
+      "timestamp": "2026-07-22T08:53:42.515Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "No early return/throw for edge case: !handle",
+      "fix": "Added guard clause: if (!handle)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T08:53:42.515Z"
+    },
+    {
+      "id": "bug-574",
+      "timestamp": "2026-07-22T08:54:14.844Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/TopologyCanvas.tsx",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 9→16 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T08:54:14.844Z"
+    },
+    {
+      "id": "bug-575",
+      "timestamp": "2026-07-22T08:55:59.298Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/shared/exportUtils.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→3 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T08:55:59.298Z"
+    },
+    {
+      "id": "bug-576",
+      "timestamp": "2026-07-22T09:14:12.136Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T09:14:12.136Z"
+    },
+    {
+      "id": "bug-577",
+      "timestamp": "2026-07-22T09:19:30.968Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/topology.py",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 10→6 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T09:19:30.968Z"
+    },
+    {
+      "id": "bug-578",
+      "timestamp": "2026-07-22T09:29:43.925Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/topology.py",
+      "root_cause": "16 lines replaced/restructured",
+      "fix": "Rewrote 35→22 lines (16 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T09:29:43.925Z"
+    },
+    {
+      "id": "bug-579",
+      "timestamp": "2026-07-22T09:47:38.431Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/topology.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 11→16 lines (4 removed) | Also: # 双向链路合并 + 跨成员补齐: CDP/LLDP 双向发现产生对称边。; # 三步处理:",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-22T09:48:36.611Z"
+    },
+    {
+      "id": "bug-580",
+      "timestamp": "2026-07-22T09:51:38.860Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/package.json",
+      "root_cause": "Had \"2.7.13\"",
+      "fix": "Changed to \"2.7.22\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T09:51:38.860Z"
+    }
+
+}
+    {
+      "id": "bug-581",
+      "timestamp": "2026-07-22T10:30:00.000Z",
+      "error_message": "PVG 拓扑图中 SWI02 出现 3 条上联线，其中一条无标识且是重复的。LAG 虚接口也出现在位置拓扑标签中。",
+      "file": "backend/api/topology.py, backend/analyzers/neighbor_parser.py, backend/services/collector_service.py",
+      "root_cause": "1) LLDP PORT-ID（远端端口号）未被解析为 neighbor_port 字段；2) 双向合并逻辑在正反向边数量不等时裁剪了多余的物理边；3) get_location_topology 缺少 LAG 过滤",
+      "fix": "1) neighbor_parser 提取 PORT-ID；2) 合并只补全 target_interface 不裁剪边；3) 用 neighbor_port 确定正确的堆叠成员；4) get_location_topology 加 LAG 过滤",
+      "tags": ["topology", "lldp", "cdp", "lag", "bidirectional-merge", "neighbor-port"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-22T10:30:00.000Z"
     }
   ]
 }

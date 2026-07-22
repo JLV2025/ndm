@@ -79,7 +79,7 @@ def _get_latest_neighbors(device_name: str) -> list[dict]:
         return []
     rows = db.execute("""
         SELECT n.local_port, n.neighbor_name, n.neighbor_type,
-               n.neighbor_platform, n.neighbor_desc, n.source
+               n.neighbor_platform, n.neighbor_desc, n.neighbor_port, n.source
         FROM neighbors n
         JOIN devices d ON n.device_id = d.id
         WHERE d.name = ?
@@ -103,7 +103,7 @@ def _scan_device_neighbors() -> dict[str, list[dict]]:
         return {}
     rows = db.execute("""
         SELECT d.name AS device_name, n.local_port, n.neighbor_name,
-               n.neighbor_type, n.neighbor_platform, n.neighbor_desc, n.source
+               n.neighbor_type, n.neighbor_platform, n.neighbor_desc, n.neighbor_port, n.source
         FROM neighbors n
         JOIN devices d ON n.device_id = d.id
         WHERE n.collection_id = (
@@ -631,6 +631,8 @@ async def get_location_topology(location: str):
 
             # source 端口 → 对应物理成员名称
             local_port = _norm_port(nb.get("local_port", ""))
+            if re.match(r'^(lag|port-channel)\s*\d', local_port, re.IGNORECASE):
+                continue  # LAG / Port-Channel 虚接口
             member_idx = _member_slot_for_port(local_port, dev.get("type", ""))
             member_name = logical_to_physical.get(logical_name, [])
             source_name = member_name[member_idx - 1] if member_name and member_idx <= len(member_name) else expanded_name
@@ -638,14 +640,19 @@ async def get_location_topology(location: str):
             # 邻居节点 (target): 如果邻居是堆叠设备, 也拆分
             nb_info = device_info_map.get(neighbor_name, {})
             is_loc = _is_in_location(neighbor_name, raw_location_devices)
-
-            # 同级邻居的物理映射
             nb_physicals = logical_to_physical.get(neighbor_name, [])
 
-            # 对端口-level 的 target 做映射; 没有端口信息时直接用第一个物理成员
+            # 用 LLDP PORT-ID（远端端口号）确定正确的堆叠成员
+            # 例如 SWI02 的 LLDP 显示: local=1/1/49, remote=1/1/14 → member 1
+            #                        local=1/1/50, remote=2/1/14 → member 2
+            remote_port = _norm_port(nb.get("neighbor_port", ""))
             target_name = neighbor_name  # 默认逻辑名
-            if nb_physicals:
-                target_name = nb_physicals[0]  # 邻居也用第一个物理成员
+            if nb_physicals and remote_port:
+                rem_idx = _member_slot_for_port(remote_port, nb_info.get("type", ""))
+                if rem_idx <= len(nb_physicals):
+                    target_name = nb_physicals[rem_idx - 1]
+            elif nb_physicals:
+                target_name = nb_physicals[0]  # 回退: 没有远端端口信息时默认第一个
 
             # 外部邻居节点：仅当不在本 location 设备列表中时才创建
             if not is_loc and target_name not in node_set:
@@ -671,7 +678,7 @@ async def get_location_topology(location: str):
                 "source": source_name,
                 "target": target_name,
                 "source_interface": local_port,
-                "target_interface": "",
+                "target_interface": remote_port if remote_port else "",
                 "is_cross_location": not is_loc,
             })
 
@@ -684,39 +691,42 @@ async def get_location_topology(location: str):
             seen_keys.add(key)
             deduped_edges.append(edge)
 
-    # 双向链路合并: 同一设备对 → 合并为一条边
-    # CDP/LLDP 双向发现会产生对称的两条边，需按设备对分组合并
+    # 双向链路合并: CDP/LLDP 双向发现的对称边互填 target_interface，
+    # 然后同一物理链路只保留一个方向。
     from collections import defaultdict
+
     pair_group: dict[tuple, list[dict]] = defaultdict(list)
     for edge in deduped_edges:
         pair = tuple(sorted([edge["source"], edge["target"]]))
         pair_group[pair].append(edge)
 
-    final_edges: list[dict] = []
-    for pair, group in pair_group.items():
-        # 分离正反两个方向
-        fwd = [e for e in group if e["source"] == pair[0] and e["target"] == pair[1]]
-        rev = [e for e in group if e["source"] == pair[1] and e["target"] == pair[0]]
-        # 以边数多的方向为主方向，保留每个端口的独立边（支持多端口聚合链路）
-        fwd_longer = len(fwd) >= len(rev)
-        primary = fwd if fwd_longer else rev
-        other = rev if fwd_longer else fwd
-        # 构建反向边源端口查找表（匹配 1:1 链路和回退场景）
-        other_source_map: dict[int, str] = {}
-        for o in other:
-            port = o.get("source_interface", "")
-            if port not in other_source_map.values():
-                other_source_map[len(other_source_map)] = port
-        for i, pe in enumerate(primary):
+    merged: list[dict] = []
+    for group in pair_group.values():
+        fwd = [e for e in group if e["source"] == group[0]["source"]]
+        rev = [e for e in group if e["source"] != group[0]["source"]]
+        primary, other = (fwd, rev) if len(fwd) >= len(rev) else (rev, fwd)
+        pool = list(other)  # target_interface 来源，每条反向边只能用一次
+        for pe in primary:
             edge = pe.copy()
-            # 从反向边补充 target_interface
-            if i < len(other):
-                edge["target_interface"] = other[i].get("source_interface", "")
-            elif other:
-                # 回退：多出的主方向边共享第一条尚未用过的反向边端口
-                fallback = other_source_map.get(i % len(other), other[0].get("source_interface", ""))
-                edge["target_interface"] = fallback
-            final_edges.append(edge)
+            if pool:
+                # 同向已有 target_interface 优先（来自 LLDP PORT-ID）；
+                # 只有为空时才用反向边补充
+                if not edge.get("target_interface"):
+                    edge["target_interface"] = pool.pop(0).get("source_interface", "")
+                else:
+                    pool.pop(0)
+            merged.append(edge)
+
+    # 最终双向去重: 同一物理链路只保留一个方向
+    seen_links: set[tuple] = set()
+    final_edges: list[dict] = []
+    for e in merged:
+        a, b = sorted([e["source"], e["target"]])
+        link = (a, b, e.get("source_interface", ""))
+        if link in seen_links:
+            continue
+        seen_links.add(link)
+        final_edges.append(e)
 
     return {
         "location": location,

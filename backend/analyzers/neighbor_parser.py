@@ -55,6 +55,7 @@ class NeighborEntry:
     neighbor_type: str        # switch / router / firewall / wireless / sdwan
     neighbor_platform: str    # 设备型号, 如 "WS-C2960X"
     neighbor_desc: str        # 端口描述 (LLDP PORT-DESC)
+    neighbor_port: str = ""   # 远端端口 (LLDP PORT-ID / CDP Port ID)
 
 
 # ============================================================
@@ -443,6 +444,7 @@ def parse_lldp_aruba(text: str) -> List[NeighborEntry]:
             neighbor_type=_extract_type(device_name),
             neighbor_platform="",
             neighbor_desc=desc,
+            neighbor_port=words[1],  # PORT-ID = 远端端口
         ))
 
     return entries

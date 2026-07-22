@@ -864,9 +864,10 @@ def _save_to_sqlite(
                     n.get("local_port", ""), n.get("neighbor_name", ""),
                     n.get("neighbor_type", ""), n.get("neighbor_platform", ""),
                     n.get("neighbor_desc", ""), n.get("source", "cdp"),
+                    n.get("neighbor_port", ""),
                 ))
             db.executemany(
-                "INSERT INTO neighbors (collection_id, device_id, local_port, neighbor_name, neighbor_type, neighbor_platform, neighbor_desc, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO neighbors (collection_id, device_id, local_port, neighbor_name, neighbor_type, neighbor_platform, neighbor_desc, source, neighbor_port) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 neigh_rows,
             )
 
@@ -1072,6 +1073,7 @@ def _save_data(
                     "neighbor_type": e.neighbor_type,
                     "neighbor_platform": e.neighbor_platform,
                     "neighbor_desc": e.neighbor_desc,
+                    "neighbor_port": e.neighbor_port,
                 }
                 for e in merged
             ]
