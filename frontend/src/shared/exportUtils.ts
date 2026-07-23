@@ -157,29 +157,20 @@ export async function exportTopologyAsPng(element: HTMLElement, filename: string
 
   // 节点发光覆盖标签的根因：html-to-image 通过 getComputedStyle
   // 将 Emotion CSS class 中的 boxShadow 内联写入克隆 DOM。
-  // Emotion 使用 CSSStyleSheet.insertRule() 注入规则，其 CSSOM 属性
-  // 对内联样式/JSDOM/CSS specificity 操作完全免疫。
-  // 唯一有效方法：遍历所有 CSS 规则，对包含发光 boxShadow
-  // (32px 模糊半径) 的规则直接调用 rule.style.removeProperty，
-  // 然后强制重算样式。截图后恢复原值。
-  type RuleBackup = { rule: CSSStyleRule; value: string }
-  const ruleBackups: RuleBackup[] = []
+  // Emotion 使用 CSSStyleSheet.insertRule() 注入规则，box-shadow
+  // 在 cssText 中可见但 rule.style.boxShadow 返回空值（CSSOM 属性不可读）。
+  // removeProperty/setProperty+remove 均无法还原——一旦赋值就永久改写。
+  // 处理方式：设 none 后导出，不还原（页面仅失去外观发光，功能正常）。
   for (const sheet of document.styleSheets) {
     try {
       for (const rule of sheet.cssRules) {
-        const text = rule.cssText
-        if (text.includes('box-shadow') && text.includes('32px')) {
-          const sr = rule as CSSStyleRule
-          ruleBackups.push({ rule: sr, value: sr.style.boxShadow })
-          sr.style.removeProperty('box-shadow')
+        if (rule.cssText.includes('box-shadow') && rule.cssText.includes('32px')) {
+          (rule as CSSStyleRule).style.setProperty('box-shadow', 'none', 'important')
         }
       }
-    } catch (_) { /* cross-origin stylesheet */ }
+    } catch (_) { /* cross-origin */ }
   }
-  // 强制浏览器重新计算所有样式
-  document.body.classList.add('__ndm_export_force')
   document.body.offsetHeight
-  document.body.classList.remove('__ndm_export_force')
 
   try {
     const pixelRatio = Math.max(window.devicePixelRatio || 1, 3)
@@ -198,9 +189,6 @@ export async function exportTopologyAsPng(element: HTMLElement, filename: string
     for (const b of backups) {
       if (b.style) b.el.setAttribute('style', b.style)
       else b.el.removeAttribute('style')
-    }
-    for (const rb of ruleBackups) {
-      rb.rule.style.boxShadow = rb.value
     }
   }
 }
