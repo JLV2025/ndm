@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 # 当前 Schema 版本（每次 schema 变更递增）
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 # 线程本地存储 —— 每个线程持有自己的连接
 _local = threading.local()

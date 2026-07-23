@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-23T01:02:44.136Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-23T01:06:47.003Z
 > Files: 63 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
@@ -116,7 +116,7 @@
 - `reports.py` — 自定义报告 API 路由 (~1780 tok)
 - `stats.py` — Dashboard 统计 API — 全量从 SQLite 读取 (~1839 tok)
 - `topology_visio.py` — Visio .vsdx 拓扑图导出 (~4536 tok)
-- `topology.py` — 拓扑图 API 路由 (~9869 tok)
+- `topology.py` — 拓扑图 API 路由 (~9884 tok)
 
 ## backend/collectors/
 

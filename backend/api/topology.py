@@ -123,6 +123,7 @@ def _scan_device_neighbors() -> dict[str, list[dict]]:
             "neighbor_type": r["neighbor_type"],
             "neighbor_platform": r["neighbor_platform"],
             "neighbor_desc": r["neighbor_desc"],
+            "neighbor_port": r["neighbor_port"],
             "source": r["source"],
         })
     return result
