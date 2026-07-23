@@ -146,7 +146,7 @@ export async function exportTopologyAsPng(element: HTMLElement, filename: string
 
   // 边端口标签：背景改为不透明，阻挡节点 boxShadow 发光渗透
   // EdgeLabelRenderer 是独立渲染层，标签已在上层但半透明背景让光晕透出
-  element.querySelectorAll('.react-flow__edgelabelrenderer > div').forEach(el => {
+  element.querySelectorAll('.react-flow__edgelabel-renderer > div').forEach(el => {
     backups.push({ el, style: el.getAttribute('style') || '' })
     const prev = el.getAttribute('style') || ''
     const next = prev.replace(
