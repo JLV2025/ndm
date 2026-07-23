@@ -117,7 +117,7 @@ export async function exportTopologyAsPng(element: HTMLElement, filename: string
   document.head.appendChild(styleEl)
   element.setAttribute('data-ndm-export', '')
 
-  // 2. 备份 → 修改 → 截图 → 还原
+  // 2. 备份 → 修改 → 还原
   const backups: { el: Element; style: string }[] = []
 
   // 边标签文字：浅色 → 深色
@@ -155,26 +155,32 @@ export async function exportTopologyAsPng(element: HTMLElement, filename: string
     el.setAttribute('style', next)
   })
 
-  // 节点发光覆盖标签的根因：html-to-image 通过 getComputedStyle
-  // 将 Emotion CSS class 中的 boxShadow 内联写入克隆 DOM。
-  // Emotion 使用 CSSStyleSheet.insertRule() 注入规则，box-shadow
-  // 在 cssText 中可见但 rule.style.boxShadow 返回空值（CSSOM 属性不可读）。
-  // removeProperty/setProperty+remove 均无法还原——一旦赋值就永久改写。
-  // 处理方式：设 none 后导出，不还原（页面仅失去外观发光，功能正常）。
-  for (const sheet of document.styleSheets) {
-    try {
-      for (const rule of sheet.cssRules) {
-        if (rule.cssText.includes('box-shadow') && rule.cssText.includes('32px')) {
-          (rule as CSSStyleRule).style.setProperty('box-shadow', 'none', 'important')
-        }
-      }
-    } catch (_) { /* cross-origin */ }
-  }
-  document.body.offsetHeight
+  // includeStyleProperties：告诉 html-to-image 只内联指定属性到克隆 DOM。
+  // boxShadow 不在列表中 → getComputedStyle 不会内联盒阴影 → 导出无发光。
+  // 这是唯一可靠的方法：之前的 CSS !important/JS cssText/内联样式/CSSOM setProperty
+  // 全部失败，因为 html-to-image 的 getComputedStyle 在 CSS 优先级解析之后
+  // 仍会读到 Emotion 注入的 box-shadow 值。
+  const STYLE_PROPS = [
+    'background','background-color','border','border-color','border-radius',
+    'box-sizing','color','display','flex','flex-direction','flex-wrap',
+    'align-items','justify-content','gap',
+    'font-family','font-size','font-weight','text-align',
+    'width','height','min-width','max-width','margin','padding',
+    'position','top','right','bottom','left',
+    'opacity','transform','visibility','overflow',
+    'z-index','pointer-events','cursor','transition','backdrop-filter',
+    'text-transform','letter-spacing','line-height',
+    'white-space','text-overflow','word-break',
+    'grid-template-columns','grid-gap',
+    'object-fit',
+  ]
 
   try {
     const pixelRatio = Math.max(window.devicePixelRatio || 1, 3)
-    const url = await toPng(element, { backgroundColor: '#ffffff', pixelRatio })
+    const url = await toPng(element, {
+      backgroundColor: '#ffffff', pixelRatio,
+      includeStyleProperties: STYLE_PROPS,
+    })
 
     const a = document.createElement('a')
     a.download = filename
@@ -182,11 +188,8 @@ export async function exportTopologyAsPng(element: HTMLElement, filename: string
     document.body.appendChild(a)
     a.click()
     setTimeout(() => document.body.removeChild(a), 1000)
-
-    // CSSOM 操作不可逆，刷新页面恢复 Emotion 发光规则
-    setTimeout(() => { window.location.reload() }, 1500)
   } finally {
-    // 3. 还原
+    // 还原
     element.removeAttribute('data-ndm-export')
     document.head.removeChild(styleEl)
     for (const b of backups) {
