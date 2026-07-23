@@ -58,8 +58,9 @@ grep -r "password\|secret\|token\|key" --include="*.ts" --include="*.tsx" --incl
 
 ---
 
-## Phase 5：提交变更
+## Phase 5：构建前端 + 提交变更
 
+0. 如果存在 `frontend/package.json`，执行 `npm run build --prefix frontend` — 确保 `frontend/dist/` 是与源码同步的最新构建产物
 1. `git add -A` — 暂存所有变更
 2. `git status --short` — 再次确认
 3. `git diff --cached --stat` — 查看统计

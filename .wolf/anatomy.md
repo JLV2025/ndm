@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-22T09:51:38.833Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-07-23T01:02:44.136Z
 > Files: 63 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
@@ -69,7 +69,7 @@
 
 ## .claude/skills/work-wrap-up/
 
-- `SKILL.md` — 收工 (~389 tok)
+- `SKILL.md` — 收工 (~417 tok)
 
 ## .claude/skills/天龙五步/
 
