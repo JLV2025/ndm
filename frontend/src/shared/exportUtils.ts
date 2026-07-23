@@ -144,6 +144,18 @@ export async function exportTopologyAsPng(element: HTMLElement, filename: string
     styleAttrReplace(controls, 'display', 'none')
   }
 
+  // 边端口标签：背景改为不透明，阻挡节点 boxShadow 发光渗透
+  // EdgeLabelRenderer 是独立渲染层，标签已在上层但半透明背景让光晕透出
+  element.querySelectorAll('.react-flow__edgelabelrenderer > div').forEach(el => {
+    backups.push({ el, style: el.getAttribute('style') || '' })
+    const prev = el.getAttribute('style') || ''
+    const next = prev.replace(
+      /background:\s*rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*0\.\d+\s*\)/g,
+      'background: rgba(255,255,255,1)'
+    )
+    el.setAttribute('style', next)
+  })
+
   try {
     const pixelRatio = Math.max(window.devicePixelRatio || 1, 3)
     const url = await toPng(element, { backgroundColor: '#ffffff', pixelRatio })
