@@ -155,24 +155,36 @@ export async function exportTopologyAsPng(element: HTMLElement, filename: string
     el.setAttribute('style', next)
   })
 
-  // includeStyleProperties：告诉 html-to-image 只内联指定属性到克隆 DOM。
-  // boxShadow 不在列表中 → getComputedStyle 不会内联盒阴影 → 导出无发光。
-  // 这是唯一可靠的方法：之前的 CSS !important/JS cssText/内联样式/CSSOM setProperty
-  // 全部失败，因为 html-to-image 的 getComputedStyle 在 CSS 优先级解析之后
-  // 仍会读到 Emotion 注入的 box-shadow 值。
+  // includeStyleProperties 白名单：html-to-image 只内联列表中的 CSS 属性。
+  // box-shadow 和 text-shadow 刻意排除 → getComputedStyle 不会内联 → 导出无发光。
+  // 白名单必须包含所有布局/渲染关键属性。遗漏会导致布局错位或视觉不完整。
   const STYLE_PROPS = [
-    'background','background-color','border','border-color','border-radius',
-    'box-sizing','color','display','flex','flex-direction','flex-wrap',
-    'align-items','justify-content','gap',
-    'font-family','font-size','font-weight','text-align',
-    'width','height','min-width','max-width','margin','padding',
-    'position','top','right','bottom','left',
-    'opacity','transform','visibility','overflow',
-    'z-index','pointer-events','cursor','transition','backdrop-filter',
-    'text-transform','letter-spacing','line-height',
-    'white-space','text-overflow','word-break',
-    'grid-template-columns','grid-gap',
-    'object-fit',
+    'align-content','align-items','align-self',
+    'background','background-color','background-image','background-position','background-repeat','background-size',
+    'backdrop-filter',
+    'border','border-bottom','border-color','border-left','border-radius','border-right','border-style','border-top','border-width',
+    'bottom','box-sizing',
+    'color','column-gap','cursor',
+    'display',
+    'fill','flex','flex-basis','flex-direction','flex-grow','flex-shrink','flex-wrap',
+    'font-family','font-feature-settings','font-size','font-style','font-variant','font-weight',
+    'gap','grid-area','grid-column','grid-column-gap','grid-gap','grid-row','grid-row-gap','grid-template-columns','grid-template-rows',
+    'height',
+    'justify-content','justify-items','justify-self',
+    'left','letter-spacing','line-height',
+    'margin','margin-bottom','margin-left','margin-right','margin-top',
+    'max-height','max-width','min-height','min-width',
+    'object-fit','opacity','order','outline','overflow','overflow-x','overflow-y',
+    'padding','padding-bottom','padding-left','padding-right','padding-top',
+    'pointer-events','position',
+    'resize','right','row-gap',
+    'stroke','stroke-dasharray','stroke-linecap','stroke-linejoin','stroke-miterlimit','stroke-width',
+    'text-align','text-anchor','text-decoration','text-overflow','text-transform',
+    'top','transform','transform-origin','transition',
+    'user-select',
+    'vertical-align','visibility',
+    'white-space','width','word-break','word-wrap',
+    'z-index','zoom',
   ]
 
   try {
@@ -189,7 +201,6 @@ export async function exportTopologyAsPng(element: HTMLElement, filename: string
     a.click()
     setTimeout(() => document.body.removeChild(a), 1000)
   } finally {
-    // 还原
     element.removeAttribute('data-ndm-export')
     document.head.removeChild(styleEl)
     for (const b of backups) {
