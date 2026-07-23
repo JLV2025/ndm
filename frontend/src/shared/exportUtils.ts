@@ -182,6 +182,9 @@ export async function exportTopologyAsPng(element: HTMLElement, filename: string
     document.body.appendChild(a)
     a.click()
     setTimeout(() => document.body.removeChild(a), 1000)
+
+    // CSSOM 操作不可逆，刷新页面恢复 Emotion 发光规则
+    setTimeout(() => { window.location.reload() }, 1500)
   } finally {
     // 3. 还原
     element.removeAttribute('data-ndm-export')
