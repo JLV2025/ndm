@@ -144,7 +144,7 @@ export async function exportTopologyAsPng(element: HTMLElement, filename: string
     styleAttrReplace(controls, 'display', 'none')
   }
 
-  // 边端口标签：背景改为不透明，阻挡节点 boxShadow 发光渗透
+  // 边端口标签：背景改为不透明
   element.querySelectorAll('.react-flow__edgelabel-renderer > div').forEach(el => {
     backups.push({ el, style: el.getAttribute('style') || '' })
     const prev = el.getAttribute('style') || ''
@@ -155,16 +155,31 @@ export async function exportTopologyAsPng(element: HTMLElement, filename: string
     el.setAttribute('style', next)
   })
 
-  // 节点发光（boxShadow）：html-to-image 通过 getComputedStyle 把 MUI CSS
-  // class 的 boxShadow 内联写入克隆 DOM。样式表 !important 无法覆盖内联样式，
-  // 且 SVG foreignObject 渲染会扁平化 z-index，导致发光渗透标签。
-  // 直接操作 DOM style 属性在截图前临时关闭发光。
-  element.querySelectorAll('.react-flow__node .MuiBox-root').forEach(el => {
-    backups.push({ el, style: el.getAttribute('style') || '' })
-    const prev = el.getAttribute('style') || ''
-    // 在已有 style 末尾追加 box-shadow:none，覆盖 MUI class 的值
-    el.setAttribute('style', (prev ? prev.replace(/;\s*$/, '') + '; ' : '') + 'box-shadow: none !important')
-  })
+  // 节点发光覆盖标签的根因：html-to-image 通过 getComputedStyle
+  // 将 Emotion CSS class 中的 boxShadow 内联写入克隆 DOM。
+  // Emotion 使用 CSSStyleSheet.insertRule() 注入规则，其 CSSOM 属性
+  // 对内联样式/JSDOM/CSS specificity 操作完全免疫。
+  // 唯一有效方法：遍历所有 CSS 规则，对包含发光 boxShadow
+  // (32px 模糊半径) 的规则直接调用 rule.style.removeProperty，
+  // 然后强制重算样式。截图后恢复原值。
+  type RuleBackup = { rule: CSSStyleRule; value: string }
+  const ruleBackups: RuleBackup[] = []
+  for (const sheet of document.styleSheets) {
+    try {
+      for (const rule of sheet.cssRules) {
+        const text = rule.cssText
+        if (text.includes('box-shadow') && text.includes('32px')) {
+          const sr = rule as CSSStyleRule
+          ruleBackups.push({ rule: sr, value: sr.style.boxShadow })
+          sr.style.removeProperty('box-shadow')
+        }
+      }
+    } catch (_) { /* cross-origin stylesheet */ }
+  }
+  // 强制浏览器重新计算所有样式
+  document.body.classList.add('__ndm_export_force')
+  document.body.offsetHeight
+  document.body.classList.remove('__ndm_export_force')
 
   try {
     const pixelRatio = Math.max(window.devicePixelRatio || 1, 3)
@@ -183,6 +198,9 @@ export async function exportTopologyAsPng(element: HTMLElement, filename: string
     for (const b of backups) {
       if (b.style) b.el.setAttribute('style', b.style)
       else b.el.removeAttribute('style')
+    }
+    for (const rb of ruleBackups) {
+      rb.rule.style.boxShadow = rb.value
     }
   }
 }
