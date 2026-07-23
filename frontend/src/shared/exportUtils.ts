@@ -145,7 +145,6 @@ export async function exportTopologyAsPng(element: HTMLElement, filename: string
   }
 
   // 边端口标签：背景改为不透明，阻挡节点 boxShadow 发光渗透
-  // EdgeLabelRenderer 是独立渲染层，标签已在上层但半透明背景让光晕透出
   element.querySelectorAll('.react-flow__edgelabel-renderer > div').forEach(el => {
     backups.push({ el, style: el.getAttribute('style') || '' })
     const prev = el.getAttribute('style') || ''
@@ -154,6 +153,17 @@ export async function exportTopologyAsPng(element: HTMLElement, filename: string
       'background: rgba(255,255,255,1)'
     )
     el.setAttribute('style', next)
+  })
+
+  // 节点发光（boxShadow）：html-to-image 通过 getComputedStyle 把 MUI CSS
+  // class 的 boxShadow 内联写入克隆 DOM。样式表 !important 无法覆盖内联样式，
+  // 且 SVG foreignObject 渲染会扁平化 z-index，导致发光渗透标签。
+  // 直接操作 DOM style 属性在截图前临时关闭发光。
+  element.querySelectorAll('.react-flow__node .MuiBox-root').forEach(el => {
+    backups.push({ el, style: el.getAttribute('style') || '' })
+    const prev = el.getAttribute('style') || ''
+    // 在已有 style 末尾追加 box-shadow:none，覆盖 MUI class 的值
+    el.setAttribute('style', (prev ? prev.replace(/;\s*$/, '') + '; ' : '') + 'box-shadow: none !important')
   })
 
   try {
