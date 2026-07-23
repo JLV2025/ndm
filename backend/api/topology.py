@@ -191,13 +191,14 @@ async def get_device_topology(device_name: str):
     cdp_lldp_neighbors: Dict[str, List[dict]] = {}  # member → [items]
     try:
         for nb in _get_latest_neighbors(device_name):
-            iface = _norm_port(nb.get("local_port", ""))
+            raw_port = nb.get("local_port", "")
             nb_name = nb.get("neighbor_name", "")
-            if not nb_name or not iface:
+            if not nb_name or not raw_port:
                 continue
-            # 过滤 LAG / Port-Channel 虚接口
-            if re.match(r'^(lag|port-channel)\s*\d', iface, re.IGNORECASE):
+            # 过滤 LAG / Port-Channel 虚接口（在 _norm_port 之前检查原始端口名）
+            if re.match(r'^(lag|port-channel|po)\s*\d', raw_port, re.IGNORECASE):
                 continue
+            iface = _norm_port(raw_port)
             member = _member_for_iface(iface)
             item = {
                 "interface": iface,
@@ -302,7 +303,7 @@ async def get_device_topology(device_name: str):
                 continue  # 非端点的 ConfigParser 条目不纳入（CDP/LLDP 更准）
             if key in seen_ports:
                 continue
-            if re.match(r'^(lag|port-channel)\s*\d', item["interface"], re.IGNORECASE):
+            if re.match(r'^(lag|port-channel|po)\s*\d', item["interface"], re.IGNORECASE):
                 continue  # LAG 口在后端过滤
             seen_ports.add(key)
             member_neighbors[member].append(item)
@@ -631,12 +632,19 @@ async def get_location_topology(location: str):
                 continue
 
             # source 端口 → 对应物理成员名称
-            local_port = _norm_port(nb.get("local_port", ""))
-            if re.match(r'^(lag|port-channel)\s*\d', local_port, re.IGNORECASE):
-                continue  # LAG / Port-Channel 虚接口
+            raw_port = nb.get("local_port", "")
+            # LAG / Port-Channel 虚接口过滤：必须在 _norm_port 之前检查，
+            # 否则 Port-channel1 → Po1 会绕过正则
+            if re.match(r'^(lag|port-channel|po)\s*\d', raw_port, re.IGNORECASE):
+                continue
+            local_port = _norm_port(raw_port)
             member_idx = _member_slot_for_port(local_port, dev.get("type", ""))
             member_name = logical_to_physical.get(logical_name, [])
             source_name = member_name[member_idx - 1] if member_name and member_idx <= len(member_name) else expanded_name
+
+            # 自环边过滤（堆叠互联端口等）：邻居是自己
+            if logical_name == neighbor_name:
+                continue
 
             # 邻居节点 (target): 如果邻居是堆叠设备, 也拆分
             nb_info = device_info_map.get(neighbor_name, {})

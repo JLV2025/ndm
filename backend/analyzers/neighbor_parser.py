@@ -43,8 +43,8 @@ TYPE_MAP = {
     "QIS": "switch",  # 部分站点自定义交换机类型码
 }
 
-# 需跳过的接口名开头
-SKIP_PORT_PREFIXES = ("mgmt", "vlan", "lo", "port-channel")
+# 需跳过的接口名开头（lag = Aruba LAG, port-channel = Cisco EtherChannel）
+SKIP_PORT_PREFIXES = ("mgmt", "vlan", "lo", "port-channel", "lag")
 
 
 @dataclass
