@@ -857,8 +857,17 @@ def _save_to_sqlite(
 
         # 5. 写入邻居关系
         if neighbors_data:
+            import re as _re
             neigh_rows = []
             for n in neighbors_data:
+                lp = n.get("local_port", "")
+                nb_name = n.get("neighbor_name", "")
+                # 过滤 LAG / Port-Channel 虚接口
+                if _re.match(r'^(lag|port-channel|po)\s*\d', lp, _re.IGNORECASE):
+                    continue
+                # 过滤自环
+                if nb_name == device_name:
+                    continue
                 neigh_rows.append((
                     collection_id, device_id,
                     n.get("local_port", ""), n.get("neighbor_name", ""),

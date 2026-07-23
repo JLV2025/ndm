@@ -195,6 +195,9 @@ async def get_device_topology(device_name: str):
             nb_name = nb.get("neighbor_name", "")
             if not nb_name or not raw_port:
                 continue
+            # 过滤自环（邻居是自己，通常为堆叠互联口）
+            if nb_name == device_name:
+                continue
             # 过滤 LAG / Port-Channel 虚接口（在 _norm_port 之前检查原始端口名）
             if re.match(r'^(lag|port-channel|po)\s*\d', raw_port, re.IGNORECASE):
                 continue
