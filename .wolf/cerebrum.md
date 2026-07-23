@@ -241,6 +241,7 @@
 - [2026-07-21] DAL 层 `UPDATE` 后应检查 `cursor.rowcount > 0`，不能无条件 `return True`。WAL 模式下并发场景可能导致 WHERE 匹配 0 行。
 - [2026-07-21] 类型提取逻辑全局共 4 处重复（neighbor_parser._extract_type、topology._map_device_type、topology._compute_tier、config_parser.TYPE_MAP），新增类型相关逻辑前先查 `_extract_type` 是否可用。
 - [2026-07-23] 新增数据库列时：① 更新 v1 CREATE TABLE（新数据库有列）② 写 _migrate_vN ALTER TABLE（旧数据库补齐）③ **递增 SCHEMA_VERSION 常量**，否则迁移永不触发 → 500 错误。
+- [2026-07-23] **Emotion CSS-in-JS boxShadow 无法被内联覆盖**。MUI sx 的 boxShadow 通过 CSSStyleSheet.insertRule() 注入，不带 !important 却对内联样式/setAttribute/cssText 全部免疫。唯一有效方法：遍历 document.styleSheets 中的 CSSStyleRule，调用 rule.style.removeProperty('box-shadow')。html-to-image 通过 getComputedStyle 内联到克隆 DOM，必须从 CSSOM 源头改规则。
 
 ## Key Learnings
 - [2026-07-22] Aruba CX LLDP `PORT-ID` 列就是远端端口号（如 `1/1/14`）。之前只解析了 SYS-NAME 和 PORT-DESC，漏掉了 PORT-ID。
