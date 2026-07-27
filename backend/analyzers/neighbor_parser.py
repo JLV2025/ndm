@@ -451,6 +451,196 @@ def parse_lldp_aruba(text: str) -> List[NeighborEntry]:
 
 
 # ============================================================
+# Aruba LLDP Detail (show lldp neighbor-info detail)
+# ============================================================
+
+def parse_lldp_aruba_detail(text: str) -> List[NeighborEntry]:
+    """解析 Aruba CX show lldp neighbor-info detail
+
+    分块 KV 格式:
+        Port                           : 1/1/6
+        Neighbor System-Name           : BJQD1RTW01.corp.com
+        Neighbor System-Description    : Cisco IOS Software ...
+        Neighbor Port-ID               : Gi0/0/1
+        Neighbor Port-Desc             : Qorvo-LAN
+
+    按 --- 分隔线切块, 逐行匹配 Key : Value
+    """
+    entries: List[NeighborEntry] = []
+    if not text or not text.strip():
+        return entries
+
+    # 按 --- 分隔线切块
+    blocks = re.split(r'\n?-{5,}\n?', text)
+
+    for block in blocks:
+        block = block.strip()
+        if not block:
+            continue
+
+        # 逐行提取 KV 对
+        local_port = ""
+        neighbor_name = ""
+        neighbor_port = ""
+        neighbor_desc = ""
+        neighbor_platform = ""
+        system_desc = ""
+
+        for line in block.splitlines():
+            # 匹配 Key : Value 或 Key: Value
+            m = re.match(r'^(.+?)\s*:\s*(.*)', line)
+            if not m:
+                continue
+            key = m.group(1).strip()
+            value = m.group(2).strip()
+
+            if key == "Port":
+                local_port = value
+            elif key == "Neighbor System-Name":
+                neighbor_name = value
+            elif key == "Neighbor Port-ID":
+                neighbor_port = value
+            elif key == "Neighbor Port-Desc":
+                neighbor_desc = value
+            elif key == "Neighbor System-Description":
+                system_desc = value
+
+        # 校验必要字段
+        if not local_port or not neighbor_name:
+            continue
+        if _should_skip_port(local_port):
+            continue
+
+        # 域名剥离 + 设备名验证
+        neighbor_name = _strip_domain(neighbor_name)
+        if not neighbor_name:
+            continue
+        if not _is_valid_network_device(neighbor_name):
+            continue
+        if _is_endpoint(neighbor_name):
+            continue
+
+        # 从 System-Description 提取平台型号
+        if system_desc:
+            neighbor_platform = _extract_platform(system_desc)
+
+        entries.append(NeighborEntry(
+            local_port=local_port,
+            neighbor_name=neighbor_name,
+            neighbor_type=_extract_type(neighbor_name),
+            neighbor_platform=neighbor_platform,
+            neighbor_desc=neighbor_desc,
+            neighbor_port=neighbor_port,
+        ))
+
+    return entries
+
+
+# ============================================================
+# LACP / EtherChannel 聚合组解析
+# ============================================================
+
+def parse_lacp_aruba(text: str) -> dict:
+    """解析 Aruba CX show lacp aggregates
+
+    格式:
+        Aggregate name   : lag49
+        Interfaces       : 1/1/49 2/1/49
+        ...
+
+    返回: {"lag49": ["1/1/49", "2/1/49"], "lag1": ["1/1/5", "2/1/5"]}
+    """
+    result: dict = {}
+    if not text or not text.strip():
+        return result
+
+    current_lag = ""
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        m = re.match(r'^(.+?)\s*:\s*(.*)', stripped)
+        if not m:
+            continue
+        key = m.group(1).strip()
+        value = m.group(2).strip()
+
+        if key == "Aggregate name":
+            current_lag = value
+        elif key == "Interfaces" and current_lag:
+            ports = value.split()
+            result[current_lag] = ports
+
+    return result
+
+
+def parse_etherchannel_cisco(text: str) -> dict:
+    """解析 Cisco IOS show etherchannel summary
+
+    格式:
+        Group  Port-channel  Protocol    Ports
+        1      Po1(SU)         LACP      Te1/0/2(P)   Te2/0/2(P)
+
+    返回: {"Po1": ["Te1/0/2", "Te2/0/2"]}
+    """
+    # 端口名规范化: Cisco 长名 → 短名
+    _CISCO_TO_SHORT = {
+        'GigabitEthernet': 'Gi', 'TenGigabitEthernet': 'Te',
+        'TwentyFiveGigE': 'Twe', 'HundredGigE': 'Hu',
+        'FortyGigE': 'Fo', 'FastEthernet': 'Fa',
+    }
+
+    def _shorten(port_name: str) -> str:
+        for long_pfx, short_pfx in _CISCO_TO_SHORT.items():
+            if port_name.startswith(long_pfx):
+                return short_pfx + port_name[len(long_pfx):]
+        return port_name
+
+    result: dict = {}
+    if not text or not text.strip():
+        return result
+
+    in_data = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        # 表头检测
+        if re.match(r'Group\s+Port-channel\s+Protocol\s+Ports', stripped, re.IGNORECASE):
+            in_data = True
+            continue
+        if re.match(r'^-{5,}$', stripped):
+            continue
+        if not in_data:
+            continue
+
+        # 数据行: "1      Po1(SU)         LACP      Te1/0/2(P)   Te2/0/2(P)"
+        parts = stripped.split()
+        if len(parts) < 3:
+            continue
+
+        # 第二列 = Port-channel 名, 提取纯名 (去掉括号状态)
+        po_match = re.match(r'^(Po\d+)', parts[1])
+        if not po_match:
+            continue
+        po_name = po_match.group(1)
+
+        # 剩余部分提取物理端口 (去掉 (P) 等后缀)
+        member_ports = []
+        for p in parts[2:]:
+            p_clean = re.sub(r'\(.*\)$', '', p)
+            if re.match(r'^[A-Z][a-z]+\d', p_clean):  # 看起来像端口名
+                member_ports.append(_shorten(p_clean))
+
+        if member_ports:
+            result[po_name] = member_ports
+
+    return result
+
+
+# ============================================================
 # 统一入口
 # ============================================================
 
@@ -476,12 +666,21 @@ def parse_lldp(text: str, device_type: str = "") -> List[NeighborEntry]:
         return []
 
     head = text[:500]
+    # Aruba detail 格式: LLDP Neighbor Information
+    if re.search(r'LLDP\s+Neighbor\s+Information', head):
+        return parse_lldp_aruba_detail(text)
+    # Aruba 表格格式: LOCAL-PORT CHASSIS-ID ...
     if re.search(r'LOCAL-PORT\s+CHASSIS-ID', head):
         return parse_lldp_aruba(text)
+    # Cisco 格式: Device ID Local Intf ...
     if re.search(r'Device\s+ID\s+Local\s+Intf', head):
         return parse_lldp_cisco(text)
 
+    # 回退: 按设备类型猜测
     if "aruba" in device_type.lower():
+        # 先尝试 detail 格式, 再尝试表格格式
+        if "LLDP Neighbor Information" in text[:2000]:
+            return parse_lldp_aruba_detail(text)
         return parse_lldp_aruba(text)
     return parse_lldp_cisco(text)
 

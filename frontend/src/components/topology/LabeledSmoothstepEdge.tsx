@@ -25,7 +25,7 @@ export default function LabeledSmoothstepEdge(props: EdgeProps) {
   const hl = !!d.highlighted || !!selected
 
   const labelBase = {
-    fontSize: hl ? 14 : 12,
+    fontSize: hl ? 16 : 14,
     fontWeight: hl ? 700 : 500,
     color: hl ? '#2DD46E' : '#1e293b',
     fontFamily: '"Fira Code", monospace',
@@ -35,6 +35,7 @@ export default function LabeledSmoothstepEdge(props: EdgeProps) {
     padding: hl ? '2px 6px' : '1px 5px',
     borderRadius: 3,
     opacity: dimmed ? 0 : 1,
+    zIndex: 1000,
   }
 
   // 标签 Y 偏移: 行 0=20px, 行 1=40px, 行 2=60px…

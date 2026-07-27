@@ -31,6 +31,15 @@ def _norm_port(port: str) -> str:
     return port
 
 
+def _norm_lag_name(port: str) -> str:
+    """LAG 名归一化: lag14 → lag 14, Lag1 → lag 1, Port-channel48 → po 48"""
+    m = re.match(r'^(lag|po|port-channel)\s*(\d+)$', port, re.IGNORECASE)
+    if m:
+        pfx = m.group(1).lower().replace('port-channel', 'po')
+        return f'{pfx} {m.group(2)}'
+    return port
+
+
 def _get_data_root() -> str:
     """从 settings 读取 data_root，返回绝对路径"""
     from utils.settings_loader import load_settings
@@ -72,14 +81,15 @@ def _get_latest_neighbors(device_name: str) -> list[dict]:
     """从 SQLite 获取设备最新邻居数据
 
     Returns:
-        [{local_port, neighbor_name, neighbor_type, ...}, ...]
+        [{local_port, neighbor_name, neighbor_type, ..., is_logical}, ...]
     """
     db = _get_db()
     if not db:
         return []
     rows = db.execute("""
         SELECT n.local_port, n.neighbor_name, n.neighbor_type,
-               n.neighbor_platform, n.neighbor_desc, n.neighbor_port, n.source
+               n.neighbor_platform, n.neighbor_desc, n.neighbor_port, n.source,
+               n.is_logical
         FROM neighbors n
         JOIN devices d ON n.device_id = d.id
         WHERE d.name = ?
@@ -103,7 +113,8 @@ def _scan_device_neighbors() -> dict[str, list[dict]]:
         return {}
     rows = db.execute("""
         SELECT d.name AS device_name, n.local_port, n.neighbor_name,
-               n.neighbor_type, n.neighbor_platform, n.neighbor_desc, n.neighbor_port, n.source
+               n.neighbor_type, n.neighbor_platform, n.neighbor_desc, n.neighbor_port, n.source,
+               n.is_logical
         FROM neighbors n
         JOIN devices d ON n.device_id = d.id
         WHERE n.collection_id = (
@@ -125,8 +136,33 @@ def _scan_device_neighbors() -> dict[str, list[dict]]:
             "neighbor_desc": r["neighbor_desc"],
             "neighbor_port": r["neighbor_port"],
             "source": r["source"],
+            "is_logical": r["is_logical"],
         })
     return result
+
+
+def _get_latest_lag_membership(device_name: str) -> dict:
+    """从 SQLite 获取设备最新 LAG 成员关系
+
+    Returns:
+        {"lag49": ["1/1/49", "2/1/49"], ...}
+    """
+    import json
+    db = _get_db()
+    if not db:
+        return {}
+    row = db.execute("""
+        SELECT c.lag_membership FROM collections c
+        JOIN devices d ON c.device_id = d.id
+        WHERE d.name = ?
+        ORDER BY c.id DESC LIMIT 1
+    """, (device_name,)).fetchone()
+    if row and row["lag_membership"]:
+        try:
+            return json.loads(row["lag_membership"])
+        except (json.JSONDecodeError, TypeError):
+            pass
+    return {}
 
 
 @router.get("/topology/{device_name}")
@@ -198,8 +234,8 @@ async def get_device_topology(device_name: str):
             # 过滤自环（邻居是自己，通常为堆叠互联口）
             if nb_name == device_name:
                 continue
-            # 过滤 LAG / Port-Channel 虚接口（在 _norm_port 之前检查原始端口名）
-            if re.match(r'^(lag|port-channel|po)\s*\d', raw_port, re.IGNORECASE):
+            # 端口连接图：排除逻辑端口（LAG / Port-Channel）
+            if nb.get("is_logical"):
                 continue
             iface = _norm_port(raw_port)
             member = _member_for_iface(iface)
@@ -244,7 +280,8 @@ async def get_device_topology(device_name: str):
             for nb_nb in nb_neighbors:
                 if nb_nb.get("neighbor_name") == device_name:
                     rp = nb_nb.get("local_port", "")
-                    if rp and not re.match(r'^(lag|port-channel)\s*\d', rp, re.IGNORECASE):
+                    # 端口连接图：排除逻辑端口
+                    if rp and not nb_nb.get("is_logical"):
                         remote_ports.append(rp)
             # 排序后按序配对，CDP/LLDP 端口通常有序，排序确保确定性
             local_ports.sort(key=lambda x: x[0])
@@ -297,7 +334,7 @@ async def get_device_topology(device_name: str):
             if item["device_name"]:
                 seen_ports.add((member, item["interface"]))
                 member_neighbors[member].append(item)
-        # ConfigParser 端点条目：仅当非 LAG 且未被 CDP/LLDP 覆盖时加入
+        # 端口连接图：排除 ConfigParser 中的逻辑端口
         for item in ep_items:
             key = (member, item["interface"])
             if not item["device_name"]:
@@ -306,8 +343,9 @@ async def get_device_topology(device_name: str):
                 continue  # 非端点的 ConfigParser 条目不纳入（CDP/LLDP 更准）
             if key in seen_ports:
                 continue
+            # 端口连接图：排除逻辑端口（LAG / Port-Channel）
             if re.match(r'^(lag|port-channel|po)\s*\d', item["interface"], re.IGNORECASE):
-                continue  # LAG 口在后端过滤
+                continue
             seen_ports.add(key)
             member_neighbors[member].append(item)
 
@@ -620,6 +658,15 @@ async def get_location_topology(location: str):
                 skipped_devices.append(logical_name)
             continue
 
+        # 加载 LAG 成员关系：构建"被 LAG 覆盖的物理端口"集合
+        lag_membership = _get_latest_lag_membership(logical_name)
+        lag_member_ports: set[str] = set()
+        for members in lag_membership.values():
+            for mp in members:
+                lag_member_ports.add(mp)
+                # 也加入规范化后的短名（Cisco Te1/0/2 匹配 TwentyFiveGigE1/0/2 等）
+                lag_member_ports.add(_norm_port(mp))
+
         try:
             # 包装为 {"neighbors": [...]} 兼容下游迭代逻辑
             neighbor_data = {"neighbors": neighbor_list}
@@ -629,70 +676,99 @@ async def get_location_topology(location: str):
             continue
 
         # 邻居 + 边: 按端口 member slot 映射到物理成员
+        seen_nb_keys: set[tuple] = set()  # 本设备邻居去重: (port, neighbor_name)
         for nb in neighbor_data.get("neighbors", []):
             neighbor_name = nb.get("neighbor_name", "")
             if not neighbor_name:
                 continue
 
             # source 端口 → 对应物理成员名称
-            raw_port = nb.get("local_port", "")
-            # LAG / Port-Channel 虚接口过滤：必须在 _norm_port 之前检查，
-            # 否则 Port-channel1 → Po1 会绕过正则
-            if re.match(r'^(lag|port-channel|po)\s*\d', raw_port, re.IGNORECASE):
+            raw_port = _norm_lag_name(nb.get("local_port", ""))  # lag14 → lag 14
+            # 去重: 同端口+同邻居只保留一条（兼容旧数据中 lag14/lag 14 双写）
+            dedup_key = (raw_port, neighbor_name)
+            if dedup_key in seen_nb_keys:
                 continue
+            seen_nb_keys.add(dedup_key)
+            is_logical = nb.get("is_logical", 0)
             local_port = _norm_port(raw_port)
+
+            # 拓扑图：有逻辑端口用逻辑端口，隐藏物理 LAG 成员
+            if is_logical:
+                # 逻辑端口始终保留（LAG / Port-Channel）
+                pass
+            elif raw_port in lag_member_ports or local_port in lag_member_ports:
+                # 物理端口属于某个 LAG 成员 → 跳过（逻辑端口已覆盖）
+                continue
             member_idx = _member_slot_for_port(local_port, dev.get("type", ""))
             member_name = logical_to_physical.get(logical_name, [])
             source_name = member_name[member_idx - 1] if member_name and member_idx <= len(member_name) else expanded_name
 
-            # 自环边过滤（堆叠互联端口等）：邻居是自己
+            # 逻辑端口（LAG/Port-Channel）在堆叠设备上：扇出到每个承载物理成员端口的成员
+            source_names: list[str] = [source_name]
+            if is_logical and member_name and len(member_name) > 1 and lag_membership:
+                lag_key = local_port.lower().replace(' ', '').replace('-', '')
+                for lag_n, phys_ports in lag_membership.items():
+                    if lag_n.lower().replace(' ', '').replace('-', '') == lag_key:
+                        lag_slots: list[int] = []
+                        for mp in phys_ports:
+                            s = _member_slot_for_port(mp, dev.get("type", ""))
+                            if 1 <= s <= len(member_name) and s not in lag_slots:
+                                lag_slots.append(s)
+                        if lag_slots:
+                            source_names = [member_name[s - 1] for s in sorted(lag_slots)]
+                        break
+
+            # 自环边过滤（堆叠互联端口等）：邻居是自己 → 整个邻居条目跳过
             if logical_name == neighbor_name:
                 continue
 
-            # 邻居节点 (target): 如果邻居是堆叠设备, 也拆分
-            nb_info = device_info_map.get(neighbor_name, {})
-            is_loc = _is_in_location(neighbor_name, raw_location_devices)
-            nb_physicals = logical_to_physical.get(neighbor_name, [])
+            for sname in source_names:
+                # 邻居节点 (target): 如果邻居是堆叠设备, 也拆分
+                nb_info = device_info_map.get(neighbor_name, {})
+                is_loc = _is_in_location(neighbor_name, raw_location_devices)
+                nb_physicals = logical_to_physical.get(neighbor_name, [])
 
-            # 用 LLDP PORT-ID（远端端口号）确定正确的堆叠成员
-            # 例如 SWI02 的 LLDP 显示: local=1/1/49, remote=1/1/14 → member 1
-            #                        local=1/1/50, remote=2/1/14 → member 2
-            remote_port = _norm_port(nb.get("neighbor_port", ""))
-            target_name = neighbor_name  # 默认逻辑名
-            if nb_physicals and remote_port:
-                rem_idx = _member_slot_for_port(remote_port, nb_info.get("type", ""))
-                if rem_idx <= len(nb_physicals):
-                    target_name = nb_physicals[rem_idx - 1]
-            elif nb_physicals:
-                target_name = nb_physicals[0]  # 回退: 没有远端端口信息时默认第一个
+                # 用 LLDP PORT-ID（远端端口号）确定正确的堆叠成员
+                # 例如 SWI02 的 LLDP 显示: local=1/1/49, remote=1/1/14 → member 1
+                #                        local=1/1/50, remote=2/1/14 → member 2
+                remote_port = _norm_port(nb.get("neighbor_port", ""))
+                target_name = neighbor_name  # 默认逻辑名
+                if nb_physicals and remote_port:
+                    rem_idx = _member_slot_for_port(remote_port, nb_info.get("type", ""))
+                    if rem_idx <= len(nb_physicals):
+                        target_name = nb_physicals[rem_idx - 1]
+                elif nb_physicals:
+                    target_name = nb_physicals[0]  # 回退: 没有远端端口信息时默认第一个
 
-            # 外部邻居节点：仅当不在本 location 设备列表中时才创建
-            if not is_loc and target_name not in node_set:
-                node_set.add(target_name)
-                nodes.append({
-                    "id": target_name,
-                    "label": target_name,
-                    "type": _map_device_type(nb.get("neighbor_type", ""), neighbor_name),
-                    "platform": nb.get("neighbor_platform", "") or nb_info.get("platform", ""),
-                    "model": nb_info.get("model", ""),
-                    "ip": nb_info.get("ip", ""),
-                    "tier": _compute_tier(neighbor_name, nb_info.get("notes", "")),
-                    "is_location_device": False,
-                    "location": "",
-                    "stack_group": neighbor_name if nb_physicals and len(nb_physicals) > 1 else "",
-                    "physical_index": 1,
-                    "physical_count": len(nb_physicals) if nb_physicals else 1,
+                # 外部邻居节点：仅当不在本 location 设备列表中时才创建
+                if not is_loc and target_name not in node_set:
+                    node_set.add(target_name)
+                    nodes.append({
+                        "id": target_name,
+                        "label": target_name,
+                        "type": _map_device_type(nb.get("neighbor_type", ""), neighbor_name),
+                        "platform": nb.get("neighbor_platform", "") or nb_info.get("platform", ""),
+                        "model": nb_info.get("model", ""),
+                        "ip": nb_info.get("ip", ""),
+                        "tier": _compute_tier(neighbor_name, nb_info.get("notes", "")),
+                        "is_location_device": False,
+                        "location": "",
+                        "stack_group": neighbor_name if nb_physicals and len(nb_physicals) > 1 else "",
+                        "physical_index": 1,
+                        "physical_count": len(nb_physicals) if nb_physicals else 1,
+                    })
+
+                # 针对 LAG 跨越堆叠成员的情况，远端端口填充 lldp neighbor_port
+                # 用物理成员而非逻辑端口名
+                edge_id = f"{sname}-{local_port}-{target_name}"
+                all_edges.append({
+                    "id": edge_id,
+                    "source": sname,
+                    "target": target_name,
+                    "source_interface": local_port,
+                    "target_interface": remote_port if remote_port else "",
+                    "is_cross_location": not is_loc,
                 })
-
-            edge_id = f"{source_name}-{local_port}-{target_name}"
-            all_edges.append({
-                "id": edge_id,
-                "source": source_name,
-                "target": target_name,
-                "source_interface": local_port,
-                "target_interface": remote_port if remote_port else "",
-                "is_cross_location": not is_loc,
-            })
 
     # 去重边: 同向同端口去重
     deduped_edges: list[dict] = []
@@ -728,6 +804,22 @@ async def get_location_topology(location: str):
                 else:
                     pool.pop(0)
             merged.append(edge)
+
+    # LAG 扇出边 target_interface 传播：
+    # 当逻辑端口跨堆叠成员扇出时，只有第一条边能拿到反向边的 target_interface，
+    # 同扇出的其他边（相同 source_interface + target）也需要补充。
+    si_groups: dict[tuple, list[dict]] = defaultdict(list)
+    for e in merged:
+        si_groups[(e["target"], e.get("source_interface", ""))].append(e)
+    for group in si_groups.values():
+        if len(group) < 2:
+            continue
+        filled = [e["target_interface"] for e in group if e.get("target_interface")]
+        if filled:
+            shared = filled[0]
+            for e in group:
+                if not e.get("target_interface"):
+                    e["target_interface"] = shared
 
     # 最终双向去重: 同一物理链路只保留一个方向
     seen_links: set[tuple] = set()

@@ -637,8 +637,20 @@ def collect_device(
         _advance("show cdp nei")
 
         print(f"[收集进度] 获取 LLDP neighbors...")
-        lldp_neighbors_raw = _safe_collect(conn.collect_lldp_neighbors, "show lldp nei")
-        _advance("show lldp nei")
+        lldp_neighbors_raw = _safe_collect(conn.collect_lldp_neighbors, "show lldp neighbors")
+        _advance("show lldp neighbors")
+
+        # 收集 LAG / 链路聚合信息
+        lag_membership_raw = ""
+        lacp_raw = ""
+        if effective_type == "aruba_aoscx":
+            print(f"[收集进度] 获取 LACP aggregates...")
+            lacp_raw = _safe_collect(conn.collect_lacp_aggregates, "show lacp aggregates")
+            _advance("show lacp aggregates")
+        elif "cisco" in effective_type:
+            print(f"[收集进度] 获取 EtherChannel summary...")
+            lacp_raw = _safe_collect(conn.collect_etherchannel_summary, "show etherchannel summary")
+            _advance("show etherchannel summary")
 
         # 提取版本号和序列号（使用实际设备类型，传入 system + vsf 信息）
         software_version = extract_software_version(version_info, effective_type)
@@ -718,6 +730,7 @@ def collect_device(
             boot_history=boot_history,
             system_uptime_seconds=system_uptime_seconds,
             platform=device_platform,
+            lacp_raw=lacp_raw,
         )
 
         _set_progress(device_name, "complete", progress=100, cmd_done=total_cmds, total_cmds=total_cmds)
@@ -761,6 +774,7 @@ def _save_to_sqlite(
     system_uptime_seconds: int | None,
     port_details: list, port_errors: list,
     neighbors_data: list, boot_history: str,
+    lag_membership_json: str = "{}",
 ) -> dict:
     """将采集数据写入 SQLite 数据库
 
@@ -805,14 +819,15 @@ def _save_to_sqlite(
         db.execute("""
             INSERT INTO collections (device_id, week, phase, collected_at,
                 software_version, serial_number, model, system_uptime_seconds,
-                running_config, running_config_lines, boot_history_raw)
-            VALUES (?, ?, '1', ?, ?, ?, ?, ?, ?, ?, ?)
+                running_config, running_config_lines, boot_history_raw, lag_membership)
+            VALUES (?, ?, '1', ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             device_id, week, collected_at,
             software_version, serial_number, device_model,
             system_uptime_seconds,
             running_config, running_lines,
             boot_history,
+            lag_membership_json,
         ))
         collection_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
 
@@ -855,28 +870,28 @@ def _save_to_sqlite(
                 err_rows,
             )
 
-        # 5. 写入邻居关系
+        # 5. 写入邻居关系（全量保留，用 is_logical 标记逻辑/物理端口）
         if neighbors_data:
             import re as _re
             neigh_rows = []
             for n in neighbors_data:
                 lp = n.get("local_port", "")
                 nb_name = n.get("neighbor_name", "")
-                # 过滤 LAG / Port-Channel 虚接口
-                if _re.match(r'^(lag|port-channel|po)\s*\d', lp, _re.IGNORECASE):
-                    continue
                 # 过滤自环
                 if nb_name == device_name:
                     continue
+                # 判断是否为逻辑端口（LAG / Port-Channel）
+                is_logical = 1 if _re.match(r'^(lag|port-channel|po)\s*\d', lp, _re.IGNORECASE) else 0
                 neigh_rows.append((
                     collection_id, device_id,
                     n.get("local_port", ""), n.get("neighbor_name", ""),
                     n.get("neighbor_type", ""), n.get("neighbor_platform", ""),
                     n.get("neighbor_desc", ""), n.get("source", "cdp"),
                     n.get("neighbor_port", ""),
+                    is_logical,
                 ))
             db.executemany(
-                "INSERT INTO neighbors (collection_id, device_id, local_port, neighbor_name, neighbor_type, neighbor_platform, neighbor_desc, source, neighbor_port) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO neighbors (collection_id, device_id, local_port, neighbor_name, neighbor_type, neighbor_platform, neighbor_desc, source, neighbor_port, is_logical) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 neigh_rows,
             )
 
@@ -988,6 +1003,7 @@ def _save_data(
     cdp_neighbors_raw: str = "", lldp_neighbors_raw: str = "",
     boot_history: str = "", system_uptime_seconds: int | None = None,
     platform: str = "",
+    lacp_raw: str = "",
 ) -> None:
     """保存数据到本地"""
 
@@ -1005,6 +1021,33 @@ def _save_data(
 
     # 生成 neighbors.json (CDP/LLDP + ConfigParser 端口描述补充)
     _neighbors_in_memory = []  # 供后续 SQLite 写入使用，避免磁盘回读
+
+    # 先解析 LAG 成员关系（需要在下游邻居补充时使用）
+    lag_map: dict = {}
+    lag_membership_json = "{}"
+    if lacp_raw and lacp_raw.strip():
+        try:
+            from analyzers.neighbor_parser import parse_lacp_aruba, parse_etherchannel_cisco
+            raw_map: dict = {}
+            if "Aggregate name" in lacp_raw:
+                raw_map = parse_lacp_aruba(lacp_raw)
+            elif "Port-channel" in lacp_raw or "Group" in lacp_raw:
+                raw_map = parse_etherchannel_cisco(lacp_raw)
+            if raw_map:
+                # 键名归一化: lag14 → lag 14
+                import re as _re
+                for k, v in raw_map.items():
+                    m = _re.match(r'^(lag|po|port-channel)\s*(\d+)$', k, _re.IGNORECASE)
+                    if m:
+                        norm_key = f'{m.group(1).lower().replace("port-channel", "po")} {m.group(2)}'
+                    else:
+                        norm_key = k
+                    lag_map[norm_key] = v
+                lag_membership_json = json.dumps(lag_map, ensure_ascii=False)
+                print(f"[LAG] 成员关系: {lag_map}")
+        except Exception as e:
+            print(f"[LAG] 解析失败: {e}")
+
     try:
         from analyzers.neighbor_parser import parse_cdp, parse_lldp, merge_neighbors, NeighborEntry
         cdp_entries = parse_cdp(cdp_neighbors_raw, device_type) if cdp_neighbors_raw else []
@@ -1024,6 +1067,14 @@ def _save_data(
             for long_pfx, short_pfx in _CISCO_PORT_SHORT.items():
                 if port.startswith(long_pfx):
                     return short_pfx + port[len(long_pfx):]
+            return port
+
+        def _norm_lag_name(port: str) -> str:
+            """LAG 名归一化: lag14 → lag 14, Lag1 → lag 1"""
+            m = re.match(r'^(lag|po|port-channel)\s*(\d+)$', port, re.IGNORECASE)
+            if m:
+                pfx = m.group(1).lower().replace('port-channel', 'po')
+                return f'{pfx} {m.group(2)}'
             return port
 
         # 规范化 CDP/LLDP 已有条目的端口名（CDP 输出通常已是短名，LLDP 格式多样）
@@ -1049,6 +1100,45 @@ def _save_data(
                     for e in merged
                 )
                 extra_count = 0
+
+                # ---- 先处理 LAG 逻辑端口: 从物理成员继承邻居信息 ----
+                if lag_map:
+                    for log_port, phys_ports in lag_map.items():
+                        if not phys_ports:
+                            continue
+                        log_port_norm = _norm_lag_name(log_port)  # lag14 → lag 14
+                        # 统计每个邻居在物理成员端口中出现的次数
+                        neighbor_votes: dict[str, int] = {}
+                        for pp in phys_ports:
+                            norm_pp = _normalize_port_name(pp)
+                            for e in merged:
+                                if _normalize_port_name(e.local_port) == norm_pp:
+                                    nb = e.neighbor_name
+                                    neighbor_votes[nb] = neighbor_votes.get(nb, 0) + 1
+                        if neighbor_votes:
+                            # 多数投票确定邻居名
+                            main_nb = max(neighbor_votes, key=neighbor_votes.get)
+                            log_key = (log_port_norm, main_nb)
+                            if log_key not in seen_ports:
+                                seen_ports.add(log_key)
+                                # 从 merged 中找该邻居的类型信息
+                                nb_type = ""
+                                nb_plat = ""
+                                for e in merged:
+                                    if e.neighbor_name == main_nb:
+                                        nb_type = e.neighbor_type
+                                        nb_plat = e.neighbor_platform
+                                        break
+                                merged.append(NeighborEntry(
+                                    local_port=log_port_norm,
+                                    neighbor_name=main_nb,
+                                    neighbor_type=nb_type,
+                                    neighbor_platform=nb_plat,
+                                    neighbor_desc='',
+                                ))
+                                extra_count += 1
+                if extra_count:
+                    print(f"[邻居] LAG 逻辑端口补充: {extra_count} 条")
                 for entry in config_entries:
                     if not entry.device_name:
                         continue
@@ -1134,6 +1224,7 @@ def _save_data(
             port_errors=port_errors_dict,
             neighbors_data=neighbors_list,
             boot_history=boot_history,
+            lag_membership_json=lag_membership_json,
         )
         # 写入完成后自动运行异常检测
         if isinstance(sqlite_result, dict) and sqlite_result.get("collection_id"):

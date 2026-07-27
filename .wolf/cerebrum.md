@@ -253,4 +253,13 @@
 ## User Preferences
 - [2026-07-22] 端点端口标签优于中点标签——网络工程师需要看"哪个端口连哪个设备"，标签靠近节点边框更方便日常维护。
 - [2026-07-22] 导出 PNG 为白底浅色主题，不用 CSS filter 反转（SVG 渲染不一致），而是直接操作 DOM style 属性字符串。
-- [2026-07-22] LAG 和 Port-Channel 虚接口在所有拓扑图中都应过滤，不显示。
+- [2026-07-22] LAG 和 Port-Channel 逻辑端口在拓扑图中优先使用（高度概括），物理成员端口隐藏；端口连接图只用物理端口，排除逻辑端口。
+- [2026-07-27] Aruba LLDP 用 `show lldp neighbor-info detail`（分块 KV 格式），非 `show lldp nei`（Cisco 表格格式）。
+- [2026-07-27] LAG 成员关系从 `show lacp aggregates`（Aruba）/ `show etherchannel summary`（Cisco）获取，解析后存为 JSON（`lag_membership` 字段），供拓扑图合并物理链路。
+- [2026-07-27] `is_logical` 字段（SQLite neighbors 表）区分逻辑端口和物理端口 — 收集层全量保留，展示层按需选择。端口名前缀 `lag*`/`po*`/`port-channel*` 自动标记 `is_logical=1`。
+- [2026-07-27] Cisco CDP/LLDP 不报告 Port-Channel 逻辑口 → 从 `lag_map` 物理成员投票推断归属邻居，合成逻辑端口条目。
+- [2026-07-27] LAG 端口名归一化：`lag14`→`lag 14`、`port-channel48`→`po 48`。入库 / API 层统一归一化，防止重复条目。
+- [2026-07-27] 堆叠设备 LAG 扇出：逻辑端口按 `lag_membership` 中物理成员 slot 分布，扇出到每个承载成员，每条边共享 `target_interface`。
+- [2026-07-27] `EdgeLabelRenderer` 标签需 `zIndex: 1000` 防止被 ReactFlow 节点层遮挡。
+- [2026-07-27] 拓扑图节点宽度自适应：`max(基准宽度, 最忙侧 handle 数 × 52px)`，邻居多时自动加宽，少时自动缩回。
+- [2026-07-27] 标签订阅字号：普通 14px / 高亮 16px（整体+2px）。

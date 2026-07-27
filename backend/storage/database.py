@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 # 当前 Schema 版本（每次 schema 变更递增）
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 # 线程本地存储 —— 每个线程持有自己的连接
 _local = threading.local()
@@ -425,6 +425,18 @@ def _migrate_v6(conn: sqlite3.Connection) -> None:
         pass  # 列已存在
 
 
+def _migrate_v7(conn: sqlite3.Connection) -> None:
+    """Schema v7: neighbors 表添加 is_logical 列 + collections 表添加 lag_membership 列"""
+    try:
+        conn.execute("ALTER TABLE neighbors ADD COLUMN is_logical INTEGER NOT NULL DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
+    try:
+        conn.execute("ALTER TABLE collections ADD COLUMN lag_membership TEXT DEFAULT '{}'")
+    except sqlite3.OperationalError:
+        pass
+
+
 # 迁移注册表
 _MIGRATIONS = {
     1: _migrate_v1,
@@ -433,4 +445,5 @@ _MIGRATIONS = {
     4: _migrate_v4,
     5: _migrate_v5,
     6: _migrate_v6,
+    7: _migrate_v7,
 }

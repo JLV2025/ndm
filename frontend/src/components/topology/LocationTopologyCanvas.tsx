@@ -29,6 +29,7 @@ const V_GAP = 240
 const H_GAP = 60
 const MIN_HANDLES = 1   // 每个 side group 最少 1 个 handle
 const DETOUR_R = 30     // 绕行圆弧半径
+const HANDLE_MIN_PX = 52  // 每个 handle 至少占用的水平间距（避免标签碰撞）
 
 // ============================================================
 // 跨层绕行自定义边（WAN ↔ Access）
@@ -86,7 +87,7 @@ function DetourEdge({
   }
 
   const epLab = {
-    fontSize: hl ? 14 : 12, fontWeight: hl ? 700 : (500 as const),
+    fontSize: hl ? 16 : 14, fontWeight: hl ? 700 : (500 as const),
     color: hl ? '#2DD46E' : '#1e293b',
     fontFamily: '"Fira Code", monospace',
     pointerEvents: 'all' as const, whiteSpace: 'nowrap' as const,
@@ -112,7 +113,7 @@ function DetourEdge({
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
               background: hl ? '#0A1A0F' : '#0F172A',
               padding: hl ? '3px 8px' : '2px 6px', borderRadius: 4,
-              fontSize: hl ? 14 : 13, fontWeight: hl ? 700 : 500,
+              fontSize: hl ? 16 : 14, fontWeight: hl ? 700 : 500,
               color: hl ? '#2DD46E' : '#E2E8F0',
               fontFamily: '"Fira Code", monospace',
               pointerEvents: 'all' as const, whiteSpace: 'nowrap' as const,
@@ -140,7 +141,10 @@ function DetourEdge({
 const TIER_ORDER = ['wan', 'core', 'access'] as const
 const TIER_RANK: Record<string, number> = { wan: 3, core: 2, access: 1 }
 
-function nodeW(tier: string): number { return tier === 'core' ? CORE_NODE_W : NODE_W }
+function nodeW(tier: string, maxHandles: number = 1): number {
+  const base = tier === 'core' ? CORE_NODE_W : NODE_W
+  return Math.max(base, maxHandles * HANDLE_MIN_PX)
+}
 
 // ============================================================
 // 设备图标
@@ -159,6 +163,7 @@ interface DeviceNodeData {
   label: string; displayType: string; tier: string
   platform: string; ip: string; isLocationDevice: boolean
   handles: Record<HandleGroup, number>
+  nodeW: number
 }
 
 // ============================================================
@@ -207,10 +212,9 @@ function countHandleNeeds(
 // 节点组件 — 按实际需求动态创建 handle
 // ============================================================
 function DeviceNode({ data }: NodeProps) {
-  const { label, displayType, tier, platform, ip, handles } = data as DeviceNodeData
+  const { label, displayType, tier, platform, ip, handles, nodeW: w } = data as DeviceNodeData
   const colors = getNodeColors(displayType)
   const Icon = DEVICE_ICONS[displayType] || null
-  const w = nodeW(tier)
 
   const hs = (): React.CSSProperties => ({
     position: 'absolute', width: 9, height: 9,
@@ -280,7 +284,8 @@ const edgeTypes = { detour: DetourEdge, labeledSmoothstep: LabeledSmoothstepEdge
 // ============================================================
 function tieredLayout(
   nodes: { id: string; tier: string }[],
-): { positions: Record<string, { x: number; y: number }>; coreRight: number } {
+  handleCounts: Record<string, Record<HandleGroup, number>>,
+): { positions: Record<string, { x: number; y: number }>; nodeWidths: Record<string, number>; coreRight: number } {
   const groups: Record<string, { id: string; tier: string }[]> = { wan: [], core: [], access: [] }
   for (const n of nodes) {
     const t = groups[n.tier] ? n.tier : 'access'
@@ -290,10 +295,19 @@ function tieredLayout(
     groups[t].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true, sensitivity: 'base' }))
   }
 
+  // 按 handle 需求计算每个节点的实际宽度
+  const perNodeW: Record<string, number> = {}
+  for (const n of nodes) {
+    const hc = handleCounts[n.id]
+    const maxH = hc ? Math.max(hc.st, hc.sb, hc.tt, hc.tb) : 1
+    perNodeW[n.id] = nodeW(n.tier, maxH)
+  }
+
   const tierWidths: Record<string, number> = {}
   for (const t of TIER_ORDER) {
     if (groups[t].length === 0) { tierWidths[t] = 0; continue }
-    tierWidths[t] = groups[t].length * nodeW(t) + Math.max(groups[t].length - 1, 0) * H_GAP
+    tierWidths[t] = groups[t].reduce((sum, n) => sum + perNodeW[n.id], 0)
+      + Math.max(groups[t].length - 1, 0) * H_GAP
   }
   const maxW = Math.max(...TIER_ORDER.map(t => tierWidths[t]), NODE_W)
 
@@ -302,19 +316,19 @@ function tieredLayout(
   let currentY = 0
   for (const t of TIER_ORDER) {
     const row = groups[t]; if (row.length === 0) continue
-    const wPer = nodeW(t); const rowW = tierWidths[t]
+    const rowW = tierWidths[t]
     const offsetX = (maxW - rowW) / 2
     let x = offsetX
     for (const n of row) {
       positions[n.id] = { x, y: currentY }
-      x += wPer + H_GAP
+      x += perNodeW[n.id] + H_GAP
     }
     // 记录核心层最右侧 x 坐标
     if (t === 'core') coreRight = offsetX + rowW
     currentY += NODE_H + V_GAP
   }
 
-  return { positions, coreRight }
+  return { positions, coreRight, nodeWidths: perNodeW }
 }
 
 // ============================================================
@@ -340,7 +354,7 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
 
     const rawEdges = data.edges  // 不去重，每条物理连接独立
     const handleCounts = countHandleNeeds(rawEdges, tierMap)
-    const { positions, coreRight } = tieredLayout(layoutInputs)
+    const { positions, coreRight, nodeWidths } = tieredLayout(layoutInputs, handleCounts)
 
     // 绕行坐标
     const gap1Y = NODE_H + V_GAP / 2        // WAN↔Core 间隙中线
@@ -360,6 +374,7 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
         label: n.label, displayType: getDisplayType(n.type, n.tier), tier: n.tier,
         platform: n.model || n.platform, ip: n.ip, isLocationDevice: n.is_location_device,
         handles: handleCounts[n.id],
+        nodeW: nodeWidths[n.id] || nodeW(n.tier),
       },
     }))
 
@@ -458,7 +473,7 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
         const handle = side === 'src' ? e.sourceHandle : e.targetHandle
         const idx = parseInt((handle || '').split('-').pop() || '0') || 0
         const tier = data.nodes.find(n => n.id === nodeId)?.tier || 'access'
-        const w = nodeW(tier)
+        const w = nodeWidths[nodeId] || nodeW(tier)
         const sd = (handle || '').startsWith('st') || (handle || '').startsWith('tt') ? 'top' : 'bottom'
         const total = hc.get(`${nodeId}:${sd}`) || 1
         return pos.x + w * (idx + 1) / (total + 1)

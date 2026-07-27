@@ -76,7 +76,7 @@ class ConfigParser:
         current_interface: Optional[str] = None
         pending_entry: Optional[InterfaceEntry] = None
         interface_shutdown: bool = False  # 当前 interface 块内是否出现 shutdown
-        skip_prefixes = ('vlan', 'mgmt', 'loopback', 'port-channel')
+        skip_prefixes = ('vlan', 'mgmt', 'loopback')
 
         def _flush_pending():
             """提交待定条目：仅在接口未被 shutdown 时写入结果"""

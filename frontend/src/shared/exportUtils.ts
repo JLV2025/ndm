@@ -47,7 +47,7 @@ export function assignEndpointLabels(
     // 贪心分配行号
     const rowRightmost: number[] = []
     for (const si of sorted) {
-      const textW = si.text.length * 9 + 16  // 标签宽度 (含内边距)
+      const textW = si.text.length * 10 + 18  // 标签宽度 (含内边距, 字号 14px)
       const left = si.x - textW / 2
       const right = si.x + textW / 2
 

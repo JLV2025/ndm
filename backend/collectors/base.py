@@ -181,8 +181,23 @@ class DeviceConnection:
         return self.send_command("show cdp nei", read_timeout=60)
 
     def collect_lldp_neighbors(self) -> str:
-        """收集 LLDP 邻居信息"""
-        return self.send_command("show lldp nei", read_timeout=60)
+        """收集 LLDP 邻居信息
+
+        Cisco: show lldp neighbors (表格格式)
+        Aruba CX: show lldp neighbor-info detail (分块 KV 格式)
+        """
+        dt = self._device_type()
+        if dt == "aruba_aoscx":
+            return self.send_command("show lldp neighbor-info detail", read_timeout=60)
+        return self.send_command("show lldp neighbors", read_timeout=60)
+
+    def collect_lacp_aggregates(self) -> str:
+        """收集 LACP 聚合组信息（Aruba CX）"""
+        return self.send_command("show lacp aggregates", read_timeout=30)
+
+    def collect_etherchannel_summary(self) -> str:
+        """收集 EtherChannel 汇总信息（Cisco IOS）"""
+        return self.send_command("show etherchannel summary", read_timeout=30)
 
     def collect_system_info(self) -> str:
         """收集系统信息（Aruba CX 用于获取序列号和型号）"""
