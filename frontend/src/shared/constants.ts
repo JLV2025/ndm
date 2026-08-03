@@ -78,6 +78,7 @@ export const TOPOLOGY_LEGEND: LegendItem[] = [
   { type: 'sdwan',         labelZh: 'SD-WAN',         labelEn: 'SD-WAN',           color: '#F97316' },
   { type: 'wireless',      labelZh: '无线控制器',     labelEn: 'Wireless Controller', color: '#8B5CF6' },
   { type: 'server',        labelZh: '服务器',         labelEn: 'Server',           color: '#06B6D4' },
+  { type: 'portDown',      labelZh: '端口 DOWN',      labelEn: 'Port DOWN',        color: '#dc2626' },
 ]
 
 /** 端口拓扑图图例（含端点和打印机） */

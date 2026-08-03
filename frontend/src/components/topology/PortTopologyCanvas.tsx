@@ -1,6 +1,6 @@
 import { useMemo, useState, useCallback, useRef } from 'react'
 import {
-  ReactFlow, Node, Edge, Background, MarkerType, Handle, Position, BaseEdge,
+  ReactFlow, Node, Edge, Background, MarkerType, Handle, Position, BaseEdge, EdgeLabelRenderer,
   type NodeProps, type EdgeProps, type ReactFlowInstance,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
@@ -303,7 +303,31 @@ function PipeEdge({ id, sourceX, sourceY, targetX, targetY, data, markerEnd, sty
     return buildRoundedPath(waypoints, CORNER_R)
   }, [sourceX, sourceY, targetX, targetY, data])
 
-  return <BaseEdge id={id} path={d} markerEnd={markerEnd} style={style} />
+  const srcPortDown = (data as any)?.srcPortDown
+  const srcAbove = (data as any)?.srcAbove
+
+  return (
+    <>
+      <BaseEdge id={id} path={d} markerEnd={markerEnd} style={style} />
+      {srcPortDown && (
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${sourceX}px, ${sourceY + (srcAbove ? -26 : 26)}px)`,
+              fontSize: 15, fontWeight: 800, color: '#dc2626',
+              background: '#ffffff', borderRadius: '50%', lineHeight: 1,
+              padding: '2px 4px', zIndex: 1001,
+            }}
+            className="nodrag nopan"
+            title="端口 DOWN（设备可能离线或故障）"
+          >
+            ✕
+          </div>
+        </EdgeLabelRenderer>
+      )}
+    </>
+  )
 }
 
 function clamp(v: number, lo: number, hi: number): number { return Math.max(lo, Math.min(hi, v)) }
@@ -799,7 +823,7 @@ export default function PortTopologyCanvas({
         source: srcNodeId, sourceHandle: n.interface,
         target: targetName, targetHandle,
         type: 'pipe',
-        data: { horizPipes, vertPipeX, sourcePipeIdx: pipeSrc, targetPipeIdx: pipeTgt, swap },
+        data: { horizPipes, vertPipeX, sourcePipeIdx: pipeSrc, targetPipeIdx: pipeTgt, swap, srcPortDown: (n as any).port_down, srcAbove: srcIsTopHandle },
         style: { stroke: ec, strokeWidth: isWan ? 3 : 2.5, opacity: 0.85 },
         markerEnd: { type: MarkerType.ArrowClosed, color: ec, width: 8, height: 8 },
       })

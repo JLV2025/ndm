@@ -42,14 +42,56 @@ export default function LabeledSmoothstepEdge(props: EdgeProps) {
   const srcDY = 20 + (d.srcLabelRow || 0) * 22
   const tgtDY = 20 + (d.tgtLabelRow || 0) * 22
 
+  // 端口 DOWN 红叉: 在端口标签外侧的连线上独立显示（标签保持端口号不拥挤）
+  const srcDownDY = srcDY + 15
+  const tgtDownDY = tgtDY + 15
+
   // sourcePosition/targetPosition 指示 handle 在节点哪一侧
   const srcAbove = sourcePosition === 'top'
   const tgtAbove = targetPosition === 'top'
+
+  // 红叉样式: 红色粗体 ✕ + 白底圆角，与端口标签区分
+  const downMarkBase = {
+    position: 'absolute' as const,
+    fontSize: 15,
+    fontWeight: 800,
+    color: '#dc2626',
+    background: '#ffffff',
+    borderRadius: '50%',
+    lineHeight: 1,
+    padding: '2px 4px',
+    zIndex: 1001,
+    opacity: dimmed ? 0 : 1,
+  }
 
   return (
     <>
       <BaseEdge id={id} path={path} style={style} markerEnd={markerEnd} markerStart={markerStart} />
       <EdgeLabelRenderer>
+        {d.srcPortDown && (
+          <div
+            style={{
+              ...downMarkBase,
+              transform: `translate(-50%, -50%) translate(${sourceX}px, ${sourceY + (srcAbove ? -srcDownDY : srcDownDY)}px)`,
+            }}
+            className="nodrag nopan"
+            title="端口 DOWN（设备可能离线或故障）"
+          >
+            ✕
+          </div>
+        )}
+        {d.tgtPortDown && (
+          <div
+            style={{
+              ...downMarkBase,
+              transform: `translate(-50%, -50%) translate(${targetX}px, ${targetY + (tgtAbove ? -tgtDownDY : tgtDownDY)}px)`,
+            }}
+            className="nodrag nopan"
+            title="端口 DOWN（设备可能离线或故障）"
+          >
+            ✕
+          </div>
+        )}
         {d.srcPort && (
           <div
             style={{

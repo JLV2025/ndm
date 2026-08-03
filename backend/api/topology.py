@@ -225,6 +225,26 @@ async def get_device_topology(device_name: str):
 
     # ---- 数据源1: CDP/LLDP neighbors（网络设备邻居，从 SQLite 读取） ----
     cdp_lldp_neighbors: Dict[str, List[dict]] = {}  # member → [items]
+    # 端口状态: 查询最新收集中物理断开（status_up=0）的端口。
+    # 有邻居条目但端口 down → 前端图上红叉警告（设备可能离线/故障，链路需保留不能删）
+    down_ports: set = set()
+    try:
+        db = _get_db()
+        if db:
+            rows = db.execute("""
+                SELECT port_name FROM port_snapshots ps
+                WHERE ps.collection_id = (
+                    SELECT c.id FROM collections c JOIN devices d ON c.device_id = d.id
+                    WHERE d.name = ? ORDER BY c.id DESC LIMIT 1
+                ) AND ps.status_up = 0
+            """, (device_name,)).fetchall()
+            for r in rows:
+                pn = r["port_name"]
+                down_ports.add(pn)
+                down_ports.add(_norm_port(pn))
+    except Exception as e:
+        logger.warning(f"读取端口状态失败: {e}")
+
     try:
         for nb in _get_latest_neighbors(device_name):
             raw_port = nb.get("local_port", "")
@@ -253,6 +273,7 @@ async def get_device_topology(device_name: str):
                 "neighbor_model": nb.get("neighbor_platform", ""),
                 "neighbor_notes": device_info_map.get(nb_name, {}).get("notes", "") or "",
                 "_source": "cdp_lldp",
+                "port_down": iface in down_ports,
             }
             cdp_lldp_neighbors.setdefault(member, []).append(item)
     except Exception as e:
@@ -321,6 +342,7 @@ async def get_device_topology(device_name: str):
             "neighbor_model": device_info_map.get(entry.device_name, {}).get("model", ""),
             "neighbor_notes": device_info_map.get(entry.device_name, {}).get("notes", "") or "",
             "_source": "config_parser",
+            "port_down": iface_norm in down_ports,
         }
         endpoints_by_member.setdefault(member, []).append(item)
 
@@ -621,6 +643,32 @@ async def get_location_topology(location: str):
     # 批量获取所有设备最新邻居
     device_neighbor_map = _scan_device_neighbors()
 
+    # 端口状态: 批量查询该 location 所有设备最新收集中物理断开（status_up=0）的端口，
+    # 边上标记端口 DOWN（设备可能离线/故障，链路需保留不能删）
+    down_ports_map: dict[str, set] = {}
+    try:
+        db = _get_db()
+        if db:
+            rows = db.execute("""
+                SELECT d.name AS device_name, ps.port_name
+                FROM port_snapshots ps
+                JOIN collections c ON ps.collection_id = c.id
+                JOIN devices d ON c.device_id = d.id
+                WHERE c.id IN (
+                    SELECT MAX(c2.id) FROM collections c2
+                    JOIN devices d2 ON c2.device_id = d2.id
+                    WHERE d2.location = ?
+                    GROUP BY d2.id
+                ) AND ps.status_up = 0
+            """, (location,)).fetchall()
+            for r in rows:
+                dev = _logical_name(r["device_name"])
+                pn = r["port_name"]
+                down_ports_map.setdefault(dev, set()).add(pn)
+                down_ports_map[dev].add(_norm_port(pn))
+    except Exception as e:
+        logger.warning(f"读取端口状态失败: {e}")
+
     # ─── 第一遍：先创建所有本 location 设备节点（确保 YAML 类型优先生效）───
     for dev in physical_devices:
         expanded_name = dev["expanded_name"]
@@ -773,6 +821,8 @@ async def get_location_topology(location: str):
                     "target": target_name,
                     "source_interface": local_port,
                     "target_interface": remote_port if remote_port else "",
+                    "source_port_down": local_port in down_ports_map.get(_logical_name(sname), set()),
+                    "target_port_down": (remote_port or "") in down_ports_map.get(_logical_name(target_name), set()),
                     "is_cross_location": not is_loc,
                 })
 

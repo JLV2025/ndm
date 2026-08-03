@@ -38,7 +38,7 @@ function DetourEdge({
   id, sourceX, sourceY, targetX, targetY,
   data, markerEnd, markerStart, style, label,
 }: EdgeProps) {
-  const { gap1Y, gap2Y, detourX, highlighted, srcPort, tgtPort, srcLabelRow, tgtLabelRow } = (data || {}) as any
+  const { gap1Y, gap2Y, detourX, highlighted, srcPort, tgtPort, srcLabelRow, tgtLabelRow, srcPortDown, tgtPortDown } = (data || {}) as any
   const hl = !!highlighted
   const dimmed = (style?.opacity as number) != null && (style.opacity as number) < 0.1
   if (gap1Y == null || gap2Y == null || detourX == null) {
@@ -102,6 +102,17 @@ function DetourEdge({
   // 方向 ↓: source 在上, target 在下
   // 方向 ↑: source 在下, target 在上
 
+  // 端口 DOWN 红叉: 在端口标签外侧的连线上独立显示
+  const srcDownDY = srcDY + 15
+  const tgtDownDY = tgtDY + 15
+  const downMarkBase = {
+    position: 'absolute' as const,
+    fontSize: 15, fontWeight: 800, color: '#dc2626',
+    background: '#ffffff', borderRadius: '50%', lineHeight: 1,
+    padding: '2px 4px', zIndex: 1001,
+    opacity: dimmed ? 0 : 1,
+  }
+
   return (
     <>
       <BaseEdge id={id} path={path} style={{ stroke: lc, strokeWidth: sw, fill: 'none', opacity }} markerEnd={markerEnd} markerStart={markerStart} />
@@ -126,6 +137,24 @@ function DetourEdge({
         </EdgeLabelRenderer>
       )}
       <EdgeLabelRenderer>
+        {srcPortDown && (
+          <div
+            style={{ ...downMarkBase, transform: `translate(-50%, -50%) translate(${sourceX}px, ${sourceY + srcDownDY}px)` }}
+            className="nodrag nopan"
+            title="端口 DOWN（设备可能离线或故障）"
+          >
+            ✕
+          </div>
+        )}
+        {tgtPortDown && (
+          <div
+            style={{ ...downMarkBase, transform: `translate(-50%, -50%) translate(${targetX}px, ${targetY - tgtDownDY}px)` }}
+            className="nodrag nopan"
+            title="端口 DOWN（设备可能离线或故障）"
+          >
+            ✕
+          </div>
+        )}
         {srcPort && (
           <div style={{ ...epLab, position: 'absolute', transform: `translate(-50%, -50%) translate(${sourceX}px, ${sourceY + srcDY}px)` }} className="nodrag nopan">{srcPort}</div>
         )}
@@ -435,7 +464,7 @@ export default function LocationTopologyCanvas({ location, data }: Props) {
         style: { stroke: lineColor, strokeWidth: 2.5 },
         markerEnd: { type: MarkerType.ArrowClosed, color: lineColor, width: 8, height: 8 },
         markerStart: { type: MarkerType.ArrowClosed, color: lineColor, width: 8, height: 8 },
-        data: { srcPort, tgtPort, srcSide, tgtSide },
+        data: { srcPort, tgtPort, srcSide, tgtSide, srcPortDown: e.source_port_down, tgtPortDown: e.target_port_down },
       }
 
       if (cross) {

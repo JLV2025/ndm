@@ -13,6 +13,8 @@ export interface NeighborNode {
   neighbor_members?: string[]
   neighbor_notes?: string
   neighbor_interface?: string
+  /** 端口物理断开（status_up=0），图上显示红叉警告 */
+  port_down?: boolean
 }
 
 export interface TopologyData {
@@ -55,6 +57,9 @@ export interface LocationEdge {
   source_interface: string
   target_interface: string
   is_cross_location: boolean
+  /** 端点端口物理断开（status_up=0），图上显示红叉警告 */
+  source_port_down?: boolean
+  target_port_down?: boolean
 }
 
 export interface LocationTopologyData {
