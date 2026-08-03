@@ -263,6 +263,102 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-08-03T10:23:48.685683Z"
+    },
+    {
+      "id": "bug-017",
+      "timestamp": "2026-08-03T03:14:29.344Z",
+      "error_message": "Type error",
+      "file": "frontend/src/components/topology/LabeledSmoothstepEdge.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T03:14:29.344Z"
+    },
+    {
+      "id": "bug-018",
+      "timestamp": "2026-08-03T03:29:02.387Z",
+      "error_message": "CSS fix: member",
+      "file": "frontend/src/components/topology/TopologyCanvas.tsx",
+      "root_cause": "member: memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type → memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type, portDown: n.port_down",
+      "fix": "Changed member: memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type → memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type, portDown: n.port_down",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T03:29:02.387Z"
+    },
+    {
+      "id": "bug-019",
+      "timestamp": "2026-08-03T03:29:20.001Z",
+      "error_message": "CSS fix: data",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "data: { srcPort, tgtPort, srcSide, tgtSide → { srcPort, tgtPort, srcSide, tgtSide, srcPortDown: e.source_port_down, tgtPortDown: e.target_port_down",
+      "fix": "Changed data: { srcPort, tgtPort, srcSide, tgtSide → { srcPort, tgtPort, srcSide, tgtSide, srcPortDown: e.source_port_down, tgtPortDown: e.target_port_down",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-03T03:33:47.484Z"
+    },
+    {
+      "id": "bug-020",
+      "timestamp": "2026-08-03T03:39:03.109Z",
+      "error_message": "CSS fix: member",
+      "file": "frontend/src/components/topology/TopologyCanvas.tsx",
+      "root_cause": "member: memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type, portDown: n.port_down → memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type",
+      "fix": "Changed member: memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type, portDown: n.port_down → memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T03:39:03.109Z"
+    },
+    {
+      "id": "bug-021",
+      "timestamp": "2026-08-03T03:39:23.373Z",
+      "error_message": "Type error",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T03:39:23.373Z"
+    },
+    {
+      "id": "bug-022",
+      "timestamp": "2026-08-03T03:39:28.925Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T03:39:28.925Z"
     }
   ]
 }

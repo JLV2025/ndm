@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-03T02:23:03.322Z
-> Files: 1 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-03T03:39:48.859Z
+> Files: 8 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -86,6 +86,7 @@
 
 ## backend/api/
 
+- `topology.py` — 拓扑图 API 路由 (~11782 tok)
 
 ## backend/collectors/
 
@@ -132,6 +133,10 @@
 
 ## frontend/src/components/topology/
 
+- `LabeledSmoothstepEdge.tsx` — 带端点端口标签的 smoothstep 边。 (~1026 tok)
+- `LocationTopologyCanvas.tsx` — NODE_H (~7754 tok)
+- `PortTopologyCanvas.tsx` — 解析设备命名规范：PVGD1SWI02 → { site: "PVG", room: "D1", typeCode: "SWI", num: 2 } (~14392 tok)
+- `TopologyCanvas.tsx` — 判断端口拓扑是否符合三层结构：有 WAN 设备 + 中心交换机 + 终端设备 (~6637 tok)
 
 ## frontend/src/i18n/
 
@@ -144,12 +149,14 @@
 
 ## frontend/src/shared/
 
+- `constants.ts` — 全局共享常量 — 设备颜色、图例、端点前缀 (~1414 tok)
 
 ## frontend/src/test/
 
 
 ## frontend/src/types/
 
+- `topology.ts` — 端口物理断开（status_up=0），图上显示红叉警告 (~540 tok)
 
 ## tests/
 

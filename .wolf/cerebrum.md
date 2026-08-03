@@ -275,3 +275,5 @@
 ## Do-Not-Repeat
 - [2026-08-03] pytest 运行会写测试配置 backend/tests/config/test_devices.yaml → git stash 后 pop 必冲突。stash 前/后先 `git checkout -- backend/tests/config/test_devices.yaml` 丢弃测试副作用。另注意 bash cwd 在 backend/ 时 `tests/` 即 `backend/tests/`，路径要用仓库根绝对路径避免歧义。
 - [2026-08-03] `git add -p` 用 stdin 传 y/n 时，回答数必须等于当前 hunk 数——分次提交后 hunk 数递减，先 `git diff | grep -c '^@@'` 确认再喂 stdin，回答数不匹配会静默取消暂存。
+- [2026-08-03] **端口连接图（/port-topology）真实画布是 PortTopologyCanvas 自己**（pipe 边 + FrontPanelNode 节点），`TopologyCanvas.tsx`（AggDevice 分组 + 三层 fitsThreeTier 路径）是**零引用的死代码**。修改前端画布前先 `grep -rn "组件名" frontend/src --include="*.tsx" | grep -v 自身文件` 确认实际使用路径，改错文件白做功。
+- [2026-08-03] 端口 DOWN 检测数据源：`port_snapshots` 表（status_up=0）按设备最新 collection 查询；邻居条目（neighbors 表）与端口状态可能不同 collection，需各自取最新。端口名统一 `_norm_port` 后再比对。
