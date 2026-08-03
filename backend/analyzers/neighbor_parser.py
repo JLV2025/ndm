@@ -470,11 +470,23 @@ def parse_lldp_aruba_detail(text: str) -> List[NeighborEntry]:
     if not text or not text.strip():
         return entries
 
-    # 按 --- 分隔线切块
-    blocks = re.split(r'\n?-{5,}\n?', text)
+    # 切块: Port 键行 = 新邻居块的开始。
+    # 不依赖特定分隔线格式——分隔线与设备实际输出不符时，
+    # 整段文本会被当单块、逐行 KV 覆盖只剩最后一个邻居。
+    blocks: List[List[str]] = []
+    current: List[str] = []
+    for line in text.splitlines():
+        if re.match(r'^\s*Port\s*:', line):
+            if current:
+                blocks.append(current)
+            current = [line]
+        else:
+            current.append(line)
+    if current:
+        blocks.append(current)
 
-    for block in blocks:
-        block = block.strip()
+    for block_lines in blocks:
+        block = "\n".join(block_lines).strip()
         if not block:
             continue
 

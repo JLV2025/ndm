@@ -185,10 +185,13 @@ class DeviceConnection:
 
         Cisco: show lldp neighbors (表格格式)
         Aruba CX: show lldp neighbor-info detail (分块 KV 格式)
+        Aruba OS (非 CX): show lldp nei (缩写，该平台不接受 Cisco 语法)
         """
         dt = self._device_type()
         if dt == "aruba_aoscx":
             return self.send_command("show lldp neighbor-info detail", read_timeout=60)
+        if dt.startswith("aruba"):
+            return self.send_command("show lldp nei", read_timeout=60)
         return self.send_command("show lldp neighbors", read_timeout=60)
 
     def collect_lacp_aggregates(self) -> str:
