@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-03T03:39:48.859Z
-> Files: 8 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-03T04:17:35.549Z
+> Files: 10 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -47,6 +47,7 @@
 
 ## ./
 
+- `README.md` — Project documentation (~1434 tok)
 
 ## .claude/
 
@@ -121,6 +122,7 @@
 
 ## frontend/
 
+- `package.json` — Node.js package manifest (~421 tok)
 
 ## frontend/src/
 

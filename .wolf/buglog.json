@@ -359,6 +359,22 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-03T03:39:28.925Z"
+    },
+    {
+      "id": "bug-023",
+      "timestamp": "2026-08-03T04:17:31.209Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/package.json",
+      "root_cause": "Had \"2.7.27\"",
+      "fix": "Changed to \"2.8.3\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T04:17:31.209Z"
     }
   ]
 }
