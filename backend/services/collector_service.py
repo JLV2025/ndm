@@ -1064,6 +1064,9 @@ def _save_data(
             'TwentyFiveGigE': 'Twe', 'HundredGigE': 'Hu',
             'FortyGigE': 'Fo', 'FastEthernet': 'Fa',
             'Port-channel': 'Po', 'Loopback': 'Lo',
+            # 25G 短名变体: show etherchannel summary 输出 'Tw1/0/2'，
+            # 需与 LLDP 长名归一化结果 'Twe1/0/2' 对齐（'Twe' 幂等，且必须在 'Tw' 之前）
+            'Twe': 'Twe', 'Tw': 'Twe',
         }
 
         def _normalize_port_name(port: str) -> str:
@@ -1143,6 +1146,20 @@ def _save_data(
                                 extra_count += 1
                 if extra_count:
                     print(f"[邻居] LAG 逻辑端口补充: {extra_count} 条")
+            except Exception as e:
+                print(f"[邻居] LAG 补充失败: {e}")
+
+        # 补充: 从 running-config 端口描述中收集 CDP/LLDP 无法发现的设备
+        if running_config and not running_config.startswith('%'):
+            try:
+                from analyzers.config_parser import ConfigParser
+                cp = ConfigParser(device_type=device_type)
+                config_entries = cp.parse(running_config)
+                seen_ports = set(
+                    (_normalize_port_name(e.local_port), e.neighbor_name)
+                    for e in merged
+                )
+                extra_count = 0
                 for entry in config_entries:
                     if not entry.device_name:
                         continue
