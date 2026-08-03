@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-03T01:40:10.130Z
-> Files: 4 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-03T02:23:03.322Z
+> Files: 1 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -83,15 +83,12 @@
 
 ## backend/analyzers/
 
-- `neighbor_parser.py` — CDP / LLDP 邻居解析器 (~6079 tok)
 
 ## backend/api/
 
-- `topology.py` — 拓扑图 API 路由 (~11165 tok)
 
 ## backend/collectors/
 
-- `base.py` — DeviceConnection: connect, send_command, collect_config, collect_logs + 13 more (~2722 tok)
 
 ## backend/models/
 
@@ -101,13 +98,13 @@
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~15448 tok)
 
 ## backend/storage/
 
 
 ## backend/tests/
 
+- `conftest.py` — test_password_manager (~78 tok)
 
 ## backend/utils/
 

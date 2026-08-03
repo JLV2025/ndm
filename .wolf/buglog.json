@@ -244,6 +244,25 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-03T09:47:47.550871Z"
+    },
+    {
+      "id": "bug-015",
+      "timestamp": "2026-08-03T10:23:48.685683Z",
+      "error_message": "测试套件 18 项预存在失败：test_devices_api 16 项 500 + test_services 2 项导入失败",
+      "file": "backend/tests/test_devices_api.py, backend/tests/test_services.py",
+      "root_cause": "① test_services patch 的 collector_service._update_device_serial 函数已删除（AttributeError），mock 的是旧版收集流程；② test_devices_api 的测试专用入口 tests/_main.py 缺少 init_db() 调用（生产入口 main.py:61 有），且测试数据隔离机制（DEVICES_CONFIG_PATH→YAML）已被 YAML→SQLite 迁移废弃，即使补 init_db 也会读写真实生产库 data/ndm.db",
+      "fix": "直接删除两个陈旧测试文件（保护对象已不存在/无法安全运行），conftest.py 清理 6 个死代码 fixture（仅保留 test_password_manager），测试套件恢复 7 passed 全绿",
+      "tags": [
+        "test",
+        "cleanup",
+        "stale-test",
+        "sqlite-migration"
+      ],
+      "related_bugs": [
+        "bug-001"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T10:23:48.685683Z"
     }
   ]
 }
