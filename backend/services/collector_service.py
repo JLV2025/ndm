@@ -473,6 +473,8 @@ def collect_device(
         total_cmds += 1  # switch detail
     if _is_router_device(device_type):
         total_cmds += 1  # routing table
+    if device_type == "aruba_aoscx" or "cisco" in (device_type or ""):
+        total_cmds += 1  # LAG 成员关系 (lacp aggregates / etherchannel summary)
     cmd_done = 0
 
     def _advance(label: str = ""):
@@ -562,6 +564,8 @@ def collect_device(
             total_cmds += 1
         if _is_router_device(effective_type):
             total_cmds += 1
+        if effective_type == "aruba_aoscx" or "cisco" in (effective_type or ""):
+            total_cmds += 1  # LAG 成员关系
 
     def _safe_collect(collect_func, label: str) -> str:
         """安全执行单条命令收集，失败时返回错误信息但不抛异常"""
