@@ -649,8 +649,14 @@ async def get_location_topology(location: str):
         })
 
     # ─── 第二遍：遍历有邻居数据的设备，创建邻居节点和边 ───
+    # 堆叠设备按逻辑名去重——每个物理成员的邻居数据完全相同，
+    # 重复处理只是白算一遍（成员归属由端口 slot 决定，与迭代顺序无关）
+    seen_logical: set[str] = set()
     for dev in physical_devices:
         logical_name = dev["logical_name"]
+        if logical_name in seen_logical:
+            continue
+        seen_logical.add(logical_name)
         expanded_name = dev["expanded_name"]
         neighbor_list = device_neighbor_map.get(logical_name, [])
         if not neighbor_list:
@@ -806,7 +812,7 @@ async def get_location_topology(location: str):
             merged.append(edge)
 
     # LAG 扇出边 target_interface 传播：
-    # 当逻辑端口跨堆叠成员扇出时，只有第一条边能拿到反向边的 target_interface，
+    # 当逻辑端口跨堆叠成员扇出时，只有部分边能拿到反向边的 target_interface，
     # 同扇出的其他边（相同 source_interface + target）也需要补充。
     si_groups: dict[tuple, list[dict]] = defaultdict(list)
     for e in merged:
@@ -814,9 +820,11 @@ async def get_location_topology(location: str):
     for group in si_groups.values():
         if len(group) < 2:
             continue
-        filled = [e["target_interface"] for e in group if e.get("target_interface")]
-        if filled:
-            shared = filled[0]
+        filled = {e["target_interface"] for e in group if e.get("target_interface")}
+        # 只有组内已知远端端口一致时才安全传播；
+        # 各成员对端不同（如连到不同设备）时留空，避免把别的链路的端口标注到本条边
+        if len(filled) == 1:
+            shared = filled.pop()
             for e in group:
                 if not e.get("target_interface"):
                     e["target_interface"] = shared
