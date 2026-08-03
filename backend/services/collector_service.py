@@ -1089,35 +1089,35 @@ def _save_data(
                 merged = [e for e in merged if _normalize_port_name(e.local_port) not in shutdown_ports]
                 print(f"[邻居] 过滤 admin down 端口: {shutdown_ports}")
 
-        # 补充: 从 running-config 端口描述中收集 CDP/LLDP 无法发现的设备
-        if running_config and not running_config.startswith('%'):
+        # ---- LAG 逻辑端口补充: 从物理成员投票继承邻居信息 ----
+        # 不依赖 running-config（config 失败时 LAG 链路仍要保留，
+        # 否则物理成员端口会被拓扑隐藏、LAG 链路整体消失）
+        if lag_map:
             try:
-                from analyzers.config_parser import ConfigParser
-                cp = ConfigParser(device_type=device_type)
-                config_entries = cp.parse(running_config)
                 seen_ports = set(
                     (_normalize_port_name(e.local_port), e.neighbor_name)
                     for e in merged
                 )
                 extra_count = 0
-
-                # ---- 先处理 LAG 逻辑端口: 从物理成员继承邻居信息 ----
-                if lag_map:
-                    for log_port, phys_ports in lag_map.items():
-                        if not phys_ports:
-                            continue
-                        log_port_norm = _norm_lag_name(log_port)  # lag14 → lag 14
-                        # 统计每个邻居在物理成员端口中出现的次数
-                        neighbor_votes: dict[str, int] = {}
-                        for pp in phys_ports:
-                            norm_pp = _normalize_port_name(pp)
-                            for e in merged:
-                                if _normalize_port_name(e.local_port) == norm_pp:
-                                    nb = e.neighbor_name
-                                    neighbor_votes[nb] = neighbor_votes.get(nb, 0) + 1
-                        if neighbor_votes:
-                            # 多数投票确定邻居名
-                            main_nb = max(neighbor_votes, key=neighbor_votes.get)
+                for log_port, phys_ports in lag_map.items():
+                    if not phys_ports:
+                        continue
+                    log_port_norm = _norm_lag_name(log_port)  # lag14 → lag 14
+                    # 统计每个邻居在物理成员端口中出现的次数
+                    neighbor_votes: dict[str, int] = {}
+                    for pp in phys_ports:
+                        norm_pp = _normalize_port_name(pp)
+                        for e in merged:
+                            if _normalize_port_name(e.local_port) == norm_pp:
+                                nb = e.neighbor_name
+                                neighbor_votes[nb] = neighbor_votes.get(nb, 0) + 1
+                    if neighbor_votes:
+                        # 多数投票确定邻居名；平局时所有最高票邻居都保留
+                        # （成员端口连不同邻居时强行取一个，会让另一条链路从拓扑消失）
+                        max_votes = max(neighbor_votes.values())
+                        for main_nb, votes in neighbor_votes.items():
+                            if votes < max_votes:
+                                continue
                             log_key = (log_port_norm, main_nb)
                             if log_key not in seen_ports:
                                 seen_ports.add(log_key)
