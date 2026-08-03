@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-07-27T05:15:55.253Z
-> Files: 9 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-03T01:40:10.130Z
+> Files: 4 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -47,8 +47,6 @@
 
 ## ./
 
-- `start.bat` (~1019 tok)
-- `VERSION` (~2 tok)
 
 ## .claude/
 
@@ -85,14 +83,15 @@
 
 ## backend/analyzers/
 
-- `config_parser.py` — class: parse (~2398 tok)
+- `neighbor_parser.py` — CDP / LLDP 邻居解析器 (~6079 tok)
 
 ## backend/api/
 
-- `topology.py` — 拓扑图 API 路由 (~11076 tok)
+- `topology.py` — 拓扑图 API 路由 (~11165 tok)
 
 ## backend/collectors/
 
+- `base.py` — DeviceConnection: connect, send_command, collect_config, collect_logs + 13 more (~2722 tok)
 
 ## backend/models/
 
@@ -102,7 +101,7 @@
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~15167 tok)
+- `collector_service.py` — 配置收集服务 (~15448 tok)
 
 ## backend/storage/
 
@@ -124,7 +123,6 @@
 
 ## frontend/
 
-- `package.json` — Node.js package manifest (~421 tok)
 
 ## frontend/src/
 
@@ -137,8 +135,6 @@
 
 ## frontend/src/components/topology/
 
-- `LabeledSmoothstepEdge.tsx` — 带端点端口标签的 smoothstep 边。 (~700 tok)
-- `LocationTopologyCanvas.tsx` — NODE_H (~7460 tok)
 
 ## frontend/src/i18n/
 
@@ -151,7 +147,6 @@
 
 ## frontend/src/shared/
 
-- `exportUtils.ts` — 端点标签碰撞避免 — 贪心分配垂直行。 (~2155 tok)
 
 ## frontend/src/test/
 

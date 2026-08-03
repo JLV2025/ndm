@@ -144,6 +144,106 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-07-27T05:15:55.334Z"
+    },
+    {
+      "id": "bug-010",
+      "timestamp": "2026-08-03T01:39:26.610Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/analyzers/neighbor_parser.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 7→19 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T01:39:26.610Z"
+    },
+    {
+      "id": "bug-010",
+      "timestamp": "2026-08-03T09:47:47.550871Z",
+      "error_message": "代码评审：LAG 逻辑条目生成依赖 running-config 分支，config 缺失时 LAG 链路从拓扑整体消失",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "LAG 逻辑端口补充嵌套在 `if running_config and not running_config.startswith('%')` 分支内，与 ConfigParser 补充共享 try/except；running-config 失败时物理成员被 lag_membership 隐藏而无逻辑条目覆盖",
+      "fix": "LAG 补充移出该分支独立执行（只依赖 CDP/LLDP 邻居与 lag_map），ConfigParser 补充保留原分支",
+      "tags": [
+        "lag",
+        "topology",
+        "collector",
+        "code-review"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T09:47:47.550871Z"
+    },
+    {
+      "id": "bug-011",
+      "timestamp": "2026-08-03T09:47:47.550871Z",
+      "error_message": "代码评审：total_cmds 未计入 LAG 采集步，进度条超 100%",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "total_cmds = 1+5+2 = 8，但 aruba_aoscx/cisco 设备实际 _advance 9 次（新增 LAG 采集）",
+      "fix": "预计算与类型回退重算两处均按运行时条件 +1（aruba_aoscx 或含 cisco）",
+      "tags": [
+        "progress",
+        "collector",
+        "code-review"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T09:47:47.550871Z"
+    },
+    {
+      "id": "bug-012",
+      "timestamp": "2026-08-03T09:47:47.550871Z",
+      "error_message": "代码评审：25G 端口缩写失配（Tw vs Twe）+ LAG 投票平局丢邻居",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "show etherchannel summary 输出 Tw1/0/2 而 _normalize_port_name 只映射 TwentyFiveGigE→Twe；投票平局时 max(key=...) 取插入序首个，其余邻居信息被丢弃",
+      "fix": "_CISCO_PORT_SHORT 补 'Twe'(幂等)/'Tw' 变体统一收敛 Twe；平局时所有最高票邻居均生成逻辑条目",
+      "tags": [
+        "lag",
+        "25g",
+        "voting",
+        "code-review"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T09:47:47.550871Z"
+    },
+    {
+      "id": "bug-013",
+      "timestamp": "2026-08-03T09:47:47.550871Z",
+      "error_message": "代码评审：Aruba LLDP detail 切块依赖连字符分隔线 + aruba_osswitch 命令回归",
+      "file": "backend/analyzers/neighbor_parser.py, backend/collectors/base.py",
+      "root_cause": "re.split 按 5+ 连字符切块，格式不符时整块只留最后一条邻居；aruba_osswitch 命令改为 show lldp neighbors（Cisco 语法）不被接受",
+      "fix": "改为逐行扫描 Port 键触发新块；aruba_osswitch 恢复验证过的 show lldp nei",
+      "tags": [
+        "lldp",
+        "aruba",
+        "parser",
+        "code-review"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T09:47:47.550871Z"
+    },
+    {
+      "id": "bug-014",
+      "timestamp": "2026-08-03T09:47:47.550871Z",
+      "error_message": "代码评审：拓扑 si_groups 扇出強填错误远端端口 + 堆叠成员重复处理",
+      "file": "backend/api/topology.py",
+      "root_cause": "filled[0] 强填同组缺失 target_interface 的边，可能把 M1 的远端端口标到 M3；堆叠每个 expanded member 重复跑同一逻辑设备邻居与扇出",
+      "fix": "仅当组内已知远端端口全部一致时才传播；第二遍建边按 logical_name 去重只处理一次",
+      "tags": [
+        "topology",
+        "stack",
+        "fanout",
+        "code-review"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T09:47:47.550871Z"
     }
   ]
 }

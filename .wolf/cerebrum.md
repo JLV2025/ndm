@@ -263,3 +263,15 @@
 - [2026-07-27] `EdgeLabelRenderer` 标签需 `zIndex: 1000` 防止被 ReactFlow 节点层遮挡。
 - [2026-07-27] 拓扑图节点宽度自适应：`max(基准宽度, 最忙侧 handle 数 × 52px)`，邻居多时自动加宽，少时自动缩回。
 - [2026-07-27] 标签订阅字号：普通 14px / 高亮 16px（整体+2px）。
+
+## Key Learnings
+- [2026-08-03] LAG 逻辑条目补充逻辑不能与 running-config 解析耦合（同一 try/if 分支）——config 失败时物理成员被 lag_membership 隐藏而无逻辑条目覆盖，LAG 链路从拓扑整体消失。补充逻辑只应依赖 CDP/LLDP 邻居 + lag_map。
+- [2026-08-03] LAG 投票平局（成员端口连不同邻居）不能用 max(key=...) 取插入序首个——被丢弃邻居的物理条目又被隐藏，链路消失。应保留所有最高票邻居各生成一条逻辑条目。
+- [2026-08-03] Cisco 25G 端口短名存在 Tw/Twe 两种变体（show etherchannel summary 输出 Tw1/0/2，LLDP 长名归一化 Twe1/0/2），归一化映射需含幂等项 'Twe'→'Twe' 且必须在 'Tw' 之前（'Twe1/0/2' 也以 'Tw' 开头，顺序反了会双重转换）。
+- [2026-08-03] Aruba LLDP detail 分块解析用「Port 键行触发新块」逐行扫描，比 re.split 按分隔线切块健壮——分隔线格式与设备实际输出不符时整段粘合成单块只留最后一条邻居。
+- [2026-08-03] 扇出边 target_interface 传播只能在组内已知远端端口全部一致时进行；各成员对端不同时留空，避免 filled[0] 把别的链路的端口标到本条边。
+- [2026-08-03] aruba_osswitch（非 CX ArubaOS）LLDP 命令用验证过的缩写 `show lldp nei`，不接受 Cisco 语法 `show lldp neighbors`；aruba_aoscx 用 `show lldp neighbor-info detail`。
+
+## Do-Not-Repeat
+- [2026-08-03] pytest 运行会写测试配置 backend/tests/config/test_devices.yaml → git stash 后 pop 必冲突。stash 前/后先 `git checkout -- backend/tests/config/test_devices.yaml` 丢弃测试副作用。另注意 bash cwd 在 backend/ 时 `tests/` 即 `backend/tests/`，路径要用仓库根绝对路径避免歧义。
+- [2026-08-03] `git add -p` 用 stdin 传 y/n 时，回答数必须等于当前 hunk 数——分次提交后 hunk 数递减，先 `git diff | grep -c '^@@'` 确认再喂 stdin，回答数不匹配会静默取消暂存。
