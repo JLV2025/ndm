@@ -13,12 +13,20 @@ DEVICE_NAME_RE = re.compile(r'\b(\w{3}\w{2}(?:SWI|RTW|FWL|WLC|SDW|QIS)\d{2})\b')
 # 例: GTSPEKESX01, GTSPEKSRV
 GTS_SERVER_NAME_RE = re.compile(r'\b(GTS\w{3}(?:ESX|SRV)\d*)\b')
 
+# Aruba AP 名: 3位site + 点 + location + AP + 编号 + 点 + 4位MAC
+# 例: SZX.F11AP2.7C5F → {site: SZX, location: F11, num: 2, mac: 7C5F}
+# 宽松模式只认格式不解析字段；site 含数字（KR3）也匹配
+AP_NAME_PATTERN = r'\w{3}\.[\w-]+AP\d+\.[0-9A-Fa-f]{4}'
+AP_NAME_RE = re.compile(rf'\b({AP_NAME_PATTERN})\b')
+
 # 组合设备名搜索正则（任意有效设备名）
 DEVICE_NAME_SEARCH_RE = re.compile(
     r'\b('
     r'GTS\w{3}(?:ESX|SRV)\d*'          # GTS 服务器
     r'|'
     r'\w{3}\w{2}(?:SWI|RTW|FWL|WLC|SDW|QIS)\d{2}'  # 标准网络设备
+    r'|'
+    r'\w{3}\.[\w-]+AP\d+\.[0-9A-Fa-f]{4}'  # Aruba AP (SZX.F11AP2.7C5F)，与 AP_NAME_PATTERN 同步
     r')\b'
 )
 
@@ -77,8 +85,14 @@ def _extract_type(device_name: str) -> str:
 
 
 def _is_valid_network_device(name: str) -> bool:
-    """判断是否为有效网络设备名"""
-    return bool(DEVICE_NAME_RE.fullmatch(name)) or bool(GTS_SERVER_NAME_RE.fullmatch(name))
+    """判断是否为有效网络设备名（含 Aruba AP 名）"""
+    return bool(DEVICE_NAME_RE.fullmatch(name)) or bool(GTS_SERVER_NAME_RE.fullmatch(name)) or bool(AP_NAME_RE.fullmatch(name))
+
+
+def _is_ap(name: str) -> bool:
+    """判断是否为 Aruba AP 名（宽松模式，只认格式不解析字段）
+    例: SZX.F11AP2.7C5F → {site: SZX, location: F11, num: 2, mac: 7C5F}"""
+    return bool(AP_NAME_RE.fullmatch(name or ""))
 
 
 def _is_endpoint(name: str) -> bool:
