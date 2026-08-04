@@ -267,7 +267,7 @@ async def get_device_topology(device_name: str):
                 "site_code": None,
                 "dc": None,
                 "device_number": None,
-                "is_endpoint": False,
+                "is_endpoint": nb.get("neighbor_type", "") == "AP",
                 "member": member,
                 "neighbor_ip": device_info_map.get(nb_name, {}).get("ip", ""),
                 "neighbor_model": nb.get("neighbor_platform", ""),
