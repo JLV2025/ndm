@@ -375,6 +375,54 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-03T04:17:31.209Z"
+    },
+    {
+      "id": "bug-024",
+      "timestamp": "2026-08-04T02:37:57.749Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/analyzers/neighbor_parser.py",
+      "root_cause": "Had \"判断是否为有效网络设备名\"",
+      "fix": "Changed to \"判断是否为有效网络设备名（含 Aruba AP 名）\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-04T02:37:57.749Z"
+    },
+    {
+      "id": "bug-025",
+      "timestamp": "2026-08-04T02:39:36.486Z",
+      "error_message": "Wrong reference: _extract_type should be device_type",
+      "file": "backend/analyzers/neighbor_parser.py",
+      "root_cause": "Used \"_extract_type\" instead of \"device_type\"",
+      "fix": "Changed _extract_type → device_type",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-04T02:39:44.743Z"
+    },
+    {
+      "id": "bug-026",
+      "timestamp": "2026-08-04T02:40:47.555Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/analyzers/neighbor_parser.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 7→10 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-04T02:40:47.555Z"
     }
   ]
 }

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-03T04:17:35.549Z
-> Files: 10 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-04T02:42:06.968Z
+> Files: 14 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -84,10 +84,11 @@
 
 ## backend/analyzers/
 
+- `neighbor_parser.py` — CDP / LLDP 邻居解析器 (~6462 tok)
 
 ## backend/api/
 
-- `topology.py` — 拓扑图 API 路由 (~11782 tok)
+- `topology.py` — 拓扑图 API 路由 (~11791 tok)
 
 ## backend/collectors/
 
@@ -107,6 +108,7 @@
 ## backend/tests/
 
 - `conftest.py` — test_password_manager (~78 tok)
+- `test_neighbor_parser.py` — CDP/LLDP 邻居解析器测试 — 重点：Aruba AP 名识别 (~1543 tok)
 
 ## backend/utils/
 
@@ -119,6 +121,14 @@
 
 ## docker/
 
+
+## docs/superpowers/plans/
+
+- `2026-08-04-aruba-ap-recognition.md` — Aruba AP 识别实现计划 (~3717 tok)
+
+## docs/superpowers/specs/
+
+- `2026-08-04-aruba-ap-recognition-design.md` — Aruba AP 识别设计（2026-08-04） (~910 tok)
 
 ## frontend/
 
