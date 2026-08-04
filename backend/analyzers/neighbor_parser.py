@@ -221,8 +221,12 @@ def parse_cdp_cisco(text: str) -> List[NeighborEntry]:
             continue
 
         device_name = dm.group(1)
-        if _is_endpoint(device_name):
+        if _is_ap(device_name):
+            device_type = "AP"
+        elif _is_endpoint(device_name):
             continue
+        else:
+            device_type = _extract_type(device_name)
 
         # 本地接口: 设备名之后第一个 IFACE 匹配
         after = stripped[dm.end():]
@@ -243,7 +247,7 @@ def parse_cdp_cisco(text: str) -> List[NeighborEntry]:
         entries.append(NeighborEntry(
             local_port=local_port,
             neighbor_name=device_name,
-            neighbor_type=_extract_type(device_name),
+            neighbor_type=device_type,
             neighbor_platform=platform,
             neighbor_desc="",
         ))
@@ -288,8 +292,12 @@ def parse_lldp_cisco(text: str) -> List[NeighborEntry]:
             continue
 
         device_name = dm.group(1)
-        if _is_endpoint(device_name):
+        if _is_ap(device_name):
+            device_type = "AP"
+        elif _is_endpoint(device_name):
             continue
+        else:
+            device_type = _extract_type(device_name)
 
         # 本地接口: 设备名之后 → 去除域名残余 → 第一个 IFACE
         after = stripped[dm.end():]
@@ -305,7 +313,7 @@ def parse_lldp_cisco(text: str) -> List[NeighborEntry]:
         entries.append(NeighborEntry(
             local_port=local_port,
             neighbor_name=device_name,
-            neighbor_type=_extract_type(device_name),
+            neighbor_type=device_type,
             neighbor_platform="",
             neighbor_desc="",
         ))
@@ -365,8 +373,12 @@ def parse_cdp_aruba(text: str) -> List[NeighborEntry]:
             continue
 
         device_name = dm.group(1)
-        if _is_endpoint(device_name):
+        if _is_ap(device_name):
+            device_type = "AP"
+        elif _is_endpoint(device_name):
             continue
+        else:
+            device_type = _extract_type(device_name)
 
         # 平台: 设备名之后 → 去除域名残余 → 提取型号
         after_name = rest[dm.end():]
@@ -376,7 +388,7 @@ def parse_cdp_aruba(text: str) -> List[NeighborEntry]:
         entries.append(NeighborEntry(
             local_port=local_port,
             neighbor_name=device_name,
-            neighbor_type=_extract_type(device_name),
+            neighbor_type=device_type,
             neighbor_platform=platform,
             neighbor_desc="",
         ))
@@ -442,8 +454,12 @@ def parse_lldp_aruba(text: str) -> List[NeighborEntry]:
         device_name = _strip_domain(sys_name_raw)
         if not _is_valid_network_device(device_name):
             continue
-        if _is_endpoint(device_name):
+        if _is_ap(device_name):
+            device_type = "AP"
+        elif _is_endpoint(device_name):
             continue
+        else:
+            device_type = _extract_type(device_name)
 
         # PORT-DESC: CHASSIS-ID 和 PORT-ID 之后, TTL 之前
         desc = ""
@@ -455,7 +471,7 @@ def parse_lldp_aruba(text: str) -> List[NeighborEntry]:
         entries.append(NeighborEntry(
             local_port=local_port,
             neighbor_name=device_name,
-            neighbor_type=_extract_type(device_name),
+            neighbor_type=device_type,
             neighbor_platform="",
             neighbor_desc=desc,
             neighbor_port=words[1],  # PORT-ID = 远端端口
@@ -543,8 +559,12 @@ def parse_lldp_aruba_detail(text: str) -> List[NeighborEntry]:
             continue
         if not _is_valid_network_device(neighbor_name):
             continue
-        if _is_endpoint(neighbor_name):
+        if _is_ap(neighbor_name):
+            device_type = "AP"
+        elif _is_endpoint(neighbor_name):
             continue
+        else:
+            device_type = _extract_type(neighbor_name)
 
         # 从 System-Description 提取平台型号
         if system_desc:
@@ -553,7 +573,7 @@ def parse_lldp_aruba_detail(text: str) -> List[NeighborEntry]:
         entries.append(NeighborEntry(
             local_port=local_port,
             neighbor_name=neighbor_name,
-            neighbor_type=_extract_type(neighbor_name),
+            neighbor_type=device_type,
             neighbor_platform=neighbor_platform,
             neighbor_desc=neighbor_desc,
             neighbor_port=neighbor_port,
