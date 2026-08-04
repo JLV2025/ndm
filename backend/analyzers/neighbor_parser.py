@@ -140,12 +140,15 @@ def _strip_domain(raw_name: str) -> str:
 
 
 def _extract_platform(text: str) -> str:
-    """从文本中提取设备平台/型号"""
+    """从文本中提取设备平台/型号（Cisco + Aruba）"""
     m = re.search(
-        r'(WS-C\d+[^\s]*|AIR-[^\s]+|C\d{4}[^\s]*|c?[iI]sco\s+[A-Z]\d+[^\s]*)',
+        r'(WS-C\d+[^\s]*|AIR-[^\s]+|C\d{4}[^\s]*|c?[iI]sco\s+[A-Z]\d+[^\s]*)'
+        r'|(Aruba\s+\S+|AP-\d{3}[A-Za-z0-9-]*)',
         text
     )
-    return m.group(1) if m else ""
+    if not m:
+        return ""
+    return m.group(1) or m.group(2)
 
 
 # ============================================================

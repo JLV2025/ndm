@@ -11,6 +11,7 @@ from analyzers.neighbor_parser import (
     parse_cdp_cisco, parse_lldp_cisco, parse_cdp_aruba,
     parse_lldp_aruba, parse_lldp_aruba_detail,
 )
+from analyzers.neighbor_parser import _extract_platform
 
 
 # ---- AP_NAME_RE ----
@@ -147,3 +148,23 @@ BJQD1SWI02             Gi1/0/1        135      S          WS-C2960X  Gi1/0/1
     assert len(entries) == 1
     assert entries[0].neighbor_name == "BJQD1SWI02"
     assert entries[0].neighbor_type == "switch"
+
+
+# ---- _extract_platform（Aruba 型号） ----
+
+def test_extract_platform_aruba():
+    """LLDP System-Description 中的 Aruba 型号"""
+    assert _extract_platform("Aruba 515 (RW5) ArubaOS 10.x") == "Aruba 515"
+    assert _extract_platform("Aruba 635 (RW6)") == "Aruba 635"
+
+
+def test_extract_platform_ap_dash():
+    """CDP Platform 列中的 AP-xxx 型号"""
+    assert _extract_platform("AP-515") == "AP-515"
+
+
+def test_extract_platform_cisco_unchanged():
+    """Cisco 原有匹配不变"""
+    assert _extract_platform("WS-C3560G-48TS") == "WS-C3560G-48TS"
+    # 原正则从行首匹配 "cisco C8300-1N1S-4T2X" 整串（c?[iI]sco 分支），行为保持
+    assert _extract_platform("cisco C8300-1N1S-4T2X") == "cisco C8300-1N1S-4T2X"
