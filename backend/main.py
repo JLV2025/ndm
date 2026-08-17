@@ -31,10 +31,22 @@ from api.alerts import router as alerts_router
 from api.reports import router as reports_router
 from api.logs import router as logs_router
 
+VERSION_FILE = os.path.join(BASE_DIR, "VERSION")
+
+
+def _load_version() -> str:
+    """从 VERSION 文件读取应用版本号"""
+    try:
+        with open(VERSION_FILE, "r", encoding="utf-8") as f:
+            return f.read().strip()
+    except (FileNotFoundError, OSError):
+        return "unknown"
+
+
 app = FastAPI(
     title="网络交换机配置收集系统",
     description="通过 SSH 从 Cisco 和 Aruba 交换机收集配置文件",
-    version="2.0.0"
+    version=_load_version()
 )
 
 # CORS 配置
@@ -82,18 +94,10 @@ async def health_check():
     return {"status": "healthy"}
 
 
-VERSION_FILE = os.path.join(BASE_DIR, "VERSION")
-
-
 @app.get("/api/version")
 async def get_version():
     """返回应用版本号"""
-    try:
-        with open(VERSION_FILE, "r", encoding="utf-8") as f:
-            version = f.read().strip()
-        return {"version": version}
-    except FileNotFoundError:
-        return {"version": "unknown"}
+    return {"version": _load_version()}
 
 
 # ============ 前端静态文件（生产模式，必须放在所有路由之后）============

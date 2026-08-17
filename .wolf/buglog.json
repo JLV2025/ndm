@@ -423,6 +423,55 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-08-04T02:40:47.555Z"
+    },
+    {
+      "id": "bug-027",
+      "timestamp": "2026-08-17T05:16:17.534Z",
+      "error_message": "Type error",
+      "file": "frontend/src/pages/Login.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-17T05:16:17.534Z"
+    },
+    {
+      "id": "bug-028",
+      "timestamp": "2026-08-17T05:16:33.250Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/main.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 12→4 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-17T05:16:33.250Z"
+    },
+    {
+      "id": "bug-027",
+      "timestamp": "2026-08-17T05:19:38.000Z",
+      "error_message": "前端登录页版本号写死 v2.0.0，与真实版本 2.8.3 不符",
+      "file": "frontend/src/pages/Login.tsx, backend/main.py",
+      "root_cause": "Login.tsx:243 硬编码 v2.0.0；main.py FastAPI version 参数同样写死 2.0.0，而根目录 VERSION 文件（2.8.3）才是唯一事实来源",
+      "fix": "Login.tsx 增加 version state，从 GET /api/version 动态获取（复用 App.tsx 既有模式）；main.py 新增 _load_version() 从 VERSION 文件读取，app version 参数动态化并复用该函数，get_version 端点同步简化",
+      "tags": [
+        "version",
+        "hardcoded",
+        "tsx",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-17T05:19:38.000Z"
     }
   ]
 }

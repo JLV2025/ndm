@@ -25,6 +25,7 @@ const Login = ({ onLogin }: { onLogin?: () => void }) => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null)
+  const [version, setVersion] = useState('')
   const navigate = useNavigate()
 
   useEffect(() => {
@@ -34,6 +35,11 @@ const Login = ({ onLogin }: { onLogin?: () => void }) => {
       .then((r) => setBackendOnline(r.ok))
       .catch(() => setBackendOnline(false))
       .finally(() => clearTimeout(timeout))
+    // 版本号从后端 VERSION 文件动态读取，避免写死
+    fetch('/api/version')
+      .then((r) => r.json())
+      .then((d) => setVersion(d.version || ''))
+      .catch(() => setVersion(''))
     return () => {
       clearTimeout(timeout)
       controller.abort()
@@ -240,7 +246,7 @@ const Login = ({ onLogin }: { onLogin?: () => void }) => {
         {/* 底部信息 */}
         <Box sx={{ mt: 2, textAlign: 'center' }}>
           <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.68rem' }}>
-            v2.0.0 · Secure SSH · Encrypted Transmission
+            {version ? `v${version} · ` : ''}Secure SSH · Encrypted Transmission
           </Typography>
         </Box>
       </Paper>

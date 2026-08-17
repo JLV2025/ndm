@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-04T02:42:06.968Z
-> Files: 14 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-17T05:18:32.999Z
+> Files: 17 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -81,6 +81,8 @@
 
 ## backend/
 
+- `_verify_version.py` — 临时验证脚本：检查 FastAPI 应用版本号动态读取（验证后删除） (~76 tok)
+- `main.py` — API: 3 endpoints (~1274 tok)
 
 ## backend/analyzers/
 
@@ -155,6 +157,7 @@
 
 ## frontend/src/pages/
 
+- `Login.tsx` — Login (~2283 tok)
 
 ## frontend/src/services/
 

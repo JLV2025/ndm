@@ -277,3 +277,12 @@
 - [2026-08-03] `git add -p` 用 stdin 传 y/n 时，回答数必须等于当前 hunk 数——分次提交后 hunk 数递减，先 `git diff | grep -c '^@@'` 确认再喂 stdin，回答数不匹配会静默取消暂存。
 - [2026-08-03] **端口连接图（/port-topology）真实画布是 PortTopologyCanvas 自己**（pipe 边 + FrontPanelNode 节点），`TopologyCanvas.tsx`（AggDevice 分组 + 三层 fitsThreeTier 路径）是**零引用的死代码**。修改前端画布前先 `grep -rn "组件名" frontend/src --include="*.tsx" | grep -v 自身文件` 确认实际使用路径，改错文件白做功。
 - [2026-08-03] 端口 DOWN 检测数据源：`port_snapshots` 表（status_up=0）按设备最新 collection 查询；邻居条目（neighbors 表）与端口状态可能不同 collection，需各自取最新。端口名统一 `_norm_port` 后再比对。
+- [2026-08-17] **DSH run_code 内嵌 PowerShell 命令的转义陷阱**：run_code 的 code 是 TS 模板字符串，命令里的反引号（`）和 `\n` 会被 TS 转义成真实换行，导致 PowerShell 或写入的 JS 脚本语法错误（本会话踩了 4 次）。正确做法：① 需要换行用 `[char]10`；② 复杂脚本用 write 工具写独立 .js/.ps1 文件再执行，不要嵌在命令里。
+- [2026-08-17] PowerShell 数值常量不能以 `$` 开头跟数字（`$0.007` 会被解析为变量 `$0` 拼 .007），结果完全错误。正确做法：先赋变量 `$pCache = 0.007` 再参与计算。
+- [2026-08-17] DSH 会话日志 `~/.dsh/sessions/**/session.jsonl.zstd` 是**多帧 zstd 连接**（每批事件一个独立帧），`zstdDecompressSync` 只解第一帧（约 176 字节）。需按帧头 magic 0xFD2FB528 扫描帧边界，逐帧解压拼接。解压后 usage 在 `assistant/message.data.usage`（嵌套在 data 下），统计 token 时注意 chunk/message 双写去重。
+- [2026-08-17] write/edit 工具修改已存在的文件前必须先 read（fs-observation-policy），否则报错；避开办法是换新文件名。
+- [2026-08-17] 当前模型 deepseek-v4-flash **不支持图像输入**，read_image 直接失败。要看运行中的网页：用 Chrome headless `--dump-dom` 抓渲染后 DOM 文本（能读页面内容）；`--screenshot` 截图只能给用户看、我看不了。
+- [2026-08-17] GitHub fine-grained PAT 创建 Release 需要 **Contents: Read and write**（只读权限返回 403 "Resource not accessible"）；Classic token 勾 `repo` scope 即可。PowerShell 5.1 Invoke-RestMethod 发送含中文的 JSON body 会编码损坏（400 Problems parsing JSON）——改用 UTF-8 写文件 + `curl.exe --data-binary @file` 发送。
+
+## Do-Not-Repeat
+- [2026-08-17] 版本号禁止写死。曾有两处：Login.tsx:243 硬编码 `v2.0.0`、main.py FastAPI `version="2.0.0"`，而真实版本在根目录 `VERSION` 文件（2.8.3）。统一方案：VERSION 文件是唯一事实来源 → 后端 `_load_version()`（main.py）读取并暴露 `GET /api/version` → 前端 fetch 动态显示（App.tsx 与 Login.tsx 同模式，version 为空时不显示）。新增版本显示功能时先查是否已有 `/api/version` 调用。
