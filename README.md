@@ -8,6 +8,7 @@
   <img src="https://img.shields.io/badge/Storage-SQLite-2DD46E" alt="SQLite">
   <img src="https://img.shields.io/badge/SSH-Netmiko-2DD46E" alt="Netmiko">
   <img src="https://img.shields.io/badge/i18n-%E4%B8%AD%E6%96%87%20%2F%20English-2DD46E" alt="中 / English">
+  <img src="https://img.shields.io/github/v/release/JLV2025/ndm?color=2DD46E" alt="Latest Release">
   <img src="https://img.shields.io/github/last-commit/JLV2025/ndm?color=2DD46E" alt="Last Commit">
 </p>
 
