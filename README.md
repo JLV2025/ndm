@@ -1,5 +1,16 @@
 # NDM — 网络设备配置管理系统
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Version-2.8.3-2DD46E" alt="Version 2.8.3">
+  <img src="https://img.shields.io/badge/Python-3.9%2B-2DD46E" alt="Python 3.9+">
+  <img src="https://img.shields.io/badge/React-18-2DD46E" alt="React 18">
+  <img src="https://img.shields.io/badge/Backend-FastAPI-2DD46E" alt="FastAPI">
+  <img src="https://img.shields.io/badge/Storage-SQLite-2DD46E" alt="SQLite">
+  <img src="https://img.shields.io/badge/SSH-Netmiko-2DD46E" alt="Netmiko">
+  <img src="https://img.shields.io/badge/i18n-%E4%B8%AD%E6%96%87%20%2F%20English-2DD46E" alt="中 / English">
+  <img src="https://img.shields.io/github/last-commit/JLV2025/ndm?color=2DD46E" alt="Last Commit">
+</p>
+
 通过 SSH 批量收集 Cisco IOS / Aruba OS 交换机与路由器配置和日志，SQLite 存储，Web 前端可视化查看、对比、分析，支持 AI 日志诊断。
 
 ## 功能特性
