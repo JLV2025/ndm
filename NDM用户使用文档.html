@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NDM User Guide / 用户使用文档 — Network Device Management</title>
+<style>
+  :root {
+    --bg: #020617;
+    --bg2: #0a0f1a;
+    --card: #0d121f;
+    --border: rgba(45, 212, 110, 0.12);
+    --primary: #2DD46E;
+    --blue: #3b82f6;
+    --cyan: #06b6d4;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --red: #ef4444;
+    --yellow: #facc15;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.8;
+  }
+  code, pre, .mono {
+    font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+  }
+  code {
+    background: rgba(45,212,110,0.08);
+    border: 1px solid rgba(45,212,110,0.15);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 0.82em;
+    color: #7ee2a8;
+  }
+  .container { max-width: 1000px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* ===== 封面 ===== */
+  .cover {
+    text-align: center;
+    padding: 90px 0 60px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 48px;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(45,212,110,0.10), transparent),
+      radial-gradient(ellipse 60% 40% at 80% 120%, rgba(59,130,246,0.06), transparent);
+  }
+  .cover .logo {
+    width: 64px; height: 64px; margin: 0 auto 20px;
+    border-radius: 16px;
+    background: rgba(45,212,110,0.10);
+    border: 1px solid rgba(45,212,110,0.25);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; font-weight: 800; color: var(--primary);
+  }
+  .cover h1 { font-size: 2.6rem; font-weight: 800; margin-bottom: 10px; color: var(--primary); letter-spacing: 0.04em; }
+  .cover .sub { color: var(--muted); font-size: 1.05rem; margin-bottom: 10px; }
+  .cover .ver {
+    display: inline-block;
+    color: var(--muted); font-size: 0.78rem;
+    border: 1px solid var(--border); border-radius: 999px;
+    padding: 3px 14px; background: rgba(45,212,110,0.04);
+  }
+
+  /* ===== 章 ===== */
+  .part {
+    text-align: center;
+    margin: 72px 0 40px;
+    padding: 18px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    font-size: 1.15rem; font-weight: 700;
+    letter-spacing: 0.3em; color: var(--primary);
+  }
+  h2 {
+    font-size: 1.55rem; font-weight: 700; margin: 52px 0 20px; padding-bottom: 8px;
+    border-bottom: 2px solid var(--primary); display: inline-block;
+  }
+  h3 { font-size: 1.18rem; font-weight: 600; margin: 34px 0 12px; color: var(--primary); }
+  h4 { font-size: 0.98rem; font-weight: 600; margin: 22px 0 8px; color: var(--muted); }
+
+  p { margin-bottom: 12px; color: var(--muted); }
+  strong { color: var(--text); }
+  ul, ol { margin: 8px 0 18px 26px; color: var(--muted); }
+  li { margin-bottom: 6px; }
+  a { color: var(--primary); }
+  .toc { margin: 0 0 36px; columns: 2; column-gap: 40px; }
+  .toc li { break-inside: avoid; }
+  .toc a { text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* ===== 卡片 ===== */
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 22px 24px; margin: 20px 0;
+  }
+  .card.tip { border-left: 4px solid var(--primary); }
+  .card.warn { border-left: 4px solid var(--yellow); }
+  .card.danger { border-left: 4px solid var(--red); }
+  .card h4 { margin-top: 0; }
+
+  /* ===== 表格 ===== */
+  .tbl { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin: 12px 0 22px; }
+  .tbl th {
+    text-align: left; padding: 9px 12px; color: var(--muted); font-weight: 600;
+    text-transform: uppercase; font-size: 0.68rem; letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  .tbl td { padding: 9px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: top; }
+  .tbl tr:hover td { background: rgba(45,212,110,0.03); }
+
+  /* ===== 徽章 ===== */
+  .chip {
+    display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.72rem;
+    font-weight: 500; margin: 1px 2px; white-space: nowrap;
+  }
+  .chip.green { background: rgba(16,185,129,0.15); color: #10b981; border: 1px solid rgba(16,185,129,0.3); }
+  .chip.yellow { background: rgba(250,204,21,0.12); color: #facc15; border: 1px solid rgba(250,204,21,0.3); }
+  .chip.red { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+  .chip.blue { background: rgba(59,130,246,0.15); color: #3b82f6; border: 1px solid rgba(59,130,246,0.3); }
+  .chip.cyan { background: rgba(6,182,212,0.15); color: #06b6d4; border: 1px solid rgba(6,182,212,0.3); }
+  .chip.primary { background: rgba(45,212,110,0.15); color: #2DD46E; border: 1px solid rgba(45,212,110,0.3); }
+  .chip.muted { background: rgba(148,163,184,0.08); color: #94a3b8; border: 1px solid rgba(148,163,184,0.2); }
+
+  /* ===== 按钮 ===== */
+  .btn { display: inline-block; padding: 5px 14px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+  .btn.primary { background: var(--primary); color: #04120a; }
+  .btn.outline { border: 1px solid var(--primary); color: var(--primary); background: rgba(45,212,110,0.05); }
+  .btn.danger { background: var(--red); color: #fff; }
+
+  /* ===== 步骤 ===== */
+  .step { display: flex; gap: 16px; margin: 14px 0; }
+  .step-num {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    background: var(--primary); color: #04120a;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.85rem; margin-top: 2px;
+  }
+  .step-body { flex: 1; }
+
+  /* ===== 分割线 ===== */
+  .divider-lang {
+    margin: 70px 0 30px; text-align: center; position: relative;
+  }
+  .divider-lang::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 50%;
+    height: 1px; background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  }
+  .divider-lang span {
+    position: relative; background: var(--bg); padding: 0 20px;
+    color: var(--primary); font-weight: 700; letter-spacing: 0.2em;
+  }
+
+  .note { font-size: 0.82rem; color: var(--muted); }
+  .kbd {
+    background: rgba(148,163,184,0.12); border: 1px solid rgba(148,163,184,0.25);
+    border-bottom-width: 2px; border-radius: 4px; padding: 1px 7px;
+    font-size: 0.78rem; font-family: "JetBrains Mono", monospace;
+  }
+
+  @media (max-width: 700px) {
+    .toc { columns: 1; }
+    .cover h1 { font-size: 1.9rem; }
+    .container { padding: 20px 16px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<!-- ======================= 封面 ======================= -->
+<div class="cover">
+  <div class="logo">NDM</div>
+  <h1>NDM</h1>
+  <p class="sub">Network Device Management — Configuration Collection &amp; Analysis System</p>
+  <p class="sub">网络设备配置管理系统 — 配置采集与分析</p>
+  <p class="ver">Version 2.8.3 &nbsp;|&nbsp; 版本 2.8.3</p>
+</div>
+
+<!-- ======================= 目录 ======================= -->
+<h2>Contents / 目录</h2>
+<ol class="toc">
+  <li><a href="#en-intro">1. Introduction (English)</a></li>
+  <li><a href="#en-quickstart">2. Quick Start</a></li>
+  <li><a href="#en-login">3. Login &amp; Session</a></li>
+  <li><a href="#en-dashboard">4. Dashboard</a></li>
+  <li><a href="#en-devices">5. Device Management</a></li>
+  <li><a href="#en-detail">6. Device Detail &amp; Front Panel</a></li>
+  <li><a href="#en-viewer">7. Viewer — Config View &amp; Diff</a></li>
+  <li><a href="#en-alerts">8. Alerts</a></li>
+  <li><a href="#en-reports">9. Reports</a></li>
+  <li><a href="#en-loganalyzer">10. Log Analyzer &amp; AI Diagnosis</a></li>
+  <li><a href="#en-nettopo">11. Network Topology</a></li>
+  <li><a href="#en-porttopo">12. Port Topology</a></li>
+  <li><a href="#en-storage">13. Data Storage</a></li>
+  <li><a href="#en-faq">14. FAQ</a></li>
+  <li><a href="#zh-intro">15. 系统介绍 (中文)</a></li>
+  <li><a href="#zh-quickstart">16. 快速开始</a></li>
+  <li><a href="#zh-login">17. 登录与会话</a></li>
+  <li><a href="#zh-dashboard">18. 仪表盘</a></li>
+  <li><a href="#zh-devices">19. 设备管理</a></li>
+  <li><a href="#zh-detail">20. 设备详情与前面板</a></li>
+  <li><a href="#zh-viewer">21. 数据查看器</a></li>
+  <li><a href="#zh-alerts">22. 告警中心</a></li>
+  <li><a href="#zh-reports">23. 报表</a></li>
+  <li><a href="#zh-loganalyzer">24. 日志分析与 AI 诊断</a></li>
+  <li><a href="#zh-nettopo">25. 网络拓扑图</a></li>
+  <li><a href="#zh-porttopo">26. 端口拓扑图</a></li>
+  <li><a href="#zh-storage">27. 数据存储</a></li>
+  <li><a href="#zh-faq">28. 常见问题</a></li>
+</ol>
+
+<div class="divider-lang"><span>PART I — ENGLISH</span></div>
+
+<!-- ======================= 1. Introduction ======================= -->
+<h2 id="en-intro">1. Introduction</h2>
+<p>
+  NDM (Network Device Management) is a <strong>network device configuration collection and analysis system</strong>.
+  It connects to <strong>Cisco IOS / IOS XE / Router</strong> and <strong>Aruba OS / CX</strong> switches over SSH,
+  collects running-config, logs, interface status, routing tables and version information, stores everything in
+  <strong>SQLite</strong>, and provides a web console for viewing, diffing, analyzing, and AI-assisted log diagnosis.
+</p>
+
+<div class="card">
+  <h4>Key Features</h4>
+  <ul>
+    <li><strong>Multi-vendor</strong> — Cisco IOS, Cisco IOS XE, Cisco IOS Router, Aruba OS, Aruba OS CX</li>
+    <li><strong>Web console</strong> — React + MUI OLED Dark theme, built for network operations</li>
+    <li><strong>Device management</strong> — add / edit / delete / CSV batch import, filter by type and location</li>
+    <li><strong>One-click collection</strong> — running-config, logs, interface status, routing table, version info</li>
+    <li><strong>AI log analysis</strong> — bring-your-own LLM API key (DeepSeek / Qwen), priority-chain fallback, local caching, auto-masking</li>
+    <li><strong>Online viewer</strong> — syntax-highlighted configs, version diff</li>
+    <li><strong>Alerts &amp; reports</strong> — port DOWN / config change / version mismatch detection with fix suggestions</li>
+    <li><strong>Dashboard charts</strong> — device-type donut, port-status bar, traffic Top 10, config-change trend + heatmap</li>
+    <li><strong>Front panel</strong> — switch port-status panel + router interface tree, stacking support, 10Gb red badges</li>
+    <li><strong>Port topology</strong> — CDP/LLDP + ConfigParser merged, React Flow canvas, 4-layer auto layout, stacking, LAG aggregation</li>
+    <li><strong>Network topology</strong> — CDP + LLDP auto discovery, 3-layer layout (WAN → Core → Access), PNG / Visio export</li>
+    <li><strong>SQLite storage</strong> — running-config dual-track (file + DB), logs de-duplicated by timestamp</li>
+    <li><strong>Bilingual UI</strong> — Chinese / English switch at one click</li>
+  </ul>
+</div>
+
+<h3>1.1 Tech Stack</h3>
+<table class="tbl">
+  <tr><th>Layer</th><th>Technology</th></tr>
+  <tr><td>Frontend</td><td>React 18 + TypeScript + MUI v5 + Recharts + React Flow (@xyflow/react) + Vite 7</td></tr>
+  <tr><td>Backend</td><td>Python FastAPI + Netmiko (SSH) + SQLite</td></tr>
+  <tr><td>AI</td><td>OpenAI-compatible endpoints (DeepSeek / Qwen), priority-chain fallback, local cache</td></tr>
+  <tr><td>Theme</td><td>OLED Dark (#020617 background, #2DD46E accent), IBM Plex Sans + JetBrains Mono fonts</td></tr>
+  <tr><td>i18n</td><td>React Context (zh / en)</td></tr>
+</table>
+
+<!-- ======================= 2. Quick Start ======================= -->
+<h2 id="en-quickstart">2. Quick Start</h2>
+<h3>2.1 Requirements</h3>
+<ul>
+  <li>Python 3.9+</li>
+  <li>Node.js 18+</li>
+  <li>SSH-reachable target network devices</li>
+</ul>
+
+<h3>2.2 Installation</h3>
+<div class="step"><div class="step-num">1</div><div class="step-body">Create a Python virtual environment: <code>python3 -m venv venv</code></div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body">Activate it (Windows PowerShell: <code>.\venv\Scripts\Activate.ps1</code>)</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body">Install backend dependencies: <code>pip install -r backend/requirements.txt</code></div></div>
+<div class="step"><div class="step-num">4</div><div class="step-body">Install frontend dependencies: <code>cd frontend &amp;&amp; npm install &amp;&amp; cd ..</code></div></div>
+
+<h3>2.3 Start</h3>
+<div class="card tip">
+  <h4>Development Mode</h4>
+  <p>Terminal 1: <code>python backend/main.py</code> (backend on port <strong>8002</strong>)<br>
+  Terminal 2: <code>cd frontend &amp;&amp; npm run dev</code> (frontend on port <strong>3000</strong>, proxies <code>/api</code> to backend)<br>
+  Open <a href="http://localhost:3000">http://localhost:3000</a>.</p>
+</div>
+<div class="card tip">
+  <h4>Production Mode</h4>
+  <p>Build the frontend (<code>cd frontend &amp;&amp; npm run build &amp;&amp; cd ..</code>), then run <code>python backend/main.py</code>.
+  FastAPI serves the static files directly — everything on one port. Open <a href="http://localhost:8002">http://localhost:8002</a>.</p>
+  <p class="note">On Windows you can simply double-click <code>start.bat</code>.</p>
+</div>
+
+<h3>2.4 Configuration Files</h3>
+<table class="tbl">
+  <tr><th>File</th><th>Purpose</th></tr>
+  <tr><td><code>config/devices.yaml</code></td><td>Device inventory (name, IP, type, platform, location, notes)</td></tr>
+  <tr><td><code>config/settings.yaml</code></td><td>Global settings (data_root, max_versions, SSH timeouts, LLM providers)</td></tr>
+</table>
+
+<h3>2.5 Supported Device Types</h3>
+<table class="tbl">
+  <tr><th>type</th><th>Description</th><th>Typical Devices</th></tr>
+  <tr><td><code>cisco_ios</code></td><td>Cisco IOS switch</td><td>Catalyst 2960 / 3560 / 3750, etc.</td></tr>
+  <tr><td><code>cisco_ios_xe</code></td><td>Cisco IOS XE</td><td>Catalyst 9200 / 9300 / 9500, etc.</td></tr>
+  <tr><td><code>cisco_ios_router</code></td><td>Cisco IOS router</td><td>ISR 1900 / 2900 / 4300, ASR, etc.</td></tr>
+  <tr><td><code>aruba_aoscx</code></td><td>Aruba CX</td><td>CX 6100 / 6200 / 6300 / 6400, etc.</td></tr>
+</table>
+
+<!-- ======================= 3. Login ======================= -->
+<h2 id="en-login">3. Login &amp; Session</h2>
+<p>
+  The login page manages the <strong>SSH credentials</strong> used to collect device data, and performs a
+  <strong>health check</strong> of the backend at the same time.
+</p>
+<div class="step"><div class="step-num">1</div><div class="step-body"><strong>Health check</strong> — on page load the backend status is probed. A green dot with "System Running Normally" means online; a red dot means the backend is unreachable.</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body"><strong>Enter credentials</strong> — the SSH username and password used to log into network devices.</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body"><strong>Sign in</strong> — credentials are encoded and kept in browser <code>sessionStorage</code>, valid for <strong>4 hours</strong>.</div></div>
+
+<div class="card warn">
+  <h4>Security Notes</h4>
+  <ul>
+    <li>Credentials are stored Base64 + <code>encodeURIComponent</code> encoded in <code>sessionStorage</code></li>
+    <li>Valid only in the current browser tab; cleared when the tab is closed</li>
+    <li>Credentials expire automatically after 4 hours — sign in again</li>
+    <li>All special characters are supported (<code>!@#$%^&amp;*()=+?&lt;&gt;</code>, etc.)</li>
+  </ul>
+</div>
+
+<!-- ======================= 4. Dashboard ======================= -->
+<h2 id="en-dashboard">4. Dashboard</h2>
+<p>The Dashboard gives a real-time overview of all managed devices.</p>
+<h3>4.1 Stat Cards</h3>
+<ul>
+  <li><strong>Total Devices</strong> <span class="chip blue">blue</span> — total device count</li>
+  <li><strong>Cisco IOS</strong> <span class="chip cyan">cyan</span> — Cisco switches and routers</li>
+  <li><strong>Aruba OS</strong> <span class="chip green">green</span> — Aruba devices</li>
+</ul>
+<h3>4.2 Charts</h3>
+<ul>
+  <li><strong>Device type donut</strong> — distribution by vendor/type</li>
+  <li><strong>Port status bar</strong> — UP / DOWN / Disabled counts</li>
+  <li><strong>Traffic Top 10</strong> — busiest ports by Mbps</li>
+  <li><strong>Config change trend</strong> — line chart + heatmap across weeks</li>
+</ul>
+<h3>4.3 Device Status Check</h3>
+<ul>
+  <li>Status is refreshed <strong>manually</strong> via the <span class="btn outline">Refresh Status</span> button</li>
+  <li>Devices first show <span class="chip yellow">Checking...</span>, then update to <span class="chip green">Online</span> or <span class="chip red">Offline</span></li>
+  <li>In-flight pings are cancelled automatically when you switch pages</li>
+</ul>
+
+<!-- ======================= 5. Device Management ======================= -->
+<h2 id="en-devices">5. Device Management</h2>
+<p>This is the core page: device <strong>filtering, collection, management, and batch operations</strong>.</p>
+
+<h3>5.1 Filter by Location</h3>
+<p>Click a Location chip (e.g. <span class="chip green">BJQ</span>) to show only devices in that location; click again to clear the filter.</p>
+
+<h3>5.2 Collect a Single Device</h3>
+<div class="step"><div class="step-num">1</div><div class="step-body">Click the <strong>Collect</strong> (☁) button on a device card or table row</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body">The system pings the device to check reachability (yellow progress)</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body">On success, SSH collection starts automatically (blue progress)</div></div>
+<div class="step"><div class="step-num">4</div><div class="step-body">A result dialog shows device name, IP, software version, serial number, and running-config line count</div></div>
+
+<div class="card tip">
+  <h4>Automatic Type Correction</h4>
+  <p>If the configured device type is wrong (e.g. an Aruba CX 6300 configured as <code>aruba_osswitch</code>), the system probes and detects the correct driver automatically, then shows a yellow warning suggesting you update the type in the device settings.</p>
+</div>
+
+<h3>5.3 Batch Collection</h3>
+<ul>
+  <li><strong>Select all</strong> — checkbox in the table header</li>
+  <li><strong>Multi-select</strong> — check target devices; a <span class="btn primary">Batch Collect (N)</span> button appears in the toolbar</li>
+  <li><strong>Progress</strong> — overall progress bar on top; each row updates live; results are summarized with success/failure chips</li>
+</ul>
+
+<h3>5.4 Add / Edit / Delete Device</h3>
+<ul>
+  <li><strong>Add</strong> — click <span class="btn primary">Add Device</span>; fields: Name, IP Address, Type, Platform (optional, linked to Type), Location (optional), Notes (optional)</li>
+  <li><strong>Edit</strong> — click the ↻ icon in the row</li>
+  <li><strong>Delete</strong> — click the ✕ icon, confirm in the dialog</li>
+</ul>
+
+<h3>5.5 CSV Batch Import</h3>
+<p>In the device list, use the import dialog to upload a CSV file (download the provided template first). The backend validates and imports devices in bulk.</p>
+
+<!-- ======================= 6. Device Detail & Front Panel ======================= -->
+<h2 id="en-detail">6. Device Detail &amp; Front Panel</h2>
+<p>The device detail page shows collected data for one device, including an interactive front panel.</p>
+
+<h3>6.1 Switch Front Panel</h3>
+<ul>
+  <li><strong>Port colors</strong> — green = UP, orange = UP (&gt;80% utilization), red = Error/Down, dark gray = Shutdown/Disabled</li>
+  <li><strong>Stacking</strong> — multiple slots rendered as separate panels</li>
+  <li><strong>LAG ports</strong> — aggregated port-channel groups shown separately at the bottom</li>
+  <li><strong>Uplinks</strong> — uplink ports auto-detected and border-highlighted</li>
+  <li><strong>Hover</strong> — hover a port to see name, status, speed, description, RX/TX Mbps</li>
+  <li><strong>10Gb ports</strong> — identified with red numeric badges</li>
+</ul>
+
+<h3>6.2 Router Interface Tree</h3>
+<ul>
+  <li><strong>Hierarchy</strong> — sub-interfaces (e.g. <code>Gi0/0.100</code>) indented under their parent</li>
+  <li><strong>Loopback</strong> — Loopback interfaces are shown (unlike switches)</li>
+  <li><strong>Service-Engine</strong> — virtual Service-Engine interfaces are filtered out automatically</li>
+  <li><strong>Hover</strong> — port name, status, speed, type, description, RX/TX Mbps</li>
+</ul>
+
+<!-- ======================= 7. Viewer ======================= -->
+<h2 id="en-viewer">7. Viewer — Config View &amp; Diff</h2>
+
+<h3>7.1 Single Version View (Single mode)</h3>
+<ol>
+  <li>Filter by Location (optional), then pick a device from the dropdown</li>
+  <li>Select a <strong>week directory</strong> (e.g. 2026-19)</li>
+  <li>Select a <strong>file</strong>; content loads automatically</li>
+  <li>Three tabs: <strong>Raw</strong> (terminal-style text), <strong>Formatted</strong> (JSON), <strong>Analysis</strong> (config validation / performance / change detection summaries)</li>
+</ol>
+
+<h3>7.2 Two-Version Compare (Compare mode)</h3>
+<ol>
+  <li>Toggle <span class="chip primary">Compare</span> mode</li>
+  <li>Pick the <strong>newer version (left)</strong> and the <strong>older version (right)</strong></li>
+  <li>Diffs are highlighted live; added/removed lines are color-coded</li>
+</ol>
+
+<!-- ======================= 8. Alerts ======================= -->
+<h2 id="en-alerts">8. Alerts</h2>
+<p>The Alerts page lists anomalies detected after each collection. Each alert has a type, severity, title, detail, and a generated fix suggestion.</p>
+<table class="tbl">
+  <tr><th>Alert Type</th><th>Meaning</th></tr>
+  <tr><td><code>port_sudden_down</code></td><td>Port that was UP in the previous collection is now DOWN</td></tr>
+  <tr><td><code>port_errors</code></td><td>Port error counters (err-disabled, discards, etc.) detected</td></tr>
+  <tr><td><code>config_changed</code></td><td>Running-config differs from the previous collection</td></tr>
+  <tr><td><code>topology_changed</code></td><td>CDP/LLDP neighbor topology changed</td></tr>
+  <tr><td><code>version_mismatch</code></td><td>Software version differs from other devices of the same model</td></tr>
+  <tr><td><code>device_reboot</code></td><td>Uptime dropped vs. previous collection (device restarted)</td></tr>
+  <tr><td><code>high_utilization</code></td><td>Port utilization exceeds the threshold</td></tr>
+</table>
+<ul>
+  <li><strong>Mark read</strong> — acknowledge an alert</li>
+  <li><strong>Resolve</strong> — close a handled alert</li>
+  <li><strong>Suggestion</strong> — fetch the recommended fix for the alert</li>
+</ul>
+
+<!-- ======================= 9. Reports ======================= -->
+<h2 id="en-reports">9. Reports</h2>
+<table class="tbl">
+  <tr><th>Report</th><th>Description</th></tr>
+  <tr><td><strong>Software Versions</strong></td><td>Firmware version matrix across devices (filterable by device type), highlights inconsistencies</td></tr>
+  <tr><td><strong>Device Uptime</strong></td><td>Uptime for all devices, spot restarts</td></tr>
+  <tr><td><strong>Port Trend</strong></td><td>Historical trend (default 8 weeks) for a chosen device + port</td></tr>
+  <tr><td><strong>Bandwidth Summary</strong></td><td>Aggregated bandwidth/utilization per device or overall</td></tr>
+</table>
+
+<!-- ======================= 10. Log Analyzer & AI ======================= -->
+<h2 id="en-loganalyzer">10. Log Analyzer &amp; AI Diagnosis</h2>
+<p>Browse device logs by week and severity, then run <strong>AI analysis</strong> on selected entries.</p>
+
+<h3>10.1 Browsing Logs</h3>
+<ul>
+  <li>Tree view: <strong>Device → Severity → Log entries</strong>, logs load on demand</li>
+  <li>Severity levels 0–7 follow the standard Syslog ladder (Emergency → Debug), color-coded</li>
+  <li>Filter by week if needed</li>
+</ul>
+
+<h3>10.2 AI Analysis</h3>
+<ol>
+  <li>Select a device, check the target log entries, click <strong>AI Analyze</strong></li>
+  <li>The first time you use it, configure the LLM API Key in the settings dialog (<span class="btn outline">⚙</span>)</li>
+  <li>Multiple LLM providers form a <strong>priority chain</strong> — if the first fails, the next provider is tried automatically</li>
+  <li>Results are <strong>cached locally</strong>; the same error pattern hits the cache instantly next time</li>
+  <li>Before sending, the request is <strong>auto-masked</strong> (device names / IPs replaced with placeholders); replies are de-masked afterward</li>
+</ol>
+
+<div class="card tip">
+  <h4>Configured Providers</h4>
+  <ul>
+    <li><strong>DeepSeek</strong> — <code>https://api.deepseek.com/v1</code>, model <code>deepseek-chat</code></li>
+    <li><strong>Qwen</strong> — <code>https://dashscope.aliyuncs.com/compatible-mode/v1</code>, model <code>qwen-turbo</code></li>
+  </ul>
+  <p class="note">API keys can be left empty in <code>config/settings.yaml</code> and filled in from the web settings dialog.</p>
+</div>
+
+<!-- ======================= 11. Network Topology ======================= -->
+<h2 id="en-nettopo">11. Network Topology</h2>
+<p>Multi-device topology per location, built from <strong>CDP + LLDP neighbor discovery</strong> plus <strong>ConfigParser port descriptions</strong>.</p>
+<ul>
+  <li><strong>3-layer layout</strong> — WAN → Core → Access; intelligent shortest-path wiring</li>
+  <li><strong>Port DOWN warning</strong> — ports with neighbor entries but physically down show a red ✕</li>
+  <li><strong>Links are kept</strong> — even when a device is offline/failed, the link remains visible</li>
+  <li><strong>Export</strong> — PNG image or Visio (.vsdx) export</li>
+</ul>
+
+<!-- ======================= 12. Port Topology ======================= -->
+<h2 id="en-porttopo">12. Port Topology</h2>
+<p>Single-device port connection map, merging <strong>CDP/LLDP neighbors</strong> and <strong>ConfigParser</strong> (port descriptions).</p>
+<ul>
+  <li><strong>4-layer auto layout</strong> — WAN → Core → Access → Endpoints</li>
+  <li><strong>Stacking</strong> — stack members expanded as separate groups</li>
+  <li><strong>Endpoint aggregation</strong> — endpoints aggregated with counts (e.g. AP ×N)</li>
+  <li><strong>LAG / Port-Channel</strong> — logical aggregation, physical members hidden</li>
+  <li><strong>Port DOWN red ✕</strong> — neighbor entry exists but the port is physically down</li>
+  <li><strong>Pipeline-style rounded edges</strong>, auto-centering and fit-to-view</li>
+  <li><strong>AP detection</strong> — CDP/LLDP-discovered APs marked as endpoint aggregates</li>
+</ul>
+
+<!-- ======================= 13. Data Storage ======================= -->
+<h2 id="en-storage">13. Data Storage</h2>
+<p>All collected data is stored in SQLite (<code>data/ndm.db</code>); only running-config keeps a file copy for emergency recovery.</p>
+<pre class="card" style="font-size:0.8rem;line-height:1.7;overflow-x:auto;">
+data/
+├── ndm.db                    # SQLite database (primary store)
+├── YYYY-WW/                  # weekly archive directory
+│   └── {device-name}/
+│       └── running-config.raw   # dual-track copy (only file kept)
+└── {device-name}/            # legacy layout (backward compatible)
+    └── YYYY-WW/
+</pre>
+<ul>
+  <li>Up to <strong>10 weekly versions</strong> retained per device; older weeks auto-cleaned</li>
+  <li>Logs are de-duplicated by timestamp</li>
+</ul>
+
+<!-- ======================= 14. FAQ ======================= -->
+<h2 id="en-faq">14. FAQ</h2>
+<div class="card">
+  <h4>Q: The login page shows "Backend service unavailable"</h4>
+  <p>Make sure the backend is running (<code>python backend/main.py</code>) and port 8002 is reachable.</p>
+</div>
+<div class="card">
+  <h4>Q: Collection failed</h4>
+  <p>Check SSH reachability, username/password, and that the device type is correct. If the type is wrong, the system auto-probes the right driver and warns you to update it.</p>
+</div>
+<div class="card">
+  <h4>Q: Password contains special characters</h4>
+  <p>All special characters are supported. If you still fail to log in, try re-entering the credentials in the login page.</p>
+</div>
+<div class="card">
+  <h4>Q: "Session expired" — I have to sign in again</h4>
+  <p>SSH credentials are kept for 4 hours in sessionStorage. Re-enter them on the login page.</p>
+</div>
+<div class="card">
+  <h4>Q: Where is the API documentation?</h4>
+  <p>Start the backend and open <a href="http://localhost:8002/docs">http://localhost:8002/docs</a> (Swagger UI).</p>
+</div>
+
+<div class="divider-lang"><span>PART II — 中文</span></div>
+
+<!-- ======================= 15. 系统介绍 ======================= -->
+<h2 id="zh-intro">15. 系统介绍</h2>
+<p>
+  NDM（网络设备配置管理系统）是一套<strong>网络设备配置采集与分析系统</strong>，通过 SSH 登录
+  <strong>Cisco IOS / IOS XE / 路由器</strong>和 <strong>Aruba OS / CX 交换机</strong>，
+  自动采集 running-config、日志、接口状态、路由表和版本信息，统一存入 <strong>SQLite</strong> 数据库，
+  并提供 Web 控制台进行查看、对比、分析和 AI 日志诊断。
+</p>
+
+<div class="card">
+  <h4>核心功能</h4>
+  <ul>
+    <li><strong>多厂商支持</strong> — Cisco IOS、Cisco IOS XE、Cisco IOS Router、Aruba OS、Aruba OS CX</li>
+    <li><strong>Web 管理面板</strong> — React + MUI OLED Dark 主题，专为网络运维设计</li>
+    <li><strong>设备管理</strong> — 添加、编辑、删除、CSV 批量导入，按类型 / 位置筛选</li>
+    <li><strong>一键采集</strong> — running-config、日志、接口状态、路由表、版本信息</li>
+    <li><strong>AI 日志分析</strong> — 自配 LLM API Key（DeepSeek / Qwen），优先级链降级，本地缓存，自动脱敏</li>
+    <li><strong>在线查看</strong> — 配置代码高亮查看，双版本对比（diff）</li>
+    <li><strong>告警与报表</strong> — 端口 DOWN / 配置变更 / 版本不一致等异常检测，自动生成修复建议</li>
+    <li><strong>Dashboard 图表</strong> — 设备类型环形图、端口状态柱状图、流量 Top 10、配置变更趋势 + 热力图</li>
+    <li><strong>前面板可视化</strong> — 交换机端口状态面板 + 路由器接口层级树，支持堆叠、10Gb 红色数字标识</li>
+    <li><strong>端口拓扑图</strong> — CDP/LLDP + ConfigParser 双数据源，React Flow 画布，四层自动布局，堆叠展开，LAG 聚合</li>
+    <li><strong>网络拓扑图</strong> — CDP + LLDP 邻居自动发现，三层分层布局（WAN → 核心 → 接入），PNG / Visio 导出</li>
+    <li><strong>SQLite 全量存储</strong> — running-config 双轨（文件 + 库），日志按时间戳去重</li>
+    <li><strong>双语文案</strong> — 中文 / 英文一键切换</li>
+  </ul>
+</div>
+
+<h3>15.1 技术栈</h3>
+<table class="tbl">
+  <tr><th>层</th><th>技术</th></tr>
+  <tr><td>前端</td><td>React 18 + TypeScript + MUI v5 + Recharts + React Flow (@xyflow/react) + Vite 7</td></tr>
+  <tr><td>后端</td><td>Python FastAPI + Netmiko (SSH) + SQLite</td></tr>
+  <tr><td>AI</td><td>OpenAI 兼容接口（DeepSeek / Qwen），优先级链降级，本地缓存</td></tr>
+  <tr><td>主题</td><td>OLED Dark（#020617 底色，#2DD46E 强调色），IBM Plex Sans + JetBrains Mono 字体</td></tr>
+  <tr><td>多语言</td><td>React Context i18n（zh / en）</td></tr>
+</table>
+
+<!-- ======================= 16. 快速开始 ======================= -->
+<h2 id="zh-quickstart">16. 快速开始</h2>
+<h3>16.1 环境要求</h3>
+<ul>
+  <li>Python 3.9+</li>
+  <li>Node.js 18+</li>
+  <li>可 SSH 访问的目标网络设备</li>
+</ul>
+
+<h3>16.2 安装</h3>
+<div class="step"><div class="step-num">1</div><div class="step-body">创建虚拟环境：<code>python3 -m venv venv</code></div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body">激活虚拟环境（Windows PowerShell：<code>.\venv\Scripts\Activate.ps1</code>）</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body">安装后端依赖：<code>pip install -r backend/requirements.txt</code></div></div>
+<div class="step"><div class="step-num">4</div><div class="step-body">安装前端依赖：<code>cd frontend &amp;&amp; npm install &amp;&amp; cd ..</code></div></div>
+
+<h3>16.3 启动</h3>
+<div class="card tip">
+  <h4>开发模式</h4>
+  <p>终端 1：<code>python backend/main.py</code>（后端端口 <strong>8002</strong>）<br>
+  终端 2：<code>cd frontend &amp;&amp; npm run dev</code>（前端端口 <strong>3000</strong>，自动代理 <code>/api</code> 到后端）<br>
+  浏览器访问 <a href="http://localhost:3000">http://localhost:3000</a>。</p>
+</div>
+<div class="card tip">
+  <h4>生产部署</h4>
+  <p>先构建前端（<code>cd frontend &amp;&amp; npm run build &amp;&amp; cd ..</code>），再运行 <code>python backend/main.py</code>。
+  FastAPI 直接托管前端静态文件，前后端同一端口。浏览器访问 <a href="http://localhost:8002">http://localhost:8002</a>。</p>
+  <p class="note">Windows 下可直接双击 <code>start.bat</code> 一键启动。</p>
+</div>
+
+<h3>16.4 配置文件</h3>
+<table class="tbl">
+  <tr><th>文件</th><th>用途</th></tr>
+  <tr><td><code>config/devices.yaml</code></td><td>设备清单（名称、IP、类型、平台、位置、备注）</td></tr>
+  <tr><td><code>config/settings.yaml</code></td><td>全局设置（data_root、max_versions、SSH 超时、LLM Provider）</td></tr>
+</table>
+
+<h3>16.5 设备类型一览</h3>
+<table class="tbl">
+  <tr><th>type</th><th>说明</th><th>适用设备</th></tr>
+  <tr><td><code>cisco_ios</code></td><td>Cisco IOS 交换机</td><td>Catalyst 2960 / 3560 / 3750 等</td></tr>
+  <tr><td><code>cisco_ios_xe</code></td><td>Cisco IOS XE</td><td>Catalyst 9200 / 9300 / 9500 等</td></tr>
+  <tr><td><code>cisco_ios_router</code></td><td>Cisco IOS 路由器</td><td>ISR 1900 / 2900 / 4300、ASR 等</td></tr>
+  <tr><td><code>aruba_aoscx</code></td><td>Aruba CX</td><td>CX 6100 / 6200 / 6300 / 6400 等</td></tr>
+</table>
+
+<!-- ======================= 17. 登录与会话 ======================= -->
+<h2 id="zh-login">17. 登录与会话</h2>
+<p>
+  登录页面用于管理采集设备所用的 <strong>SSH 凭据</strong>，同时会执行一次<strong>后端健康检查</strong>。
+</p>
+<div class="step"><div class="step-num">1</div><div class="step-body"><strong>健康检查</strong> — 页面加载时自动检测后端状态。绿色圆点 + “系统运行正常”表示在线；红色圆点表示后端不可用。</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body"><strong>输入凭据</strong> — 登录网络设备所用的 SSH 用户名和密码。</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body"><strong>登录</strong> — 凭据经编码后保存在浏览器 <code>sessionStorage</code> 中，有效期 <strong>4 小时</strong>。</div></div>
+
+<div class="card warn">
+  <h4>安全说明</h4>
+  <ul>
+    <li>凭据以 Base64 + <code>encodeURIComponent</code> 编码后存储在 <code>sessionStorage</code></li>
+    <li>仅在当前浏览器标签页有效，关闭标签页即清除</li>
+    <li>4 小时后凭据自动过期，需重新登录</li>
+    <li>支持所有特殊字符（<code>!@#$%^&amp;*()=+?&lt;&gt;</code> 等）</li>
+  </ul>
+</div>
+
+<!-- ======================= 18. 仪表盘 ======================= -->
+<h2 id="zh-dashboard">18. 仪表盘</h2>
+<p>Dashboard 提供全部受管设备的实时总览。</p>
+<h3>18.1 统计卡片</h3>
+<ul>
+  <li><strong>Total Devices</strong> <span class="chip blue">蓝色</span> — 设备总数</li>
+  <li><strong>Cisco IOS</strong> <span class="chip cyan">青色</span> — Cisco 交换机与路由器数量</li>
+  <li><strong>Aruba OS</strong> <span class="chip green">绿色</span> — Aruba 设备数量</li>
+</ul>
+<h3>18.2 图表</h3>
+<ul>
+  <li><strong>设备类型环形图</strong> — 按厂商 / 类型分布</li>
+  <li><strong>端口状态柱状图</strong> — UP / DOWN / Disabled 数量</li>
+  <li><strong>流量 Top 10</strong> — 按 Mbps 排序的最繁忙端口</li>
+  <li><strong>配置变更趋势</strong> — 跨周折线图 + 热力图</li>
+</ul>
+<h3>18.3 设备状态检测</h3>
+<ul>
+  <li>状态需点击 <span class="btn outline">刷新状态</span> 按钮<strong>手动刷新</strong></li>
+  <li>设备先显示 <span class="chip yellow">Checking...</span>，完成后更新为 <span class="chip green">Online</span> 或 <span class="chip red">Offline</span></li>
+  <li>切换页面时自动取消进行中的 Ping 请求</li>
+</ul>
+
+<!-- ======================= 19. 设备管理 ======================= -->
+<h2 id="zh-devices">19. 设备管理</h2>
+<p>核心页面，提供设备的<strong>筛选、采集、管理、批量操作</strong>等功能。</p>
+
+<h3>19.1 按 Location 筛选</h3>
+<p>点击位置标签（如 <span class="chip green">BJQ</span>）只显示该位置的设备；再次点击取消筛选。</p>
+
+<h3>19.2 单台设备采集</h3>
+<div class="step"><div class="step-num">1</div><div class="step-body">在设备卡片或表格中点击 <strong>Collect</strong>（☁）按钮</div></div>
+<div class="step"><div class="step-num">2</div><div class="step-body">系统先 Ping 设备检查可达性（黄色进度提示）</div></div>
+<div class="step"><div class="step-num">3</div><div class="step-body">Ping 成功后自动进入 SSH 采集阶段（蓝色进度提示）</div></div>
+<div class="step"><div class="step-num">4</div><div class="step-body">完成后弹出结果对话框：设备名、IP、软件版本、序列号、Running Config 行数</div></div>
+
+<div class="card tip">
+  <h4>类型自动修正</h4>
+  <p>若配置的设备类型不正确（如把 Aruba CX 6300 配成 <code>aruba_osswitch</code>），系统会自动探测正确的驱动类型，
+  并以黄色警告提示更新设备类型。</p>
+</div>
+
+<h3>19.3 批量采集</h3>
+<ul>
+  <li><strong>全选</strong> — 表头复选框一键全选 / 取消全选</li>
+  <li><strong>多选</strong> — 勾选目标设备，工具栏出现 <span class="btn primary">批量收集 (N)</span> 按钮</li>
+  <li><strong>进度</strong> — 顶部显示总体进度条，每行状态实时更新；完成后以成功 / 失败 Chip 汇总结果</li>
+</ul>
+
+<h3>19.4 添加 / 编辑 / 删除设备</h3>
+<ul>
+  <li><strong>添加</strong> — 点击 <span class="btn primary">Add Device</span>；字段：名称、IP、类型、平台（可选，随类型联动）、位置（可选）、备注（可选）</li>
+  <li><strong>编辑</strong> — 点击行内 ↻ 图标</li>
+  <li><strong>删除</strong> — 点击行内 ✕ 图标，弹窗确认后删除</li>
+</ul>
+
+<h3>19.5 CSV 批量导入</h3>
+<p>在设备列表中打开导入对话框，上传 CSV 文件（可先下载系统提供的模板），后端批量校验并导入设备。</p>
+
+<!-- ======================= 20. 设备详情与前面板 ======================= -->
+<h2 id="zh-detail">20. 设备详情与前面板</h2>
+<p>设备详情页展示单台设备的采集数据，并包含可交互的前面板。</p>
+
+<h3>20.1 交换机前面板</h3>
+<ul>
+  <li><strong>端口颜色</strong> — 绿色 = UP，橙色 = UP（利用率 &gt;80%），红色 = Error/Down，深灰 = Shutdown/Disabled</li>
+  <li><strong>堆叠支持</strong> — 多 Slot 设备分 Slot 独立展示</li>
+  <li><strong>LAG 端口</strong> — 聚合端口组在底部单独展示</li>
+  <li><strong>上行端口</strong> — 自动识别 uplink 端口并高亮边框</li>
+  <li><strong>悬停详情</strong> — 悬停端口查看名称、状态、速率、描述、RX/TX Mbps</li>
+  <li><strong>10Gb 端口</strong> — 红色数字标识</li>
+</ul>
+
+<h3>20.2 路由器接口层级树</h3>
+<ul>
+  <li><strong>层级缩进</strong> — 子接口（如 <code>Gi0/0.100</code>）缩进在父接口下方</li>
+  <li><strong>Loopback</strong> — 路由器 Loopback 接口正常展示（与交换机不同）</li>
+  <li><strong>Service-Engine</strong> — 自动过滤 Service-Engine 虚拟接口</li>
+  <li><strong>悬停详情</strong> — 端口名、状态、速率、类型、描述、RX/TX Mbps</li>
+</ul>
+
+<!-- ======================= 21. 数据查看器 ======================= -->
+<h2 id="zh-viewer">21. 数据查看器</h2>
+
+<h3>21.1 单版本查看（Single 模式）</h3>
+<ol>
+  <li>按 Location 筛选（可选），从下拉框选择目标设备</li>
+  <li>选择<strong>周目录</strong>（如 2026-19）</li>
+  <li>选择具体<strong>文件</strong>，内容自动加载</li>
+  <li>三个 Tab：<strong>Raw</strong>（原始文本，等宽字体）、<strong>Formatted</strong>（JSON 格式化）、<strong>Analysis</strong>（配置校验 / 性能 / 变更检测汇总）</li>
+</ol>
+
+<h3>21.2 双版本对比（Compare 模式）</h3>
+<ol>
+  <li>切换 <span class="chip primary">Compare</span> 对比模式</li>
+  <li>选择<strong>较新版本（左栏）</strong>和<strong>较旧版本（右栏）</strong></li>
+  <li>差异实时高亮，新增 / 删除行以颜色区分</li>
+</ol>
+
+<!-- ======================= 22. 告警中心 ======================= -->
+<h2 id="zh-alerts">22. 告警中心</h2>
+<p>告警页面列出每次采集后检测到的异常，每条告警包含类型、级别、标题、详情和自动生成的修复建议。</p>
+<table class="tbl">
+  <tr><th>告警类型</th><th>含义</th></tr>
+  <tr><td><code>port_sudden_down</code></td><td>上次采集为 UP 的端口本次变为 DOWN</td></tr>
+  <tr><td><code>port_errors</code></td><td>检测到端口错误计数（err-disabled、discards 等）</td></tr>
+  <tr><td><code>config_changed</code></td><td>running-config 与上次采集不一致</td></tr>
+  <tr><td><code>topology_changed</code></td><td>CDP/LLDP 邻居拓扑发生变化</td></tr>
+  <tr><td><code>version_mismatch</code></td><td>同型号设备间软件版本不一致</td></tr>
+  <tr><td><code>device_reboot</code></td><td>uptime 相比上次采集下降（设备重启）</td></tr>
+  <tr><td><code>high_utilization</code></td><td>端口利用率超过阈值</td></tr>
+</table>
+<ul>
+  <li><strong>标记已读</strong> — 确认告警</li>
+  <li><strong>解决</strong> — 关闭已处理的告警</li>
+  <li><strong>建议</strong> — 获取该告警的修复建议</li>
+</ul>
+
+<!-- ======================= 23. 报表 ======================= -->
+<h2 id="zh-reports">23. 报表</h2>
+<table class="tbl">
+  <tr><th>报表</th><th>说明</th></tr>
+  <tr><td><strong>软件版本</strong></td><td>跨设备固件版本矩阵（可按类型筛选），高亮版本不一致</td></tr>
+  <tr><td><strong>设备运行时间</strong></td><td>全部设备 uptime，发现重启</td></tr>
+  <tr><td><strong>端口趋势</strong></td><td>指定设备 + 端口的历史趋势（默认 8 周）</td></tr>
+  <tr><td><strong>带宽汇总</strong></td><td>按设备或全局汇总带宽 / 利用率</td></tr>
+</table>
+
+<!-- ======================= 24. 日志分析与 AI ======================= -->
+<h2 id="zh-loganalyzer">24. 日志分析与 AI 诊断</h2>
+<p>按周和严重级别浏览设备日志，并支持对选中的日志条目执行 <strong>AI 分析</strong>。</p>
+
+<h3>24.1 浏览日志</h3>
+<ul>
+  <li>树形视图：<strong>设备 → 严重级别 → 日志条目</strong>，日志按需加载</li>
+  <li>严重级别 0–7 遵循标准 Syslog 分级（Emergency → Debug），颜色区分</li>
+  <li>可按周过滤</li>
+</ul>
+
+<h3>24.2 AI 分析</h3>
+<ol>
+  <li>选择设备，勾选目标日志条目，点击 <strong>AI 分析</strong></li>
+  <li>首次使用需在设置对话框（<span class="btn outline">⚙</span>）中配置 LLM API Key</li>
+  <li>多个 LLM Provider 组成<strong>优先级链</strong>，第一个失败自动降级到下一个</li>
+  <li>分析结果<strong>本地缓存</strong>，同类型错误下次秒级命中</li>
+  <li>发送前自动<strong>脱敏</strong>（设备名 / IP 替换为占位符），回复后再还原</li>
+</ol>
+
+<div class="card tip">
+  <h4>内置 Provider</h4>
+  <ul>
+    <li><strong>DeepSeek</strong> — <code>https://api.deepseek.com/v1</code>，模型 <code>deepseek-chat</code></li>
+    <li><strong>Qwen</strong> — <code>https://dashscope.aliyuncs.com/compatible-mode/v1</code>，模型 <code>qwen-turbo</code></li>
+  </ul>
+  <p class="note"><code>config/settings.yaml</code> 中 API Key 可留空，在 Web 设置对话框中填写。</p>
+</div>
+
+<!-- ======================= 25. 网络拓扑图 ======================= -->
+<h2 id="zh-nettopo">25. 网络拓扑图</h2>
+<p>按位置展示多设备拓扑，数据来自 <strong>CDP + LLDP 邻居自动发现</strong> 与 <strong>ConfigParser 端口描述</strong>。</p>
+<ul>
+  <li><strong>三层分层布局</strong> — WAN → 核心 → 接入，智能连线最短路由</li>
+  <li><strong>端口 DOWN 警告</strong> — 有邻居条目但物理断开的端口显示红色 ✕</li>
+  <li><strong>链路保留</strong> — 设备离线 / 故障时链路仍不删除</li>
+  <li><strong>导出</strong> — PNG 图片或 Visio（.vsdx）导出</li>
+</ul>
+
+<!-- ======================= 26. 端口拓扑图 ======================= -->
+<h2 id="zh-porttopo">26. 端口拓扑图</h2>
+<p>单台设备的端口连接图，合并 <strong>CDP/LLDP 邻居</strong>与 <strong>ConfigParser</strong>（端口描述）双数据源。</p>
+<ul>
+  <li><strong>四层自动布局</strong> — WAN → 核心 → 接入 → 端点</li>
+  <li><strong>堆叠展开</strong> — 堆叠成员分组建展示</li>
+  <li><strong>端点聚合</strong> — 端点聚合计数（如 AP ×N）</li>
+  <li><strong>LAG / Port-Channel</strong> — 逻辑端口聚合，物理成员隐藏</li>
+  <li><strong>端口 DOWN 红 ✕</strong> — 有邻居条目但物理断开的端口</li>
+  <li><strong>管道圆弧转角</strong> + 自动居中适配</li>
+  <li><strong>AP 识别</strong> — CDP/LLDP 发现的 AP 标记为端点聚合</li>
+</ul>
+
+<!-- ======================= 27. 数据存储 ======================= -->
+<h2 id="zh-storage">27. 数据存储</h2>
+<p>所有采集数据统一存入 SQLite（<code>data/ndm.db</code>），仅 running-config 保留文件副本供紧急恢复。</p>
+<pre class="card" style="font-size:0.8rem;line-height:1.7;overflow-x:auto;">
+data/
+├── ndm.db                    # SQLite 数据库（所有数据主存储）
+├── YYYY-WW/                  # 周归档目录
+│   └── {设备名称}/
+│       └── running-config.raw   # 双轨保留（唯一文件）
+└── {设备名称}/               # 旧版数据目录（向后兼容）
+    └── YYYY-WW/
+</pre>
+<ul>
+  <li>每设备最多保留 <strong>10 个周版本</strong>，更早的自动清理</li>
+  <li>日志按时间戳自动去重</li>
+</ul>
+
+<!-- ======================= 28. 常见问题 ======================= -->
+<h2 id="zh-faq">28. 常见问题</h2>
+<div class="card">
+  <h4>问：登录页显示“后端服务不可用”</h4>
+  <p>请确认后端已启动（<code>python backend/main.py</code>）且端口 8002 可访问。</p>
+</div>
+<div class="card">
+  <h4>问：采集失败</h4>
+  <p>检查 SSH 可达性、用户名密码、设备类型是否正确。类型错误时系统会自动探测正确驱动并提示更新。</p>
+</div>
+<div class="card">
+  <h4>问：密码包含特殊字符</h4>
+  <p>支持所有特殊字符。若仍登录失败，请在登录页重新输入凭据。</p>
+</div>
+<div class="card">
+  <h4>问：“会话过期”，需要重新登录</h4>
+  <p>SSH 凭据在 sessionStorage 中保存 4 小时，过期后在登录页重新输入即可。</p>
+</div>
+<div class="card">
+  <h4>问：API 文档在哪里？</h4>
+  <p>启动后端后访问 <a href="http://localhost:8002/docs">http://localhost:8002/docs</a>（Swagger UI）。</p>
+</div>
+
+<div style="text-align:center; margin-top:60px; padding-top:24px; border-top:1px solid var(--border); color:var(--muted); font-size:0.78rem;">
+  NDM v2.8.3 — User Guide / 用户使用文档 &nbsp;·&nbsp; 仅供内部网络运维使用 · For internal network operations only
+</div>
+
+</div>
+</body>
+</html>
