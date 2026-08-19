@@ -1,9 +1,12 @@
 ---
 name: work-wrap-up
-description: 执行收工任务：清理文件、更新学习记录、更新文档、检查变更并推送代码
+description: 下班交接：把今天的工作成果完整保存并推送到 GitHub，方便其他电脑继续。清理临时文件、更新 OpenWolf 学习记录（.wolf/cerebrum.md、buglog.json、memory.md）、按需更新 README、安全检查，然后提交并推送所有变更。要求快、完整——不跑测试、不构建产物，代码有错误也直接上传。当用户说「收工」「下班」「结束今天的工作」「提交保存一下」等表达结束会话、准备离开时使用。
+disable-model-invocation: true
 ---
 
 # 收工
+
+下班交接：把今天的工作成果（代码 + 学习记录 + 踩坑记录）完整保存并推送到 GitHub，让其他电脑 clone/pull 后能无缝继续。**要快、要完整**——不跑测试、不构建，代码有错误也没关系，直接上传。
 
 前台依次执行以下阶段，不通过 Workflow 后台运行。
 
@@ -13,67 +16,64 @@ description: 执行收工任务：清理文件、更新学习记录、更新文�
 
 ---
 
-## Phase 1：清理环境
+## Phase 1：清理临时文件（快速）
 
-用 Bash 搜索并清理临时文件：
+按项目类型清理临时文件，让提交体积更小：
 
 ```
-# 清理 Python 缓存
-find . -type d -name "__pycache__" -not -path "./venv/*" -exec rm -rf {} + 2>/dev/null
-
-# 清理测试缓存
-rm -rf .pytest_cache 2>/dev/null
-
-# 清理 TypeScript 构建缓存（非 dist）
-rm -rf frontend/tsconfig.tsbuildinfo 2>/dev/null
+[ -f requirements.txt ] && find . -type d -name "__pycache__" -not -path "./venv/*" -exec rm -rf {} + 2>/dev/null
+[ -f requirements.txt ] && rm -rf .pytest_cache 2>/dev/null
+[ -f frontend/package.json ] && rm -rf frontend/tsconfig.tsbuildinfo 2>/dev/null
 ```
 
 跳过非 git 追踪的构建产物（`dist/`、`venv/` 等）。
 
 ---
 
-## Phase 2：更新学习记录
+## Phase 2：更新学习记录（核心，仅当存在 `.wolf/` 目录）
 
-1. 回顾本次会话的改动，提取关键知识点
-2. 追加到 `.wolf/cerebrum.md` 的 `## Key Learnings` 或 `## User Preferences`
-3. 检查是否有 bug 修复，追加到 `.wolf/buglog.json`
-4. 追加一行到 `.wolf/memory.md`：`| HH:MM | 描述 | 文件 | 结果 | ~tokens |`
+1. 回顾本次会话，追加关键知识点到 `.wolf/cerebrum.md`（Key Learnings / User Preferences / Do-Not-Repeat）
+2. 有 bug 修复或踩坑则追加到 `.wolf/buglog.json`（error_message / root_cause / fix / tags）
+3. 追加一行到 `.wolf/memory.md`：`| HH:MM | 描述 | 文件 | 结果 | ~tokens |`
 
----
-
-## Phase 3：更新文档
-
-仅当本次提交引入面向用户的新功能或重大变更时，才更新 `README.md`。内部优化、基础设施变更不需要更新。
+若项目没有 `.wolf/` 目录，跳过本阶段。
 
 ---
 
-## Phase 4：安全检查
+## Phase 3：更新文档（可选）
 
-运行 `git status --short` 检查变更文件列表。
-使用 Bash 检查是否有敏感信息泄露：
+仅当本次提交引入面向用户的新功能或重大变更时，才更新 `README.md`。
+
+---
+
+## Phase 4：安全检查（快速）
+
+运行 `git status --short` 检查变更文件列表；用 grep 检查敏感信息（密码/密钥）：
 
 ```
-grep -r "password\|secret\|token\|key" --include="*.ts" --include="*.tsx" --include="*.py" --include="*.yaml" --include="*.json" . 2>/dev/null | grep -v node_modules | grep -v ".git/" | grep -v "venv/" | grep -v "__pycache__" || echo "No secrets found"
+grep -rni "password\|secret\|token\|api_key\|apikey\|jwt_secret" --include="*.go" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.py" --include="*.yaml" --include="*.yml" --include="*.json" --include="*.md" . 2>/dev/null | grep -v node_modules | grep -v ".git/" | grep -v "venv/" | grep -v "__pycache__" | grep -v "config.yaml" | grep -v "\.claude/" | grep -v ".gitnexus/" | grep -v ".playwright-mcp/" | grep -v "frontend-dist" || echo "No secrets found"
 ```
+
+若 `git status` 出现真实配置、密钥、数据库等明显不该提交的文件，先向用户说明再继续。
 
 ---
 
-## Phase 5：构建前端 + 提交变更
+## Phase 5：提交并推送（快，完整）
 
-0. 如果存在 `frontend/package.json`，执行 `npm run build --prefix frontend` — 确保 `frontend/dist/` 是与源码同步的最新构建产物
-1. `git add -A` — 暂存所有变更
-2. `git status --short` — 再次确认
-3. `git diff --cached --stat` — 查看统计
-4. 生成中文 commit message，格式：`简短动词短语：详细说明`
-5. `git commit -m "..."` — 提交
-6. `git push origin <current-branch>` — 推送，失败立即报错
-7. `git fetch origin` 后 `git log origin/<current-branch> --oneline -3` — 验证远程已收到
+1. `git add -A` — 暂存所有变更（完整上传，一个不漏）
+2. `git status --short` + `git diff --cached --stat` — 展示本次提交内容
+3. 生成中文 commit message（`简短动词短语：详细说明`）
+4. `git commit -m "..."` — 提交
+5. `git push origin <current-branch>` — 推送，失败立即报错
+6. `git fetch origin` 后 `git log origin/<current-branch> --oneline -3` — 验证远程已收到
 
 ---
 
 ## 规则
 
 - 所有阶段在当前会话前台执行，不 fork 子进程
-- 如果某个阶段无内容可做（无临时文件、无新知识等），直接跳过
-- 如果有未提交的变更，必须先确认再推送
+- **不跑测试、不构建**——用户明确要求：要快、要完整，代码有错误直接上传，不要画蛇添足
+- 如果有多个仓库都有变更（如技能在 ndm 和全局两处），全部提交推送
+- 如果某个阶段无内容可做，直接跳过
 - commit message 必须使用简体中文
+- 只有用户明确表示收工/结束时才执行，不要在其他时机自行触发
