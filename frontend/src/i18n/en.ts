@@ -55,6 +55,18 @@ const en: Record<string, string> = {
   'devices.confirmDelete': 'Are you sure you want to delete',
   'devices.deleteSuccess': 'Device deleted successfully',
   'devices.deleteFailed': 'Failed to delete device',
+  // Offline physical devices
+  'devices.offlineView': 'Offline Devices',
+  'devices.onlineView': 'Device List',
+  'devices.offlineHint': 'Physical devices not seen in collections for over 30 days (e.g. in transit, long idle). Auto-removed from this list when seen again.',
+  'devices.offlineSerial': 'Serial Number',
+  'devices.offlineModel': 'Model',
+  'devices.offlineLastDevice': 'Last Seen At',
+  'devices.offlineLastSeen': 'Last Seen',
+  'devices.offlineEmpty': 'No offline devices',
+  'devices.offlineConfirmDelete': 'Permanently delete this device archive? It will no longer be tracked (historical statistics are not affected).',
+  'devices.offlineDeleteSuccess': 'Device archive deleted',
+
 
   // Device Form
   'form.addTitle': 'Add New Device',

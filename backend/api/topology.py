@@ -1002,10 +1002,16 @@ def _expand_physical_devices(location_devices: list[dict]) -> list[dict]:
         model_list = [m.strip() for m in model_str.split(",")] if model_str else [""] * len(sn_list)
         ver_str = (dev.get("version") or "").strip()
         ver_list = [v.strip() for v in ver_str.split(",")] if ver_str else [""] * len(sn_list)
+        # 真实成员 ID（member_ids 与序列号同序 1:1，全数字才采用；否则回退序号）
+        mid_str = (dev.get("member_ids") or "").strip()
+        mid_list = [m.strip() for m in mid_str.split(",") if m.strip()]
+        use_real_ids = len(mid_list) == len(sn_list) and all(m.isdigit() for m in mid_list)
 
         for i, s in enumerate(sn_list):
             d = dict(dev)
-            d["expanded_name"] = f"{dev['name']}-{i + 1:02d}"
+            # 真实 ID 不 pad（-1/-3 原样）；回退时序号 padStart 两位
+            member_suffix = mid_list[i] if use_real_ids else f"{i + 1:02d}"
+            d["expanded_name"] = f"{dev['name']}-{member_suffix}"
             d["logical_name"] = dev["name"]
             d["physical_index"] = i + 1
             d["physical_count"] = len(sn_list)

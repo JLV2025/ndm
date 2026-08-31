@@ -29,6 +29,7 @@ class DeviceCreate(BaseModel):
     model: Optional[str] = None
     version: Optional[str] = None
     uplink_ports: Optional[List[str]] = None
+    member_ids: Optional[str] = None
 
     @field_validator('name')
     @classmethod
@@ -76,6 +77,7 @@ class DeviceUpdate(BaseModel):
     model: Optional[str] = None
     version: Optional[str] = None
     uplink_ports: Optional[List[str]] = None
+    member_ids: Optional[str] = None
 
     @field_validator('name')
     @classmethod
@@ -120,11 +122,23 @@ class DeviceResponse(BaseModel):
     location: Optional[str] = None
     notes: Optional[str] = None
     serial_number: Optional[str] = None
+    member_ids: Optional[str] = None
     model: Optional[str] = None
     version: Optional[str] = None
     last_synced: Optional[str] = None
     username: Optional[str] = None
     uplink_ports: Optional[list] = None
+
+
+class OfflineDeviceResponse(BaseModel):
+    """离线物理设备档案（device_members 表）"""
+    serial_number: str
+    model: Optional[str] = None
+    version: Optional[str] = None
+    last_device: Optional[str] = None
+    last_member: Optional[str] = None
+    last_seen: Optional[str] = None
+    first_seen: Optional[str] = None
 
 
 # ================================================================
@@ -244,6 +258,42 @@ async def batch_import_devices(file: UploadFile = File(...)):
 async def list_devices():
     """获取设备列表"""
     return [DeviceResponse(**d).model_dump() for d in get_all_devices()]
+
+
+@router.get("/offline")
+async def list_offline_devices(days: int = 30):
+    """获取离线物理设备（device_members 中超过 days 天未见的档案）
+
+    时间阈值判定：last_seen 距今超过 days 天即视为离线。
+    注意: 必须注册在 /{name} 之前, 否则会被捕获为设备名。
+    """
+    from datetime import datetime, timedelta
+    from storage.database import get_connection
+
+    cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+    conn = get_connection()
+    rows = conn.execute(
+        """SELECT serial_number, model, version, last_device, last_member,
+                  last_seen, first_seen
+           FROM device_members
+           WHERE last_seen < ? AND last_seen != ''
+           ORDER BY last_seen DESC""",
+        (cutoff,),
+    ).fetchall()
+    return [OfflineDeviceResponse(**dict(r)).model_dump() for r in rows]
+
+
+@router.delete("/offline/{serial}")
+async def delete_offline_device(serial: str):
+    """彻底删除物理设备档案（不影响 collections 历史统计）"""
+    from storage.database import get_connection
+
+    conn = get_connection()
+    cur = conn.execute("DELETE FROM device_members WHERE serial_number = ?", (serial,))
+    conn.commit()
+    if cur.rowcount == 0:
+        raise HTTPException(status_code=404, detail="档案不存在")
+    return {"success": True, "message": "设备档案已删除"}
 
 
 @router.get("/{name}")

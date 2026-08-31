@@ -7,14 +7,26 @@ import {
   Typography,
   Button,
   Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   LinearProgress,
   Alert,
+  ToggleButton,
+  ToggleButtonGroup,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
 } from '@mui/material'
-import { Add, Storage, NetworkWifi, CloudUpload } from '@mui/icons-material'
+import { Add, Storage, NetworkWifi, CloudUpload, Delete } from '@mui/icons-material'
 import { deviceApi, collectorApi } from '../services/api'
 import { sessionManager } from '../services/auth'
 import DeviceForm from './DeviceForm'
-import type { Device, BatchItemStatus, CollectResult } from '../types'
+import type { Device, OfflineDevice, BatchItemStatus, CollectResult } from '../types'
 import { useI18n } from '../i18n'
 import LocationFilter from '../components/devices/LocationFilter'
 import CollectionProgress from '../components/devices/CollectionProgress'
@@ -48,6 +60,12 @@ const DeviceList: React.FC = () => {
   const [sortField, setSortField] = useState<string>('name')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [openImport, setOpenImport] = useState(false)
+  // 视图切换：设备清单 / 离线设备
+  const [viewMode, setViewMode] = useState<'devices' | 'offline'>('devices')
+  const [offlineDevices, setOfflineDevices] = useState<OfflineDevice[]>([])
+  const [offlineLoading, setOfflineLoading] = useState(false)
+  const [openOfflineConfirm, setOpenOfflineConfirm] = useState(false)
+  const [selectedOffline, setSelectedOffline] = useState<OfflineDevice | null>(null)
 
   useEffect(() => {
     loadDevices()
@@ -68,6 +86,41 @@ const DeviceList: React.FC = () => {
       console.error('加载设备失败:', error instanceof Error ? error.message : error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  // 离线设备：超过 30 天未见的物理设备档案（拆机搬运/长期闲置）
+  const loadOfflineDevices = async () => {
+    setOfflineLoading(true)
+    try {
+      const response = await deviceApi.listOffline(30)
+      setOfflineDevices(response.data)
+    } catch (error: unknown) {
+      console.error('加载离线设备失败:', error instanceof Error ? error.message : error)
+    } finally {
+      setOfflineLoading(false)
+    }
+  }
+
+  const handleViewModeChange = (_: React.MouseEvent<HTMLElement>, mode: 'devices' | 'offline' | null) => {
+    if (!mode) return
+    setViewMode(mode)
+    if (mode === 'offline') loadOfflineDevices()
+  }
+
+  const handleOfflineDelete = (offline: OfflineDevice) => {
+    setSelectedOffline(offline)
+    setOpenOfflineConfirm(true)
+  }
+
+  const handleConfirmOfflineDelete = async () => {
+    try {
+      if (!selectedOffline) return
+      await deviceApi.deleteOffline(selectedOffline.serial_number)
+      setOfflineDevices(prev => prev.filter(d => d.serial_number !== selectedOffline.serial_number))
+      setOpenOfflineConfirm(false)
+    } catch (error: unknown) {
+      alert(error instanceof Error ? error.message : t('devices.deleteFailed'))
     }
   }
 
@@ -279,32 +332,121 @@ const DeviceList: React.FC = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 3 }}>
-      {/* 顶部标题栏 + 位置筛选 */}
+      {/* 顶部标题栏 + 视图切换 + 位置筛选 */}
       <Paper sx={{ p: 2, mb: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5, gap: 1, flexWrap: 'wrap' }}>
           <Typography variant="h6" sx={{ fontWeight: 600, fontSize: '0.875rem' }}>
             {t('devices.title')}
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={handleOpenDialog}
-            sx={{ px: 2, py: 0.75, fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.02em' }}
-          >
-            {t('devices.addDevice')}
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<CloudUpload />}
-            onClick={() => setOpenImport(true)}
-            sx={{ px: 2, py: 0.75, fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.02em' }}
-          >
-            {t('import.title') || 'Batch Import'}
-          </Button>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={viewMode}
+              onChange={handleViewModeChange}
+              sx={{ mr: 1 }}
+            >
+              <ToggleButton value="devices" sx={{ fontSize: '0.75rem', px: 1.5 }}>
+                {t('devices.onlineView')}
+              </ToggleButton>
+              <ToggleButton value="offline" sx={{ fontSize: '0.75rem', px: 1.5 }}>
+                {t('devices.offlineView')}
+              </ToggleButton>
+            </ToggleButtonGroup>
+            {viewMode === 'devices' && (
+              <>
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={handleOpenDialog}
+                  sx={{ px: 2, py: 0.75, fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.02em' }}
+                >
+                  {t('devices.addDevice')}
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<CloudUpload />}
+                  onClick={() => setOpenImport(true)}
+                  sx={{ px: 2, py: 0.75, fontWeight: 700, fontSize: '0.75rem', letterSpacing: '0.02em' }}
+                >
+                  {t('import.title') || 'Batch Import'}
+                </Button>
+              </>
+            )}
+          </Box>
         </Box>
-        <LocationFilter selectedLocation={selectedLocation} onChange={setSelectedLocation} locations={uniqueLocations} />
+        {viewMode === 'devices' && (
+          <LocationFilter selectedLocation={selectedLocation} onChange={setSelectedLocation} locations={uniqueLocations} />
+        )}
       </Paper>
 
+      {/* 离线设备视图 */}
+      {viewMode === 'offline' && (
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+            {t('devices.offlineHint')}
+          </Typography>
+          {offlineLoading ? (
+            <LinearProgress />
+          ) : offlineDevices.length === 0 ? (
+            <Box sx={{ py: 4, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary">{t('devices.offlineEmpty')}</Typography>
+            </Box>
+          ) : (
+            <TableContainer>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>{t('devices.offlineSerial')}</TableCell>
+                    <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>{t('devices.offlineModel')}</TableCell>
+                    <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>{t('devices.offlineLastDevice')}</TableCell>
+                    <TableCell sx={{ fontWeight: 600, fontSize: '0.75rem' }}>{t('devices.offlineLastSeen')}</TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {offlineDevices.map((od) => (
+                    <TableRow key={od.serial_number} hover>
+                      <TableCell sx={{ fontFamily: '"Fira Code", monospace', fontSize: '0.75rem' }}>{od.serial_number}</TableCell>
+                      <TableCell sx={{ fontSize: '0.75rem' }}>{od.model || '-'}</TableCell>
+                      <TableCell sx={{ fontSize: '0.75rem' }}>
+                        {od.last_device ? `${od.last_device}${od.last_member ? ` (成员 ${od.last_member})` : ''}` : '-'}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+                        {od.last_seen ? new Date(od.last_seen).toLocaleString() : '-'}
+                      </TableCell>
+                      <TableCell align="right">
+                        <IconButton size="small" color="error" onClick={() => handleOfflineDelete(od)} title={t('devices.delete')}>
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </Paper>
+      )}
+
+      {/* 离线设备删除确认 */}
+      <Dialog open={openOfflineConfirm} onClose={() => setOpenOfflineConfirm(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ fontSize: '1rem' }}>{t('devices.delete')}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary">
+            {t('devices.offlineConfirmDelete')}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenOfflineConfirm(false)} sx={{ fontSize: '0.75rem' }}>{t('form.cancel')}</Button>
+          <Button color="error" variant="contained" onClick={handleConfirmOfflineDelete} sx={{ fontSize: '0.75rem' }}>
+            {t('devices.delete')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ===== 设备清单视图 ===== */}
+      {viewMode === 'devices' && (<>
       {/* 单设备收集进度 */}
       {collecting && selectedDevice && (
         <CollectionProgress
@@ -435,6 +577,7 @@ const DeviceList: React.FC = () => {
         onClose={() => setOpenImport(false)}
         onImported={loadDevices}
       />
+      </>)}
     </Container>
   )
 }

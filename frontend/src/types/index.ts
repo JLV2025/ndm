@@ -6,6 +6,7 @@ export interface Device {
   location?: string
   notes?: string
   serial_number?: string
+  member_ids?: string
   model?: string
   version?: string
   username?: string
@@ -14,6 +15,17 @@ export interface Device {
   last_collected?: string
   uplink_ports?: string[]
   [key: string]: unknown
+}
+
+/** 离线物理设备档案（device_members 表） */
+export interface OfflineDevice {
+  serial_number: string
+  model?: string
+  version?: string
+  last_device?: string
+  last_member?: string
+  last_seen?: string
+  first_seen?: string
 }
 
 export interface CollectResult {

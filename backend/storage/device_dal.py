@@ -20,7 +20,7 @@ def get_all_devices() -> list[dict]:
     conn = get_connection()
     rows = conn.execute(
         """SELECT name, ip, type, platform, location, notes,
-                  serial_number, model, version, last_synced,
+                  serial_number, member_ids, model, version, last_synced,
                   uplink_ports, username
            FROM devices
            ORDER BY name"""
@@ -33,7 +33,7 @@ def get_device_by_name(name: str) -> dict | None:
     conn = get_connection()
     row = conn.execute(
         """SELECT name, ip, type, platform, location, notes,
-                  serial_number, model, version, last_synced,
+                  serial_number, member_ids, model, version, last_synced,
                   uplink_ports, username
            FROM devices WHERE name = ?""",
         (name,),
@@ -58,9 +58,9 @@ def create_device(data: dict) -> int:
     conn = get_connection()
     row = conn.execute(
         """INSERT INTO devices (name, ip, type, platform, location, notes,
-                                serial_number, model, version,
+                                serial_number, member_ids, model, version,
                                 uplink_ports, username)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (data["name"], *_extract_fields(data)),
     ).lastrowid
     conn.commit()
@@ -88,7 +88,7 @@ def update_device(name: str, data: dict) -> bool:
         cursor = conn.execute(
             """UPDATE devices SET
                  name=?, ip=?, type=?, platform=?, location=?, notes=?,
-                 serial_number=?, model=?, version=?,
+                 serial_number=?, member_ids=?, model=?, version=?,
                  uplink_ports=?, username=?
                WHERE name=?""",
             (new_name, *_extract_fields(merged), name),
@@ -191,7 +191,7 @@ def _row_to_dict(row: sqlite3.Row) -> dict:
 
 
 def _extract_fields(data: dict) -> tuple:
-    """从数据字典中提取 11 个字段（用于 INSERT/UPDATE）"""
+    """从数据字典中提取 12 个字段（用于 INSERT/UPDATE）"""
     uplink = data.get("uplink_ports")
     if isinstance(uplink, list):
         uplink = json.dumps(uplink)
@@ -205,6 +205,7 @@ def _extract_fields(data: dict) -> tuple:
         data.get("location", "") or "",
         data.get("notes", "") or "",
         data.get("serial_number", "") or "",
+        data.get("member_ids", "") or "",
         data.get("model", "") or "",
         data.get("version", "") or "",
         uplink,

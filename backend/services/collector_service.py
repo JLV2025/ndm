@@ -202,10 +202,30 @@ def extract_serial_number(version_output: str, device_type: str, system_output: 
     return result
 
 
-def extract_model(system_output: str, version_output: str, device_type: str) -> str:
-    """从 show system / show version 输出中提取设备型号
+def extract_member_ids(vsf_output: str) -> str:
+    """从 show vsf detail 输出提取 VSF 成员 ID（逗号拼接，与序列号同序 1:1）
 
-    - Aruba: system.raw → Product Name 行，取前 2 个 token (SKU + 系列名)
+    例: "Member ID                 : 1" → "1"；双成员 → "1, 2"
+    注意: 不去重 — 与序列号按行序一一对应，重复序列号（罕见）时去重会错位。
+    空输出（非 VSF / 提取失败）返回 ""，由调用方决定是否使用。
+    """
+    if not vsf_output:
+        return ""
+    vsf_output = _strip_ansi(vsf_output)
+    members: list[str] = []
+    for line in vsf_output.splitlines():
+        match = re.search(r'^\s*Member\s+ID\s*:\s*(\d+)', line, re.IGNORECASE)
+        if match:
+            members.append(match.group(1))
+    return ", ".join(members)
+
+
+def extract_model(system_output: str, version_output: str, device_type: str, vsf_output: str = "") -> str:
+    """从 show system / show version / show vsf detail 输出中提取设备型号
+
+    - Aruba VSF 堆叠: vsf.raw 中每个成员一节, Type 行 = SKU, Model 行 = 系列名
+      例: "Type : JL725A" + "Model : Aruba 6200F 24G ..." → "JL725A 6200F"（逗号拼接, 与序列号 1:1 对应）
+    - Aruba 单机: system.raw → Product Name 行，取前 2 个 token (SKU + 系列名)
       例: "JL659A 6300M 48SR5 CL6 PoE 4SFP56 Swch" → "JL659A 6300M"
     - Cisco: version.raw → Model number 行 (堆叠设备多 member 逗号拼接)
       例: "WS-C2960X-48FPD-L" 或 "WS-C2960X-48FPD-L, WS-C2960X-48FPD-L"
@@ -213,7 +233,27 @@ def extract_model(system_output: str, version_output: str, device_type: str) -> 
     version_output = _strip_ansi(version_output)
 
     if _is_aruba_device(device_type):
-        # 从 system.raw 提取 Product Name
+        # 1. VSF 堆叠: 从 vsf.raw 提取每个成员的 SKU + 系列名（与序列号提取同源, 顺序一致）
+        if vsf_output:
+            vsf_output = _strip_ansi(vsf_output)
+            skus: list[str] = []
+            series: list[str] = []
+            for line in vsf_output.splitlines():
+                # SKU 模式: JL 前缀(JL\d{3,4}[A-Z]) + R 前缀(6300M/6400 新款, 如 R8S89A)
+                m = re.search(r'^\s*Type\s*:\s*(JL\d{3,4}[A-Z]|R\d[A-Z0-9]{3,5}[A-Z]?)', line, re.IGNORECASE)
+                if m:
+                    skus.append(m.group(1))
+                    continue
+                m = re.search(r'^\s*Model\s*:\s*Aruba\s+(\S+)', line, re.IGNORECASE)
+                if m:
+                    series.append(m.group(1))
+            if skus:
+                # 位置配对依赖 AOS-CX 输出约定: 每成员节内 Type 行先于 Model 行且成对出现
+                # 系列名齐全则拼 "SKU 系列名", 否则退化为纯 SKU（防错位）
+                if len(series) == len(skus):
+                    return ", ".join(f"{s} {t}" for s, t in zip(skus, series))
+                return ", ".join(skus)
+        # 2. 单机回退: 从 system.raw 提取 Product Name
         if system_output:
             system_output = _strip_ansi(system_output)
             for line in system_output.splitlines():
@@ -659,11 +699,13 @@ def collect_device(
         # 提取版本号和序列号（使用实际设备类型，传入 system + vsf 信息）
         software_version = extract_software_version(version_info, effective_type)
         serial_number = extract_serial_number(version_info, effective_type, system_info, vsf_info, platform=device_platform)
+        # VSF 成员 ID（仅 Aruba VSF 有值；与序列号同源同序 1:1）
+        member_ids = extract_member_ids(vsf_info)
 
-        # 提取设备型号（Aruba 从 system.raw, Cisco 从 version.raw）
-        device_model = extract_model(system_info, version_info, effective_type)
+        # 提取设备型号（Aruba 从 vsf.raw/system.raw, Cisco 从 version.raw）
+        device_model = extract_model(system_info, version_info, effective_type, vsf_info)
 
-        # Aruba VSF 所有成员同型号，extract_model 只返回一条，需按序列号数量补齐
+        # 回退保护: VSF 成员型号提取失败时按序列号数量补齐（历史逻辑）
         # Cisco 堆叠 show version 有多条 Model number，无需此处理
         if serial_number and serial_number != "未知" and device_model and device_model != "未知":
             serial_cnt = len([s for s in serial_number.split(",") if s.strip()])
@@ -730,6 +772,7 @@ def collect_device(
             interface_status, version_info, interface_utilization, system_info, vsf_info, switch_info, route_info,
             validation_results, performance_results, change_results,
             software_version, serial_number, device_model,
+            member_ids,
             cdp_neighbors_raw, lldp_neighbors_raw,
             boot_history=boot_history,
             system_uptime_seconds=system_uptime_seconds,
@@ -779,6 +822,7 @@ def _save_to_sqlite(
     port_details: list, port_errors: list,
     neighbors_data: list, boot_history: str,
     lag_membership_json: str = "{}",
+    member_ids: str = "",
 ) -> dict:
     """将采集数据写入 SQLite 数据库
 
@@ -797,12 +841,14 @@ def _save_to_sqlite(
 
         # 1. 确保 device 记录存在
         db.execute("""
-            INSERT INTO devices (name, ip, type, platform, serial_number, model, version, last_synced)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO devices (name, ip, type, platform, serial_number, member_ids, model, version, last_synced)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(name) DO UPDATE SET
                 ip=excluded.ip, type=excluded.type, platform=excluded.platform,
                 serial_number=CASE WHEN excluded.serial_number != '' AND excluded.serial_number != '未知'
                                    THEN excluded.serial_number ELSE devices.serial_number END,
+                member_ids=CASE WHEN excluded.member_ids != '' AND excluded.member_ids != '未知'
+                                THEN excluded.member_ids ELSE devices.member_ids END,
                 model=CASE WHEN excluded.model != '' AND excluded.model != '未知'
                            THEN excluded.model ELSE devices.model END,
                 version=CASE WHEN excluded.version != '' AND excluded.version != '未知'
@@ -811,12 +857,38 @@ def _save_to_sqlite(
         """, (
             device_name, device_ip, device_type, device_platform,
             serial_number if serial_number != "未知" else "",
+            member_ids if member_ids != "未知" else "",
             device_model if device_model != "未知" else "",
             software_version if software_version != "未知" else "",
             collected_at,
         ))
         device_row = db.execute("SELECT id FROM devices WHERE name=?", (device_name,)).fetchone()
         device_id = device_row["id"]
+
+        # 1.1 物理设备档案 upsert（序列号主键，自动建档，永不删除）
+        # 成员三元组: member_ids/serial_number/device_model 同序 1:1（非堆叠时 1 条）
+        for serial_part, member_part, model_part in zip(
+            [s.strip() for s in serial_number.split(",") if s.strip()],
+            [m.strip() for m in member_ids.split(",") if m.strip()],
+            [m.strip() for m in device_model.split(",") if m.strip()],
+        ):
+            db.execute("""
+                INSERT INTO device_members (serial_number, model, version, last_device, last_member, last_seen)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(serial_number) DO UPDATE SET
+                    model=CASE WHEN excluded.model != '' THEN excluded.model ELSE device_members.model END,
+                    version=excluded.version,
+                    last_device=excluded.last_device,
+                    last_member=excluded.last_member,
+                    last_seen=excluded.last_seen
+            """, (
+                serial_part,
+                model_part,
+                software_version if software_version != "未知" else "",
+                device_name,
+                member_part,
+                collected_at,
+            ))
 
         # 2. 写入采集会话
         running_lines = len(running_config.splitlines()) if running_config and not running_config.startswith('%') else 0
@@ -1004,6 +1076,7 @@ def _save_data(
     interface_utilization: str, system_info: str, vsf_info: str, switch_info: str, route_info: str,
     validation_results: str, performance_results: str, change_results: str,
     software_version: str, serial_number: str, device_model: str = "",
+    member_ids: str = "",
     cdp_neighbors_raw: str = "", lldp_neighbors_raw: str = "",
     boot_history: str = "", system_uptime_seconds: int | None = None,
     platform: str = "",
@@ -1240,6 +1313,7 @@ def _save_data(
             software_version=software_version,
             serial_number=serial_number,
             device_model=device_model,
+            member_ids=member_ids,
             system_uptime_seconds=system_uptime_seconds,
             port_details=port_details,
             port_errors=port_errors_dict,

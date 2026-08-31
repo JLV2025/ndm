@@ -286,3 +286,22 @@
 
 ## Do-Not-Repeat
 - [2026-08-17] 版本号禁止写死。曾有两处：Login.tsx:243 硬编码 `v2.0.0`、main.py FastAPI `version="2.0.0"`，而真实版本在根目录 `VERSION` 文件（2.8.3）。统一方案：VERSION 文件是唯一事实来源 → 后端 `_load_version()`（main.py）读取并暴露 `GET /api/version` → 前端 fetch 动态显示（App.tsx 与 Login.tsx 同模式，version 为空时不显示）。新增版本显示功能时先查是否已有 `/api/version` 调用。
+
+## Key Learnings
+- [2026-08-31] Aruba CX VSF 堆叠成员信息全部来自 `show vsf detail`：每成员节含 `Member ID` / `Type`(SKU, 如 JL726B/R8S89A) / `Model`(系列名, "Aruba 6200F 48G...") / `Serial Number`。`show system` 只显示 commander（或连接成员）的 Product Name —— 成员级型号/序列号必须解析 vsf detail。
+- [2026-08-31] running-config.raw 可确认 VSF 成员型号归属：`vsf member 1 \n type jl726b` 段（真实事实：UCD member 1=JL726B 原交换机，member 2=JL725A 新加）。
+- [2026-08-31] `extract_member_ids`/`extract_serial_number`/`extract_model` 三者遍历同一 vsf 输出按行序收集 → 天然 1:1 对齐。**成员提取绝不能去重**（serial 提取有去重逻辑，重复序列号时会导致对齐错位）。
+- [2026-08-31] 前端堆叠拆分 guard：`member_ids 逗号数 == serial 逗号数 && 全部为数字` 才用真实 ID，否则回退序号（兼容旧数据/脏值）；真实 ID 不 pad。
+- [2026-08-31] 设备管理页"离线设备"判定用**时间阈值**（device_members.last_seen < now-30天），不用"不在当前条目"（避免用户删条目误报）。
+
+## User Preferences
+- [2026-08-31] 堆叠成员显示：`-1`/`-2` 用真实 Member ID 不 pad（跳号 `-3` 原样）；用户接受最小改动方案（member_ids 补全到设备清单）而非完整角色清单建模。
+- [2026-08-31] 离线设备入口放"设备管理"页（Tab 切换），同时作为彻底删除入口；不建独立页面。
+
+## Do-Not-Repeat
+- [2026-08-31] Python 函数签名：**带默认值的参数不能放在无默认值参数之前**。给 `_save_to_sqlite` 加 `member_ids: str = ""` 时插在了 `system_uptime_seconds: int | None`（无默认）前面导致 SyntaxError（bug-032）。新增可选参数应放签名末尾有默认值区域（调用处用关键字传参则位置无关）。
+- [2026-08-31] `vite build` 不跑 tsc —— 前端改动验证必须显式 `npx tsc --noEmit`（项目存在存量类型错误：LocationFilter.tsx / DirectionPad.tsx / LocationTopologyCanvas.tsx，与本次改动无关）。
+
+## Decision Log
+- [2026-08-31] 物理设备身份建模：采纳"device_members 档案表（SN 主键，收集时 upsert，永不删除）+ 设备管理页离线视图"方案，而非完整角色清单（用户 YAGNI：迁移历史追踪非刚需）。离线判定 = 时间阈值（用户指定 30 天）。
+- [2026-08-31] 型号显示格式：SKU+系列名（"JL726B 6200F"，用户选定），从 vsf detail 的 Type+Model 行拼装，与现有 show system Product Name 格式一致。

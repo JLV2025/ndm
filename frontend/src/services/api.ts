@@ -22,6 +22,8 @@ export const deviceApi = {
   add: (device: Device) => apiJson.post('/devices/', device),
   delete: (name: string) => apiJson.delete(`/devices/${name}`),
   update: (name: string, updates: Partial<Device>) => apiJson.patch(`/devices/${name}`, updates),
+  listOffline: (days = 30) => apiJson.get('/devices/offline', { params: { days } }),
+  deleteOffline: (serial: string) => apiJson.delete(`/devices/offline/${encodeURIComponent(serial)}`),
   search: (params: Record<string, string>) => apiJson.get('/devices/search', { params }),
   batchImport: (file: File) => {
     const formData = new FormData()

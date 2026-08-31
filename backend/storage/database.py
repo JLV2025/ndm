@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 # 当前 Schema 版本（每次 schema 变更递增）
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 9
 
 # 线程本地存储 —— 每个线程持有自己的连接
 _local = threading.local()
@@ -437,6 +437,30 @@ def _migrate_v7(conn: sqlite3.Connection) -> None:
         pass
 
 
+def _migrate_v8(conn: sqlite3.Connection) -> None:
+    """Schema v8: devices 表添加 member_ids 列（VSF 成员 ID，逗号拼接，与序列号 1:1）"""
+    try:
+        conn.execute("ALTER TABLE devices ADD COLUMN member_ids TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass  # 列已存在
+
+
+def _migrate_v9(conn: sqlite3.Connection) -> None:
+    """Schema v9: 建 device_members 物理设备档案表（序列号主键，收集时 upsert，永不删除）"""
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS device_members (
+            serial_number TEXT PRIMARY KEY,
+            model TEXT DEFAULT '',
+            version TEXT DEFAULT '',
+            last_device TEXT DEFAULT '',
+            last_member TEXT DEFAULT '',
+            last_seen TEXT DEFAULT '',
+            first_seen TEXT DEFAULT (datetime('now')),
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
+
+
 # 迁移注册表
 _MIGRATIONS = {
     1: _migrate_v1,
@@ -446,4 +470,6 @@ _MIGRATIONS = {
     5: _migrate_v5,
     6: _migrate_v6,
     7: _migrate_v7,
+    8: _migrate_v8,
+    9: _migrate_v9,
 }

@@ -55,6 +55,18 @@ const zh: Record<string, string> = {
   'devices.confirmDelete': '确定要删除设备',
   'devices.deleteSuccess': '删除成功',
   'devices.deleteFailed': '删除失败',
+  // 离线物理设备
+  'devices.offlineView': '离线设备',
+  'devices.onlineView': '设备清单',
+  'devices.offlineHint': '超过 30 天未在收集中出现的物理设备（如拆机搬运中、长期闲置）。重新上线后自动移出列表。',
+  'devices.offlineSerial': '序列号',
+  'devices.offlineModel': '型号',
+  'devices.offlineLastDevice': '上次归属',
+  'devices.offlineLastSeen': '最后见到',
+  'devices.offlineEmpty': '暂无离线设备',
+  'devices.offlineConfirmDelete': '确定要彻底删除该设备档案吗？删除后不再追踪此序列号（不影响历史统计数据）。',
+  'devices.offlineDeleteSuccess': '设备档案已删除',
+
 
   // 设备表单
   'form.addTitle': '添加新设备',

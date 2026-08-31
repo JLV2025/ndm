@@ -185,9 +185,14 @@ const Dashboard: React.FC = () => {
       const padWidth = String(snList.length).length
       const modelRaw = d.model || ''
       const modelList = modelRaw.split(',').map(m => m.trim()).filter(Boolean)
+      // 真实成员 ID（member_ids 与序列号同序 1:1，全数字才采用；否则回退序号）
+      const midRaw = d.member_ids || ''
+      const midList = midRaw.split(',').map(m => m.trim()).filter(Boolean)
+      const useRealIds = midList.length === snList.length && midList.every(v => /^\d+$/.test(v))
       snList.forEach((sn, i) => {
         const idx = i + 1
-        const suffix = String(idx).padStart(padWidth, '0')
+        // 真实 ID 不 pad（-1/-3 原样，跳号也正确）；回退时用序号 padStart
+        const suffix = useRealIds ? midList[i] : String(idx).padStart(padWidth, '0')
         const memberModel = modelList[i] || modelList[modelList.length - 1] || ''
         result.push({
           ...d,
@@ -352,7 +357,9 @@ const Dashboard: React.FC = () => {
     if (!configHistory?.weeks?.length || !configHistory?.series?.length) return { devices: [] as string[], columns: [] as string[], grid: [] as Array<Array<{ delta: number | null; prev: number | null; next: number | null }>> }
     const weeks = configHistory.weeks
     if (weeks.length < 2) return { devices: [] as string[], columns: [] as string[], grid: [] }
-    const columns = weeks.slice(1).map((w, i) => `${weeks[i]}→${w}`)
+    // 列头：YYYY-WW → Www（去掉年份，避免窄格子截断）
+    const shortWeek = (w: string) => w.replace(/^\d{4}-/, 'W')
+    const columns = weeks.slice(1).map((w, i) => `${shortWeek(weeks[i])}-${shortWeek(w)}`)
     // 取 configHistoryChartData 中已筛选的设备，维持一致
     const rowDevices = configHistoryChartData.devices
     const grid = rowDevices.map(deviceName => {

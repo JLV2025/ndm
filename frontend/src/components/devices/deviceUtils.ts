@@ -62,10 +62,14 @@ export function expandStackedDevices(devices: Device[]): PhysicalDevice[] {
     const modelList = modelStr ? modelStr.split(',').map(m => m.trim()) : []
     const verStr = (dev.version || '').trim()
     const verList = verStr ? verStr.split(',').map(v => v.trim()) : []
+    // 真实成员 ID（member_ids 与序列号同序 1:1，全数字才采用；否则回退序号）
+    const midStr = (dev.member_ids || '').trim()
+    const midList = midStr ? midStr.split(',').map(m => m.trim()).filter(Boolean) : []
+    const useRealIds = midList.length === snList.length && midList.every(v => /^\d+$/.test(v))
 
     for (let i = 0; i < snList.length; i++) {
       result.push({
-        name: `${dev.name}-${String(i + 1).padStart(2, '0')}`,
+        name: `${dev.name}-${useRealIds ? midList[i] : String(i + 1).padStart(2, '0')}`,
         logical_name: dev.name,
         ip: dev.ip,
         type: dev.type,

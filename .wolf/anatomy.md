@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-17T05:18:32.999Z
-> Files: 17 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-08-31T06:35:31.055Z
+> Files: 29 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -75,6 +75,7 @@
 
 ## C:/Users/jingl/.claude/plans/
 
+- `silly-weaving-hearth.md` — VSF 成员编号透传 + 物理设备档案 + 离线设备视图 实施计划 (~1286 tok)
 
 ## agents/
 
@@ -90,7 +91,8 @@
 
 ## backend/api/
 
-- `topology.py` — 拓扑图 API 路由 (~11791 tok)
+- `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3287 tok)
+- `topology.py` — 拓扑图 API 路由 (~11910 tok)
 
 ## backend/collectors/
 
@@ -103,13 +105,18 @@
 
 ## backend/services/
 
+- `collector_service.py` — 配置收集服务 (~16453 tok)
 
 ## backend/storage/
 
+- `database.py` — init_db, get_connection, close_connection (~4484 tok)
+- `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~1851 tok)
 
 ## backend/tests/
 
 - `conftest.py` — test_password_manager (~78 tok)
+- `test_collector_service.py` — collector_service 型号/序列号/成员ID提取测试 — 重点：Aruba CX VSF 堆叠 (~1644 tok)
+- `test_collector_service.py` — extract_model/extract_serial_number 测试（重点 VSF 堆叠成员型号，4 用例） (~500 tok)
 - `test_neighbor_parser.py` — CDP/LLDP 邻居解析器测试 — 重点：Aruba AP 名识别 (~1543 tok)
 
 ## backend/utils/
@@ -144,6 +151,7 @@
 
 ## frontend/src/components/devices/
 
+- `deviceUtils.ts` — 判断设备是否为堆叠设备 (~802 tok)
 
 ## frontend/src/components/topology/
 
@@ -157,10 +165,13 @@
 
 ## frontend/src/pages/
 
+- `Dashboard.tsx` — DevicesLink (~10191 tok)
+- `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5901 tok)
 - `Login.tsx` — Login (~2283 tok)
 
 ## frontend/src/services/
 
+- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~1907 tok)
 
 ## frontend/src/shared/
 
@@ -171,6 +182,7 @@
 
 ## frontend/src/types/
 
+- `index.ts` — 离线物理设备档案（device_members 表） (~637 tok)
 - `topology.ts` — 端口物理断开（status_up=0），图上显示红叉警告 (~540 tok)
 
 ## tests/

@@ -69,6 +69,19 @@ grep -rni "password\|secret\|token\|api_key\|apikey\|jwt_secret" --include="*.go
 
 ---
 
+## Phase 6：更新 GitNexus 索引（仅当项目已使用 GitNexus）
+
+代码已推送后，刷新代码知识图，保证其他电脑 clone 后索引是最新的：
+
+1. 检查是否已索引：`npx gitnexus status` — 显示索引时间与符号/关系数；若提示未索引或 stale，继续下一步
+2. 创建或更新索引：`npx gitnexus analyze` — **首次运行即创建索引**，之后是增量刷新；commit/merge 后索引变 stale 时同样用它
+3. 索引损坏时重建：`npx gitnexus clean` 删除旧索引（会清掉 `.gitnexus/` 并注销注册），再 `npx gitnexus analyze --force` 全量重建
+4. 验证索引可用：读 `gitnexus://repo/{name}/context` 资源确认加载成功
+
+若项目没有 `.gitnexus/` 目录且未注册索引（不打算启用 GitNexus），跳过本阶段。
+
+---
+
 ## 规则
 
 - 所有阶段在当前会话前台执行，不 fork 子进程
