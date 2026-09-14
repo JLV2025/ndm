@@ -1,7 +1,7 @@
 # NDM — 网络设备配置管理系统
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.8.3-2DD46E" alt="Version 2.8.3">
+  <img src="https://img.shields.io/badge/Version-2.9.14-2DD46E" alt="Version 2.9.14">
   <img src="https://img.shields.io/badge/Python-3.9%2B-2DD46E" alt="Python 3.9+">
   <img src="https://img.shields.io/badge/React-18-2DD46E" alt="React 18">
   <img src="https://img.shields.io/badge/Backend-FastAPI-2DD46E" alt="FastAPI">
