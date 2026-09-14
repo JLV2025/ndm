@@ -77,7 +77,8 @@ security-review-report.md
 .wolf/cron-state.json
 .wolf/suggestions.json
 .wolf/designqc-report.json
-.wolf/hooks/_session.json
+.wolf/hooks/_session.json*
+
 
 # Playwright 临时截图（收工技能负责删除，此处兜底）
 .playwright-mcp/

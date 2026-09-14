@@ -318,3 +318,4 @@
 
 ## Do-Not-Repeat
 - [2026-09-14] 版本号共 **5 个手工维护位置**，改版必须全部同步，漏一个就漂移：① 根 `VERSION`（唯一事实来源，API 动态读取）② `start.bat:12` banner ③ `frontend/package.json:4` ④ `README.md:4` 徽章 ⑤ `NDM用户使用文档.html:182/867`。上次 caf4a34 只改了 ①，导致 ②③ 停在 2.8.3 长达两周（bug-047）。
+- [2026-09-14] OpenWolf 钩子的 `.wolf/hooks/_session.json.<hash>.tmp` 变体未被忽略，每次会话都残留未追踪文件、污染 `git status`（原有规则只精确忽略 `_session.json` 本身）。已在 `.gitignore` 改为前缀通配 `.wolf/hooks/_session.json*` 覆盖。这些是钩子运行时临时文件，**不要提交入库**。
