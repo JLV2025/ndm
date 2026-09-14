@@ -305,3 +305,16 @@
 ## Decision Log
 - [2026-08-31] 物理设备身份建模：采纳"device_members 档案表（SN 主键，收集时 upsert，永不删除）+ 设备管理页离线视图"方案，而非完整角色清单（用户 YAGNI：迁移历史追踪非刚需）。离线判定 = 时间阈值（用户指定 30 天）。
 - [2026-08-31] 型号显示格式：SKU+系列名（"JL726B 6200F"，用户选定），从 vsf detail 的 Type+Model 行拼装，与现有 show system Product Name 格式一致。
+
+## Key Learnings
+- [2026-09-14] 前端堆叠成员编号的唯一来源是 `deviceUtils.memberSuffixes(serialNumber, memberIds, padWidth)`：member_ids 与 serial 同序 1:1，全数字才采用真实 Member ID（不补零，跳号正确），否则回退按序号补零。Dashboard 与后续任何消费方都应调它，不要再内联拆解 member_ids。
+- [2026-09-14] `device_dal.py` 是 `device_members`（物理设备档案）表的唯一入口：`list_offline_members(days)` / `delete_member(serial)`。API 层不再写裸 SQL。
+
+## Do-Not-Repeat
+- [2026-09-14] 本次 VSF 提交曾给 `deviceUtils.expandStackedDevices` 补充逻辑，但该函数与 `isStackedDevice` 全仓零调用方（死代码），Dashboard 另有内联副本 → 同一规则两处维护且序号格式已分叉（固定 2 位 vs 变长 padWidth）。**新增前端共享逻辑前先 grep 调用方**；发现零调用方的 export 直接删，不要往里加。
+
+## Decision Log
+- [2026-09-14] 成员编号规则下沉：删除死的 `expandStackedDevices`/`isStackedDevice`/`PhysicalDevice`（净 -78 行），把规则抽成具名函数 `memberSuffixes` 供 Dashboard 调用。后端 `topology.py` 的 Python 版保留（跨语言，无法共用）。
+
+## Do-Not-Repeat
+- [2026-09-14] 版本号共 **5 个手工维护位置**，改版必须全部同步，漏一个就漂移：① 根 `VERSION`（唯一事实来源，API 动态读取）② `start.bat:12` banner ③ `frontend/package.json:4` ④ `README.md:4` 徽章 ⑤ `NDM用户使用文档.html:182/867`。上次 caf4a34 只改了 ①，导致 ②③ 停在 2.8.3 长达两周（bug-047）。

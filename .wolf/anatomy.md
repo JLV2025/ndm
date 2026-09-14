@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-08-31T06:35:31.055Z
-> Files: 29 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-14T00:30:51.448Z
+> Files: 35 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -47,7 +47,10 @@
 
 ## ./
 
-- `README.md` — Project documentation (~1434 tok)
+- `NDM用户使用文档.html` — NDM User Guide / 用户使用文档 — Network Device Management (~11324 tok)
+- `README.md` — Project documentation (~1670 tok)
+- `start.bat` (~981 tok)
+- `VERSION` (~2 tok)
 
 ## .claude/
 
@@ -91,7 +94,7 @@
 
 ## backend/api/
 
-- `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3287 tok)
+- `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
 - `topology.py` — 拓扑图 API 路由 (~11910 tok)
 
 ## backend/collectors/
@@ -105,12 +108,12 @@
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~16453 tok)
+- `collector_service.py` — 配置收集服务 (~16412 tok)
 
 ## backend/storage/
 
 - `database.py` — init_db, get_connection, close_connection (~4484 tok)
-- `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~1851 tok)
+- `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~2142 tok)
 
 ## backend/tests/
 
@@ -151,7 +154,8 @@
 
 ## frontend/src/components/devices/
 
-- `deviceUtils.ts` — 判断设备是否为堆叠设备 (~802 tok)
+- `DeleteConfirmDialog.tsx` — 自定义提示文案；不传则用 devices.deleteWarning 并把 {name} 替换为 deviceName (~462 tok)
+- `deviceUtils.ts` — 解析堆叠成员编号后缀（每成员一个后缀，与序列号同序） (~408 tok)
 
 ## frontend/src/components/topology/
 
@@ -162,11 +166,13 @@
 
 ## frontend/src/i18n/
 
+- `en.ts` — Declares en (~4758 tok)
+- `zh.ts` — Declares zh (~4041 tok)
 
 ## frontend/src/pages/
 
-- `Dashboard.tsx` — DevicesLink (~10191 tok)
-- `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5901 tok)
+- `Dashboard.tsx` — DevicesLink (~10103 tok)
+- `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5691 tok)
 - `Login.tsx` — Login (~2283 tok)
 
 ## frontend/src/services/
@@ -182,7 +188,7 @@
 
 ## frontend/src/types/
 
-- `index.ts` — 离线物理设备档案（device_members 表） (~637 tok)
+- `index.ts` — 离线物理设备档案（device_members 表） (~515 tok)
 - `topology.ts` — 端口物理断开（status_up=0），图上显示红叉警告 (~540 tok)
 
 ## tests/
