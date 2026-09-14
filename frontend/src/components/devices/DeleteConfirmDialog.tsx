@@ -6,11 +6,13 @@ import { useI18n } from '../../i18n'
 interface DeleteConfirmDialogProps {
   open: boolean
   deviceName?: string
+  /** 自定义提示文案；不传则用 devices.deleteWarning 并把 {name} 替换为 deviceName */
+  message?: string
   onCancel: () => void
   onConfirm: () => void
 }
 
-const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = React.memo(({ open, deviceName, onCancel, onConfirm }) => {
+const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = React.memo(({ open, deviceName, message, onCancel, onConfirm }) => {
   const { t } = useI18n()
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="sm" fullWidth>
@@ -25,7 +27,7 @@ const DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = React.memo(({ op
       </DialogTitle>
       <DialogContent dividers>
         <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-          {t('devices.deleteWarning').replace('{name}', deviceName || '')}
+          {message || t('devices.deleteWarning').replace('{name}', deviceName || '')}
         </Typography>
       </DialogContent>
       <DialogActions>

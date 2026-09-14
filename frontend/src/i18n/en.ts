@@ -65,8 +65,6 @@ const en: Record<string, string> = {
   'devices.offlineLastSeen': 'Last Seen',
   'devices.offlineEmpty': 'No offline devices',
   'devices.offlineConfirmDelete': 'Permanently delete this device archive? It will no longer be tracked (historical statistics are not affected).',
-  'devices.offlineDeleteSuccess': 'Device archive deleted',
-
 
   // Device Form
   'form.addTitle': 'Add New Device',

@@ -65,8 +65,6 @@ const zh: Record<string, string> = {
   'devices.offlineLastSeen': '最后见到',
   'devices.offlineEmpty': '暂无离线设备',
   'devices.offlineConfirmDelete': '确定要彻底删除该设备档案吗？删除后不再追踪此序列号（不影响历史统计数据）。',
-  'devices.offlineDeleteSuccess': '设备档案已删除',
-
 
   // 设备表单
   'form.addTitle': '添加新设备',

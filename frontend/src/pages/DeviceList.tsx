@@ -7,9 +7,6 @@ import {
   Typography,
   Button,
   Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   LinearProgress,
   Alert,
   ToggleButton,
@@ -64,8 +61,8 @@ const DeviceList: React.FC = () => {
   const [viewMode, setViewMode] = useState<'devices' | 'offline'>('devices')
   const [offlineDevices, setOfflineDevices] = useState<OfflineDevice[]>([])
   const [offlineLoading, setOfflineLoading] = useState(false)
-  const [openOfflineConfirm, setOpenOfflineConfirm] = useState(false)
-  const [selectedOffline, setSelectedOffline] = useState<OfflineDevice | null>(null)
+  // 待删除的离线档案；非 null 即弹确认框
+  const [offlineToDelete, setOfflineToDelete] = useState<OfflineDevice | null>(null)
 
   useEffect(() => {
     loadDevices()
@@ -108,17 +105,12 @@ const DeviceList: React.FC = () => {
     if (mode === 'offline') loadOfflineDevices()
   }
 
-  const handleOfflineDelete = (offline: OfflineDevice) => {
-    setSelectedOffline(offline)
-    setOpenOfflineConfirm(true)
-  }
-
   const handleConfirmOfflineDelete = async () => {
+    if (!offlineToDelete) return
     try {
-      if (!selectedOffline) return
-      await deviceApi.deleteOffline(selectedOffline.serial_number)
-      setOfflineDevices(prev => prev.filter(d => d.serial_number !== selectedOffline.serial_number))
-      setOpenOfflineConfirm(false)
+      await deviceApi.deleteOffline(offlineToDelete.serial_number)
+      setOfflineDevices(prev => prev.filter(d => d.serial_number !== offlineToDelete.serial_number))
+      setOfflineToDelete(null)
     } catch (error: unknown) {
       alert(error instanceof Error ? error.message : t('devices.deleteFailed'))
     }
@@ -416,7 +408,7 @@ const DeviceList: React.FC = () => {
                         {od.last_seen ? new Date(od.last_seen).toLocaleString() : '-'}
                       </TableCell>
                       <TableCell align="right">
-                        <IconButton size="small" color="error" onClick={() => handleOfflineDelete(od)} title={t('devices.delete')}>
+                        <IconButton size="small" color="error" onClick={() => setOfflineToDelete(od)} title={t('devices.delete')}>
                           <Delete fontSize="small" />
                         </IconButton>
                       </TableCell>
@@ -430,20 +422,12 @@ const DeviceList: React.FC = () => {
       )}
 
       {/* 离线设备删除确认 */}
-      <Dialog open={openOfflineConfirm} onClose={() => setOpenOfflineConfirm(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ fontSize: '1rem' }}>{t('devices.delete')}</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary">
-            {t('devices.offlineConfirmDelete')}
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenOfflineConfirm(false)} sx={{ fontSize: '0.75rem' }}>{t('form.cancel')}</Button>
-          <Button color="error" variant="contained" onClick={handleConfirmOfflineDelete} sx={{ fontSize: '0.75rem' }}>
-            {t('devices.delete')}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <DeleteConfirmDialog
+        open={offlineToDelete !== null}
+        message={t('devices.offlineConfirmDelete')}
+        onCancel={() => setOfflineToDelete(null)}
+        onConfirm={handleConfirmOfflineDelete}
+      />
 
       {/* ===== 设备清单视图 ===== */}
       {viewMode === 'devices' && (<>
