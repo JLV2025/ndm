@@ -13,6 +13,8 @@ from storage.device_dal import (
     update_device as dal_update,
     delete_device as dal_delete,
     device_exists,
+    list_offline_members,
+    delete_member,
 )
 
 router = APIRouter()
@@ -267,31 +269,13 @@ async def list_offline_devices(days: int = 30):
     时间阈值判定：last_seen 距今超过 days 天即视为离线。
     注意: 必须注册在 /{name} 之前, 否则会被捕获为设备名。
     """
-    from datetime import datetime, timedelta
-    from storage.database import get_connection
-
-    cutoff = (datetime.now() - timedelta(days=days)).isoformat()
-    conn = get_connection()
-    rows = conn.execute(
-        """SELECT serial_number, model, version, last_device, last_member,
-                  last_seen, first_seen
-           FROM device_members
-           WHERE last_seen < ? AND last_seen != ''
-           ORDER BY last_seen DESC""",
-        (cutoff,),
-    ).fetchall()
-    return [OfflineDeviceResponse(**dict(r)).model_dump() for r in rows]
+    return [OfflineDeviceResponse(**m).model_dump() for m in list_offline_members(days)]
 
 
 @router.delete("/offline/{serial}")
 async def delete_offline_device(serial: str):
     """彻底删除物理设备档案（不影响 collections 历史统计）"""
-    from storage.database import get_connection
-
-    conn = get_connection()
-    cur = conn.execute("DELETE FROM device_members WHERE serial_number = ?", (serial,))
-    conn.commit()
-    if cur.rowcount == 0:
+    if not delete_member(serial):
         raise HTTPException(status_code=404, detail="档案不存在")
     return {"success": True, "message": "设备档案已删除"}
 

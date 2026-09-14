@@ -6,6 +6,7 @@
 
 import json
 import sqlite3
+from datetime import datetime, timedelta
 from typing import Optional
 
 from storage.database import get_connection
@@ -128,6 +129,38 @@ def delete_device(name: str) -> bool:
     conn.execute("DELETE FROM devices WHERE id = ?", (device_id,))
     conn.commit()
     return True
+
+
+# ================================================================
+# 物理设备档案（device_members 表）
+# ================================================================
+
+
+def list_offline_members(days: int = 30) -> list[dict]:
+    """获取离线物理设备档案
+
+    时间阈值判定：last_seen 距今超过 days 天即视为离线
+    （如拆机搬运中、长期闲置；重新上线后不再出现在此列表）。
+    """
+    cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+    conn = get_connection()
+    rows = conn.execute(
+        """SELECT serial_number, model, version, last_device, last_member,
+                  last_seen, first_seen
+           FROM device_members
+           WHERE last_seen < ? AND last_seen != ''
+           ORDER BY last_seen DESC""",
+        (cutoff,),
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def delete_member(serial: str) -> bool:
+    """彻底删除物理设备档案，返回是否找到并删除"""
+    conn = get_connection()
+    cur = conn.execute("DELETE FROM device_members WHERE serial_number = ?", (serial,))
+    conn.commit()
+    return cur.rowcount > 0
 
 
 # ================================================================
