@@ -699,8 +699,6 @@ def collect_device(
         # 提取版本号和序列号（使用实际设备类型，传入 system + vsf 信息）
         software_version = extract_software_version(version_info, effective_type)
         serial_number = extract_serial_number(version_info, effective_type, system_info, vsf_info, platform=device_platform)
-        # VSF 成员 ID（仅 Aruba VSF 有值；与序列号同源同序 1:1）
-        member_ids = extract_member_ids(vsf_info)
 
         # 提取设备型号（Aruba 从 vsf.raw/system.raw, Cisco 从 version.raw）
         device_model = extract_model(system_info, version_info, effective_type, vsf_info)
@@ -772,7 +770,6 @@ def collect_device(
             interface_status, version_info, interface_utilization, system_info, vsf_info, switch_info, route_info,
             validation_results, performance_results, change_results,
             software_version, serial_number, device_model,
-            member_ids,
             cdp_neighbors_raw, lldp_neighbors_raw,
             boot_history=boot_history,
             system_uptime_seconds=system_uptime_seconds,
@@ -847,7 +844,7 @@ def _save_to_sqlite(
                 ip=excluded.ip, type=excluded.type, platform=excluded.platform,
                 serial_number=CASE WHEN excluded.serial_number != '' AND excluded.serial_number != '未知'
                                    THEN excluded.serial_number ELSE devices.serial_number END,
-                member_ids=CASE WHEN excluded.member_ids != '' AND excluded.member_ids != '未知'
+                member_ids=CASE WHEN excluded.member_ids != ''
                                 THEN excluded.member_ids ELSE devices.member_ids END,
                 model=CASE WHEN excluded.model != '' AND excluded.model != '未知'
                            THEN excluded.model ELSE devices.model END,
@@ -857,7 +854,7 @@ def _save_to_sqlite(
         """, (
             device_name, device_ip, device_type, device_platform,
             serial_number if serial_number != "未知" else "",
-            member_ids if member_ids != "未知" else "",
+            member_ids,
             device_model if device_model != "未知" else "",
             software_version if software_version != "未知" else "",
             collected_at,
@@ -1076,7 +1073,6 @@ def _save_data(
     interface_utilization: str, system_info: str, vsf_info: str, switch_info: str, route_info: str,
     validation_results: str, performance_results: str, change_results: str,
     software_version: str, serial_number: str, device_model: str = "",
-    member_ids: str = "",
     cdp_neighbors_raw: str = "", lldp_neighbors_raw: str = "",
     boot_history: str = "", system_uptime_seconds: int | None = None,
     platform: str = "",
@@ -1313,7 +1309,8 @@ def _save_data(
             software_version=software_version,
             serial_number=serial_number,
             device_model=device_model,
-            member_ids=member_ids,
+            # VSF 成员 ID（仅 Aruba VSF 有值；与序列号同源同序 1:1）
+            member_ids=extract_member_ids(vsf_info),
             system_uptime_seconds=system_uptime_seconds,
             port_details=port_details,
             port_errors=port_errors_dict,
