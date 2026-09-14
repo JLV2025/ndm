@@ -37,7 +37,7 @@ import {
 import { deviceApi, collectorApi, alertsApi } from '../services/api'
 import { sessionManager } from '../services/auth'
 import { useI18n } from '../i18n'
-import { getDeviceColor, getTypeLabel } from '../components/devices/deviceUtils'
+import { getDeviceColor, getTypeLabel, memberSuffixes } from '../components/devices/deviceUtils'
 import type { Device } from '../types'
 
 const DevicesLink = React.forwardRef<HTMLAnchorElement, React.HTMLProps<HTMLAnchorElement>>(
@@ -182,21 +182,16 @@ const Dashboard: React.FC = () => {
         continue
       }
       // 堆叠设备：拆分成员，逻辑设备自己不显示
-      const padWidth = String(snList.length).length
       const modelRaw = d.model || ''
       const modelList = modelRaw.split(',').map(m => m.trim()).filter(Boolean)
-      // 真实成员 ID（member_ids 与序列号同序 1:1，全数字才采用；否则回退序号）
-      const midRaw = d.member_ids || ''
-      const midList = midRaw.split(',').map(m => m.trim()).filter(Boolean)
-      const useRealIds = midList.length === snList.length && midList.every(v => /^\d+$/.test(v))
+      // 成员编号后缀（真实 Member ID 优先，否则回退序号）
+      const suffixes = memberSuffixes(snRaw, d.member_ids || '', String(snList.length).length)
       snList.forEach((sn, i) => {
         const idx = i + 1
-        // 真实 ID 不 pad（-1/-3 原样，跳号也正确）；回退时用序号 padStart
-        const suffix = useRealIds ? midList[i] : String(idx).padStart(padWidth, '0')
         const memberModel = modelList[i] || modelList[modelList.length - 1] || ''
         result.push({
           ...d,
-          name: `${d.name}-${suffix}`,
+          name: `${d.name}-${suffixes[i]}`,
           logicalName: d.name,
           serial_number: sn,
           model: memberModel,

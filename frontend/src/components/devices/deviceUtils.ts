@@ -1,5 +1,3 @@
-import type { Device, PhysicalDevice } from '../../types'
-
 export function getDeviceColor(type: string) {
   if (type === 'cisco_ios') return {
     primary: '#3B82F6',
@@ -24,66 +22,20 @@ export function getTypeLabel(type: string, t: (key: string) => string) {
   return type
 }
 
-/** 判断设备是否为堆叠设备 */
-export function isStackedDevice(device: Device): boolean {
-  const sn = (device.serial_number || '').trim()
-  return sn.includes(',') && sn !== '未知'
-}
-
 /**
- * 将逻辑设备列表展开为物理设备列表
- * 堆叠设备（serial_number 含逗号）按逗号拆分为多个物理设备
+ * 解析堆叠成员编号后缀（每成员一个后缀，与序列号同序）
+ *
+ * member_ids 与 serial_number 同序 1:1；仅当两者数量一致且成员 ID 全为数字时
+ * 才采用真实 Member ID，否则回退为按序号编号。
+ * 真实 ID 不补零（-1/-3 原样，跳号也正确）；回退编号按 padWidth 补零。
+ *
+ * @param serialNumber 逗号分隔的序列号串
+ * @param memberIds    逗号分隔的 VSF 成员 ID 串（非堆叠/未采集时为空）
+ * @param padWidth     回退编号的补零宽度
  */
-export function expandStackedDevices(devices: Device[]): PhysicalDevice[] {
-  const result: PhysicalDevice[] = []
-  for (const dev of devices) {
-    const sn = (dev.serial_number || '').trim()
-    if (!sn || sn === '未知' || !sn.includes(',')) {
-      result.push({
-        name: dev.name,
-        logical_name: dev.name,
-        ip: dev.ip,
-        type: dev.type,
-        platform: dev.platform,
-        location: dev.location,
-        notes: dev.notes,
-        serial_number: dev.serial_number,
-        model: dev.model,
-        version: dev.version,
-        last_synced: dev.last_synced,
-        physical_index: 1,
-        physical_count: 1,
-      })
-      continue
-    }
-
-    const snList = sn.split(',').map(s => s.trim()).filter(Boolean)
-    const modelStr = (dev.model || '').trim()
-    const modelList = modelStr ? modelStr.split(',').map(m => m.trim()) : []
-    const verStr = (dev.version || '').trim()
-    const verList = verStr ? verStr.split(',').map(v => v.trim()) : []
-    // 真实成员 ID（member_ids 与序列号同序 1:1，全数字才采用；否则回退序号）
-    const midStr = (dev.member_ids || '').trim()
-    const midList = midStr ? midStr.split(',').map(m => m.trim()).filter(Boolean) : []
-    const useRealIds = midList.length === snList.length && midList.every(v => /^\d+$/.test(v))
-
-    for (let i = 0; i < snList.length; i++) {
-      result.push({
-        name: `${dev.name}-${useRealIds ? midList[i] : String(i + 1).padStart(2, '0')}`,
-        logical_name: dev.name,
-        ip: dev.ip,
-        type: dev.type,
-        platform: dev.platform,
-        location: dev.location,
-        notes: dev.notes,
-        serial_number: snList[i],
-        model: modelList[i] || '',
-        version: verList[i] || '',
-        last_synced: dev.last_synced,
-        physical_index: i + 1,
-        physical_count: snList.length,
-      })
-    }
-  }
-  return result
+export function memberSuffixes(serialNumber: string, memberIds: string, padWidth: number): string[] {
+  const snList = (serialNumber || '').split(',').map(s => s.trim()).filter(Boolean)
+  const midList = (memberIds || '').split(',').map(m => m.trim()).filter(Boolean)
+  const useRealIds = midList.length === snList.length && midList.every(v => /^\d+$/.test(v))
+  return snList.map((_, i) => useRealIds ? midList[i] : String(i + 1).padStart(padWidth, '0'))
 }

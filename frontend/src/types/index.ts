@@ -87,21 +87,3 @@ export interface FrontPanelData {
 }
 
 export type { NeighborNode, TopologyData } from './topology'
-
-/** 物理设备（堆叠拆分后的展示用对象） */
-export interface PhysicalDevice {
-  name: string           // 物理设备名，如 "BJQD1SWI01-01"
-  logical_name: string   // 逻辑堆叠设备名，如 "BJQD1SWI01"
-  ip: string
-  type: string
-  platform?: string
-  location?: string
-  notes?: string
-  serial_number?: string
-  model?: string
-  version?: string
-  last_synced?: string
-  physical_index: number  // 序号 1-based
-  physical_count: number  // 堆叠成员总数
-  status?: string
-}
