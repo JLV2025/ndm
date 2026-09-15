@@ -45,7 +45,8 @@ The project uses a modular Python architecture:
 ## Configuration
 
 - `config/devices.yaml` - Device inventory (name, IP, type, platform, location, notes, username)
-- `config/settings.yaml` - Global settings (data_root, max_versions, SSH timeouts, analyzer flags)
+- `config/settings.yaml` - Global settings (data_root, SSH timeouts, analyzer flags, LLM providers).
+  Data retention is a tiered rule, not a config key — see `backend/storage/file_manager.py`
 
 ## Common Commands
 
@@ -89,14 +90,16 @@ python -m pytest tests/ -k test_name  # if pytest is configured
 1. **Context manager pattern** - `DeviceConnection` uses `__enter__`/`__exit__` for automatic disconnect
 2. **Strategy pattern** - Device type (cisco_ios/aruba_osswitch) determines command parsing regex
 3. **Chain of responsibility** - Analysis pipeline: validator → performance analyzer → change detector
-4. **Weekly archival** - Data organized by ISO week (YYYY-WW), old versions auto-cleanup
+4. **Tiered retention** - Config text kept weekly for 16 weeks, older months collapsed into
+   `archive/{YYYY}-M{MM}/`; DB config full text and device logs each keep the last 2 collections.
+   Triggered at the end of each collection, and runnable via `backend/scripts/retention.py`
 
 ## Important Notes
 
 - Password input is interactive (not stored in config file)
 - Serial number extracted from `show version` is used as device directory name when available
 - Config validation runs automatically on each collection
-- Maximum 10 weekly versions retained per device
+- Retention is tiered (see Key Design Patterns #4), not a single week count
 
 ## Workflow
 
@@ -122,7 +125,7 @@ python -m pytest tests/ -k test_name  # if pytest is configured
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **ndm** (3475 symbols, 5632 relationships, 149 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **ndm** (3867 symbols, 6454 relationships, 156 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

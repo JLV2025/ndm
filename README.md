@@ -1,8 +1,8 @@
 # NDM — 网络设备配置管理系统
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.9.14-2DD46E" alt="Version 2.9.14">
-  <img src="https://img.shields.io/badge/Python-3.9%2B-2DD46E" alt="Python 3.9+">
+  <img src="https://img.shields.io/badge/Version-2.9.15-2DD46E" alt="Version 2.9.15">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-2DD46E" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/React-18-2DD46E" alt="React 18">
   <img src="https://img.shields.io/badge/Backend-FastAPI-2DD46E" alt="FastAPI">
   <img src="https://img.shields.io/badge/Storage-SQLite-2DD46E" alt="SQLite">
@@ -20,11 +20,12 @@
 - **Web 管理面板** — React + MUI OLED Dark 主题，专为网络运维设计
 - **设备管理** — 添加、编辑、删除、批量导入（CSV）设备，按类型 / 位置筛选；VSF 堆叠成员按真实成员编号展示（如 SWI01-1 / SWI01-2，跳号准确）
 - **离线设备** — 物理设备档案自动建档（序列号唯一追踪），超过 30 天未收集即显示为离线（拆机搬运/闲置），重新上线自动恢复，可彻底删除档案
-- **配置收集** — 一键收集 running-config、日志、接口状态、路由表、版本信息
+- **配置收集** — 一键收集 running-config、日志、接口状态、端口累计计数器、路由表、版本信息
 - **AI 日志分析** — 用户自配 LLM API Key，自动提取错误助记符 + 优先级链降级（DeepSeek / Qwen），本地缓存常见错误，脱敏保护网络安全
 - **在线查看** — 代码高亮查看配置内容，支持版本对比（diff）
 - **告警与报告** — 端口 DOWN / 配置变更 / 版本不一致等异常检测，自动生成修复建议
-- **Dashboard 图表** — Recharts 可视化：设备类型环形图、端口状态柱状图、流量 Top 10 排行、配置变更趋势折线图 + 热力图
+- **Dashboard 图表** — Recharts 可视化：设备类型环形图、端口状态柱状图、流量排行、配置变更趋势折线图 + 热力图
+- **区间流量排行** — 取端口**累计计数器**的周差值（本周最早读数 − 上周最早读数），而非设备上报的瞬时速率：采集间隔实测从 13 分钟到 21 天不等，5 分钟瞬时值代表一周没有意义。**一周内锁死**（周中再采多少次结果都不变，可直接用于周报对比），支持近 1 周 / 近 1 个月 / 近 3 个月三档时间窗——窗口越长，单个异常周（假期、备份周）的影响越小
 - **前端面板可视化** — 交换机端口状态前面板 + 路由器接口层级树，支持堆叠设备、子接口缩进，10Gb 端口红色数字标识
 - **设备端口连接图** — CDP/LLDP + ConfigParser 双数据源合并，React Flow 管道走线拓扑画布，四层自动布局（WAN→核心→接入→端点），堆叠展开 + 奇偶端口上下 Handle + 端点聚合计数，管道圆弧转角 + 自动居中适配；LAG/Port-Channel 逻辑端口聚合（物理成员隐藏），端口 DOWN 红色 ✕ 警告（有邻居条目但物理断开的端口）
 - **多设备网络拓扑图** — CDP + LLDP 邻居自动发现 + ConfigParser 端口描述补充，三层分层布局（WAN → 核心 → 接入），智能连线最短路由，PNG/Visio 导出；端口 DOWN 红色 ✕ 警告，链路保留不删除（设备可能离线/故障）
@@ -47,7 +48,7 @@
 
 ### 环境要求
 
-- Python 3.9+（部分系统命令为 `python3`）
+- Python 3.10+（部分系统命令为 `python3`）
 - Node.js 18+
 - 可 SSH 访问的目标网络设备
 
@@ -163,8 +164,9 @@ devices:
 
 ```yaml
 data_root: "./data"        # 数据存储目录
-max_versions: 10            # 每设备最大保留周数
 ssh_timeout: 30             # SSH 连接超时（秒）
+# 数据保留为分层规则，见「数据存储」一节（周目录 16 周 + 更早按月归档、
+# DB 配置全文与日志各留 2 次），无单一 max_versions 配置项
 
 # LLM 配置（可选，用于日志 AI 分析）
 llm:
@@ -190,16 +192,38 @@ llm:
 
 ## 数据存储
 
-所有采集数据统一存入 SQLite（`data/ndm.db`），仅 running-config 保留文件副本供紧急恢复。
+所有采集数据统一存入 SQLite（`data/ndm.db`），仅 running-config 保留文件副本供紧急恢复（双轨策略）。
 
 ```
 data/
-├── ndm.db                   # SQLite 数据库（所有数据主存储）
-├── YYYY-WW/                 # 周归档目录
-│   └── {设备名称}/
-│       └── running-config.raw   # 双轨保留（唯一文件）
-└── 设备名/                   # 旧版数据目录（向后兼容）
-    └── YYYY-WW/
+├── ndm.db                       # SQLite 数据库（所有数据主存储）
+└── {设备名称}/
+    ├── YYYY-WW/                 # 按周归档
+    │   └── running-config.raw   # 双轨保留（唯一文件）
+    └── archive/
+        └── YYYY-M{MM}/          # 超过 16 周的按月收缩
+            └── running-config.raw
+```
+
+### 数据保留（分层规则）
+
+| 对象 | 规则 |
+|------|------|
+| 配置文本文件 | 最近 **16 周**按周保留；更早的**按月收缩**——该月最后一个版本移入 `archive/{YYYY}-M{MM}/`，该月其余版本删除 |
+| `collections.running_config` | 每设备留最近 **2 次**采集的全文，更早的置 NULL |
+| `device_logs` | 每设备留最近 **2 次**采集的日志 |
+
+- **16 周** = 流量排行最大窗口 13 周 + 余量：区间流量需要 13 周前的计数器读数作基线
+- 配置全文留 **2 次**即可：变更检测只用「上一次采集」作基线（按记录数而非时间，不受采集间隔不均影响）
+- 归档的动机是**可查看性**，不是省空间（实测约 140 MB/年）
+- 「配置取月末」与「流量取周初」方向相反但都对：配置是状态快照，流量是累计值需最早读数作基线
+
+采集结束后自动执行，只有确实存在过期周目录时才动手。也可手动触发——**归档是不可逆删除**，先跑 `--dry-run` 看清单：
+
+```bash
+python backend/scripts/retention.py --dry-run   # 只列清单，不改任何文件与数据
+python backend/scripts/retention.py             # 执行归档 + DB 收缩
+python backend/scripts/retention.py --db-only   # 只收缩 DB，不碰文件
 ```
 
 ## 日志 AI 分析
@@ -222,9 +246,12 @@ ndm/
 │   ├── main.py              # 入口，含前端静态托管及 SPA 回退
 │   ├── api/                 # 路由：设备、收集、数据、认证、统计
 │   ├── services/            # 业务逻辑：SSH 收集、设备管理
-│   ├── analyzers/           # 分析：配置验证、性能、变更检测、端口解析
+│   ├── analyzers/           # 分析：配置验证、性能、变更检测、端口/计数器解析
 │   ├── collectors/          # Netmiko SSH 连接层
-│   └── utils/               # 存储、密码管理、配置加载
+│   ├── storage/             # SQLite 建表迁移 + 数据保留与归档
+│   ├── scripts/             # 运维脚本：设备管理、YAML 迁移、数据保留
+│   ├── tests/               # pytest（含 tests/fixtures/ 真机输出样本）
+│   └── utils/               # 密码管理、配置加载
 ├── frontend/                # React 前端
 │   └── src/
 │       ├── pages/           # 页面：Dashboard, DeviceList, DeviceDetail, Viewer, Login, Topology

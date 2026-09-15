@@ -1308,6 +1308,70 @@
         "既有bug",
         "排序失效"
       ]
+    },
+    {
+      "id": "bug-080",
+      "timestamp": "2026-09-15T03:13:17.135Z",
+      "error_message": "Incorrect value in code",
+      "file": "README.md",
+      "root_cause": "Had \"https://img.shields.io/badge/Version-2.9.14-2DD46",
+      "fix": "Changed to \"https://img.shields.io/badge/Version-2.9.15-2DD46",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T03:13:17.135Z"
+    },
+    {
+      "id": "bug-081",
+      "timestamp": "2026-09-15T03:13:51.197Z",
+      "error_message": "Significant refactor of ",
+      "file": "README.md",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 13→35 lines (7 removed) | Also: │   ├── analyzers/           # 分析：配置验证、性能、变更检测、端口解; │   └── utils/               # 存储、密码管理、配置加载",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-15T03:13:56.357Z"
+    },
+    {
+      "id": "bug-082",
+      "timestamp": "2026-09-15T03:14:32.356Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/package.json",
+      "root_cause": "Had \"2.9.14\"",
+      "fix": "Changed to \"2.9.15\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T03:14:32.356Z"
+    },
+    {
+      "id": "bug-083",
+      "timestamp": "2026-09-15T03:15:59.994Z",
+      "error_message": "Significant refactor of ",
+      "file": "CLAUDE.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 8→10 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T03:15:59.994Z"
     }
   ]
 }

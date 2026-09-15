@@ -430,3 +430,7 @@
 
 ## Do-Not-Repeat
 - [2026-09-15] **`backend/api/collector.py:139` 逐字段构造 `Device` 对象**，`models/devices.py` 的 `from_dict` 有 10 个字段，这里只赋了 6 个（漏 model / password / uplink_ports）。**给 Device 加新字段时，务必同时检查这个构造点** —— 漏 `uplink_ports` 让全库 `is_uplink` 恒为 0，排序静默失效，不报任何错。更稳的做法是用 `Device.from_dict(device)`。
+
+## Do-Not-Repeat
+- [2026-09-15] **shell 会话里反复冒出 0 字节垃圾文件**（本次会话三次：`(3` `1` `3` `3.25)` + `'` + `backend/2` + `backend/0` + `backend/16`）。全部是 0 字节、时间戳落在本会话内、文件名像命令片段（数字、括号、引号）。**尝试复现失败**：heredoc + `2>&1`、heredoc + `2>&1 | head` 两种最常见形式都试过，都不产生垃圾文件；原因未查明（怀疑是 Git Bash on Windows 的引号/重定向解析在特定输入下的副作用，或后台钩子）。
+  **缓解措施（已生效）**：每次 `git commit` 前必跑 `git status --short`，看到 `??` 的 0 字节文件就删。三次都被这一步拦住了，没有一次混进提交。代价可控，不必深挖。
