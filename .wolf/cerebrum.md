@@ -319,3 +319,67 @@
 ## Do-Not-Repeat
 - [2026-09-14] 版本号共 **5 个手工维护位置**，改版必须全部同步，漏一个就漂移：① 根 `VERSION`（唯一事实来源，API 动态读取）② `start.bat:12` banner ③ `frontend/package.json:4` ④ `README.md:4` 徽章 ⑤ `NDM用户使用文档.html:182/867`。上次 caf4a34 只改了 ①，导致 ②③ 停在 2.8.3 长达两周（bug-047）。
 - [2026-09-14] OpenWolf 钩子的 `.wolf/hooks/_session.json.<hash>.tmp` 变体未被忽略，每次会话都残留未追踪文件、污染 `git status`（原有规则只精确忽略 `_session.json` 本身）。已在 `.gitignore` 改为前缀通配 `.wolf/hooks/_session.json*` 覆盖。这些是钩子运行时临时文件，**不要提交入库**。
+
+## Key Learnings
+- [2026-09-14] **端口流量是设备报告的速率，不是我们算的差值。** 全链路：`base.py:166 collect_show_interface_utilization`（Aruba CX 用 `show interface utilization`，Cisco 用 `show interfaces | include rate|load|packets`）→ `performance.py:402/465` 解析成 `rx_mbps/tx_mbps` → `collector_service.py:922` 原样写 `port_snapshots` → `api/stats.py:88` 取每设备最新快照按 rx+tx 排序取 Top10。两种命令给的都是**速率**（Aruba 是 interval 均值，Cisco 是设备维护的 5 分钟滑动平均），原始数据里没有累计计数器可做差。全项目唯一做"与上次对比"的是 `anomaly_detector.py`（用 `prev.rx_util_pct`），**不参与流量排行** —— 排查流量相关问题时别再误以为排行榜是差值。
+- [2026-09-14] 流量排行**默认只统计上行链路**：`stats.py:91` 先过滤 `is_uplink = 1`，一条都没有时才在 `stats.py:118` 回退到全部有流量端口。`is_uplink` 来自设备配置的 `device.uplink_ports`（`collector_service.py:921` 写入）。
+- [2026-09-14] **Cisco 的端口↔流量归属不可靠**：`show interfaces | include rate|load|packets` 的输出**不含接口名**，`performance.py:473` 注释已自认"只能按块顺序存储"，靠 `_enrich_port_details`（`performance.py:546`）按索引与 interface status 对齐。数值本身可信，但端口名可能张冠李戴；改动 interface status 解析顺序会连带污染流量排行。Aruba 路径用端口名直接匹配，无此问题。
+- [2026-09-14] **实测拆解 Cisco 索引错位的真实成因（173 vs 151）**：以 SZXD1SWI01（WS-C2960X×3 堆叠）为例，`show interfaces` 输出 **173** 块 = 157 物理口 + 16 个 Vlan SVI；`show interface status` 只有 **151** 行业务口。差异 = **16 个 Vlan SVI**（status 不列）+ **6 个 FlexStack-Plus 堆叠口**（Gi{x}/0/49-50，配置体为空，status 不列）。**子接口数量为 0** —— 不要想当然归因为 subinterface。堆叠口被排除是正确行为（跑堆叠背板流量，不该进流量排行）；但 **Vlan SVI 必须显式排除**，其计数器统计经该 SVI 路由的流量，会与物理口重复计数导致排行榜虚高。
+- [2026-09-14] **修 Cisco 对齐的正解是让利用率输出自带端口名，而非再找一个"权威端口清单"命令**。`show interfaces | include ^[A-Za-z]|rate|bytes` —— 接口名行在第 0 列、其余行均有前导空格（已用 raw 文件逐行验证），故 `^[A-Za-z]` 能干净地只捞出接口名行。改用按名匹配后 `_enrich_port_details` 的索引对齐（`performance.py:546`）可弃用。Cisco 累计字节**早已在现有 raw 文件里**（`N packets input, N bytes`），只是没解析 —— Cisco 侧无需增加采集量。
+
+## Do-Not-Repeat
+- [2026-09-14] 我把 `data/{设备}/{周}/` 里只剩 `running-config.raw` 判成了"落盘逻辑坏掉、原始证据丢失"，被用户纠正：那是**双轨策略**的设计（`collector_service.py:1092` 注释明写「仅保留 running-config.raw 文件写入（双轨策略）」，`:1277` 也有呼应）。running-config 走文本文件、其余数据一律只进 SQLite。**下"这是 bug"的结论前，先 grep 代码注释和相邻行确认设计意图**，尤其是删除/保留文件这类看起来像回归的改动。
+
+## Key Learnings
+- [2026-09-14] **平台确认的端口/流量命令（团队口述 + 实测）**：
+  - **列物理端口**：Cisco `show interface status`（注意：C2960X 上只列物理口，**C9500 上还会列 port-channel**，输出内容随平台变）；**Aruba 用 `show interface physical`**（当前代码 `base.py:160` 发的是 `show interface brief`，会把 lag/vlan 一起列出来，应改）。
+  - **取端口流量**：Cisco **`show int counters`**（两张定宽表 In/Out，自带端口名，只含物理口，64 位累计字节）；Aruba **`show interface statistics`**（单表含 RX/TX 两组列）。
+  - **Aruba 的 `show interface statistics` 绝不能加 `non-zero`**：实测 `1/1` 成员 52 口只出 74 行、缺 15 个口。后果是零流量端口没有基线，且"本轮无流量"与"端口被拔掉"**再也无法区分**。也不能加 `human-readable`（会取整成 1K/345M/2G 破坏计数器精度）。
+- [2026-09-14] Aruba AOS-CX 文档里**没有** `show interface counters` 这个命令（`counters` 不是关键字，只在老式 ArubaOS / Dell W-Series 文档里出现）。AOS-CX 的是 `show interface statistics`，可选 `non-zero` / `human-readable` / `monitor`。
+- [2026-09-14] Aruba 设备实测型号：**6300M / JL659A，AOS-CX 10.10.1070**。`show interface statistics` 表头只出现 1 次（不像 Cisco 会重复），且不输出独立的 lag/vlan 行；LAG 成员以 `1/1/5 - lag1` 形式标注，取 `parts[0]` 即可，`performance.py:437` 已有处理 `- lagN` 的现成逻辑。
+
+## Key Learnings
+- [2026-09-15] **端口流量口径（用户确认的业务规则，重写任何流量逻辑前必读）**：设备配置/端口状态**越新越好、新的覆盖旧的**；但**流量计数器必须按周锚定** —— 周流量 = **本周最早**一次采集的读数 − **上周最早**一次采集的读数，**一周内锁死不变**。基线绝不能用"上一次采集"：上周五多采一次会把基线推后，本周一算出来只剩 3 天、偏小一半。每个 ISO 周必须保住该周**最早**那次读数。实测采集间隔 13 分钟~21 天极不均匀，这正是必须按周锚定的原因。
+- [2026-09-15] **四类设备的正确命令（全部经真机输出验证，样本在项目根目录）**：
+  | 设备 | 端口清单 | 流量计数器 |
+  |---|---|---|
+  | Cisco 交换机 2960X/IOS-XE | `show interface status` | `show int counters` |
+  | Cisco **C9500** | 同上 | `show int counters` **+ 排除 `Po*`/`Hu*`** |
+  | Cisco **路由器** | `show interfaces description`（`show interface status` 在路由器上返回空） | `show interfaces stats`（取 `Total` 行的 `Chars In`/`Chars Out`） |
+  | **Aruba AOS-CX** | `show interface physical`（`show interface brief` 会把 lag/vlan 一起列出来） | `show interface statistics` |
+- [2026-09-15] **C9500 的 `show int counters` 会额外输出逻辑/堆叠口，必须排除**：`Po*`（Port-channel 计数器是成员口的聚合，实测 `Po1 InOctets=3.28e13`，包含会与成员口**重复计数**）；`Hu*`（HundredGigE 堆叠口，实测 `Hu1/0/27=1.37e13`，跑的是成员间背板流量，会霸榜）。其他 Cisco 型号和 Aruba 都无此问题。
+- [2026-09-15] **计数器命令自带端口名且覆盖完整物理口集合，不需要 join 第二个命令**（实测：C9500 status vs counters 58=58 完全相同；Aruba physical vs statistics 52=52）。这意味着流量路径可以彻底不依赖索引对齐。
+- [2026-09-15] **Cisco 路由器两份输出的命名必须归一化，且大小写有别**：`show interfaces description` 用缩写（`Gi0/0/0`/`Te0/0/4`/`SE0/1/0`/`Se0/1/0:0`），`show interfaces stats` 用全称（`GigabitEthernet0/0/0`/`TenGigabitEthernet0/0/4`/`Service-Engine0/1/0`/`Serial0/1/0:0`）。**`SE`=Service-Engine，`Se`=Serial，含义不同，映射表必须区分大小写**，不能统一 upper/lower。两份输出各 39 条、1:1 对应。
+- [2026-09-15] `show int counters` 的表头行会**重复出现**（2960X 与 C9500 实测 Out 表各重复 2 次，前后带空行）。用 `mode` 变量记录当前处于 In 还是 Out 表即可天然跳过，比 `header_lines_seen` 计数法稳。Aruba 的 `show interface statistics` 表头**只出现 1 次**。
+
+## Key Learnings
+- [2026-09-15] **流量排行需要时间窗选择器（用户新增需求）**：可选近 1 周 / 近 3 周 / 近 8 周 / 近 13 周。窗口越长越准 —— 计数器差值本身是精确的，但它是对"该端口典型负载"的估计，1 周窗口容易被单个异常周（假期、备份周）带偏，长窗口把周内波动平均掉。**这个需求简化了数据模型**：`port_snapshots` 只需加 `in_octets`/`out_octets` 两列存**原始读数**，派生值全部由 API 读时按窗口算。若预计算 `week_rx_mbps` 之类，每加一档窗口就要加 3 列 + 改 INSERT + 改迁移；存原始读数则窗口增减是纯前端 + 一个查询参数的事。
+- [2026-09-15] 读时算的可行性已核实：SQLite **3.50.4**（窗口函数 ≥3.25 支持）、36 台设备、最新一轮全设备端口快照 **2076 行**；8 周窗口去重后约 1.6 万行，Python 分组取首尾是毫秒级。**不要为性能牺牲灵活性**。
+- [2026-09-15] 按周取基准的 SQL 用 `ROW_NUMBER() OVER (PARTITION BY device_id, port_name, week ORDER BY collected_at, cid)` 取每个 ISO 周**最早**一次采集。**排序用 `collected_at` 而不是 `week` 字符串** —— 实测 week 全部两位补零（`2026-23`…`2026-38`）字符串排序安全，但用真实时间戳不依赖补零约定。
+- [2026-09-15] C9500 的排除规则**直接写死，不做可配置层**（用户确认）：全网只有**一套 C9500，且今年退休**。硬编码 `C9500_EXCLUDED_PREFIXES = ("Po", "Hu")` 即可，不值得为它建配置机制。
+
+## Do-Not-Repeat
+- [2026-09-15] 别为"看起来该可配置"的东西建配置层。我曾在计划里建议把 C9500 的 `Po*`/`Hu*` 排除规则做成可配置清单，用户否掉了：只有一套设备且即将退役。**先问清楚规模与生命周期，再决定要不要抽象** —— 单例 + 短命的东西硬编码是对的。
+
+## Key Learnings
+- [2026-09-15] 流量排行时间窗最终定为 **3 档：`1 / 4 / 13` 周**（近 1 周 / 近 1 个月 / 近 3 个月）。用户明确不要太多档位。
+- [2026-09-15] **Cisco 路由器只算父口，子接口不进排行榜**：`show interfaces stats` 的 39 个块里 31 个是子接口（`Serial0/1/0:N`），过滤后剩 8 个父口。排除规则 `':' in name or '.' in name`（`:`=串口通道，`.`=VLAN 子接口，物理口名永不含这两者）。**该规则对 `show interfaces description` 与 `show interfaces stats` 两侧都要应用**，只在一侧过滤会导致集合不一致。
+
+## Key Learnings
+- [2026-09-15] **`max_versions: 10` 从未生效** —— `keep_latest_versions_per_device` / `cleanup_old_versions`（`backend/storage/file_manager.py:33/76`）**全仓库零调用点**。实测 DB 保留 16 周（2026-23~2026-38，最早 2026-06-01），设备周目录 13~14 个。**配的 10 周 < 流量排行最大窗口 13 周**，一旦接上清理，13 周档会静默缺数据。建议把 `max_versions` 提到 26（半年）。另注意 `utils/storage.py`（README/CLAUDE.md 写的路径）与 `backend/storage/file_manager.py`（实际实现）**不是同一处**。
+- [2026-09-15] **邻居关系确实会落在逻辑端口上**：`neighbors` 表 `is_logical=1` 共 **272 条**（`lag1`/`lag14`~`17`/`lag49`/`lag51`/`Po1`/`Po2`/`Po3`/`Po24`/`Po48` 等）。标记本身可靠、无漏网。**但 `local_port` 未归一化**：`Po1` / `po 1` / `lag 1` / `lag1` 混用（Cisco 用 `Po`，Aruba 用 `lag`，空格与大小写不一致），**同一次采集内会并存重复** —— `KR3D1SWI01` 到 `KR3R1SWI01` 有 3 条（物理口 `Gi1/1/2` + `Po1` + `po 1`），拓扑图会重复画线。属既有问题，未在流量改造中处理。
+
+## Key Learnings
+- [2026-09-15] **数据保留与归档规则（用户确认，分层）**：
+  | 对象 | 规则 |
+  |---|---|
+  | 配置文本文件 `data/{设备}/{YYYY-WW}/running-config.raw` | 最近 **16 周**按周；更早的**按月收缩**，该月**最后一个**版本移入 `data/{设备}/archive/{YYYY}-M{MM}/`，该月其余删除 |
+  | DB `collections.running_config` | 留最近 **2 次** |
+  | DB `device_logs` | 留最近 **2 次** |
+  | `port_snapshots`/`neighbors` 等 | 留 **16 周**（13 周窗口 + 余量） |
+  - **动机是可查看性，不是省空间**（实测约 **140 MB/年**：running_config 76 MB + device_logs 47 MB + port_snapshots 13 MB）
+  - **周目录识别必须用严格正则 `^\d{4}-\d{2}$`**，否则 `2026-M09` 会被当成周目录参与清理
+  - **归档是不可逆删除**，必须提供 `--dry-run` 先列清单
+  - 在采集时触发，但只有存在 >16 周目录时才动作
+  - "配置取月末"与"流量取周初"**方向相反但都对**：配置是状态快照（月末最有代表性），流量是累计值（需最早作基线）
+- [2026-09-15] **配置文件在 DB 里也存了一份全文**（`collections.running_config`，682 份 = 22.93 MB，占 43 MB DB 的 **53%**），且 `config_changes` 的变更检测用的就是 DB 那份（`collector_service.py:717`），**不是文件**。改动配置存储相关逻辑时必须两处都考虑。

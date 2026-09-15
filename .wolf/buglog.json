@@ -768,6 +768,154 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-14"
+    },
+    {
+      "id": "bug-048",
+      "timestamp": "2026-09-14T08:58:29.558Z",
+      "error_message": "Incorrect value in code",
+      "file": "C:/Users/jingl/.claude/plans/cisco-precious-thompson.md",
+      "root_cause": "Had `interface-counters.raw`",
+      "fix": "Changed to `collector_service.py:1092`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T08:58:29.558Z"
+    },
+    {
+      "id": "bug-049",
+      "timestamp": "2026-09-14T09:09:41.765Z",
+      "error_message": "Significant refactor of ",
+      "file": "C:/Users/jingl/.claude/plans/cisco-precious-thompson.md",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 9→26 lines (6 removed) | Also: | B2 端口名是否为全称（`GigabitEthernet1/0/1`） | 只改 `_norma; | B3 Aruba CX 的累计计数器命令 | 只加一个 parse 函数 + dispatch  | Also: ### Aruba 侧：`show interface statistics`; AOS-CX 有对应的命令（设备为 **6300M / JL659A，AOS-CX 10.10.10 | Also: | A1 | `backend/analyzers/counter_parser.py`（3 个纯函; | A2 | `backend/tests/test_counter_parser.py`（用已确认",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-09-14T09:15:05.839Z"
+    },
+    {
+      "id": "bug-050",
+      "timestamp": "2026-09-14T09:12:40.551Z",
+      "error_message": "Incorrect value in code",
+      "file": "C:/Users/jingl/.claude/plans/cisco-precious-thompson.md",
+      "root_cause": "Had `MIN_DELTA_SECONDS=60`",
+      "fix": "Changed to `show interface statistics`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T09:12:40.551Z"
+    },
+    {
+      "id": "bug-051",
+      "timestamp": "2026-09-14T17:20:00.000Z",
+      "error_message": "仪表盘「流量排行 Top10」的流量挂在错误端口上：Top10 中 7 个是 notconnect 未接线空口，真正的骨干上行口显示 0.00",
+      "file": "backend/analyzers/performance.py",
+      "root_cause": "_enrich_port_details（performance.py:546）按【索引】把 show interfaces 的 173 个块对到 show interface status 的 151 行端口列表。两集合不对等（差 22 = 6 个 FlexStack 堆叠口 Gi{x}/0/49-50 + 16 个 Vlan SVI），且缺口在端口序列中段（Gi{x}/0/49-50 之后紧跟 Gi2/0/1），缺口之后全部错位 2~6 位。/show interfaces | include rate|load|packets/ 输出不含端口名，无法按名匹配。跨 18 台 Cisco 设备核实：11 台交换机无一幸免。实测采集 id=675：Gi1/0/20(notconnect) 显示 rx=4.14，同日手工 show int counters 为 0/0；Gi1/0/1(Internet-CNC) 显示 0.00，实际 1.59TB/945GB。",
+      "fix": "改用累计计数器（Cisco交换机: show int counters；Cisco路由器: show interfaces stats + show interfaces description；Aruba: show interface statistics + show interface physical），输出自带端口名，按名匹配。口径改为【周锚定】：周流量 = 本周最早读数 − 上周最早读数，一周内锁死。C9500 需排除 Po*/Hu*。方案见 docs/superpowers/plans/2026-09-14-traffic-counter-delta.md —— 尚未实施",
+      "tags": [
+        "port-snapshots",
+        "index-alignment",
+        "traffic-ranking",
+        "dashboard",
+        "cisco",
+        "aruba",
+        "performance.py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T09:00:00.000Z"
+    },
+    {
+      "id": "bug-052",
+      "timestamp": "2026-09-15T01:06:30.345Z",
+      "error_message": "Significant refactor of ",
+      "file": "docs/superpowers/plans/2026-09-14-traffic-counter-delta.md",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 13→23 lines (6 removed) | Also: ## 四、周流量算法; 在**每次采集写库时**计算（不是读时）。理由：「本周最早」「上周最早」的查找是有状态判定，写时算可 | Also: **`backend/api/stats.py:88-136`** 重构成两条全局查询（替换现在\"N; - **层级 1（新周口径）**：`WHERE c.id IN (SELECT MAX(id) FR",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-15T01:07:27.557Z"
+    },
+    {
+      "id": "bug-053",
+      "timestamp": "2026-09-15T01:07:36.759Z",
+      "error_message": "Incorrect value in code",
+      "file": "docs/superpowers/plans/2026-09-14-traffic-counter-delta.md",
+      "root_cause": "Had `source`",
+      "fix": "Changed to `window`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 5,
+      "last_seen": "2026-09-15T01:13:02.394Z"
+    },
+    {
+      "id": "bug-054",
+      "timestamp": "2026-09-15T01:20:31.875Z",
+      "error_message": "Incorrect value in code",
+      "file": "docs/superpowers/plans/2026-09-14-traffic-counter-delta.md",
+      "root_cause": "Had `source=\"",
+      "fix": "Changed to `source`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-15T01:20:55.835Z"
+    },
+    {
+      "id": "bug-055",
+      "timestamp": "2026-09-15T01:21:09.425Z",
+      "error_message": "Significant refactor of ",
+      "file": "docs/superpowers/plans/2026-09-14-traffic-counter-delta.md",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 6→59 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T01:21:09.425Z"
+    },
+    {
+      "id": "bug-056",
+      "timestamp": "2026-09-15T01:38:50.930Z",
+      "error_message": "Significant refactor of ",
+      "file": "docs/superpowers/plans/2026-09-14-traffic-counter-delta.md",
+      "root_cause": "16 lines replaced/restructured",
+      "fix": "Rewrote 23→41 lines (16 removed) | Also: | A7 | `stats.py`：`window` 参数 + 两步窗口算法 + Top10 + `; | A8 | 前端 `Dashboard.tsx` + 类型 + i18n | | Also: ## 附：样本文件清单（项目根目录）; Cisco 9500 show interfaces status.txt",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-15T01:42:35.792Z"
     }
   ]
 }

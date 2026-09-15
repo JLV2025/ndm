@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-14T00:34:42.999Z
-> Files: 36 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-15T01:42:44.293Z
+> Files: 38 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -79,6 +79,7 @@
 
 ## C:/Users/jingl/.claude/plans/
 
+- `cisco-precious-thompson.md` — 端口流量排行：改用累计计数器差值 (~4284 tok)
 - `silly-weaving-hearth.md` — VSF 成员编号透传 + 物理设备档案 + 离线设备视图 实施计划 (~1286 tok)
 
 ## agents/
@@ -138,6 +139,7 @@
 ## docs/superpowers/plans/
 
 - `2026-08-04-aruba-ap-recognition.md` — Aruba AP 识别实现计划 (~3717 tok)
+- `2026-09-14-traffic-counter-delta.md` — 端口流量排行：改用「周锚定」累计计数器差值 (~5451 tok)
 
 ## docs/superpowers/specs/
 
