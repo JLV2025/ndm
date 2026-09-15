@@ -129,12 +129,21 @@ class DeviceConnection:
                 )
 
     def _device_type(self) -> str:
-        """当前实际设备类型"""
+        """当前实际设备类型（Netmiko 驱动名，cisco_ios_router 会被映射成 cisco_ios）"""
         return self.actual_device_type or self.configured_device_type
 
     def _platform(self) -> str:
         """当前设备平台类型"""
         return self.configured_platform or ""
+
+    def _device_class(self) -> str:
+        """命令分发用的设备类别
+
+        _device_type() 返回的是 Netmiko 驱动名，cisco_ios_router 已被 _resolve_device_type
+        降级成 cisco_ios，无法再区分路由器与交换机。platform 保留了更细的分类
+        （cisco_ios_router / cisco_ios_xe），故命令分发一律走这里。
+        """
+        return self._platform() or self._device_type()
 
     def collect_config(self) -> Tuple[str, str]:
         running = self.send_command("show running-config", read_timeout=40)
@@ -157,8 +166,34 @@ class DeviceConnection:
     def collect_interface_status(self) -> str:
         dt = self._device_type()
         if dt == "aruba_aoscx":
+            # 保留 show interface brief —— 它带 Native VLAN 与「模式」(access/trunk)，前端 3 处在用，
+            # 而 show interface physical 没有这两列。brief 混入的 lag 逻辑口在解析器里过滤。
             return self.send_command("show interface brief", read_timeout=20)
         return self.send_command("show interface status", read_timeout=20)
+
+    def collect_interface_counters(self) -> str:
+        """收集端口累计计数器（区间流量的原始读数）
+
+        命令自带端口名且覆盖完整物理端口集合，因此**不需要**与端口清单做对齐 ——
+        按索引对齐正是「数据落在错误端口」那个 bug 的根源。
+
+        Cisco 交换机: show interfaces counters
+        Cisco 路由器: show interfaces stats      （路由器上 counters 命令不可用）
+        Aruba AOS-CX: show interface statistics  （绝不能加 non-zero / human-readable）
+        """
+        dc = self._device_class()
+        if dc == "cisco_ios_router":
+            return self.send_command("show interfaces stats", read_timeout=30)
+        if dc.startswith("cisco"):
+            return self.send_command("show interfaces counters", read_timeout=30)
+        return self.send_command("show interface statistics", read_timeout=30)
+
+    def collect_interface_description(self) -> str:
+        """收集端口清单与描述（仅路由器需要）
+
+        路由器上 show interface status 返回空，端口清单改由本命令提供。
+        """
+        return self.send_command("show interfaces description", read_timeout=20)
 
     def collect_show_version(self) -> str:
         return self.send_command("show version", read_timeout=20)

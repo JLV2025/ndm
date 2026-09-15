@@ -75,7 +75,7 @@ show interface status  = 151 行纯物理口
 | Cisco 交换机（2960X / IOS-XE） | `show interface status` | **`show int counters`** |
 | Cisco 交换机（**C9500**） | 同上 | `show int counters` **+ 排除规则**（见下） |
 | **Cisco 路由器** | **`show interfaces description`** | **`show interfaces stats`** |
-| Aruba AOS-CX | **`show interface physical`** | **`show interface statistics`** |
+| Aruba AOS-CX | `show interface brief`（**不变**，见下） | **`show interface statistics`** |
 
 ### 关键简化：不需要 join 第二个命令
 
@@ -173,9 +173,23 @@ def is_subinterface(port_name: str) -> bool:
 
 **该规则对 `show interfaces description` 与 `show interfaces stats` 两侧都要应用** —— 只在一侧过滤会导致两侧端口集合不一致。实测 39 条里 31 条是子接口，过滤后剩 **8 个父口**。
 
-### Aruba `show interface physical` + `show interface statistics`
+### Aruba `show interface brief` + `show interface statistics`
 
-**端口清单改命令**：当前 `base.py:160` 发的是 `show interface brief`，实测它会把 **lag1/lag2/lag49 + 11 个 vlan 接口**一并列出。改用用户确认的 `show interface physical`，实测为 **52 个纯物理口**（无 lag/vlan）。
+**端口清单命令不变**（2026-09-15 实施时改判，用户确认）：
+
+原计划改用 `show interface physical`，理由是 `show interface brief` 会混入 **lag 逻辑口**（实测 18 台 Aruba 里 **8 台**中招：`lag1`/`lag2`/`lag49`/`lag51`/`lag14`~`17`/`lag23`）。但实施时发现 `physical` **没有 Native VLAN 与「模式」(access/trunk) 两列**，而「模式」正在前端 **3 处**显示（`FrontPanel.tsx:116` 端口详情、`:432` 悬浮卡片、`DeviceDetail.tsx:436` 表格列）。
+
+改判为**保留 `brief`，在解析器里过滤 lag** —— 一行改动同时达成端口清单纯净与字段保留：
+
+```python
+# performance.py _parse_aruba_cx
+if parts[0].lower().startswith(("vlan", "loopback", "lag")):
+    continue
+```
+
+验证：过滤后物理口数量都是整数（52 / 104 = 2×52），`vlan`/`loopback` 原本就已过滤。测试见 `backend/tests/test_performance_aruba.py`。
+
+> 注意：`show interface physical` 仍是**样本文件之一**（`Aruba show interface physical.txt`），用于交叉验证 `physical` 52 口 == `statistics` 52 口，证明计数器命令覆盖完整物理端口集合。命令本身不再用于采集。
 
 ```
 Port        Type           Link    Admin         Speed           Flow-Control          EEE       PoE Power   ...  Port Description

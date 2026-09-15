@@ -383,3 +383,27 @@
   - 在采集时触发，但只有存在 >16 周目录时才动作
   - "配置取月末"与"流量取周初"**方向相反但都对**：配置是状态快照（月末最有代表性），流量是累计值（需最早作基线）
 - [2026-09-15] **配置文件在 DB 里也存了一份全文**（`collections.running_config`，682 份 = 22.93 MB，占 43 MB DB 的 **53%**），且 `config_changes` 的变更检测用的就是 DB 那份（`collector_service.py:717`），**不是文件**。改动配置存储相关逻辑时必须两处都考虑。
+
+## Key Learnings
+- [2026-09-15] **A1/A2 已完成**：`backend/analyzers/counter_parser.py`（三平台解析器 + 归一化 + 排除规则 + `compute_week_deltas`），`backend/tests/test_counter_parser.py`（47 用例，直接读 `backend/tests/fixtures/`）。`pytest backend/tests/` **86 passed**。
+- [2026-09-15] **跑测试必须在 `backend/` 目录下**（`cd backend && python -m pytest tests/ -q`）。`pytest.ini` 在 `backend/`，测试用 `from analyzers.xxx import` 绝对导入；在项目根目录跑会 `ModuleNotFoundError: No module named 'analyzers'`。
+- [2026-09-15] **Cisco 表头重复的确切次数**（分屏拆分，中间夹空行）：2960X In 表头 **2 次**（行 3/88）、Out 表头 **3 次**（行 157/175/262）；C9500 In **1 次**、Out **2 次**。用 `mode` 变量记录当前处于哪张表即可天然跳过 —— 重复表头只会把 mode 重置为同一值。**不要用「统计表头行数」的写法**（`performance.py:402-425` 的 `header_lines_seen` 就是这种），表头重复次数超预期时会把表头当数据行。
+- [2026-09-15] **解析结果的三组真机基数**（可作回归锚点）：2960X counters **150** 口（status 151，多一个 `Fa0` 管理口）；C9500 counters 排除 `Po`/`Hu` 后 **48** 口（48+8 Hu+1 Po1 = 57 = status 57）；路由器 stats **7** 个父口；Aruba statistics **52** 口。**每一台的关键交叉验证**：counters 里的端口一个不漏地出现在 status 中（`counters - status == ∅`），所以流量口一定有状态元数据可挂。
+- [2026-09-15] 路由器 `show interfaces stats` 的 `Total` 行 = `Pkts In, Chars In, Pkts Out, Chars Out`，取 `parts[2]`/`parts[4]`。已验证 Total 等于各 switching path 之和（`Gi0/0/1`：1039934817 = 373725508 + 666209309）。
+- [2026-09-15] Aruba `show interface statistics` 表头**只出现 1 次**，样本里**没有** lag/vlan 独立行、**没有** LAG 成员标注行（`1/1/5 - lag1` 那种）。解析器仍保留了对这两种写法的兼容（端口名后只取整数 token，天然跳过 `-` / `lag1`），但**别以为样本里有**。
+- [2026-09-15] Aruba 表头列名含空格（`RX Bytes`），不能按空白切分建列名表。做法：用 `header.find(列名)` 取各列名的**字符位置**，按位置排序即为取值顺序 —— 列集随型号变化（`RX Pause`/`TX Pause` 并非所有平台都有）时仍正确。
+
+## Do-Not-Repeat
+- [2026-09-15] **不要用 `cut -c1-N` 截断显示后再判断数据本身是否被截断。** 我为了压缩输出用 `sed -n '45,60p' | cut -c1-200` 看 Aruba 统计表，看到尾部行只有 5 个数值，据此断定「样本行尾列被终端宽度截断」，还写进了测试断言。实测 51 行数据**全部是 13 个 token**，毫无截断。**这是本项目第二次栽在"显示假象"上**（第一次是把 `show int counters.txt` 读短了，误判文件残缺）。**结论：判断数据形态必须用程序统计（`Counter(len(l.split()))`），不能用肉眼看过截断的输出。**
+- [2026-09-15] 计划里两处数字是估的，实测要修正：路由器 stats 是 **38 个接口节**（不是 39；39 是含命令回显行的总数），其中 **31 个子接口、7 个父口**（不是 8 个父口）。写断言前先跑一遍统计脚本，别照抄计划里的数字。
+
+## Key Learnings
+- [2026-09-15] **A5/A6 完成**：`performance.py` 接线（`counters_raw`/`description_raw`/`model` 三个 ctor 参数 + `_analyze_counters` + `_enrich_counters` 按**名字**合并 + `_parse_cisco_router_description`），`collector_service.py` 接线（新增 2 条采集命令 + `total_cmds` 6 base + INSERT 19→21 列）。测试 **111 passed**。
+- [2026-09-15] **A5/A6 的三组端到端基数**（无设备即可验证，全部走样本文件）：2960X 端口 151 / 带计数器 150（`Fa0` 无计数器）；C9500 端口 57 / 带计数器 48（`Hu*`+`Po1` 共 9 个被排除）；路由器 7 父口 / 带计数器 7，up=2 down=5；Aruba 端口 52 / 带计数器 52。
+- [2026-09-15] `_save_data` **不需要**新增参数就能把计数器落库 —— 计数器随 `port_details` 从 `performance_results` JSON 流下来（`_save_data` 解析 JSON 取 `interface_summary.details` 传给 `_save_to_sqlite`），只需扩展 `port_snapshots` 的 INSERT。
+- [2026-09-15] **计数器列绝不能过 `_safe_str`**（`collector_service.py` 里那个 `None→''` 的辅助函数）。必须 `p.get("in_octets")` 原样传，让 None 落成 NULL。这是「读到 0」与「本轮没采到」可区分的唯一保证。
+- [2026-09-15] 测试里换数据库时**必须 `db.close_connection()`**。`get_connection()` 返回线程本地缓存连接，`init_db` 换 `_db_path` 后旧连接仍指向旧库文件，测试之间会串数据（表现为上一条测试的行数出现在下一条里）。
+
+## Do-Not-Repeat
+- [2026-09-15] **`_analyze_interfaces()` 开头有 `if not self.interface_lines: return 空` 的早退**。路由器的 `interface_status` 本来就是空的，加任何基于 `description_raw` 的新分支前，**必须先放宽这个早退条件**，否则新分支永远走不到。我在这里踩了一次：断言里看到 7 个端口全落到「补入」路径、status 全是 unknown，才定位到。
+- [2026-09-15] `_parse_aruba_cx` 的列索引是**「最后一个匹配胜出」**（header 循环里没有 break）。`show interface brief` 表头只有一个 `Status` token 所以正常；但 `show interface physical` 的表头有 **4 个** `Status`（Link Status / Speed Status / Flow-Control Status 等），会把 status 列取到第 11 列（PoE Power），静默产出 `status='0.00'` 这种垃圾。**用户已决定保留 brief**，但若将来有人改回 physical，这里必须先修。

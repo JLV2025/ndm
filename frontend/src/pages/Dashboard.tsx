@@ -49,15 +49,30 @@ interface DashboardStats {
   device_types: Record<string, number>
   port_stats: { total: number; up: number; down: number; disabled: number }
   error_ports: number
+  /** 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 */
   top_traffic: Array<{
     device: string
     port: string
+    status: string
+    is_uplink: boolean
     total_mbps: number
     rx_mbps: number
     tx_mbps: number
+    /** 两端基准的真实间隔秒数（窗口内有周缺采时会大于名义周数） */
+    span_sec: number
   }>
+  /** 本次统计使用的时间窗（周）：1 / 4 / 13 */
+  window: number
   last_collection: string
   locations: string[]
+}
+
+/** 时间窗档位（周）—— 必须与后端 ALLOWED_WINDOWS 一致 */
+const TRAFFIC_WINDOWS = [1, 4, 13] as const
+const TRAFFIC_WINDOW_LABELS: Record<number, string> = {
+  1: 'dashboard.trafficWindow1',
+  4: 'dashboard.trafficWindow4',
+  13: 'dashboard.trafficWindow13',
 }
 
 // 图表配色 — 与 MUI Dark 主题对齐
@@ -98,14 +113,22 @@ const Dashboard: React.FC = () => {
   const [uniqueLocations, setUniqueLocations] = useState<string[]>([])
   const [selectedLocation, setSelectedLocation] = useState<string | null>(null)
   const [alertCount, setAlertCount] = useState(0)
+  // 流量统计时间窗（周）。窗口越长越准 —— 计数器差值本身精确，但它是对端口
+  // 典型负载的估计，1 周窗口容易被单个异常周（假期、备份周）带偏。
+  const [trafficWindow, setTrafficWindow] = useState<number>(1)
   const user = sessionManager.getSession()
 
   useEffect(() => {
     loadDevices()
-    loadDashboardStats()
     loadConfigHistory()
     loadAlertCount()
   }, [])
+
+  // 时间窗变化时重新拉取统计（含首次挂载）
+  useEffect(() => {
+    loadDashboardStats()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trafficWindow])
 
   useEffect(() => {
     if (devices.length > 0) {
@@ -133,7 +156,7 @@ const Dashboard: React.FC = () => {
 
   const loadDashboardStats = async () => {
     try {
-      const response = await fetch('/api/stats/overview')
+      const response = await fetch(`/api/stats/overview?window=${trafficWindow}`)
       if (response.ok) {
         setDashboardStats(await response.json())
       }
@@ -302,10 +325,19 @@ const Dashboard: React.FC = () => {
       name: `${item.device}:${item.port}`,
       device: item.device,
       port: item.port,
+      status: item.status,
+      is_uplink: item.is_uplink,
       rx: item.rx_mbps,
       tx: item.tx_mbps,
+      span_sec: item.span_sec,
     }))
   , [dashboardStats])
+
+  /** 区间长度可读化：7 天 / 28 天 */
+  const fmtSpan = (sec?: number) => {
+    if (!sec || sec <= 0) return ''
+    return `${Math.round(sec / 86400)} ${t('common.days')}`
+  }
 
   // 设备折线配色
   const DEVICE_LINE_COLORS = ['#3B82F6', '#2DD46E', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316']
@@ -480,35 +512,71 @@ const Dashboard: React.FC = () => {
         </ResponsiveContainer>
       </Paper>
 
-      {/* 流量排行水平条形图 */}
+      {/* 流量排行水平条形图 —— 区间平均速率（周锚定计数器差值），带时间窗选择器 */}
       <Paper sx={{ flex: 1.1, p: 1.5, minWidth: 0 }}>
-        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', textAlign: 'center', mb: 0.5, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.65rem' }}>
-          {t('dashboard.chartTrafficRank')}
-        </Typography>
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={trafficChartData} layout="vertical" barSize={12} barCategoryGap="30%" margin={{ left: 0, right: 8, top: 0, bottom: 0 }}>
-            <YAxis type="category" dataKey="name" tick={{ fill: CHART_COLORS.text, fontSize: 9, fontFamily: '"Fira Code", monospace', textAnchor: 'end' }} width={130} axisLine={false} tickLine={false} />
-            <XAxis type="number" tick={{ fill: CHART_COLORS.text, fontSize: 9 }} axisLine={{ stroke: CHART_COLORS.grid }} tickLine={false} />
-            <RechartsTooltip
-              cursor={false}
-              contentStyle={{
-                backgroundColor: '#0F1223',
-                border: '1px solid #1E293B',
-                borderRadius: 6,
-                fontSize: '0.75rem',
-                color: '#F8FAFC',
-              }}
-              labelStyle={{ color: '#94A3B8' }}
-            />
-            <Legend
-              wrapperStyle={{ fontSize: '0.65rem', color: CHART_COLORS.text }}
-              iconType="rect"
-              iconSize={8}
-            />
-            <Bar dataKey="rx" name={t('dashboard.chartRx')} fill={CHART_COLORS.rx} stackId="a" />
-            <Bar dataKey="tx" name={t('dashboard.chartTx')} fill={CHART_COLORS.tx} stackId="a" />
-          </BarChart>
-        </ResponsiveContainer>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: '0.65rem' }}>
+            {t('dashboard.chartTrafficRank')}
+          </Typography>
+          <ToggleButtonGroup
+            size="small"
+            exclusive
+            value={trafficWindow}
+            onChange={(_e, next) => { if (next !== null) setTrafficWindow(next) }}
+            sx={{
+              '& .MuiToggleButton-root': {
+                py: 0, px: 0.75, fontSize: '0.6rem', lineHeight: 1.7,
+                textTransform: 'none', color: 'text.secondary',
+              },
+            }}
+          >
+            {TRAFFIC_WINDOWS.map(w => (
+              <ToggleButton key={w} value={w}>{t(TRAFFIC_WINDOW_LABELS[w])}</ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </Box>
+        {trafficChartData.length === 0 ? (
+          <Box sx={{ height: 260, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 0.5 }}>
+            <Typography variant="body2" color="text.disabled">{t('dashboard.trafficNoData')}</Typography>
+            <Typography variant="caption" color="text.disabled" sx={{ textAlign: 'center', px: 2 }}>
+              {t('dashboard.trafficNeedTwoCollections')}
+            </Typography>
+          </Box>
+        ) : (
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={trafficChartData} layout="vertical" barSize={12} barCategoryGap="30%" margin={{ left: 0, right: 8, top: 0, bottom: 0 }}>
+              <YAxis type="category" dataKey="name" tick={{ fill: CHART_COLORS.text, fontSize: 9, fontFamily: '"Fira Code", monospace', textAnchor: 'end' }} width={130} axisLine={false} tickLine={false} />
+              <XAxis type="number" tick={{ fill: CHART_COLORS.text, fontSize: 9 }} axisLine={{ stroke: CHART_COLORS.grid }} tickLine={false} />
+              <RechartsTooltip
+                cursor={false}
+                contentStyle={{
+                  backgroundColor: '#0F1223',
+                  border: '1px solid #1E293B',
+                  borderRadius: 6,
+                  fontSize: '0.75rem',
+                  color: '#F8FAFC',
+                }}
+                labelStyle={{ color: '#94A3B8' }}
+                formatter={(value: number) => `${value} Mbps`}
+                labelFormatter={(label: string) => {
+                  const item = trafficChartData.find(d => d.name === label)
+                  const parts = [label]
+                  if (item?.is_uplink) parts.push(t('dashboard.trafficUplink'))
+                  const span = fmtSpan(item?.span_sec)
+                  if (span) parts.push(t('dashboard.trafficIntervalAvg').replace('{span}', span))
+                  return parts.join(' · ')
+                }}
+              />
+              <Legend
+                wrapperStyle={{ fontSize: '0.65rem', color: CHART_COLORS.text }}
+                iconType="rect"
+                iconSize={8}
+              />
+              <Bar dataKey="rx" name={t('dashboard.chartRx')} fill={CHART_COLORS.rx} stackId="a" />
+              <Bar dataKey="tx" name={t('dashboard.chartTx')} fill={CHART_COLORS.tx} stackId="a" />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </Paper>
     </>
   )

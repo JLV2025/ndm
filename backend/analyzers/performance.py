@@ -8,6 +8,13 @@
 import json
 import re
 from analyzers._helpers import extract_device_name, get_iso_timestamp
+from analyzers.counter_parser import (
+    is_subinterface,
+    normalize_port_name,
+    parse_aruba_counters,
+    parse_cisco_router_stats,
+    parse_cisco_switch_counters,
+)
 from typing import Dict, List, Any, Optional
 from collections import defaultdict
 
@@ -16,13 +23,20 @@ class PerformanceAnalyzer:
     """性能分析器"""
 
     def __init__(self, interface_status: str, config: str = "", device_type: str = "",
-                 interface_utilization: str = "", uplink_ports: Optional[List[str]] = None):
+                 interface_utilization: str = "", uplink_ports: Optional[List[str]] = None,
+                 counters_raw: str = "", description_raw: str = "", model: str = ""):
         self.interface_status = interface_status
         self.config = config
         self.device_type = device_type
         self.interface_utilization = interface_utilization
         self.uplink_ports = set(uplink_ports or [])
         self.interface_lines = [l for l in interface_status.splitlines() if l.strip()]
+        # 累计计数器原始输出（show interfaces counters / show interfaces stats / show interface statistics）
+        self.counters_raw = counters_raw
+        # 路由器端口清单（show interfaces description）—— 路由器上 show interface status 返回空
+        self.description_raw = description_raw
+        # 设备型号，用于 C9500 的逻辑口/堆叠口排除规则
+        self.model = model
 
     def analyze(self) -> Dict[str, Any]:
         """执行所有分析"""
@@ -30,6 +44,7 @@ class PerformanceAnalyzer:
         utilization_data = self._analyze_utilization()
         details = interface_summary.get("details", [])
         self._enrich_port_details(details, utilization_data)
+        self._enrich_counters(details, interface_summary)
 
         results = {
             "device": extract_device_name(self.config),
@@ -46,10 +61,15 @@ class PerformanceAnalyzer:
 
     def _analyze_interfaces(self) -> Dict[str, Any]:
         """根据设备类型分析接口状态"""
-        if not self.interface_lines:
+        # 路由器的 interface_status 本来就是空的（show interface status 在路由器上无输出），
+        # 端口清单来自 description_raw，故不能只看 interface_lines
+        if not self.interface_lines and not self.description_raw:
             return {"total": 0, "up": 0, "down": 0, "details": []}
 
         if self.device_type == "cisco_ios_router":
+            # 路由器上 show interface status 返回空，端口清单改由 show interfaces description 提供
+            if self.description_raw:
+                return self._parse_cisco_router_description()
             return self._parse_cisco_ios_router()
         elif self.device_type == "cisco_ios":
             return self._parse_cisco_ios()
@@ -76,7 +96,9 @@ class PerformanceAnalyzer:
             if len(parts) < 2:
                 continue
 
-            if parts[0].lower() in ("port", "interface"):
+            # "#" 用于跳过命令回显（如 "SZXD1SWI01#show interfaces status"）。
+            # Netmiko 在生产环境会剥掉回显，但样本文件里带着，这里一并容错。
+            if parts[0].lower() in ("port", "interface") or "#" in parts[0]:
                 continue
 
             name = parts[0]
@@ -141,6 +163,52 @@ class PerformanceAnalyzer:
             skip_prefixes=("service-engine",),
             speed_offset=1,
         )
+
+    def _parse_cisco_router_description(self) -> Dict[str, Any]:
+        """Cisco 路由器 show interfaces description
+
+        列: Interface  Status  Protocol  Description
+
+            Interface                      Status         Protocol Description
+            Gi0/0/1                        up             up       Qorvo-LAN
+            SE0/1/0                        up             up
+
+        子接口（Serial0/1/0:N）不进端口清单，只算父口 —— 必须与计数器侧用同一套
+        归一化 + 子接口规则，否则两侧端口集合对不上，流量会挂空。
+        """
+        up_count = 0
+        down_count = 0
+        details = []
+
+        for line in self.description_raw.splitlines():
+            parts = line.split()
+            if len(parts) < 3:
+                continue
+            # 跳过命令回显与表头
+            if "#" in parts[0] or parts[0] == "Interface":
+                continue
+
+            name = normalize_port_name(parts[0])
+            if is_subinterface(name):
+                continue
+
+            # Status 列的 "administratively down" 含空格，会多占一个 token
+            status = parts[1]
+            protocol_idx = 2
+            if status == "administratively" and parts[2] == "down":
+                status = "administratively down"
+                protocol_idx = 3
+
+            description = " ".join(parts[protocol_idx + 1:]) or None
+            is_up = status == "up"
+            if is_up:
+                up_count += 1
+            else:
+                down_count += 1
+
+            details.append(self._build_port_detail(name, status, is_up, description=description))
+
+        return {"total": len(details), "up": up_count, "down": down_count, "details": details}
 
     @staticmethod
     def _normalize_cisco_speed(raw: Optional[str]) -> Optional[str]:
@@ -210,7 +278,9 @@ class PerformanceAnalyzer:
                     header_parsed = True
                 continue
 
-            if parts[0].lower().startswith("vlan") or parts[0].lower().startswith("loopback"):
+            # lag* 是链路聚合逻辑口，计数器是成员口的聚合，与成员口同时计入会重复计数；
+            # 端口面板与流量排行都只应看物理口。（实测 18 台 Aruba 里 8 台的 brief 会列出 lag）
+            if parts[0].lower().startswith(("vlan", "loopback", "lag")):
                 continue
 
             name = parts[0]
@@ -399,6 +469,24 @@ class PerformanceAnalyzer:
             return self._parse_cisco_utilization()
         return {}
 
+    def _analyze_counters(self) -> Dict[str, Dict[str, int]]:
+        """解析端口累计计数器原始读数
+
+        返回 {端口名: {"in_octets": int, "out_octets": int}}，端口名已归一化。
+
+        **只返回原始读数，不做任何派生计算** —— 区间流量由 API 按用户选择的时间窗
+        在读时计算（见 counter_parser.compute_week_deltas）。预计算会把窗口写死。
+        """
+        if not self.counters_raw:
+            return {}
+        if self.device_type == "aruba_aoscx":
+            return parse_aruba_counters(self.counters_raw)
+        if self.device_type == "cisco_ios_router":
+            return parse_cisco_router_stats(self.counters_raw)
+        if self.device_type.startswith("cisco"):
+            return parse_cisco_switch_counters(self.counters_raw, self.model)
+        return {}
+
     def _parse_aruba_utilization(self) -> Dict[str, Dict[str, Any]]:
         """解析 Aruba CX show interface utilization 表格"""
         result = {}
@@ -555,6 +643,32 @@ class PerformanceAnalyzer:
                             "interval_sec"):
                     if key in util:
                         detail[key] = util[key]
+
+    def _enrich_counters(self, details: List[Dict[str, Any]],
+                         interface_summary: Dict[str, Any]):
+        """将累计计数器按【端口名】合并进端口详情
+
+        按名字合并而非按索引 —— 计数器命令自带端口名且覆盖完整物理端口集合，
+        不存在「输出块与端口清单错位」的问题。这一条正是修复「流量数据落在错误端口」
+        那个 bug 的关键。老的 _cisco_block_{i} 索引通路保持原样（瞬时值语义不动）。
+        """
+        counters = self._analyze_counters()
+        if not counters:
+            return
+
+        by_name = {d.get("name"): d for d in details}
+        for name, reading in counters.items():
+            detail = by_name.get(name)
+            if detail is None:
+                # 端口清单里没有的物理口：补一条最小记录。
+                # 端口状态命令失败时（返回空）这条路径会兜住全部端口，流量不至于凭空消失。
+                detail = self._build_port_detail(name, "unknown", False)
+                details.append(detail)
+                by_name[name] = detail
+                interface_summary["total"] = interface_summary.get("total", 0) + 1
+
+            detail["in_octets"] = reading["in_octets"]
+            detail["out_octets"] = reading["out_octets"]
 
     def _build_utilization_summary(self, details: List[Dict[str, Any]]) -> Dict[str, Any]:
         """从已合并的端口详情中构建利用率汇总"""

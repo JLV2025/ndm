@@ -916,6 +916,276 @@
       "related_bugs": [],
       "occurrences": 3,
       "last_seen": "2026-09-15T01:42:35.792Z"
+    },
+    {
+      "id": "bug-057",
+      "timestamp": "2026-09-15T01:51:49.612Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_counter_parser.py",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 13→8 lines (10 removed) | Also: def test_区间流量_读数缺失则不出结果():; \"\"\"in_octets 为 NULL（本轮没采到）不等于读数 0\"\"\" | Also: def test_Aruba_行尾列被截断仍能取值():; \"\"\"终端宽度截断会让部分行的尾部列丢失；RX Bytes / TX Bytes 在前段，仍须取到\"",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-15T01:52:26.673Z"
+    },
+    {
+      "id": "bug-058",
+      "timestamp": "2026-09-15T10:05:00",
+      "error_message": "test_Aruba_行尾列被截断仍能取值 断言失败：assert (['1/1/49', '0', ...] and 13 < 13) —— 样本行根本没有被截断",
+      "file": "backend/tests/test_counter_parser.py",
+      "root_cause": "为了压缩输出，用 `sed -n '45,60p' | cut -c1-200` 查看 Aruba show interface statistics 的尾部行，看到 1/1/49~52 只有 5 个数值，据此断定「样本行尾列被终端宽度截断」，并把这一判断写成测试断言。实测 51 行数据全部是 13 个 token（端口名 + 12 列），毫无截断 —— 截断是 cut 命令造成的显示假象。同类错误此前已犯过一次：用 wc -l 得到 86 行就断定 show int counters.txt 文件残缺（实际 312 行，是读取方式问题）。",
+      "fix": "删除基于错误前提的断言，改为用程序统计验证数据形态。测试拆成两条：(1) test_Aruba_全零端口得0而非缺失 用真机样本断言 1/1/49 = {0,0}；(2) test_Aruba_行尾列缺失仍能取值 用手写短行验证解析器的容错能力。",
+      "tags": [
+        "测试",
+        "误判",
+        "显示假象",
+        "cut",
+        "Aruba",
+        "解析器",
+        "OpenWolf"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-15T10:05:00"
+    },
+    {
+      "id": "bug-059",
+      "timestamp": "2026-09-15T01:55:32.265Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_database_migration.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→19 lines (2 removed) | Also: conn.execute(\"INSERT INTO port_snapshots (port_nam; conn.execute(\"INSERT INTO port_snapshots (port_nam",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-15T01:55:56.761Z"
+    },
+    {
+      "id": "bug-060",
+      "timestamp": "2026-09-15T01:58:01.002Z",
+      "error_message": "Wrong return value",
+      "file": "backend/collectors/base.py",
+      "root_cause": "Was returning: self.send_command(\"show interface brief\", read_tim",
+      "fix": "Now returns: self.send_command(\"show interface physical\", read_",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T01:58:01.002Z"
+    },
+    {
+      "id": "bug-061",
+      "timestamp": "2026-09-15T02:03:49.179Z",
+      "error_message": "Incorrect value in code",
+      "file": "docs/superpowers/plans/2026-09-14-traffic-counter-delta.md",
+      "root_cause": "Had `show interface physical`",
+      "fix": "Changed to `show interface brief`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T02:03:49.179Z"
+    },
+    {
+      "id": "bug-062",
+      "timestamp": "2026-09-15T02:03:54.428Z",
+      "error_message": "Significant refactor of ",
+      "file": "docs/superpowers/plans/2026-09-14-traffic-counter-delta.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→17 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T02:03:54.428Z"
+    },
+    {
+      "id": "bug-063",
+      "timestamp": "2026-09-15T10:40:00",
+      "error_message": "3 台 Cisco 路由器的 devices.type 被写成 cisco_ios，路由器身份丢失：_is_router_device() 恒为 False，show ip route 从未采集，端口快照 0 条（BJQD1RTW01 / PVGD1RTW01 / SZXD1RTW01 全部）",
+      "file": "backend/services/collector_service.py:768 (调用点) + backend/collectors/base.py:26 (_resolve_device_type)",
+      "root_cause": "闭环自毁：devices.yaml 里 type=cisco_ios_router → device.type='cisco_ios_router' → _resolve_device_type() 把它映射成 Netmiko 驱动名 'cisco_ios'（该函数只读第一个参数，platform 参数完全未使用）→ effective_type='cisco_ios' → _save_data 收到 effective_type 并透传给 _save_to_sqlite → devices upsert 的 ON CONFLICT DO UPDATE SET type=excluded.type 把驱动名写回数据库。第一次采集后 type 永久变成 cisco_ios，此后 _is_router_device('cisco_ios') 恒为 False。反证：backend/api/reports.py:24 已经在用 d.type IN ('cisco_ios','cisco_ios_router')，说明 type 本就该保留路由器类型。",
+      "fix": "1) collector_service.py 的 _save_data 调用由 effective_type 改为 device_type（配置的设备类别），不再把 Netmiko 驱动名写回；2) base.py 新增 _device_class()（platform 优先，回退 _device_type()），命令分发一律走它；3) 修复存量数据 UPDATE devices SET type='cisco_ios_router' WHERE platform='cisco_ios_router' AND type<>'cisco_ios_router'，命中 3 行，未误伤 platform='cisco_ios_xe' 的 C9500。",
+      "tags": [
+        "路由器",
+        "设备类型",
+        "cisco_ios_router",
+        "写回降级",
+        "show ip route",
+        "端口快照为空",
+        "既有bug"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T10:40:00"
+    },
+    {
+      "id": "bug-064",
+      "timestamp": "2026-09-15T02:10:10.513Z",
+      "error_message": "Wrong return value",
+      "file": "backend/analyzers/performance.py",
+      "root_cause": "Was returning: self._parse_cisco_ios_router()",
+      "fix": "Now returns: self._parse_cisco_router_description()",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T02:10:10.513Z"
+    },
+    {
+      "id": "bug-065",
+      "timestamp": "2026-09-15T02:12:22.035Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/tests/test_performance_counters.py",
+      "root_cause": "Had \"interface_summary\"",
+      "fix": "Changed to \", **kwargs) -> list:\n    return PerformanceAnalyz",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T02:12:22.035Z"
+    },
+    {
+      "id": "bug-066",
+      "timestamp": "2026-09-15T11:10:00",
+      "error_message": "路由器端口全部落到「补入」路径：7 个端口的 status 全是 unknown、description 全空，_parse_cisco_router_description 返回 0 条",
+      "file": "backend/analyzers/performance.py",
+      "root_cause": "两个独立缺陷叠加。(1) _analyze_interfaces() 开头的 `if not self.interface_lines: return 空` 早退——路由器的 interface_status 本来就是空的（show interface status 在路由器无输出），端口清单在 description_raw 里，于是永远走不到 cisco_ios_router 分支；(2) _parse_cisco_router_description 迭代 self.interface_lines（源于 interface_status），而不是 self.description_raw，即使走进去也读不到内容。表现：_enrich_counters 把 7 个计数器端口全当成「清单里没有的口」补入，状态 unknown。",
+      "fix": "早退条件改为 `if not self.interface_lines and not self.description_raw`；_parse_cisco_router_description 改为迭代 self.description_raw.splitlines()。",
+      "tags": [
+        "路由器",
+        "端口清单",
+        "早退",
+        "description",
+        "performance",
+        "既有bug"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T11:10:00"
+    },
+    {
+      "id": "bug-067",
+      "timestamp": "2026-09-15T11:10:00",
+      "error_message": "用真机样本文件跑 Cisco 交换机解析时端口数多 1（2960X 得 152 而非 151），多出的是名为 SZXD1SWI01#show 的假端口",
+      "file": "backend/analyzers/performance.py",
+      "root_cause": "_parse_cisco_interface_status 把命令回显行 `SZXD1SWI01#show interfaces status` 当成了数据行：parts[0] 不属于 ('port','interface')，且 parts[1:] 里找不到 up/down/connected 等状态关键字，于是走 `found_status = parts[1]` 兜底分支（= 'interfaces'），凭空造出一个端口。生产环境 Netmiko 会剥掉命令回显，所以线上从未暴露；但样本文件（从终端整段复制）带着回显，导致离线验证失真。",
+      "fix": "在跳过条件里加上 `or \"#\" in parts[0]`，与 _parse_cisco_router_description 和 neighbor_parser._is_command_prompt 的既有约定一致。",
+      "tags": [
+        "Cisco",
+        "接口状态",
+        "命令回显",
+        "假端口",
+        "样本文件",
+        "离线验证"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T11:10:00"
+    },
+    {
+      "id": "bug-068",
+      "timestamp": "2026-09-15T02:13:18.958Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→13 lines (2 removed) | Also: total_cmds = 1 + 5 + 2  # 重新计算：ping + 5 base + 2; if _is_aruba_device(effective_type):",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-15T02:13:50.075Z"
+    },
+    {
+      "id": "bug-069",
+      "timestamp": "2026-09-15T02:15:33.297Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/stats.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→102 lines (2 removed) | Also: # 上行链路流量 Top 10; uplinks = db.execute( | Also: # Top 10 排序; top_traffic.sort(key=lambda x: x[\"total_mbps\"], re",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-15T02:15:47.725Z"
+    },
+    {
+      "id": "bug-070",
+      "timestamp": "2026-09-15T02:18:00.859Z",
+      "error_message": "Type error",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T02:18:00.859Z"
+    },
+    {
+      "id": "bug-071",
+      "timestamp": "2026-09-15T02:18:24.548Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "No early return/throw for edge case: !sec || sec <= 0",
+      "fix": "Added guard clause: if (!sec || sec <= 0)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T02:18:24.548Z"
+    },
+    {
+      "id": "bug-072",
+      "timestamp": "2026-09-15T02:18:36.782Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T02:18:36.782Z"
     }
   ]
 }

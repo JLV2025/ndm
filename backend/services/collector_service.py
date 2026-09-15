@@ -505,14 +505,15 @@ def collect_device(
     data_root = settings.get("data_root", "./data")
 
     # ---- 预计算命令总数（含 Ping），用于进度条百分比 ----
-    # 基础命令（所有设备）：running-config, logs, interface status, version, utilization, cdp, lldp
-    total_cmds = 1 + 5 + 2  # ping + 5 base + 2 (cdp + lldp)
+    # 基础命令（所有设备）：running-config, logs, interface status, version, utilization,
+    #                       interface counters, cdp, lldp
+    total_cmds = 1 + 6 + 2  # ping + 6 base + 2 (cdp + lldp)
     if _is_aruba_device(device_type):
         total_cmds += 3  # system, vsf, boot-history
     elif device_type == "cisco_ios" and not _is_router_device(device_type):
         total_cmds += 1  # switch detail
     if _is_router_device(device_type):
-        total_cmds += 1  # routing table
+        total_cmds += 2  # routing table + interface description（端口清单）
     if device_type == "aruba_aoscx" or "cisco" in (device_type or ""):
         total_cmds += 1  # LAG 成员关系 (lacp aggregates / etherchannel summary)
     cmd_done = 0
@@ -597,14 +598,17 @@ def collect_device(
     # 如果实际设备类型与预计算时不同，重新调整 total_cmds
     # （mismatch 极少发生，这里做防御性处理）
     if effective_type != device_type:
-        total_cmds = 1 + 5 + 2  # 重新计算：ping + 5 base + 2
-        if _is_aruba_device(effective_type):
+        # 判定一律用 device_type（配置的设备类别）——实际采集分支用的也是它。
+        # effective_type 只是 Netmiko 驱动名，cisco_ios_router 会被映射成 cisco_ios，
+        # 拿它判断 _is_router_device 会漏掉路由器的专属命令。
+        total_cmds = 1 + 6 + 2  # 重新计算：ping + 6 base + 2
+        if _is_aruba_device(device_type):
             total_cmds += 3
-        elif effective_type == "cisco_ios" and not _is_router_device(effective_type):
+        elif device_type == "cisco_ios" and not _is_router_device(device_type):
             total_cmds += 1
-        if _is_router_device(effective_type):
-            total_cmds += 1
-        if effective_type == "aruba_aoscx" or "cisco" in (effective_type or ""):
+        if _is_router_device(device_type):
+            total_cmds += 2
+        if device_type == "aruba_aoscx" or "cisco" in (device_type or ""):
             total_cmds += 1  # LAG 成员关系
 
     def _safe_collect(collect_func, label: str) -> str:
@@ -645,6 +649,18 @@ def collect_device(
         print(f"[收集进度] 获取 interface utilization...")
         interface_utilization = _safe_collect(conn.collect_show_interface_utilization, "interface utilization")
         _advance("interface utilization")
+
+        # 端口累计计数器（区间流量的原始读数，只存原值不预计算）
+        print(f"[收集进度] 获取 interface counters...")
+        interface_counters = _safe_collect(conn.collect_interface_counters, "interface counters")
+        _advance("interface counters")
+
+        # 路由器端口清单（路由器上 show interface status 返回空，改由 description 提供）
+        interface_description = ""
+        if _is_router_device(device_type):
+            print(f"[收集进度] 获取 interface description...")
+            interface_description = _safe_collect(conn.collect_interface_description, "interface description")
+            _advance("interface description")
 
         # Aruba CX show version 不含序列号，需要 show system + show vsf
         system_info = ""
@@ -743,7 +759,10 @@ def collect_device(
             try:
                 perf_analyzer = PerformanceAnalyzer(
                     interface_status, running_config, device_type,
-                    interface_utilization, uplink_ports=device.uplink_ports
+                    interface_utilization, uplink_ports=device.uplink_ports,
+                    counters_raw=interface_counters,
+                    description_raw=interface_description,
+                    model=device_model,
                 )
                 performance_results = json.dumps(perf_analyzer.analyze(), indent=2, ensure_ascii=False)
             except Exception as e:
@@ -763,8 +782,11 @@ def collect_device(
         saving_pct = cmd_done / total_cmds * 100
         _set_progress(device_name, "saving", progress=saving_pct, cmd_done=cmd_done, total_cmds=total_cmds)
         week = get_week_dir(data_root)
+        # 传 device_type（配置的设备类别）而非 effective_type（Netmiko 驱动名）——
+        # effective_type 会把 cisco_ios_router 降级成 cisco_ios，写回 devices.type 后
+        # 路由器身份就永久丢了（_is_router_device 恒为 False，show ip route 不再采集）。
         _save_data(
-            device_name, device_ip, effective_type,
+            device_name, device_ip, device_type,
             week, data_root, settings,
             running_config, logs,
             interface_status, version_info, interface_utilization, system_info, vsf_info, switch_info, route_info,
@@ -923,13 +945,17 @@ def _save_to_sqlite(
                     float(p.get("rx_util_pct") or 0), float(p.get("tx_util_pct") or 0),
                     int(p.get("rx_pps") or 0), int(p.get("tx_pps") or 0),
                     int(p.get("rxload") or 0), int(p.get("txload") or 0),
+                    # 累计计数器原始读数：**不要过 _safe_str**（它会把 None 变成 ""），
+                    # None 必须原样入库为 NULL —— 与「读到 0」区分
+                    p.get("in_octets"), p.get("out_octets"),
                 ))
             db.executemany("""
                 INSERT INTO port_snapshots
                     (collection_id, device_id, port_name, status, status_up,
                      speed, mode, port_type, description, native_vlan, is_uplink,
-                     rx_mbps, tx_mbps, rx_util_pct, tx_util_pct, rx_pps, tx_pps, rxload, txload)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     rx_mbps, tx_mbps, rx_util_pct, tx_util_pct, rx_pps, tx_pps, rxload, txload,
+                     in_octets, out_octets)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, rows)
 
         # 4. 写入端口错误
