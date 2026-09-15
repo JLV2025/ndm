@@ -6,7 +6,7 @@
 # 应通过环境变量设置：LLM_API_KEY_1, LLM_API_KEY_2, ...
 
 data_root: ./data
-max_versions: 10
+# 数据保留为分层规则，见 backend/storage/file_manager.py（WEEKLY_KEEP / CONFIG_KEEP / LOGS_KEEP）
 log_buffer_size: 65536
 collection:
   max_parallel: 2

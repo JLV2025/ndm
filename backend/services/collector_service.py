@@ -19,7 +19,7 @@ from analyzers.performance import PerformanceAnalyzer
 from analyzers.change_detector import ChangeDetector
 from utils.settings_loader import load_settings
 from utils.password import password_manager
-from storage.file_manager import get_week_dir
+from storage.file_manager import get_week_dir, run_retention
 from storage.database import get_connection as get_db
 from models.devices import Device
 
@@ -798,6 +798,19 @@ def collect_device(
             platform=device_platform,
             lacp_raw=lacp_raw,
         )
+
+        # 分层保留：配置文本按周保留（更早的按月归档）、DB 配置全文与日志各留最近 2 次。
+        # 只有确实存在超过保留周数的周目录时才动手（plan 是列目录级别，代价可忽略）。
+        # 保留策略失败绝不能影响采集结果，故整体兜住。
+        try:
+            retention = run_retention(data_root, conn=get_db())
+            if retention["archived"] or retention["deleted"] or retention["config_cleared"]:
+                print(f"[保留策略] 归档 {retention['archived']} 个周目录、"
+                      f"删除 {retention['deleted']} 个、"
+                      f"配置全文置空 {retention['config_cleared']} 条、"
+                      f"日志删除 {retention['logs_deleted']} 条")
+        except Exception as e:
+            print(f"[保留策略] 跳过：{e}")
 
         _set_progress(device_name, "complete", progress=100, cmd_done=total_cmds, total_cmds=total_cmds)
         # 延迟清除，给前端轮询窗口读取 "complete" 状态

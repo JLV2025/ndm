@@ -1186,6 +1186,41 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-15T02:18:36.782Z"
+    },
+    {
+      "id": "bug-073",
+      "timestamp": "2026-09-15T02:29:33.610Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/storage/file_manager.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→7 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T02:29:33.610Z"
+    },
+    {
+      "id": "bug-074",
+      "timestamp": "2026-09-15T11:55:00",
+      "error_message": "test_超出部分按月收缩_每月只留最后一个 断言失败：set(archived)|set(deleted) 少了 2026-20..23 —— 我把过期集合当成了「编号大的一半」",
+      "file": "backend/tests/test_retention.py",
+      "root_cause": "周目录名是 {年}-{周} 两段各自定序。我给了 weeks=[10,11,12,13,20,21,22,23] 并断言保留 4 周后全部 8 个都该被处理，但 2026-23 比 2026-13 新，plan_archive 只处理最早的 4 个（10~13），20~23 属于「最近 4 周」被保留。同一原因还让 test_执行会真的归档与收缩 变成空操作（4 个周目录 ≤ 默认 16 周）。",
+      "fix": "断言改为 stale = weeks[:4]（先排序再取前 N 个），并显式断言 archived 与 deleted 互斥；同时给 run_retention 增加 weekly_keep 参数（原先硬用默认 16），让测试能用小的保留周数。",
+      "tags": [
+        "测试",
+        "周目录",
+        "排序",
+        "保留策略",
+        "归档",
+        "误判"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T11:55:00"
     }
   ]
 }

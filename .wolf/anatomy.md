@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-15T02:25:02.470Z
-> Files: 50 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-15T02:31:04.810Z
+> Files: 57 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -98,6 +98,7 @@
 
 ## backend/api/
 
+- `data.py` — 数据文件 API 路由 (~3944 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
 - `stats.py` — Dashboard 统计 API — 全量从 SQLite 读取 (~2386 tok)
 - `topology.py` — 拓扑图 API 路由 (~11910 tok)
@@ -111,15 +112,18 @@
 
 ## backend/scripts/
 
+- `retention.py` — 数据保留与归档工具 (~529 tok)
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~16822 tok)
+- `collector_service.py` — 配置收集服务 (~17007 tok)
 
 ## backend/storage/
 
+- `__init__.py` — 数据存储服务模块 (~162 tok)
 - `database.py` — init_db, get_connection, close_connection (~4762 tok)
 - `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~2142 tok)
+- `file_manager.py` — 存储管理模块 (~2286 tok)
 
 ## backend/tests/
 
@@ -133,6 +137,7 @@
 - `test_performance_counters.py` — 端口累计计数器与端口详情合并测试（PerformanceAnalyzer 接线，四类设备端到端基数 151/57/7/52） (~1894 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试（21 列 INSERT / NULL 与读数 0 区分 / 大数据精度） (~900 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试 —— 重点：累计计数器列（in_octets / out_octets） (~1043 tok)
+- `test_retention.py` — 分层保留与归档测试 (~2460 tok)
 - `test_stats_window.py` — 区间流量 Top10 周锚定测试（16 用例，**核心：周中再采一次结果完全不变**） (~1900 tok)
 - `test_stats_window.py` — 区间流量 Top10 测试 —— 周锚定口径 (~2078 tok)
 
@@ -141,6 +146,8 @@
 
 ## config/
 
+- `settings.example.yaml` — NDM 全局配置模板 (~238 tok)
+- `settings.yaml` (~197 tok)
 
 ## data/
 

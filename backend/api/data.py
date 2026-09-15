@@ -245,7 +245,12 @@ async def get_raw_data(device_name: str, week: str, data_type: str):
         row = db.execute(
             "SELECT running_config FROM collections WHERE id = ?", (cid,)
         ).fetchone()
-        content = row["running_config"] if row else ""
+        content = (row["running_config"] if row else "") or ""
+        if not content:
+            # DB 只留最近 2 次采集的配置全文（全文占库容一半以上），更早的按保留策略置空
+            raise HTTPException(
+                status_code=404,
+                detail="该次采集的配置全文已按保留策略清理（仅保留最近 2 次）")
 
     elif data_type == "boot-history":
         row = db.execute(

@@ -407,3 +407,16 @@
 ## Do-Not-Repeat
 - [2026-09-15] **`_analyze_interfaces()` 开头有 `if not self.interface_lines: return 空` 的早退**。路由器的 `interface_status` 本来就是空的，加任何基于 `description_raw` 的新分支前，**必须先放宽这个早退条件**，否则新分支永远走不到。我在这里踩了一次：断言里看到 7 个端口全落到「补入」路径、status 全是 unknown，才定位到。
 - [2026-09-15] `_parse_aruba_cx` 的列索引是**「最后一个匹配胜出」**（header 循环里没有 break）。`show interface brief` 表头只有一个 `Status` token 所以正常；但 `show interface physical` 的表头有 **4 个** `Status`（Link Status / Speed Status / Flow-Control Status 等），会把 status 列取到第 11 列（PoE Power），静默产出 `status='0.00'` 这种垃圾。**用户已决定保留 brief**，但若将来有人改回 physical，这里必须先修。
+
+## Key Learnings
+- [2026-09-15] **A9 完成**：分层保留落到 `backend/storage/file_manager.py`（重写，替换掉那两个从未被调用的死函数）+ `backend/scripts/retention.py`（`--dry-run` / `--db-only`）+ 采集结束时触发。测试 `test_retention.py` 17 用例。**后端 144 项全绿**。
+- [2026-09-15] **`CONFIG_KEEP` 不能小于 2** —— 变更检测读的是「倒数第二次」采集的配置（`collector_service.py` 的 `SELECT running_config ... ORDER BY id DESC LIMIT 1 OFFSET 1`）。只留 1 次就没有基线，变更检测会静默失效。
+- [2026-09-15] **周目录 → 月归档的映射取「该 ISO 周周一所在的月份」**（`date.fromisocalendar(y, w, 1)`）。跨月的周归属到周一那天，保证确定性；跨年也对（`2025-01` → `2024-M12`，因为 2025 年第 1 周的周一是 2024-12-30）。
+- [2026-09-15] `shutil.move(src_dir, dst_dir)` 在 **dst_dir 已存在**时会把 src_dir 整个塞进 dst_dir 里面（变成 `archive/2026-M05/2026-20/`）。要移动的是**文件**，必须显式 `shutil.move(src/running-config.raw, dst/running-config.raw)` 再 `rmtree(src)`。
+- [2026-09-15] **`--dry-run` 的 DB 侧报数用「跑一遍再 `conn.rollback()`」** —— 比另写一套只读统计查询可靠，且不会出现「预览数与实际执行数不一致」。前提是连接用 sqlite3 默认的隐式事务（`isolation_level` 未改成 None）。
+- [2026-09-15] 归档的**收益是可查看性不是省空间**（实测约 140 MB/年）。所以「能不删就不删，只把粒度放粗」。**不做 `collections`/`port_snapshots` 行删除** —— 用户确认的四条里没有它，且这 7 张表都以 `REFERENCES collections(id)` 外键挂在 `collections` 上（无 ON DELETE CASCADE），删父行要先删子行，风险不值当。
+- [2026-09-15] `config/settings.yaml` 的 `max_versions: 10` **已移除**（连同 `settings.example.yaml`）—— 全仓库只有那两个死函数读它，且 10 周 < 流量排行最大窗口 13 周，留着是个陷阱。
+
+## Do-Not-Repeat
+- [2026-09-15] 写测试断言「哪些周目录过期」时，别把周的编号顺序想当然。我写了 `weeks[:4]` 却断言「全部 8 个都被处理」，实际 `2026-23` 比 `2026-13` **新**，过期的是编号小的那批。**周编号是 {年}-{周} 两段各自定序，先排序再取前 N 个**。
+- [2026-09-15] `run_retention` 一开始没暴露 `weekly_keep` 参数，导致测试没法用小的保留周数（默认 16 会让 4 个周目录的用例变成空操作）。**给阈值加参数默认值**是让清理类逻辑可测的最低成本做法。
