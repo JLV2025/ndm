@@ -1,0 +1,156 @@
+SZXD1SWI01#show interfaces status
+
+Port      Name               Status       Vlan       Duplex  Speed Type
+Gi1/0/1   Internet-CNC       connected    4093       a-full a-1000 10/100/1000BaseTX
+Gi1/0/2   SZXD1SDW01-WAN1    connected    4093       a-full a-1000 10/100/1000BaseTX
+Gi1/0/3   SZXD1SDW02-WAN1    connected    4093       a-full a-1000 10/100/1000BaseTX
+Gi1/0/4                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/5                      connected    16         a-full a-1000 10/100/1000BaseTX
+Gi1/0/6                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/7                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/8                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/9                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/10                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/11                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/12                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/13                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/14                     notconnect   1            auto   auto 10/100/1000BaseTX
+Gi1/0/15                     notconnect   1            auto   auto 10/100/1000BaseTX
+Gi1/0/16                     notconnect   1            auto   auto 10/100/1000BaseTX
+Gi1/0/17                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/18                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/19                     notconnect   1            auto   auto 10/100/1000BaseTX
+Gi1/0/20                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/21                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/22                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/23                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/24                     connected    16         a-full  a-100 10/100/1000BaseTX
+Gi1/0/25                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/26                     notconnect   255          auto   auto 10/100/1000BaseTX
+Gi1/0/27                     notconnect   30           auto   auto 10/100/1000BaseTX
+Gi1/0/28                     notconnect   1            auto   auto 10/100/1000BaseTX
+Gi1/0/29  SZXD1RTW01-G0/0    connected    trunk      a-full a-1000 10/100/1000BaseTX
+Gi1/0/30                     notconnect   255          auto   auto 10/100/1000BaseTX
+Gi1/0/31  SZX0ESX02-iLO      connected    196        a-full a-1000 10/100/1000BaseTX
+Gi1/0/32                     notconnect   196          auto   auto 10/100/1000BaseTX
+Gi1/0/33                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/34                     connected    16         a-full a-1000 10/100/1000BaseTX
+Gi1/0/35  SZX.F11AP2.7C5F    connected    trunk      a-full  a-100 10/100/1000BaseTX
+Gi1/0/36  SZX.F11AP3.7DAF    connected    trunk      a-full a-1000 10/100/1000BaseTX
+Gi1/0/37  SZX.F11AP5.7BB7    connected    trunk      a-full a-1000 10/100/1000BaseTX
+Gi1/0/38  SZX.F11AP4.817B    connected    trunk      a-full a-1000 10/100/1000BaseTX
+Gi1/0/39  lost-cisco-ap      disabled     30           auto   auto 10/100/1000BaseTX
+Gi1/0/40                     notconnect   32           auto   auto 10/100/1000BaseTX
+Gi1/0/41  UPS                connected    255        a-full  a-100 10/100/1000BaseTX
+Gi1/0/42                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/43                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/44                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi1/0/45  SZXD1SDW01-MGMT    connected    16         a-full a-1000 10/100/1000BaseTX
+Gi1/0/46                     notconnect   1            auto   auto 10/100/1000BaseTX
+Gi1/0/47  SZXD1SDW01-LAN1    connected    trunk      a-full a-1000 10/100/1000BaseTX
+Gi1/0/48  To-SZXD1SWI02      connected    trunk      a-full a-1000 10/100/1000BaseTX
+Te1/0/1                      disabled     2            full    10G SFP-10GBase-SR
+Te1/0/2                      notconnect   1            full    10G Not Present
+Gi2/0/1                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/2                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/3                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/4                      connected    16         a-full  a-100 10/100/1000BaseTX
+Gi2/0/5                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/6                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/7                      connected    16         a-full a-1000 10/100/1000BaseTX
+Gi2/0/8                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/9                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/10                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/11                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/12                     connected    16         a-full  a-100 10/100/1000BaseTX
+Gi2/0/13                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/14                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/15                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/16                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/17                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/18                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/19                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/20                     connected    16         a-full a-1000 10/100/1000BaseTX
+Gi2/0/21                     connected    16         a-full a-1000 10/100/1000BaseTX
+Gi2/0/22                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/23                     connected    16         a-full  a-100 10/100/1000BaseTX
+Gi2/0/24                     connected    16         a-full a-1000 10/100/1000BaseTX
+Gi2/0/25                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/26                     connected    16         a-full a-1000 10/100/1000BaseTX
+Gi2/0/27                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/28                     connected    16         a-full a-1000 10/100/1000BaseTX
+Gi2/0/29                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/30                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/31                     connected    16         a-full a-1000 10/100/1000BaseTX
+Gi2/0/32                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/33                     notconnect   16           auto   auto 10/100/1000BaseTX
+
+Port      Name               Status       Vlan       Duplex  Speed Type
+Gi2/0/34                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/35                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/36                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/37                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/38                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/39                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/40                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/41                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/42                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/43                     connected    16         a-full a-1000 10/100/1000BaseTX
+Gi2/0/44                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/45                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/46                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi2/0/47  SZXD1SDW02-LAN1    connected    trunk      a-full a-1000 10/100/1000BaseTX
+Gi2/0/48  SZXD1SDW02-MGMT    connected    16         a-full a-1000 10/100/1000BaseTX
+Te2/0/1                      disabled     2            full    10G SFP-10GBase-SR
+Te2/0/2                      notconnect   1            full    10G Not Present
+Gi3/0/1                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/2                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/3                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/4                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/5                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/6                      connected    16         a-full a-1000 10/100/1000BaseTX
+Gi3/0/7                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/8                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/9                      notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/10                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/11                     connected    16         a-full a-1000 10/100/1000BaseTX
+Gi3/0/12                     connected    16         a-full  a-100 10/100/1000BaseTX
+Gi3/0/13                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/14                     connected    16         a-full  a-100 10/100/1000BaseTX
+Gi3/0/15                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/16                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/17                     connected    16         a-full  a-100 10/100/1000BaseTX
+Gi3/0/18                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/19                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/20                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/21                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/22                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/23                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/24                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/25                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/26  Poly X50 Camera    connected    16         a-full a-1000 10/100/1000BaseTX
+Gi3/0/27                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/28                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/29                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/30                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/31                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/32                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/33                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/34                     connected    16         a-full  a-100 10/100/1000BaseTX
+Gi3/0/35                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/36                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/37                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/38                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/39                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/40  Poly touch pad TC8 connected    16         a-full a-1000 10/100/1000BaseTX
+Gi3/0/41                     connected    16         a-full  a-100 10/100/1000BaseTX
+Gi3/0/42  SZXLAB-D1          connected    16         a-full a-1000 10/100/1000BaseTX
+Gi3/0/43                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/44                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/45                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/46                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/47                     notconnect   16           auto   auto 10/100/1000BaseTX
+Gi3/0/48                     notconnect   16           auto   auto 10/100/1000BaseTX
+Te3/0/1                      notconnect   1            full    10G Not Present
+Te3/0/2                      notconnect   1            full    10G Not Present
+Fa0                          disabled     routed       auto   auto 10/100BaseTX

@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 # 当前 Schema 版本（每次 schema 变更递增）
-SCHEMA_VERSION = 9
+SCHEMA_VERSION = 10
 
 # 线程本地存储 —— 每个线程持有自己的连接
 _local = threading.local()
@@ -269,6 +269,10 @@ def _migrate_v1(conn: sqlite3.Connection) -> None:
             tx_pps INTEGER DEFAULT 0,
             rxload INTEGER DEFAULT 0,
             txload INTEGER DEFAULT 0,
+            -- v10 起：累计计数器原始读数（64 位），区间流量的计算来源。
+            -- 不写 DEFAULT —— NULL 必须与「读到 0」区分：NULL = 本轮没采到。
+            in_octets INTEGER,
+            out_octets INTEGER,
             FOREIGN KEY (collection_id) REFERENCES collections(id),
             FOREIGN KEY (device_id) REFERENCES devices(id)
         );
@@ -461,6 +465,29 @@ def _migrate_v9(conn: sqlite3.Connection) -> None:
     """)
 
 
+def _migrate_v10(conn: sqlite3.Connection) -> None:
+    """Schema v10: port_snapshots 增加累计计数器原始读数（区间流量的计算来源）
+
+    只存原始读数，不存派生值 —— 区间流量由 API 按用户选择的时间窗在读时计算，
+    预计算会把窗口写死，每加一档就要加列 + 改 INSERT + 改迁移。
+
+    不回填历史数据：历史行没有计数器原值，任何回填都是编造。
+
+    SQLite 无 DEFAULT 的 ADD COLUMN 只改元数据、不重写表，几十万行也是瞬间。
+    """
+    for column in ("in_octets", "out_octets"):
+        try:
+            conn.execute(f"ALTER TABLE port_snapshots ADD COLUMN {column} INTEGER")
+        except sqlite3.OperationalError:
+            pass  # 列已存在（新建库已由 _migrate_v1 建好）
+
+    # 「按周取最早基准」查询按 (device_id, port_name) 分区、按 collected_at 排序
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_ports_device_port_collection "
+        "ON port_snapshots(device_id, port_name, collection_id)"
+    )
+
+
 # 迁移注册表
 _MIGRATIONS = {
     1: _migrate_v1,
@@ -472,4 +499,5 @@ _MIGRATIONS = {
     7: _migrate_v7,
     8: _migrate_v8,
     9: _migrate_v9,
+    10: _migrate_v10,
 }

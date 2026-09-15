@@ -1,0 +1,229 @@
+BJQD1RTW01#show interfaces stats
+GigabitEthernet0/0/0
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+GigabitEthernet0/0/1
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor    5791898  373725508     447324  164775405
+             Route cache          0          0          0          0
+       Distributed cache    7438944  666209309    2139334  469817868
+                   Total   13230842 1039934817    2586658  634593273
+GigabitEthernet0/0/2
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+GigabitEthernet0/0/3
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+TenGigabitEthernet0/0/4
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+TenGigabitEthernet0/0/5
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Service-Engine0/1/0
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0     588056  109133664
+                   Total          0          0     588056  109133664
+Serial0/1/0:0
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:1
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:2
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:3
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:4
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:5
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:6
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:7
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:8
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:9
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:10
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:11
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:12
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:13
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:14
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:15
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0    1653795    6627666
+             Route cache          0          0          0          0
+       Distributed cache    1653721    6629704    1653793    6627658
+                   Total    1653721    6629704    3307588   13255324
+Serial0/1/0:16
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:17
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:18
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:19
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:20
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:21
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:22
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:23
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:24
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:25
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:26
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:27
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:28
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:29
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0
+Serial0/1/0:30
+          Switching path    Pkts In   Chars In   Pkts Out  Chars Out
+               Processor          0          0          0          0
+             Route cache          0          0          0          0
+       Distributed cache          0          0          0          0
+                   Total          0          0          0          0

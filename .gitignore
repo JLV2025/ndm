@@ -68,6 +68,8 @@ security-review-report.md
 # Session logs
 *.txt
 !requirements.txt
+# 真机输出样本：不可复现（要连设备才能再采），必须纳入版本控制
+!backend/tests/fixtures/*.txt
 
 # OpenWolf — 排除临时文件，保留项目知识资产
 .wolf/designqc-captures/
