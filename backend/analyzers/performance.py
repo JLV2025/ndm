@@ -192,11 +192,13 @@ class PerformanceAnalyzer:
             if is_subinterface(name):
                 continue
 
-            # Status 列的 "administratively down" 含空格，会多占一个 token
+            # Status 列的两词写法会多占一个 token，Protocol 与 Description 都要往后挪：
+            #   IOS-XE（如 C8300）用 "administratively down"，较老的 ISR（2921/2951）用 "admin down"。
+            # 统一存成 "admin" —— 与 _parse_cisco_interface_status 的 down_statuses 词表一致。
             status = parts[1]
             protocol_idx = 2
-            if status == "administratively" and parts[2] == "down":
-                status = "administratively down"
+            if status in ("administratively", "admin") and parts[2] == "down":
+                status = "admin"
                 protocol_idx = 3
 
             description = " ".join(parts[protocol_idx + 1:]) or None

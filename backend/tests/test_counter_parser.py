@@ -46,9 +46,18 @@ C9500_MODEL = "C9500-40X"
     ("HundredGigE2/0/27", "Hu2/0/27"),
     ("FastEthernet0/1", "Fa0/1"),
     ("FortyGigE1/1/1", "Fo1/1/1"),
+    ("Loopback1", "Lo1"),
+    ("Tunnel0", "Tu0"),
 ])
 def test_归一化_全称转缩写(full, short):
     assert normalize_port_name(full) == short
+
+
+def test_归一化_Loopback两侧命名必须折到一致():
+    """真机实测（ISR 2921/2951）：show interfaces description 给 Lo1，
+    show interfaces stats 给 Loopback1 —— 不归一化会出现两个条目，
+    一个有状态没流量、一个有流量没状态。"""
+    assert normalize_port_name("Loopback1") == normalize_port_name("Lo1") == "Lo1"
 
 
 def test_归一化_SE与Se不能被混同():

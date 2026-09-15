@@ -107,20 +107,53 @@ def test_路由器_状态与描述来自description():
     assert se0["status"] == "up" and "in_octets" in se0
 
 
-def test_路由器_administratively_down含空格仍能解析():
-    """Status 列的 'administratively down' 会多占一个 token"""
+def test_路由器_两词Status写法都能解析():
+    """Status 列的两词写法会多占一个 token，Protocol 与 Description 都要往后挪：
+
+    IOS-XE（C8300）用 "administratively down"，较老的 ISR（2921/2951）用 "admin down"。
+    两者都统一存成 "admin"。真机实测：ISR 上按 'administratively' 判断会让
+    description 取到 Protocol 列，变成 desc='down'。
+    """
     raw = (
         "BJQD1RTW01#show interfaces description\n"
         "Interface                      Status         Protocol Description\n"
-        "Gi0/0/1                        administratively down  down\n"
-        "Gi0/0/2                        up             up       uplink\n"
+        "Gi0/0/1                        administratively down  down     Qorvo-LAN\n"
+        "Gi0/0/2                        admin down     down     WAN_Router\n"
+        "Gi0/0/3                        up             up       uplink\n"
     )
     details = details_of(device_type="cisco_ios_router", description_raw=raw)
     by_name = {d["name"]: d for d in details}
 
-    assert by_name["Gi0/0/1"]["status"] == "administratively down"
-    assert by_name["Gi0/0/1"]["status_up"] is False
-    assert by_name["Gi0/0/2"]["description"] == "uplink"
+    for name, desc in (("Gi0/0/1", "Qorvo-LAN"), ("Gi0/0/2", "WAN_Router")):
+        assert by_name[name]["status"] == "admin"
+        assert by_name[name]["status_up"] is False
+        assert by_name[name]["description"] == desc
+    assert by_name["Gi0/0/3"]["status"] == "up"
+    assert by_name["Gi0/0/3"]["description"] == "uplink"
+
+
+def test_路由器_Loopback两侧命名不同仍能对齐():
+    """真机实测（ISR 2921/2951）：description 侧叫 Lo1，stats 侧叫 Loopback1。
+
+    不归一化就会变成两条：Lo1 有状态没流量、Loopback1 有流量没状态（被补入）。
+    """
+    desc = (
+        "BJQD1RTW01#show interfaces description\n"
+        "Interface                      Status         Protocol Description\n"
+        "Lo1                            up             up       Qorvo MGT\n"
+    )
+    stats = (
+        "BJQD1RTW01#show interfaces stats\n"
+        "Loopback1\n"
+        "          Switching path    Pkts In   Chars In   Pkts Out  Chars Out\n"
+        "                   Total        100        800        200       1600\n"
+    )
+    details = details_of(device_type="cisco_ios_router", description_raw=desc, counters_raw=stats)
+
+    assert len(details) == 1
+    assert details[0]["name"] == "Lo1"
+    assert details[0]["description"] == "Qorvo MGT"
+    assert details[0]["in_octets"] == 800
 
 
 def test_路由器_没有description时不崩():
@@ -173,6 +206,23 @@ def test_端口清单为空时计数器端口仍被保留():
     assert counters["Gi1/0/1"] == (1603759403106, 949050652876)
     # 补入的记录状态未知，但端口名与流量是真的
     assert {d["status"] for d in details} == {"unknown"}
+
+
+def test_上行口标记来自uplink_ports():
+    """流量排行的「上行口优先」排序依赖这个标记。
+
+    注意 API 层逐字段构造 Device 时曾漏掉 uplink_ports，导致全库 is_uplink 恒为 0。
+    """
+    details = details_of(
+        interface_status=read_fixture("Cisco 2960x show interfaces status.txt"),
+        device_type="cisco_ios",
+        uplink_ports=["Te3/0/1", "Te3/0/2"],
+    )
+    by_name = {d["name"]: d for d in details}
+
+    assert by_name["Te3/0/1"]["is_uplink"] is True
+    assert by_name["Te3/0/2"]["is_uplink"] is True
+    assert by_name["Gi1/0/1"]["is_uplink"] is False
 
 
 def test_没有计数器输出时行为不变():

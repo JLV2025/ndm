@@ -34,6 +34,9 @@ from datetime import datetime
 # 必须区分大小写：SE = Service-Engine，Se = Serial，两者含义不同，
 # 统一 upper/lower 会把它们混为一谈。
 # 各全称互不为前缀，故匹配顺序无关。
+#
+# 存在的意义是**让两侧命令对上**：路由器上 show interfaces description 给缩写、
+# show interfaces stats 给全称（实测 Loopback1 vs Lo1 就是这么漏的）。
 _PORT_ABBREV = (
     ("TenGigabitEthernet", "Te"),
     ("TwentyFiveGigE", "Twe"),
@@ -43,6 +46,8 @@ _PORT_ABBREV = (
     ("FortyGigE", "Fo"),
     ("Service-Engine", "SE"),
     ("Serial", "Se"),
+    ("Loopback", "Lo"),
+    ("Tunnel", "Tu"),
 )
 
 

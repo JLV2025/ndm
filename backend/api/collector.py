@@ -146,6 +146,9 @@ async def collect_config(
         device_obj.notes = device.get("notes") or ""
         device_obj.serial_number = device.get("serial_number") or ""
         device_obj.username = device.get("username") or ""
+        # 逐字段构造时容易漏 —— 漏了 uplink_ports 会让 port_snapshots.is_uplink 恒为 0，
+        # 流量排行的「上行口优先」排序就静默失效（全库 is_uplink=1 曾经是 0 行）
+        device_obj.uplink_ports = device.get("uplink_ports") or []
 
         settings = load_settings()
         result = await asyncio.to_thread(collect_device, device_obj, username, password, settings)

@@ -1221,6 +1221,93 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-15T11:55:00"
+    },
+    {
+      "id": "bug-075",
+      "timestamp": "2026-09-15T03:07:54.933Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/analyzers/performance.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 6→8 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T03:07:54.933Z"
+    },
+    {
+      "id": "bug-076",
+      "timestamp": "2026-09-15T03:08:13.688Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_performance_counters.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 14→47 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T03:08:13.688Z"
+    },
+    {
+      "id": "bug-077",
+      "timestamp": "2026-09-15T12:30:00",
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T12:30:00",
+      "error_message": "两台 ISR 路由器（PVGD1RTW01/CISCO2921、SZXD1RTW01/CISCO2951）端口快照里 status='admin'、description='down' —— 描述取到了 Protocol 列",
+      "file": "backend/analyzers/performance.py",
+      "root_cause": "show interfaces description 的 Status 列有两词写法，会多占一个 token。我按 IOS-XE 的 'administratively down' 判断，但较老的 ISR 用 'admin down'，于是 parts[1]='admin' 没被识别为两词状态，protocol_idx 停留在 2，description 从 parts[3:] 取，把 Protocol 的 'down' 当成了描述。真机验证：C8300（IOS-XE）走 'administratively down' 分支正常，2921/2951 中招。",
+      "fix": "判断改为 status in ('administratively', 'admin') and parts[2] == 'down'，统一存成 'admin'（与 _parse_cisco_interface_status 的 down_statuses 词表一致），protocol_idx 后挪一位。",
+      "tags": [
+        "路由器",
+        "ISR",
+        "show interfaces description",
+        "两词状态",
+        "admin down",
+        "字段错位"
+      ]
+    },
+    {
+      "id": "bug-078",
+      "timestamp": "2026-09-15T12:30:00",
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T12:30:00",
+      "error_message": "两台 ISR 上同一个 Loopback 口出现两行：Lo1（status=up，无计数器）与 Loopback1（status=unknown，in=0，由补入路径生成）",
+      "file": "backend/analyzers/counter_parser.py",
+      "root_cause": "show interfaces description 输出缩写 Lo1，show interfaces stats 输出全称 Loopback1，而 _PORT_ABBREV 里没有 Loopback 的映射，两侧键对不上。日志统计：全网只有这 2 处触发补入路径。",
+      "fix": "归一化表补上 ('Loopback','Lo') 与 ('Tunnel','Tu')。Tunnel 未被实测触发，但属同一类（长名/短名不一致），一并补上。",
+      "tags": [
+        "路由器",
+        "端口名归一化",
+        "Loopback",
+        "两侧不一致",
+        "补入路径"
+      ]
+    },
+    {
+      "id": "bug-079",
+      "timestamp": "2026-09-15T12:30:00",
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T12:30:00",
+      "error_message": "全库 port_snapshots.is_uplink=1 的行数为 0 —— 流量排行的「上行口优先」排序静默失效",
+      "file": "backend/api/collector.py",
+      "root_cause": "api/collector.py 里把 dict 逐字段转成 Device 对象时漏了 uplink_ports，它一直保持 Device.__init__ 的默认空列表，于是 PerformanceAnalyzer 拿到的 uplink_ports 恒为空集。4 台设备在 devices 表里配了 uplink_ports，但从未生效。",
+      "fix": "补上 device_obj.uplink_ports = device.get('uplink_ports') or []，并加测试锁定 PerformanceAnalyzer 侧的 is_uplink 行为。属既有 bug，与本次流量改造无关（改造前 is_uplink 也一直是 0）。",
+      "tags": [
+        "上行口",
+        "uplink_ports",
+        "Device构造漏字段",
+        "既有bug",
+        "排序失效"
+      ]
     }
   ]
 }

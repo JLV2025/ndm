@@ -420,3 +420,13 @@
 ## Do-Not-Repeat
 - [2026-09-15] 写测试断言「哪些周目录过期」时，别把周的编号顺序想当然。我写了 `weeks[:4]` 却断言「全部 8 个都被处理」，实际 `2026-23` 比 `2026-13` **新**，过期的是编号小的那批。**周编号是 {年}-{周} 两段各自定序，先排序再取前 N 个**。
 - [2026-09-15] `run_retention` 一开始没暴露 `weekly_keep` 参数，导致测试没法用小的保留周数（默认 16 会让 4 个周目录的用例变成空操作）。**给阈值加参数默认值**是让清理类逻辑可测的最低成本做法。
+
+## Key Learnings
+- [2026-09-15] **A10 首轮真机验证结果**（全网 37 台一次收集）：`SZXD1SWI01` 151 口/150 有计数器 ✅、`SHAD1SWI01`(C9500) 57/48 ✅、Aruba 全部精确相等（`BJQD1SWI01` 从 107 口（含 3 个 lag）变成 104 口）✅、`BJQD1RTW01`(C8300) 7/7 ✅。保留策略执行成功：配置全文 682→72（与 dry-run 预测的置空 610 份精确吻合），日志 72162→10823。
+- [2026-09-15] **累计计数器会出现「链路已断但读数巨大」的正常现象**：`KR5D1SWI01 Gi1/0/10`（描述 Servers）现在 `notconnect` 但有 1.79 PB 累计入向。这是计数器跨链路状态保留导致的。**新口径只用周差值，断线口差值为 0 自然出局** —— 这恰好反证了原 bug 的性质（老代码把累计大数当瞬时速率，才让空口霸榜）。数值可信度校验法：`Gi1/0/1`(SD-WAN 上行) 1.65 PB ÷ 1G 满速 ≈ 165 天，与运行时长吻合。
+- [2026-09-15] **`show interfaces stats` 不列管理性关闭（admin down）的接口** —— 两台 ISR 上恰好只有 3 个 admin down 的口没有计数器，其余全有。这些口不承载流量，不影响排行，属预期。
+- [2026-09-15] **`_PORT_ABBREV` 存在的意义是「让两侧命令对上」**：路由器上 `show interfaces description` 给缩写、`show interfaces stats` 给全称。已知必须有的映射：GigabitEthernet/TenGigabitEthernet/TwentyFiveGigE/HundredGigE/FortyGigE/FastEthernet/Service-Engine(SE)/Serial(Se)/**Loopback(Lo)**/**Tunnel(Tu)**。加新设备型号时先核对两侧命名。
+- [2026-09-15] `_enrich_counters` 的「补入」兜底路径**是有诊断价值的**：全网只有 2 处触发，全部指向 `Loopback1`/`Lo1` 命名不一致。可以用「status='unknown' 且 in_octets IS NOT NULL 的端口数」当作命名对齐是否出问题的探针。
+
+## Do-Not-Repeat
+- [2026-09-15] **`backend/api/collector.py:139` 逐字段构造 `Device` 对象**，`models/devices.py` 的 `from_dict` 有 10 个字段，这里只赋了 6 个（漏 model / password / uplink_ports）。**给 Device 加新字段时，务必同时检查这个构造点** —— 漏 `uplink_ports` 让全库 `is_uplink` 恒为 0，排序静默失效，不报任何错。更稳的做法是用 `Device.from_dict(device)`。
