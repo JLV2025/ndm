@@ -144,6 +144,9 @@ export const alertsApi = {
   summary: () => apiJson.get('/alerts/summary'),
   markRead: (id: number) => apiJson.put(`/alerts/${id}/read`),
   resolve: (id: number) => apiJson.put(`/alerts/${id}/resolve`),
+  // 全部清除：过滤参数与 list 一致（页面上看到什么就清除什么）
+  resolveAll: (params?: Record<string, string | number | boolean>) =>
+    apiJson.put('/alerts/resolve-all', null, { params }),
   getSuggestion: (id: number) => apiJson.get(`/alerts/${id}/suggestion`),
 }
 

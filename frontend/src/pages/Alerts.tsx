@@ -4,7 +4,8 @@ import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Paper, IconButton, Tooltip, CircularProgress, Select, MenuItem,
   FormControl, InputLabel, Collapse, Divider,
-  TextField,
+  TextField, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions,
+  Snackbar, Alert as MuiAlert,
 } from '@mui/material'
 import {
   Warning as WarningIcon,
@@ -143,18 +144,26 @@ export default function AlertsPage() {
   const [unreadOnly, setUnreadOnly] = useState(true)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [suggestions, setSuggestions] = useState<Record<number, string>>({})
+  const [confirmClear, setConfirmClear] = useState(false)
+  const [clearing, setClearing] = useState(false)
+  const [snack, setSnack] = useState('')
+
+  /** 当前筛选条件 → 请求参数（列表查询与「全部清除」共用，保证看到什么就清除什么） */
+  const buildFilterParams = (): Record<string, string | number | boolean> => {
+    const params: Record<string, string | number | boolean> = {}
+    if (filterType) params.alert_type = filterType
+    if (filterSeverity) params.severity = filterSeverity
+    if (filterDevice) params.device_name = filterDevice
+    if (filterDateFrom) params.date_from = filterDateFrom
+    if (filterDateTo) params.date_to = filterDateTo
+    if (unreadOnly) params.unread_only = true
+    return params
+  }
 
   const fetchAlerts = useCallback(async () => {
     setLoading(true)
     try {
-      const params: Record<string, string | number | boolean> = { limit: 100 }
-      if (filterType) params.alert_type = filterType
-      if (filterSeverity) params.severity = filterSeverity
-      if (filterDevice) params.device_name = filterDevice
-      if (filterDateFrom) params.date_from = filterDateFrom
-      if (filterDateTo) params.date_to = filterDateTo
-      if (unreadOnly) params.unread_only = true
-      const res = await alertsApi.list(params)
+      const res = await alertsApi.list({ limit: 100, ...buildFilterParams() })
       setAlerts(res.data.alerts || [])
       setTotal(res.data.total || 0)
     } catch (e) {
@@ -183,6 +192,21 @@ export default function AlertsPage() {
   const handleResolve = async (id: number) => {
     await alertsApi.resolve(id)
     fetchAlerts()
+  }
+
+  /** 全部清除：把当前筛选条件下的未处理告警一次性标记为已处理 */
+  const handleClearAll = async () => {
+    setClearing(true)
+    try {
+      const res = await alertsApi.resolveAll(buildFilterParams())
+      setConfirmClear(false)
+      setSnack(t('alerts.clearAllDone').replace('{n}', String(res.data?.resolved ?? 0)))
+      fetchAlerts()
+    } catch (e) {
+      console.error('清除告警失败:', e)
+    } finally {
+      setClearing(false)
+    }
   }
 
   const loadSuggestion = async (alert: AlertItem) => {
@@ -257,7 +281,44 @@ export default function AlertsPage() {
         <Typography variant="body2" color="text.secondary" sx={{ ml: 'auto' }}>
           {total} 条告警
         </Typography>
+        <Button
+          variant="outlined"
+          color="warning"
+          size="small"
+          startIcon={<DoneAll />}
+          onClick={() => setConfirmClear(true)}
+          disabled={total === 0}
+        >
+          {t('alerts.clearAll')}
+        </Button>
       </Paper>
+
+      {/* 全部清除确认框 —— 批量操作不可撤销，先确认再动手 */}
+      <Dialog open={confirmClear} onClose={() => setConfirmClear(false)}>
+        <DialogTitle>{t('alerts.clearAllTitle')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {t('alerts.clearAllConfirm').replace('{n}', String(total))}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setConfirmClear(false)}>{t('common.cancel')}</Button>
+          <Button onClick={handleClearAll} color="warning" variant="contained" disabled={clearing}>
+            {t('alerts.clearConfirm')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={!!snack}
+        autoHideDuration={4000}
+        onClose={() => setSnack('')}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <MuiAlert severity="success" variant="filled" onClose={() => setSnack('')}>
+          {snack}
+        </MuiAlert>
+      </Snackbar>
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}><CircularProgress /></Box>
