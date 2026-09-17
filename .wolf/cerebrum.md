@@ -515,3 +515,5 @@
 ## User Preferences
 - [2026-09-17] 问题面板要能「全部清除」（按当前筛选条件批量标记已处理）。
 - [2026-09-17] 英文模式下的原始 key 问题（en.ts 缺整段 alerts.* / reports.*）要顺手补齐，不留英文界面显示 `alerts.title` 这种半成品。
+## Do-Not-Repeat
+- [2026-09-17] **0 字节垃圾文件的根因找到了**：在 bash heredoc 里写 Python **f-string 且文本含裸花括号**（如中文里出现 `7}`、`{nb`）时，f-string 解析失败 → heredoc/重定向把残缺片段落成文件名（本项目已出现过 `{nb`、`ZGND1SWI01`、`1`、`7}` 四种）。**预防**：heredoc 里拼字符串用普通字符串 + `+` 或 `''.format()`，不要用 f-string 包裹含 `{}` 的自由文本；每次 `git add` 前照旧 `git status --short` 拦截（本轮又抓到 `1` 混进发布提交、`7}` 出现在工作区）。
