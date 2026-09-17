@@ -149,13 +149,14 @@ export const alertsApi = {
 
 // 报告
 export const reportsApi = {
-  softwareVersions: (params?: { device_type?: string }) =>
+  softwareVersions: (params?: { device_type?: string; location?: string }) =>
     apiJson.get('/reports/software-versions', { params }),
-  deviceUptime: () => apiJson.get('/reports/device-uptime'),
+  deviceUptime: (params?: { location?: string }) =>
+    apiJson.get('/reports/device-uptime', { params }),
   portTrend: (deviceName: string, portName: string, weeks = 8) =>
     apiJson.get('/reports/port-trend', { params: { device_name: deviceName, port_name: portName, weeks } }),
-  bandwidthSummary: (deviceName?: string) =>
-    apiJson.get('/reports/bandwidth-summary', { params: deviceName ? { device_name: deviceName } : {} }),
+  bandwidthSummary: (params?: { location?: string }) =>
+    apiJson.get('/reports/bandwidth-summary', { params }),
 }
 
 
