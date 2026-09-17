@@ -1,7 +1,7 @@
 # NDM — 网络设备配置管理系统
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-2.9.15-2DD46E" alt="Version 2.9.15">
+  <img src="https://img.shields.io/badge/Version-2.9.17-2DD46E" alt="Version 2.9.17">
   <img src="https://img.shields.io/badge/Python-3.10%2B-2DD46E" alt="Python 3.10+">
   <img src="https://img.shields.io/badge/React-18-2DD46E" alt="React 18">
   <img src="https://img.shields.io/badge/Backend-FastAPI-2DD46E" alt="FastAPI">
@@ -29,6 +29,7 @@
 - **前端面板可视化** — 交换机端口状态前面板 + 路由器接口层级树，支持堆叠设备、子接口缩进，10Gb 端口红色数字标识
 - **设备端口连接图** — CDP/LLDP + ConfigParser 双数据源合并，React Flow 管道走线拓扑画布，四层自动布局（WAN→核心→接入→端点），堆叠展开 + 奇偶端口上下 Handle + 端点聚合计数，管道圆弧转角 + 自动居中适配；LAG/Port-Channel 逻辑端口聚合（物理成员隐藏），端口 DOWN 红色 ✕ 警告（有邻居条目但物理断开的端口）
 - **多设备网络拓扑图** — CDP + LLDP 邻居自动发现 + ConfigParser 端口描述补充，三层分层布局（WAN → 核心 → 接入），智能连线最短路由，PNG/Visio 导出；端口 DOWN 红色 ✕ 警告，链路保留不删除（设备可能离线/故障）
+- **STP 生成树拓扑图** — 采集 `show spanning-tree`（AOS-CX RPVST / Cisco Rapid-PVST 双平台解析，跨厂商 MAC 归一化认根），按站点绘制：交换机按 STP 深度分层（根桥第一层、金色高亮），每个 VLAN 是一个彩色伪端口（★ 根 / ✕ 阻塞），链路按 VLAN 着色、转发实线 / 阻塞虚线，左侧 VLAN 图例点击高亮单棵生成树；站点 STP 模式一致性检查（同族 RPVST ≡ Rapid-PVST，混用告警），根在站点外时自动标注
 - **基础分析** — 配置完整性验证、接口状态统计、利用率分析、变更检测
 - **SQLite 全量存储** — running-config 双轨（文件 + 库），其余数据全量入 SQLite，日志按时间戳自动去重
 - **双语文案** — 中 / 英文界面一键切换

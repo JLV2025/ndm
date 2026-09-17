@@ -1372,6 +1372,190 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-15T03:15:59.994Z"
+    },
+    {
+      "id": "bug-084",
+      "timestamp": "2026-09-17T02:25:08.949Z",
+      "error_message": "Significant refactor of ",
+      "file": "C:/Users/jingl/.claude/plans/spanning-tree-glowing-gray.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 8→18 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T02:25:08.949Z"
+    },
+    {
+      "id": "bug-085",
+      "timestamp": "2026-09-17T02:34:21.337Z",
+      "error_message": "Wrong reference: SWI should be STP",
+      "file": "C:/Users/jingl/.claude/plans/spanning-tree-glowing-gray.md",
+      "root_cause": "Used \"SWI\" instead of \"STP\"",
+      "fix": "Changed SWI → STP",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T02:34:21.337Z"
+    },
+    {
+      "id": "bug-086",
+      "timestamp": "2026-09-17T03:35:42.962Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "Had \"logs\"",
+      "fix": "Changed to \"stp_snapshots\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:35:42.962Z"
+    },
+    {
+      "id": "bug-087",
+      "timestamp": "2026-09-17T03:36:22.106Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/tests/test_database_migration.py",
+      "root_cause": "Had \"数据库迁移测试（重点 v10：port_snapshots 增加累计计数器列）\"",
+      "fix": "Changed to \"数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表）\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T03:36:32.724Z"
+    },
+    {
+      "id": "bug-088",
+      "timestamp": "2026-09-17T03:40:07.899Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/topology.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:40:07.899Z"
+    },
+    {
+      "id": "bug-089",
+      "timestamp": "2026-09-17T03:44:56.570Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/shared/constants.ts",
+      "root_cause": "No early return/throw for edge case: idx < 0",
+      "fix": "Added guard clause: if (idx < 0)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:44:56.570Z"
+    },
+    {
+      "id": "bug-090",
+      "timestamp": "2026-09-17T03:45:35.386Z",
+      "error_message": "Type error",
+      "file": "frontend/src/i18n/en.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:45:35.386Z"
+    },
+    {
+      "id": "bug-091",
+      "timestamp": "2026-09-17T03:46:41.075Z",
+      "error_message": "CSS fix: label",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "label: t('nav.portTopology'), icon: <HubIcon />, path: '/port-topology' → t('nav.stpTopology'), icon: <TreeIcon />, path: '/stp-topology'",
+      "fix": "Changed label: t('nav.portTopology'), icon: <HubIcon />, path: '/port-topology' → t('nav.stpTopology'), icon: <TreeIcon />, path: '/stp-topology'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:46:41.075Z"
+    },
+    {
+      "id": "bug-092",
+      "timestamp": "2026-09-17T03:51:39.744Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/package.json",
+      "root_cause": "Had \"2.9.15\"",
+      "fix": "Changed to \"2.9.17\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:51:39.744Z"
+    },
+    {
+      "id": "bug-093",
+      "timestamp": "2026-09-17T03:51:44.412Z",
+      "error_message": "Incorrect value in code",
+      "file": "README.md",
+      "root_cause": "Had \"https://img.shields.io/badge/Version-2.9.15-2DD46",
+      "fix": "Changed to \"https://img.shields.io/badge/Version-2.9.17-2DD46",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:51:44.412Z"
+    },
+    {
+      "id": "bug-094",
+      "timestamp": "2026-09-17T04:05:00.000Z",
+      "error_message": "cat >> api/topology.py <<'PYEOF' 追加 STP 代码时报 /usr/bin/bash: -c: line 1: unexpected EOF while looking for matching `''",
+      "file": "backend/api/topology.py",
+      "root_cause": "Git Bash on Windows 对含引号/反引号的大段 heredoc 内容解析失败（与 2026-08-17 DSH 教训同源）",
+      "fix": "改用 Write/Edit 工具追加代码，不再在 bash 命令里嵌大段内容",
+      "tags": ["heredoc", "git-bash", "tooling"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T04:05:00.000Z"
+    },
+    {
+      "id": "bug-095",
+      "timestamp": "2026-09-17T04:05:00.000Z",
+      "error_message": "测试失败：assert nodes[access]['is_root_bridge'] is False（PVGD1SWI02 实际为 True）",
+      "file": "backend/api/topology.py",
+      "root_cause": "本地孤立 VLAN（VLAN34）的根被误判为站点级根桥 → 分层 BFS 会把它与核心交换机一起放在第一层",
+      "fix": "站点级根桥重新定义为「至少是一个有跨设备边的 VLAN 的根」，建边完成后重算 is_root_bridge",
+      "tags": ["stp", "logic", "test-driven", "layer"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T04:05:00.000Z"
     }
   ]
 }

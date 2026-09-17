@@ -448,3 +448,23 @@
   (2) `is_uplink=1` 全库 0 行 → 暴露字段没传进去
   (3) 路由器端口快照 0 条 → 暴露类型判断失效
   **给关键路径埋这种"异常组合"统计，比读代码有效得多。**
+
+## Key Learnings
+- [2026-09-17] **STP 生成树拓扑图（新功能，v2.9.17）**：采集 `show spanning-tree`（两平台同一条命令：Aruba AOS-CX RPVST / Cisco Rapid-PVST）→ `analyzers/stp_parser.py` 双平台解析 → `stp_snapshots` 表（迁移 v11，一行=设备×VLAN×端口）→ `GET /api/topology/location/{loc}/stp` → 前端 `StpTopologyCanvas`（VLAN 彩色伪端口 + 按 STP 深度分层 + 图例点击高亮单棵生成树）。
+- [2026-09-17] **跨厂商认根必须比归一化 MAC，不能比优先级数值**：Cisco 显示含 sys-id-ext（VLAN1 显示 8193），Aruba 显示 8192；MAC 格式 Cisco 点号 `9c37.0806.b540` vs Aruba 冒号 `9c:37:08:06:b5:40`，统一为无分隔符小写后可比。
+- [2026-09-17] **落库行数 = 真机 summary 的「STP Active」列**（SWI03=14 / SWI04=32 / SWI05=61）——过滤 Down/Disabled 端口的口径由此交叉验证。Cisco `show spanning-tree summary` 只有端口计数没有角色，画不出「哪条链路阻塞」，画 STP 图必须采完整版。
+- [2026-09-17] 真机输出是 **CRLF 行尾**：解析器必须先 `\r\n → \n` 归一化，否则 `^VLAN\d+$` 这类 `$` 锚点全部失效（grep 验证时也踩了同一个坑）。
+- [2026-09-17] **站点级根桥 ≠ 任一 VLAN 的根**：本地孤立 VLAN（PVG 的 VLAN34 在 SWI02/SWI05 上各有一个根、VLAN4092/4093 在 SWI04）的根若计为站点根桥，会把接入交换机错误抬到第一层。正确定义：至少是一个「有跨设备边的 VLAN」的根。
+- [2026-09-17] PVG 真机锚点（回归用）：5 台交换机、55 条 VLAN 边（15+13+14+13）、根 SWI01 在第一层、四个接入在第二层、各设备 VLAN 数 16/16/13/16/14。
+
+## Do-Not-Repeat
+- [2026-09-17] **Git Bash heredoc 再次踩坑**：`cat >> file <<'EOF'` 追加含引号/反引号的大段代码直接报 `unexpected EOF while looking for matching`。**追加代码一律用 Write/Edit 工具**，不要在 bash 命令里嵌大段内容（与 2026-08-17 的教训同源）。
+- [2026-09-17] 0 字节垃圾文件再次出现（本次 `{nb`、`ZGND1SWI01`，来自 python heredoc 会话）。提交前 `git status --short` 拦截依旧有效，照旧处理。
+
+## User Preferences
+- [2026-09-17] STP 图形态由用户指定：只画交换机、VLAN 当伪端口（每 VLAN 一色）、按 STP 深度分层、根桥第一层、标注优先级/转发/阻塞；读存量数据不做实时采集；模式一致性检查为内置功能。
+- [2026-09-17] 真机样本由用户提供（`PVGD1SWI0* show spanning-tree*.txt` 存项目根目录）——先取样、再写解析器。
+
+## Decision Log
+- [2026-09-17] 不用 running-config 推算 STP：配置只有意图（优先级/模式），缺实际根桥（需桥 MAC 决胜、可能站点外）、端口角色、转发/阻塞（纯运行态）；trunk 口常隐式全放行，连「链路承载哪些 VLAN」都查不全。只新增一条采集命令 `show spanning-tree`。
+- [2026-09-17] STP 图按 LAG 逻辑口成边（物理成员隐藏，与既有偏好一致）；堆叠成员合并为逻辑节点（STP 以逻辑桥运行）；`show spanning-tree detail` 不需要（完整版已含端口表）。

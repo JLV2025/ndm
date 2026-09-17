@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-15T03:15:59.916Z
-> Files: 59 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T03:52:12.615Z
+> Files: 68 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -50,7 +50,7 @@
 - `.gitignore` — Git ignore rules (~335 tok)
 - `CLAUDE.md` — OpenWolf (~1885 tok)
 - `NDM用户使用文档.html` — NDM User Guide / 用户使用文档 — Network Device Management (~11324 tok)
-- `README.md` — Project documentation (~1966 tok)
+- `README.md` — Project documentation (~2030 tok)
 - `start.bat` (~981 tok)
 - `VERSION` (~2 tok)
 
@@ -82,6 +82,7 @@
 
 - `cisco-precious-thompson.md` — 端口流量排行：改用累计计数器差值 (~4284 tok)
 - `silly-weaving-hearth.md` — VSF 成员编号透传 + 物理设备档案 + 离线设备视图 实施计划 (~1286 tok)
+- `spanning-tree-glowing-gray.md` — STP 生成树拓扑图 — 实施计划 (~1859 tok)
 
 ## agents/
 
@@ -96,6 +97,7 @@
 - `counter_parser.py` — 端口累计计数器解析器 (~3175 tok)
 - `neighbor_parser.py` — CDP / LLDP 邻居解析器 (~6462 tok)
 - `performance.py` — PerformanceAnalyzer: analyze (~7635 tok)
+- `stp_parser.py` — 生成树（STP）输出解析器 (~2662 tok)
 
 ## backend/api/
 
@@ -103,11 +105,11 @@
 - `data.py` — 数据文件 API 路由 (~3944 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
 - `stats.py` — Dashboard 统计 API — 全量从 SQLite 读取 (~2386 tok)
-- `topology.py` — 拓扑图 API 路由 (~11910 tok)
+- `topology.py` — 拓扑图 API 路由 (~15252 tok)
 
 ## backend/collectors/
 
-- `base.py` — DeviceConnection: connect, send_command, collect_config, collect_logs + 15 more (~3152 tok)
+- `base.py` — DeviceConnection: connect, send_command, collect_config, collect_logs + 15 more (~3251 tok)
 
 ## backend/models/
 
@@ -118,13 +120,13 @@
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~17007 tok)
+- `collector_service.py` — 配置收集服务 (~17879 tok)
 
 ## backend/storage/
 
 - `__init__.py` — 数据存储服务模块 (~162 tok)
-- `database.py` — init_db, get_connection, close_connection (~4762 tok)
-- `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~2142 tok)
+- `database.py` — init_db, get_connection, close_connection (~5490 tok)
+- `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~2165 tok)
 - `file_manager.py` — 存储管理模块 (~2286 tok)
 
 ## backend/tests/
@@ -133,7 +135,7 @@
 - `test_collector_service.py` — collector_service 型号/序列号/成员ID提取测试 — 重点：Aruba CX VSF 堆叠 (~1644 tok)
 - `test_collector_service.py` — extract_model/extract_serial_number 测试（重点 VSF 堆叠成员型号，4 用例） (~500 tok)
 - `test_counter_parser.py` — 端口累计计数器解析器测试 (~3926 tok)
-- `test_database_migration.py` — 数据库迁移测试（重点 v10：port_snapshots 增加累计计数器列） (~1165 tok)
+- `test_database_migration.py` — 数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表） (~1673 tok)
 - `test_neighbor_parser.py` — CDP/LLDP 邻居解析器测试 — 重点：Aruba AP 名识别 (~1543 tok)
 - `test_performance_aruba.py` — Aruba show interface brief 解析测试 (~389 tok)
 - `test_performance_counters.py` — 端口累计计数器与端口详情合并测试（PerformanceAnalyzer 接线） (~2424 tok)
@@ -142,6 +144,10 @@
 - `test_retention.py` — 分层保留与归档测试 (~2460 tok)
 - `test_stats_window.py` — 区间流量 Top10 周锚定测试（16 用例，**核心：周中再采一次结果完全不变**） (~1900 tok)
 - `test_stats_window.py` — 区间流量 Top10 测试 —— 周锚定口径 (~2078 tok)
+- `test_stp_api.py` — STP 端点集成测试 —— 临时库 + 真机样本 → 完整 JSON（HTTP 层之下） (~1658 tok)
+- `test_stp_graph.py` — 站点级 STP 图构建测试 —— 纯函数 _build_stp_graph（真机样本驱动） (~1959 tok)
+- `test_stp_parser.py` — stp_parser 测试 — 两个平台的真机样本（backend/tests/fixtures/） (~1610 tok)
+- `test_stp_snapshot_write.py` — stp_snapshots 落库测试 —— 生成树快照（站点 STP 拓扑图的数据源） (~1391 tok)
 
 ## backend/utils/
 
@@ -172,6 +178,7 @@
 
 ## frontend/src/
 
+- `App.tsx` — DRAWER_WIDTH — renders modal (~3083 tok)
 
 ## frontend/src/components/
 
@@ -186,26 +193,28 @@
 - `LabeledSmoothstepEdge.tsx` — 带端点端口标签的 smoothstep 边。 (~1026 tok)
 - `LocationTopologyCanvas.tsx` — NODE_H (~7754 tok)
 - `PortTopologyCanvas.tsx` — 解析设备命名规范：PVGD1SWI02 → { site: "PVG", room: "D1", typeCode: "SWI", num: 2 } (~14392 tok)
+- `StpTopologyCanvas.tsx` — HEADER_H (~5987 tok)
 - `TopologyCanvas.tsx` — 判断端口拓扑是否符合三层结构：有 WAN 设备 + 中心交换机 + 终端设备 (~6637 tok)
 
 ## frontend/src/i18n/
 
-- `en.ts` — Declares en (~4900 tok)
-- `zh.ts` — Declares zh (~4151 tok)
+- `en.ts` — Declares en (~5182 tok)
+- `zh.ts` — Declares zh (~4363 tok)
 
 ## frontend/src/pages/
 
 - `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~10929 tok)
 - `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5691 tok)
 - `Login.tsx` — Login (~2283 tok)
+- `StpTopology.tsx` — StpTopology (~1379 tok)
 
 ## frontend/src/services/
 
-- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~1907 tok)
+- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~1962 tok)
 
 ## frontend/src/shared/
 
-- `constants.ts` — 全局共享常量 — 设备颜色、图例、端点前缀 (~1414 tok)
+- `constants.ts` — 全局共享常量 — 设备颜色、图例、端点前缀 (~1616 tok)
 
 ## frontend/src/test/
 
@@ -213,7 +222,7 @@
 ## frontend/src/types/
 
 - `index.ts` — 离线物理设备档案（device_members 表） (~515 tok)
-- `topology.ts` — 端口物理断开（status_up=0），图上显示红叉警告 (~540 tok)
+- `topology.ts` — 端口物理断开（status_up=0），图上显示红叉警告 (~1043 tok)
 
 ## tests/
 
