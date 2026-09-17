@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T06:45:51.161Z
-> Files: 75 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T06:58:56.799Z
+> Files: 80 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -95,6 +95,7 @@
 
 ## backend/analyzers/
 
+- `anomaly_detector.py` — AnomalyDetector: detect_all, detect_and_save (~3715 tok)
 - `counter_parser.py` — 端口累计计数器解析器 (~3198 tok)
 - `neighbor_parser.py` — CDP / LLDP 邻居解析器 (~6462 tok)
 - `performance.py` — PerformanceAnalyzer: analyze (~7668 tok)
@@ -102,6 +103,7 @@
 
 ## backend/api/
 
+- `alerts.py` — 告警 API 路由 (~2091 tok)
 - `collector.py` — 配置收集 API 路由 (~1711 tok)
 - `data.py` — 数据文件 API 路由 (~3944 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
@@ -134,6 +136,8 @@
 ## backend/tests/
 
 - `conftest.py` — test_password_manager (~78 tok)
+- `test_alerts_resolve_all.py` — 「全部清除」端点测试 —— 批量把未处理告警标记为已处理 (~812 tok)
+- `test_anomaly_version_mismatch.py` — 异常检测：堆叠成员版本不一致告警 (~693 tok)
 - `test_collector_service.py` — collector_service 型号/序列号/成员ID提取测试 — 重点：Aruba CX VSF 堆叠 (~1644 tok)
 - `test_collector_service.py` — extract_model/extract_serial_number 测试（重点 VSF 堆叠成员型号，4 用例） (~500 tok)
 - `test_counter_parser.py` — 端口累计计数器解析器测试 (~4010 tok)
@@ -204,11 +208,12 @@
 
 ## frontend/src/i18n/
 
-- `en.ts` — Declares en (~5534 tok)
-- `zh.ts` — Declares zh (~4495 tok)
+- `en.ts` — Declares en (~5862 tok)
+- `zh.ts` — Declares zh (~4556 tok)
 
 ## frontend/src/pages/
 
+- `Alerts.tsx` — 字段中文标签映射 (~4641 tok)
 - `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~11085 tok)
 - `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5691 tok)
 - `Login.tsx` — Login (~2283 tok)
@@ -217,7 +222,7 @@
 
 ## frontend/src/services/
 
-- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~1970 tok)
+- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~2018 tok)
 
 ## frontend/src/shared/
 

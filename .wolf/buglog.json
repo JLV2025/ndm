@@ -2144,6 +2144,87 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T14:48:59"
+    },
+    {
+      "id": "bug-131",
+      "timestamp": "2026-09-17T06:52:21.636Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/alerts.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T06:52:21.636Z"
+    },
+    {
+      "id": "bug-132",
+      "timestamp": "2026-09-17T06:53:27.543Z",
+      "error_message": "Type error",
+      "file": "frontend/src/i18n/en.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T06:53:27.543Z"
+    },
+    {
+      "id": "bug-133",
+      "timestamp": "2026-09-17T06:53:41.407Z",
+      "error_message": "Type error",
+      "file": "frontend/src/pages/Alerts.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: const [confirmClear, setConfirmClear] = useState(false); const [clearing, setClearing] = useState(false)",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T06:53:48.337Z"
+    },
+    {
+      "id": "bug-134",
+      "timestamp": "2026-09-17T06:54:06.789Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "frontend/src/pages/Alerts.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T06:54:06.789Z"
+    },
+    {
+      "id": "bug-120",
+      "timestamp": "2026-09-17T14:59:55",
+      "error_message": "异常检测的「版本不一致」规则与报告新口径冲突：仍按跨设备同型号比较（问题面板 227 条里大量此类告警）",
+      "file": "backend/analyzers/anomaly_detector.py",
+      "root_cause": "_check_version_mismatch 是旧规则：查同型号、不同版本的其他设备 → 分站点、分批次升级的正常差异被持续报警；用户已定案「只有同一堆叠内成员版本不一致才报警，跨设备差异不报警」（软件版本报告同口径）",
+      "fix": "改为只比同一台设备内部的 member_versions / member_rom_versions（去重后 >1 才报警），标题改为「<设备名> 堆叠成员版本不一致」；跨设备比较整段删除。历史旧告警用新增的「全部清除」按钮清理",
+      "tags": [
+        "anomaly-detector",
+        "version-mismatch",
+        "口径",
+        "alerts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T14:59:55"
     }
   ]
 }
