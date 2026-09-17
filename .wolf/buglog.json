@@ -1540,7 +1540,11 @@
       "file": "backend/api/topology.py",
       "root_cause": "Git Bash on Windows 对含引号/反引号的大段 heredoc 内容解析失败（与 2026-08-17 DSH 教训同源）",
       "fix": "改用 Write/Edit 工具追加代码，不再在 bash 命令里嵌大段内容",
-      "tags": ["heredoc", "git-bash", "tooling"],
+      "tags": [
+        "heredoc",
+        "git-bash",
+        "tooling"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T04:05:00.000Z"
@@ -1552,10 +1556,171 @@
       "file": "backend/api/topology.py",
       "root_cause": "本地孤立 VLAN（VLAN34）的根被误判为站点级根桥 → 分层 BFS 会把它与核心交换机一起放在第一层",
       "fix": "站点级根桥重新定义为「至少是一个有跨设备边的 VLAN 的根」，建边完成后重算 is_root_bridge",
-      "tags": ["stp", "logic", "test-driven", "layer"],
+      "tags": [
+        "stp",
+        "logic",
+        "test-driven",
+        "layer"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T04:05:00.000Z"
+    },
+    {
+      "id": "bug-096",
+      "timestamp": "2026-09-17T03:56:38.552Z",
+      "error_message": "Wrong reference: data should be allVlans",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "Used \"data\" instead of \"allVlans\"",
+      "fix": "Changed data → allVlans",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-17T03:56:46.802Z"
+    },
+    {
+      "id": "bug-097",
+      "timestamp": "2026-09-17T03:56:51.028Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 10→13 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:56:51.028Z"
+    },
+    {
+      "id": "bug-098",
+      "timestamp": "2026-09-17T03:56:59.354Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "Had `stp-${e.source}-${e.target}-${e.vlan}`",
+      "fix": "Changed to `stp-${e.source}-${e.target}-${e.vlan}-${e.source_",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:56:59.354Z"
+    },
+    {
+      "id": "bug-099",
+      "timestamp": "2026-09-17T03:57:03.584Z",
+      "error_message": "CSS fix: detailLabel",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "detailLabel: e.id === hoveredEdge ? (e.data as any)?.detail : undefined → e.id === hoveredEdge ? ed?.detail : undefined",
+      "fix": "Changed detailLabel: e.id === hoveredEdge ? (e.data as any)?.detail : undefined → e.id === hoveredEdge ? ed?.detail : undefined",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:57:03.584Z"
+    },
+    {
+      "id": "bug-100",
+      "timestamp": "2026-09-17T03:57:12.115Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/pages/StpTopology.tsx",
+      "root_cause": "No early return/throw for edge case: !loc",
+      "fix": "Added guard clause: if (!loc)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:57:12.115Z"
+    },
+    {
+      "id": "bug-101",
+      "timestamp": "2026-09-17T04:38:19.638Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/storage/file_manager.py",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 37→53 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T04:38:19.638Z"
+    },
+    {
+      "id": "bug-102",
+      "timestamp": "2026-09-17T04:38:59.614Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/scripts/retention.py",
+      "root_cause": "Had ']} 条\"",
+      "fix": "Changed to ']} 条，\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T04:39:05.086Z"
+    },
+    {
+      "id": "bug-103",
+      "timestamp": "2026-09-17T04:44:46.791Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→3 lines (2 removed) | Also: // 边：竖直下探 → 水平管道（按 VLAN 着色）→ 落向目标; const pipeY: number | undefined = d.pipeY",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T04:44:57.291Z"
+    },
+    {
+      "id": "bug-104",
+      "timestamp": "2026-09-17T04:45:13.697Z",
+      "error_message": "CSS fix: data",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "data: { pipeY, dashed: !e.forwarding, edge: e, detail → { dashed: !e.forwarding, edge: e, detail",
+      "fix": "Changed data: { pipeY, dashed: !e.forwarding, edge: e, detail → { dashed: !e.forwarding, edge: e, detail",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T04:45:13.697Z"
+    },
+    {
+      "id": "bug-105",
+      "timestamp": "2026-09-17T04:50:00.000Z",
+      "error_message": "用户实测 BJQ：STP 图每层中间的连线圆角转弯方向都反了（且要求不做圆角、走直线）",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "正交折线路径（下探→水平管道→落地）在两端芯片横向几乎对齐时 |dx| < 2×圆角半径(14px)，水平段从 sourceX+r 反向往回走到 targetX-r，退化成钩形/S 形——视觉上就像圆角方向画反了",
+      "fix": "按要求改为端口到端口的直线连接，整体移除管道 Y / 线束偏移 / 圆角逻辑（净 -60 行）",
+      "tags": ["stp", "edge-routing", "svg-path", "degenerate-case", "user-reported"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T04:50:00.000Z"
     }
   ]
 }
