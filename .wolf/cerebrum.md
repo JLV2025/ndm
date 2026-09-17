@@ -496,3 +496,13 @@
 ## User Preferences
 - [2026-09-17] 报告/表格类页面：用户偏好**扁平大表 + 过滤 + 排序**，而不是分组卡片；能排序就不要再加筛选下拉（类型筛选被表头排序替代）。
 - [2026-09-17] 数据类页面要能**导出**（CSV，Excel 可直接打开）。
+
+## Key Learnings
+- [2026-09-17] **堆叠成员级数据模型**（v12）：`devices` 表新增 `member_versions` / `member_rom_versions` / `member_uptimes`，三列都与 `serial_number` **同序逗号对齐**（成员三元组序列号/型号/成员编号的既有约定）。历史采集无此数据且 show version 原文不入库 → **不可回填**，只有重新采集才填充。
+- [2026-09-17] **堆叠是整堆叠共享一个软件镜像**（Aruba VSF / Cisco IOS-XE StackWise / 正常运行的 classic StackWise）：逐成员软件版本只存在于 **classic IOS 堆叠**的 `show version` 成员表（`Switch Ports Model SW Version SW Image`，2960X 等）；Aruba VSF 的 `show vsf detail` 软件版本在**堆叠级**，成员级唯一逐成员字段是 **ROM Version**；IOS-XE 堆叠（C9500/3850）的 show version 只有成员段（Switch 02）无版本列。→ 成员版本不一致实际只在 classic IOS 堆叠的**升级窗口**出现（一个成员已进新镜像、另一个还没重启）。
+- [2026-09-17] 成员级运行时间：Cisco 用各成员段的 `Switch Uptime`（**1 号成员 = 设备级 `<主机名> uptime is`**，主交换机），Aruba 用成员段的 `Uptime`（注意 AOS-CX 会写 `21 hours under a minute` —— 秒级忽略）。成员级 uptime 能看出设备级看不出的信号：堆叠里单台成员重启。
+- [2026-09-17] 成员命名规则（前后端一致）：**真实 Member ID 优先**（数量与序列号一致时），否则顺序号；≤9 个成员不补零（`SZXD1SWI01-1/-2/-3`），≥10 才补零（padWidth = len(str(count))）。后端在报告里合成最终名称（导出也用同一个名字）。
+- [2026-09-17] **`zip()` 展开成员字段是陷阱**：`zip(serials, member_ids, models)` 在 member_ids 为空（Cisco 堆叠）时静默产出 0 条 —— 正确做法是以最全的字段（序列号）为基准，其余字段按数量是否对齐决定用或退回（bug-119）。
+
+## User Preferences
+- [2026-09-17] **软件版本报告的语义（用户定案）**：按**物理成员**展开（堆叠拆成 SZXD1SWI01-1/-2/-3），每个成员显示自己的序列号/版本/运行时间；**只有同一堆叠内成员版本不一致才报警**，跨设备同型号版本不同是正常的分站点差异、不报警。

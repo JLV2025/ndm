@@ -2062,6 +2062,88 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T14:11:07"
+    },
+    {
+      "id": "bug-126",
+      "timestamp": "2026-09-17T06:39:23.621Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/storage/database.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→13 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T06:39:23.621Z"
+    },
+    {
+      "id": "bug-127",
+      "timestamp": "2026-09-17T06:40:58.977Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 22→30 lines (2 removed) | Also: # 成员三元组: member_ids/serial_number/device_model 同序 ; for serial_part, member_part, model_part in zip(",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T06:41:10.591Z"
+    },
+    {
+      "id": "bug-128",
+      "timestamp": "2026-09-17T06:42:09.584Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/reports.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T06:42:09.584Z"
+    },
+    {
+      "id": "bug-129",
+      "timestamp": "2026-09-17T06:45:31.399Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/Reports.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: [t('reports.member'), t('reports.location'), t('reports.mode; t('reports.version'), t('reports.romVersion'), t('reports.up",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T06:45:41.059Z"
+    },
+    {
+      "id": "bug-119",
+      "timestamp": "2026-09-17T14:48:59",
+      "error_message": "Cisco 堆叠成员全部不在离线物理设备档案（device_members）里（排查成员信息用点时发现）",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "device_members 的 upsert 用 zip(序列号列表, member_ids列表, 型号列表) 展开成员，而 member_ids 只有 Aruba VSF 有（extract_member_ids 只解析 show vsf detail）——Cisco 堆叠该字段为空，zip 遇到空列表产出 0 条，于是 4 台 Cisco 堆叠的 9 个成员一条都没建档（实测档案 26 条全是 Aruba 成员与单机）。拆机搬运时这些物理设备无法追踪",
+      "fix": "改为以**序列号**为基准逐成员展开：member_ids 仅在数量与序列号一致时用于成员编号，否则用顺序号；顺带 device_members.version 改为写成员自己的版本（原来所有成员写整机版本）",
+      "tags": [
+        "device_members",
+        "stack",
+        "zip",
+        "cisco",
+        "offline-archive"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T14:48:59"
     }
   ]
 }
