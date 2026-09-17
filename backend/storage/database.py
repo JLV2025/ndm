@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 # 当前 Schema 版本（每次 schema 变更递增）
-SCHEMA_VERSION = 11
+SCHEMA_VERSION = 12
 
 # 线程本地存储 —— 每个线程持有自己的连接
 _local = threading.local()
@@ -222,6 +222,9 @@ def _migrate_v1(conn: sqlite3.Connection) -> None:
             type TEXT NOT NULL,
             platform TEXT DEFAULT '',
             serial_number TEXT DEFAULT '',
+            member_versions TEXT DEFAULT '',
+            member_rom_versions TEXT DEFAULT '',
+            member_uptimes TEXT DEFAULT '',
             model TEXT DEFAULT '',
             version TEXT DEFAULT '',
             location TEXT DEFAULT '',
@@ -551,6 +554,28 @@ def _migrate_v11(conn: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_v12(conn: sqlite3.Connection) -> None:
+    """Schema v12: devices 表添加堆叠成员版本列（逗号拼接，与序列号同序 1:1）
+
+    - member_versions：成员级**软件**版本 —— 只有 classic IOS 堆叠（2960X 等）的
+      show version 成员表逐成员给出；IOS-XE 堆叠与 Aruba VSF 整堆叠共享镜像，
+      此列为空，由报告侧用整机版本填充
+    - member_rom_versions：Aruba VSF 成员级 ROM 版本（show vsf detail）——
+      成员级唯一逐成员给出的版本；升级引导时逐个成员更新，可能出现不一致
+    - member_uptimes：成员级运行时间（秒，逗号拼接）—— Cisco 用各成员段里的
+      ``Switch Uptime``（1 号成员用设备级 uptime），Aruba 用成员段里的 ``Uptime``。
+      成员级重启（堆叠里单台重启）是设备级 uptime 看不出来的故障信号
+
+    三列都与序列号同序对齐（非堆叠时为空串）。不回填历史数据：
+    show version / show vsf 原文未入库，任何回填都是编造。
+    """
+    for column in ("member_versions", "member_rom_versions", "member_uptimes"):
+        try:
+            conn.execute(f"ALTER TABLE devices ADD COLUMN {column} TEXT DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass  # 列已存在（新建库已由 _migrate_v1 建好）
+
+
 # 迁移注册表
 _MIGRATIONS = {
     1: _migrate_v1,
@@ -564,4 +589,5 @@ _MIGRATIONS = {
     9: _migrate_v9,
     10: _migrate_v10,
     11: _migrate_v11,
+    12: _migrate_v12,
 }

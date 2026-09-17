@@ -26,7 +26,7 @@ def test_全新库包含计数器列且版本为最新(tmp_path, restore_db_path
     db_path = db.init_db(str(tmp_path))
     conn = sqlite3.connect(db_path)
 
-    assert max_version(conn) == db.SCHEMA_VERSION == 11
+    assert max_version(conn) == db.SCHEMA_VERSION == 12
     assert {"in_octets", "out_octets"} <= table_columns(conn, "port_snapshots")
     assert {"vlan", "port_name", "role", "state", "is_root", "mode"} <= table_columns(conn, "stp_snapshots")
 
@@ -90,7 +90,7 @@ def test_v9老库升级到v10补上计数器列且旧数据保留():
 
     db._run_migrations(conn)
 
-    assert max_version(conn) == 11
+    assert max_version(conn) == 12
     assert {"in_octets", "out_octets"} <= table_columns(conn, "port_snapshots")
 
     row = conn.execute("SELECT port_name, status, in_octets, out_octets FROM port_snapshots").fetchone()
@@ -173,7 +173,7 @@ def test_v10老库升级到v11补上生成树表且旧数据保留():
 
     db._run_migrations(conn)
 
-    assert max_version(conn) == 11
+    assert max_version(conn) == 12
     tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert "stp_snapshots" in tables
 

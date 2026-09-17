@@ -221,6 +221,99 @@ def extract_member_ids(vsf_output: str) -> str:
     return ", ".join(members)
 
 
+# Cisco classic IOS 堆叠的成员表（真机样本：SZXD1SWI01 / PVGD1SWI05 —— 2960X 堆叠）
+#   Switch Ports Model                     SW Version            SW Image
+#   ------ ----- -----                     ----------            ----------
+#   *    1 52    WS-C2960X-48FPD-L         15.2(4)E8             C2960X-UNIVERSALK9-M
+_CISCO_MEMBER_TABLE_HEADER = re.compile(
+    r'^Switch\s+Ports\s+Model\b.*\bSW\s+Version\b', re.MULTILINE | re.IGNORECASE)
+_CISCO_MEMBER_TABLE_ROW = re.compile(
+    r'^\s*(?:\*\s*)?(\d+)\s+(\d+)\s+(\S+)\s+(\S+)(?:\s+\S+)?\s*$')
+
+
+def extract_member_versions(version_output: str = "") -> str:
+    """提取堆叠各成员的软件版本（逗号拼接，与序列号同序）；单机 / 无成员表返回 ""
+
+    数据源是 Cisco ``show version`` 的成员表 —— 这是**唯一**逐成员给出软件版本的地方
+    （classic IOS 堆叠，如 2960X）。IOS-XE 堆叠（C9500/3850）与 Aruba VSF 的该命令
+    没有成员版本表：整堆叠共享一个镜像、成员版本恒等，由报告侧用整机版本填充。
+
+    成员版本不一致只可能出现在 classic IOS 堆叠的升级窗口内（一个成员已重启进新镜像、
+    另一个还在跑旧版本）—— 这正是值得报警的场景。
+    """
+    if not version_output:
+        return ""
+    text = _strip_ansi(version_output)
+    header = _CISCO_MEMBER_TABLE_HEADER.search(text)
+    if not header:
+        return ""
+    versions: list[str] = []
+    for line in text[header.end():].splitlines():
+        match = _CISCO_MEMBER_TABLE_ROW.match(line)
+        if match:
+            versions.append(match.group(4))
+        elif versions:
+            break  # 表数据结束后的第一个不匹配行即表尾
+    return ", ".join(versions)
+
+
+def extract_member_rom_versions(vsf_output: str = "") -> str:
+    """提取 Aruba VSF 各成员的 ROM 版本（逗号拼接，与成员 ID / 序列号同序）
+
+    数据源是 ``show vsf detail`` 的成员段（真机样本：BJQD1SWI01）：
+        Member ID                            : 1
+                ROM Version                  : FL.01.11.0001
+
+    AOS-CX 的**软件**版本是整堆叠一个（堆叠级 Software Version），成员级唯一
+    逐成员给出的版本就是 ROM Version —— 升级引导时逐个成员更新，可能出现不一致。
+    """
+    if not vsf_output:
+        return ""
+    roms: list[str] = []
+    for line in _strip_ansi(vsf_output).splitlines():
+        match = re.search(r'^\s*ROM\s+Version\s*:\s*(\S+)', line, re.IGNORECASE)
+        if match:
+            roms.append(match.group(1))
+    return ", ".join(roms)
+
+
+def extract_member_uptimes(version_output: str = "", vsf_output: str = "") -> str:
+    """提取堆叠各成员的运行时间（秒，逗号拼接，与序列号同序）；无成员段返回 ""
+
+    - Cisco（show version）：设备级 ``<主机名> uptime is ...`` 是 1 号成员（主交换机，
+      实测 SZXD1SWI01 主交换机与成员段数值一致），其余成员在各成员段的
+      ``Switch Uptime : ...``
+    - Aruba（show vsf detail）：各成员段的 ``Uptime : ...``
+
+    成员级运行时间能看出设备级 uptime 看不出的信号：堆叠里**单台成员**重启。
+    """
+    seconds_list: list[int] = []
+
+    if version_output:
+        text = _strip_ansi(version_output)
+        main = re.search(r'uptime is\s+([^\n\r]+)', text, re.IGNORECASE)
+        if main:
+            value = _parse_uptime_phrase(main.group(1))
+            if value is not None:
+                seconds_list.append(value)
+        for m in re.finditer(r'Switch\s+Uptime\s*:\s*([^\n\r]+)', text, re.IGNORECASE):
+            value = _parse_uptime_phrase(m.group(1))
+            if value is not None:
+                seconds_list.append(value)
+
+    if vsf_output:
+        text = _strip_ansi(vsf_output)
+        for m in re.finditer(r'^\s*Uptime\s*:\s*([^\n\r]+)', text, re.MULTILINE | re.IGNORECASE):
+            value = _parse_uptime_phrase(m.group(1))
+            if value is not None:
+                seconds_list.append(value)
+
+    # 只有单个成员值（非堆叠）时不返回 —— 单机运行时间由设备级字段负责，避免重复
+    if len(seconds_list) < 2:
+        return ""
+    return ", ".join(str(s) for s in seconds_list)
+
+
 def extract_model(system_output: str, version_output: str, device_type: str, vsf_output: str = "") -> str:
     """从 show system / show version / show vsf detail 输出中提取设备型号
 
@@ -318,24 +411,8 @@ def _parse_cisco_uptime(version_output: str) -> int | None:
     子串（中间隔着 for this control processor），不会抢到第一个匹配。
     """
     output = _strip_ansi(version_output)
-    m = re.search(
-        r'uptime is\s+'
-        r'(?:(\d+)\s+years?,\s*)?'
-        r'(?:(\d+)\s+weeks?,\s*)?'
-        r'(?:(\d+)\s+days?,\s*)?'
-        r'(?:(\d+)\s+hours?,\s*)?'
-        r'(?:(\d+)\s+minutes?)',
-        output, re.IGNORECASE
-    )
-    if not m:
-        return None
-    years = int(m.group(1) or 0)
-    weeks = int(m.group(2) or 0)
-    days = int(m.group(3) or 0)
-    hours = int(m.group(4) or 0)
-    minutes = int(m.group(5) or 0)
-    total = days + weeks * 7 + years * 365
-    return total * 86400 + hours * 3600 + minutes * 60
+    m = re.search(r'uptime is\s+([^\n\r]+)', output, re.IGNORECASE)
+    return _parse_uptime_phrase(m.group(1)) if m else None
 
 
 def _parse_aruba_uptime(boot_history: str) -> int | None:
@@ -345,24 +422,30 @@ def _parse_aruba_uptime(boot_history: str) -> int | None:
         Current Boot, up for 350 days 34 mins 32 secs     ← 无 hrs
         Current Boot, up for 180 days 4 hrs 56 secs       ← 无 mins
         Current Boot, up for 124 days 5 hrs 19 mins       ← 无 secs
-    故每段都做成可选，按实际出现的段累加；一段都没有则视为解析失败。
     """
     output = _strip_ansi(boot_history)
-    m = re.search(
-        r'Current Boot, up for\s+'
-        r'(?:(\d+)\s+days?\s*)?'
-        r'(?:(\d+)\s+hrs?\s*)?'
-        r'(?:(\d+)\s+mins?\s*)?'
-        r'(?:(\d+)\s+secs?)?',
-        output, re.IGNORECASE
-    )
-    if not m or not any(m.groups()):
-        return None
-    days = int(m.group(1) or 0)
-    hours = int(m.group(2) or 0)
-    minutes = int(m.group(3) or 0)
-    seconds = int(m.group(4) or 0)
-    return days * 86400 + hours * 3600 + minutes * 60 + seconds
+    m = re.search(r'Current Boot, up for\s+([^\n\r]+)', output, re.IGNORECASE)
+    return _parse_uptime_phrase(m.group(1)) if m else None
+
+
+# 运行时长短语的单位 → 秒。Cisco 与 Aruba 的写法都覆盖：
+#   Cisco：1 year, 29 weeks, 2 days, 5 hours, 48 minutes
+#   Aruba：105 days 20 hrs 37 mins 1 secs / 21 hours under a minute（不足一分钟不计数）
+_UPTIME_UNIT_SECONDS = {
+    "year": 365 * 86400, "week": 7 * 86400, "day": 86400,
+    "hour": 3600, "hr": 3600, "minute": 60, "min": 60, "sec": 1,
+}
+_UPTIME_PHRASE_RE = re.compile(r'(\d+)\s+(year|week|day|hour|hr|minute|min|sec)', re.IGNORECASE)
+
+
+def _parse_uptime_phrase(text: str) -> int | None:
+    """解析时长短语（任一段可省，单复数不限）；一段数值都没有 → None"""
+    total = 0
+    found = False
+    for m in _UPTIME_PHRASE_RE.finditer(text):
+        total += int(m.group(1)) * _UPTIME_UNIT_SECONDS[m.group(2).lower()]
+        found = True
+    return total if found else None
 
 
 def parse_syslog_lines(log_output: str, device_type: str,
@@ -925,6 +1008,9 @@ def _save_to_sqlite(
     neighbors_data: list, boot_history: str,
     lag_membership_json: str = "{}",
     member_ids: str = "",
+    member_versions: str = "",
+    member_rom_versions: str = "",
+    member_uptimes: str = "",
     stp_data: list | None = None,
 ) -> dict:
     """将采集数据写入 SQLite 数据库
@@ -944,8 +1030,9 @@ def _save_to_sqlite(
 
         # 1. 确保 device 记录存在
         db.execute("""
-            INSERT INTO devices (name, ip, type, platform, serial_number, member_ids, model, version, last_synced)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO devices (name, ip, type, platform, serial_number, member_ids, model, version,
+                                 member_versions, member_rom_versions, member_uptimes, last_synced)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(name) DO UPDATE SET
                 ip=excluded.ip, type=excluded.type, platform=excluded.platform,
                 serial_number=CASE WHEN excluded.serial_number != '' AND excluded.serial_number != '未知'
@@ -956,6 +1043,12 @@ def _save_to_sqlite(
                            THEN excluded.model ELSE devices.model END,
                 version=CASE WHEN excluded.version != '' AND excluded.version != '未知'
                               THEN excluded.version ELSE devices.version END,
+                member_versions=CASE WHEN excluded.member_versions != ''
+                                     THEN excluded.member_versions ELSE devices.member_versions END,
+                member_rom_versions=CASE WHEN excluded.member_rom_versions != ''
+                                         THEN excluded.member_rom_versions ELSE devices.member_rom_versions END,
+                member_uptimes=CASE WHEN excluded.member_uptimes != ''
+                                    THEN excluded.member_uptimes ELSE devices.member_uptimes END,
                 last_synced=excluded.last_synced
         """, (
             device_name, device_ip, device_type, device_platform,
@@ -963,18 +1056,25 @@ def _save_to_sqlite(
             member_ids,
             device_model if device_model != "未知" else "",
             software_version if software_version != "未知" else "",
+            member_versions, member_rom_versions, member_uptimes,
             collected_at,
         ))
         device_row = db.execute("SELECT id FROM devices WHERE name=?", (device_name,)).fetchone()
         device_id = device_row["id"]
 
         # 1.1 物理设备档案 upsert（序列号主键，自动建档，永不删除）
-        # 成员三元组: member_ids/serial_number/device_model 同序 1:1（非堆叠时 1 条）
-        for serial_part, member_part, model_part in zip(
-            [s.strip() for s in serial_number.split(",") if s.strip()],
-            [m.strip() for m in member_ids.split(",") if m.strip()],
-            [m.strip() for m in device_model.split(",") if m.strip()],
-        ):
+        # 以**序列号**为基准逐成员展开：member_ids 只有 Aruba VSF 有（Cisco 堆叠为空），
+        # 不能拿它当 zip 的基准 —— 否则 Cisco 堆叠成员一条都进不了档案（曾经如此）。
+        serials = [s.strip() for s in serial_number.split(",") if s.strip()]
+        member_no_list = [m.strip() for m in member_ids.split(",") if m.strip()]
+        model_list = [m.strip() for m in device_model.split(",") if m.strip()]
+        version_list = [v.strip() for v in member_versions.split(",") if v.strip()]
+        for idx, serial_part in enumerate(serials):
+            # 成员编号：真实 Member ID 优先（需与序列号数量一致），否则用顺序号
+            member_no = member_no_list[idx] if len(member_no_list) == len(serials) else str(idx + 1)
+            model_part = model_list[idx] if idx < len(model_list) else (model_list[-1] if model_list else "")
+            # 成员自己的版本优先；无成员级版本（IOS-XE 堆叠 / Aruba VSF）退回整机版本
+            version_part = version_list[idx] if len(version_list) == len(serials) else software_version
             db.execute("""
                 INSERT INTO device_members (serial_number, model, version, last_device, last_member, last_seen)
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -987,9 +1087,9 @@ def _save_to_sqlite(
             """, (
                 serial_part,
                 model_part,
-                software_version if software_version != "未知" else "",
+                version_part if version_part != "未知" else "",
                 device_name,
-                member_part,
+                member_no,
                 collected_at,
             ))
 
@@ -1443,6 +1543,9 @@ def _save_data(
             device_model=device_model,
             # VSF 成员 ID（仅 Aruba VSF 有值；与序列号同源同序 1:1）
             member_ids=extract_member_ids(vsf_info),
+            member_versions=extract_member_versions(version_info),
+            member_rom_versions=extract_member_rom_versions(vsf_info),
+            member_uptimes=extract_member_uptimes(version_info, vsf_info),
             system_uptime_seconds=system_uptime_seconds,
             port_details=port_details,
             port_errors=port_errors_dict,

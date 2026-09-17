@@ -22,6 +22,7 @@ def get_all_devices() -> list[dict]:
     rows = conn.execute(
         """SELECT name, ip, type, platform, location, notes,
                   serial_number, member_ids, model, version, last_synced,
+                  member_versions, member_rom_versions, member_uptimes,
                   uplink_ports, username
            FROM devices
            ORDER BY name"""
@@ -35,6 +36,7 @@ def get_device_by_name(name: str) -> dict | None:
     row = conn.execute(
         """SELECT name, ip, type, platform, location, notes,
                   serial_number, member_ids, model, version, last_synced,
+                  member_versions, member_rom_versions, member_uptimes,
                   uplink_ports, username
            FROM devices WHERE name = ?""",
         (name,),
@@ -60,8 +62,9 @@ def create_device(data: dict) -> int:
     row = conn.execute(
         """INSERT INTO devices (name, ip, type, platform, location, notes,
                                 serial_number, member_ids, model, version,
+                                member_versions, member_rom_versions, member_uptimes,
                                 uplink_ports, username)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (data["name"], *_extract_fields(data)),
     ).lastrowid
     conn.commit()
@@ -90,6 +93,7 @@ def update_device(name: str, data: dict) -> bool:
             """UPDATE devices SET
                  name=?, ip=?, type=?, platform=?, location=?, notes=?,
                  serial_number=?, member_ids=?, model=?, version=?,
+                 member_versions=?, member_rom_versions=?, member_uptimes=?,
                  uplink_ports=?, username=?
                WHERE name=?""",
             (new_name, *_extract_fields(merged), name),
@@ -242,6 +246,9 @@ def _extract_fields(data: dict) -> tuple:
         data.get("member_ids", "") or "",
         data.get("model", "") or "",
         data.get("version", "") or "",
+        data.get("member_versions", "") or "",
+        data.get("member_rom_versions", "") or "",
+        data.get("member_uptimes", "") or "",
         uplink,
         data.get("username", "") or "",
     )
