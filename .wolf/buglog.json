@@ -1716,11 +1716,33 @@
       "error_message": "用户实测 BJQ：STP 图每层中间的连线圆角转弯方向都反了（且要求不做圆角、走直线）",
       "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
       "root_cause": "正交折线路径（下探→水平管道→落地）在两端芯片横向几乎对齐时 |dx| < 2×圆角半径(14px)，水平段从 sourceX+r 反向往回走到 targetX-r，退化成钩形/S 形——视觉上就像圆角方向画反了",
-      "fix": "按要求改为端口到端口的直线连接，整体移除管道 Y / 线束偏移 / 圆角逻辑（净 -60 行）",
-      "tags": ["stp", "edge-routing", "svg-path", "degenerate-case", "user-reported"],
+      "fix": "最终方案（f5c7837，用户澄清后）：按层带几何自适应——两端芯片最大横向错位 < 64px 走直线（BJQ 三层链），否则保留管道折线+圆角（PVG 星型）；圆角仅在 |dx| ≥ 2r 时绘制。中途曾整体改直线（50c9853）后按澄清恢复。",
+      "tags": [
+        "stp",
+        "edge-routing",
+        "svg-path",
+        "degenerate-case",
+        "user-reported"
+      ],
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T04:50:00.000Z"
+    },
+    {
+      "id": "bug-106",
+      "timestamp": "2026-09-17T04:50:58.936Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: // 芯片绝对中心 x（判断层带是否列对齐）; const chipXOf = new Map<string, number>() | Also: const straight = straightBand.get(`${e.source}->${e.target}`; const off = offsetOf.get(edgeKey(e)) ?? 0",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-17T04:51:15.300Z"
     }
   ]
 }
