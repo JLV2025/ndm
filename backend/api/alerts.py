@@ -134,6 +134,59 @@ async def get_alerts_summary():
     return summary
 
 
+@router.put("/api/alerts/resolve-all")
+async def resolve_all_alerts(
+    device_name: Optional[str] = None,
+    alert_type: Optional[str] = None,
+    severity: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    unread_only: bool = False,
+):
+    """「全部清除」—— 把符合筛选条件的**未处理**告警一次性标记为已处理
+
+    过滤口径与 GET /api/alerts 完全一致（页面上看到什么就清除什么）。
+    已处理的记录不动（不重写 resolved_at）。返回实际清除条数。
+
+    查询参数：device_name / alert_type / severity / date_from / date_to / unread_only。
+    默认值用普通 None 而非 Query(...) —— Query 对象在直接调用（测试）时会原样传进 SQL。
+    """
+    from datetime import datetime
+    db = _get_db()
+
+    conditions = ["a.resolved_at IS NULL"]
+    params: list = []
+
+    if device_name:
+        conditions.append("d.name = ?")
+        params.append(device_name)
+    if alert_type:
+        conditions.append("a.alert_type = ?")
+        params.append(alert_type)
+    if severity:
+        conditions.append("a.severity = ?")
+        params.append(severity.upper())
+    if unread_only:
+        conditions.append("a.is_read = 0")
+    if date_from:
+        conditions.append("a.created_at >= ?")
+        params.append(date_from + "T00:00:00")
+    if date_to:
+        conditions.append("a.created_at <= ?")
+        params.append(date_to + "T23:59:59")
+
+    where = " AND ".join(conditions)
+    cursor = db.execute(
+        f"""UPDATE alerts SET resolved_at = ?, is_read = 1
+            WHERE id IN (
+                SELECT a.id FROM alerts a JOIN devices d ON d.id = a.device_id WHERE {where}
+            )""",
+        [datetime.now().isoformat(), *params],
+    )
+    db.commit()
+    return {"status": "ok", "resolved": cursor.rowcount}
+
+
 @router.put("/api/alerts/{alert_id}/read")
 async def mark_alert_read(alert_id: int):
     """标记告警为已读"""

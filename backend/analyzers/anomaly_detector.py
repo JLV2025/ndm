@@ -8,6 +8,14 @@ from datetime import datetime
 from typing import List, Dict, Optional
 
 
+def _distinct_nonempty(value: str) -> set:
+    """逗号拼接的成员级字段（与序列号同序）→ 去重后的非空取值集合
+
+    只有一个成员值（非堆叠 / 解析失败退回整机版本）时集合大小为 1，不构成不一致。
+    """
+    return {v.strip() for v in (value or "").split(",") if v.strip()}
+
+
 class AnomalyDetector:
     """Phase 1 后自动异常检测"""
 
@@ -256,42 +264,43 @@ class AnomalyDetector:
         }]
 
     def _check_version_mismatch(self, device_id: int, collection_id: int) -> List[Dict]:
-        """检测同型号设备版本不一致"""
-        # 获取当前设备型号和版本
-        cur = self.db.execute(
-            "SELECT d.model, c.software_version FROM collections c JOIN devices d ON d.id=c.device_id WHERE c.id=?",
-            (collection_id,),
+        """检测**同一台设备内部**堆叠成员版本不一致（软件版本或 ROM 版本）
+
+        只比同一堆叠内部：跨设备同型号版本不同是正常的分站点差异（不同升级批次），
+        不报警 —— 与「软件版本报告」的口径一致。
+
+        现实意义：堆叠整机共享一个软件镜像，成员版本不同只会出现在 classic IOS 堆叠
+        的升级窗口（一个成员已进新镜像、另一个还没重启）；Aruba VSF 的成员级版本
+        只能比 ROM Version。
+        """
+        row = self.db.execute(
+            """SELECT d.name, d.model, d.member_versions, d.member_rom_versions
+               FROM devices d WHERE d.id = ?""",
+            (device_id,),
         ).fetchone()
-        if not cur or not cur["model"] or cur["model"] == "未知":
-            return []
-        if not cur["software_version"] or cur["software_version"] == "未知":
+        if not row:
             return []
 
-        # 查找同型号、不同版本的设备
-        rows = self.db.execute(
-            """SELECT d.name, d.version
-               FROM devices d
-               WHERE d.model = ?
-                 AND d.version != ''
-                 AND d.version != '未知'
-                 AND d.version != ?""",
-            (cur["model"], cur["software_version"]),
-        ).fetchall()
+        versions = _distinct_nonempty(row["member_versions"])
+        roms = _distinct_nonempty(row["member_rom_versions"])
+        if len(versions) < 2 and len(roms) < 2:
+            return []
 
-        if rows:
-            versions = {r["version"] for r in rows}
-            versions.add(cur["software_version"])
-            return [{
-                "alert_type": "version_mismatch",
-                "severity": "WARNING",
-                "title": f"型号 {cur['model']} 存在版本不一致",
-                "detail": {
-                    "model": cur["model"],
-                    "current_version": cur["software_version"],
-                    "other_versions": list(versions),
-                },
-            }]
-        return []
+        detail = {"device": row["name"], "model": row["model"]}
+        parts = []
+        if len(versions) > 1:
+            detail["member_versions"] = sorted(versions)
+            parts.append("软件版本 " + " / ".join(sorted(versions)))
+        if len(roms) > 1:
+            detail["member_rom_versions"] = sorted(roms)
+            parts.append("ROM 版本 " + " / ".join(sorted(roms)))
+
+        return [{
+            "alert_type": "version_mismatch",
+            "severity": "WARNING",
+            "title": f"{row['name']} 堆叠成员版本不一致",
+            "detail": {**detail, "summary": "；".join(parts)},
+        }]
 
     def _check_high_utilization(self, device_id: int, collection_id: int, week: str) -> List[Dict]:
         """检测端口带宽利用率飙升：本周 > 80% 且上周 < 50%"""
