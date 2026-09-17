@@ -22,6 +22,7 @@ import {
   Storage,
   Terminal,
   Hub as HubIcon,
+  AccountTree as TreeIcon,
   Warning as AlertIcon,
   Assessment as ReportsIcon,
   BugReport as BugIcon,
@@ -33,6 +34,7 @@ import Dashboard from './pages/Dashboard'
 import Viewer from './pages/Viewer'
 import Topology from './pages/PortTopology'
 import NetworkTopology from './pages/NetworkTopology'
+import StpTopology from './pages/StpTopology'
 import Alerts from './pages/Alerts'
 import Reports from './pages/Reports'
 import LogAnalyzer from './pages/LogAnalyzer'
@@ -62,6 +64,7 @@ function Layout() {
     { label: t('nav.devices'), icon: <Storage />, path: '/devices' },
     { label: t('nav.topology'), icon: <HubIcon />, path: '/network-topology' },
     { label: t('nav.portTopology'), icon: <HubIcon />, path: '/port-topology' },
+    { label: t('nav.stpTopology'), icon: <TreeIcon />, path: '/stp-topology' },
     { label: t('nav.viewer'), icon: <Terminal />, path: '/viewer' },
     { label: t('alerts.title'), icon: <AlertIcon />, path: '/alerts' },
     { label: t('reports.title'), icon: <ReportsIcon />, path: '/reports' },
@@ -315,6 +318,7 @@ const App: React.FC = () => {
           <Route path="topology" element={<Topology />} />
           <Route path="port-topology" element={<Topology />} />
           <Route path="network-topology" element={<NetworkTopology />} />
+          <Route path="stp-topology" element={<StpTopology />} />
           <Route path="alerts" element={<Alerts />} />
           <Route path="reports" element={<Reports />} />
           <Route path="log-analyzer" element={<LogAnalyzer />} />

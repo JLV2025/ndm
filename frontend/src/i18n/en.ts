@@ -13,6 +13,7 @@ const en: Record<string, string> = {
   'nav.viewer': 'Viewer',
   'nav.topology': 'Network Topology',
   'nav.portTopology': 'Port Map',
+  'nav.stpTopology': 'STP Topology',
   'nav.login': 'Login',
 
   // Dashboard
@@ -338,6 +339,24 @@ const en: Record<string, string> = {
   'topology.noConnections': 'No inter-device connections found',
   'topology.exportPng': 'Export PNG',
   'topology.exportVisio': 'Export Visio',
+
+  // STP spanning tree topology
+  'topology.stpTitle': 'STP Spanning Tree Topology',
+  'topology.stpDesc': 'Per-site switch spanning tree: root bridge / forwarding / blocking (VLANs as pseudo-ports, color-coded)',
+  'topology.stpVlanLegend': 'VLAN Legend',
+  'topology.stpAllVlans': 'All',
+  'topology.stpRootBadge': 'ROOT',
+  'topology.stpNoData': 'No STP data',
+  'topology.stpNoDataHint': 'Spanning tree data not collected yet (re-collect to populate)',
+  'topology.stpLegendRoot': 'Root bridge (ROOT)',
+  'topology.stpLegendFwd': 'Forwarding (FWD)',
+  'topology.stpLegendBlk': 'Blocking (BLK)',
+  'topology.stpModeInconsistent': 'Inconsistent STP modes in site',
+  'topology.stpRootOutside': 'Root bridge outside site',
+  'topology.stpRootOutsideHint': 'No site device matches these root bridge MACs:',
+  'topology.stpStatsDevices': 'switches',
+  'topology.stpStatsEdges': 'VLAN links',
+  'topology.stpStatsVlans': 'VLANs',
 
   // Batch import
   'import.title': 'Batch Import Devices',

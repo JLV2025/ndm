@@ -13,6 +13,7 @@ const zh: Record<string, string> = {
   'nav.viewer': '配置查看器',
   'nav.topology': '拓扑图',
   'nav.portTopology': '端口连接图',
+  'nav.stpTopology': 'STP 拓扑图',
   'nav.login': '登录',
 
   // 仪表盘
@@ -340,6 +341,24 @@ const zh: Record<string, string> = {
   'topology.noConnections': '未发现设备间连接',
   'topology.exportPng': '导出 PNG',
   'topology.exportVisio': '导出 Visio',
+
+  // STP 生成树拓扑
+  'topology.stpTitle': 'STP 生成树拓扑',
+  'topology.stpDesc': '按站点查看交换机生成树：根桥 / 转发 / 阻塞（VLAN 为伪端口，颜色区分）',
+  'topology.stpVlanLegend': 'VLAN 图例',
+  'topology.stpAllVlans': '全部',
+  'topology.stpRootBadge': '根桥',
+  'topology.stpNoData': '无 STP 数据',
+  'topology.stpNoDataHint': '该设备尚未采集到生成树数据（重新采集后可见）',
+  'topology.stpLegendRoot': '根桥（ROOT）',
+  'topology.stpLegendFwd': '转发（FWD）',
+  'topology.stpLegendBlk': '阻塞（BLK）',
+  'topology.stpModeInconsistent': '站点 STP 模式不一致',
+  'topology.stpRootOutside': '根桥在站点外',
+  'topology.stpRootOutsideHint': '未在站点清单中找到根桥 MAC 对应的设备：',
+  'topology.stpStatsDevices': '台交换机',
+  'topology.stpStatsEdges': '条 VLAN 链路',
+  'topology.stpStatsVlans': '个 VLAN',
 
   // 批量导入
   'import.title': '批量导入设备',

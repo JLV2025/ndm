@@ -89,6 +89,24 @@ export const PORT_TOPOLOGY_LEGEND: LegendItem[] = [
 ]
 
 // ============================================================
+// STP 生成树拓扑：VLAN 调色板
+// ============================================================
+/** VLAN 伪端口配色（暗色主题下两两可区分） */
+export const STP_VLAN_PALETTE = [
+  '#38BDF8', '#F472B6', '#FACC15', '#4ADE80', '#A78BFA', '#FB923C',
+  '#22D3EE', '#F87171', '#84CC16', '#E879F9', '#2DD4BF', '#FBBF24',
+  '#60A5FA', '#FB7185', '#34D399', '#C084FC', '#FDE047', '#7DD3FC',
+  '#FCA5A5', '#86EFAC',
+]
+
+/** VLAN → 颜色：按「站点 VLAN 升序」的序号取色，同一站点内稳定不漂移 */
+export function vlanColor(vlan: number, allVlans: number[]): string {
+  const idx = allVlans.indexOf(vlan)
+  if (idx < 0) return '#94A3B8'
+  return STP_VLAN_PALETTE[idx % STP_VLAN_PALETTE.length]
+}
+
+// ============================================================
 // 堆叠检测
 // ============================================================
 export const STACK_KEYWORDS = ['VSF', 'stackwise']
