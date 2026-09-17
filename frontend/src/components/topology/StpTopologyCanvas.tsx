@@ -15,7 +15,7 @@ import {
 import { exportTopologyAsPng } from '../../shared/exportUtils'
 import { getNodeColors, getDisplayType, vlanColor } from '../../shared/constants'
 import { useI18n } from '../../i18n'
-import type { StpTopologyData, StpNode } from '../../types/topology'
+import type { StpTopologyData, StpNode, StpEdge } from '../../types/topology'
 
 // ============================================================
 // 布局常量
@@ -43,6 +43,18 @@ interface StpNodeData {
   [key: string]: unknown
 }
 
+/** 边的运行时数据（buildLayout 注入；finalEdges 里刷新高亮/明细态） */
+interface StpEdgeData {
+  pipeY?: number
+  dashed?: boolean
+  dimmed?: boolean
+  highlighted?: boolean
+  detailLabel?: string
+  detail?: string
+  edge?: StpEdge
+  [key: string]: unknown
+}
+
 const handleStyle = (color: string): React.CSSProperties => ({
   width: 7, height: 7,
   background: '#0F172A', border: `1.5px solid ${color}`, borderRadius: '50%',
@@ -66,7 +78,7 @@ function chipTitle(n: StpNode, vlan: number): string {
 // 交换机节点：头部（名字/模式/根桥徽章）+ VLAN 伪端口行
 // ============================================================
 function StpSwitchNode({ data }: NodeProps) {
-  const { node, width, selectedVlan } = data as unknown as StpNodeData
+  const { node, width, selectedVlan, allVlans } = data as StpNodeData
   const { t } = useI18n()
   const displayType = getDisplayType(node.type, node.tier)
   const colors = getNodeColors(displayType)
@@ -85,14 +97,14 @@ function StpSwitchNode({ data }: NodeProps) {
         ? `0 0 44px #FACC1577, 0 4px 16px #FACC1544`
         : `0 0 32px ${colors.glow}99, 0 4px 16px ${colors.glow}66`,
     }}>
-      {/* 每个 VLAN 一个 handle（底=source / 底=target / 顶=target），与 chip 对位 */}
+      {/* 每个 VLAN 一个 handle（底=source / 顶=target），与 chip 对位 */}
       {node.vlans.map((c, i) => (
         <Handle key={`b-${c.vlan}`} type="source" position={Position.Bottom} id={`b-${c.vlan}`}
-          style={{ ...handleStyle(vlanColor(c.vlan, (data as unknown as StpNodeData).allVlans)), left: chipX(i), bottom: -3 }} />
+          style={{ ...handleStyle(vlanColor(c.vlan, allVlans)), left: chipX(i), bottom: -3 }} />
       ))}
       {node.vlans.map((c, i) => (
         <Handle key={`t-${c.vlan}`} type="target" position={Position.Top} id={`t-${c.vlan}`}
-          style={{ ...handleStyle(vlanColor(c.vlan, (data as unknown as StpNodeData).allVlans)), left: chipX(i), top: -3 }} />
+          style={{ ...handleStyle(vlanColor(c.vlan, allVlans)), left: chipX(i), top: -3 }} />
       ))}
 
       {/* 头部 */}
@@ -119,7 +131,7 @@ function StpSwitchNode({ data }: NodeProps) {
       {node.has_stp_data ? (
         <Box sx={{ position: 'absolute', left: NODE_PAD, right: NODE_PAD, top: HEADER_H - 4, display: 'flex', gap: `${CHIP_PITCH - CHIP_W}px` }}>
           {node.vlans.map(c => {
-            const color = vlanColor(c.vlan, (data as unknown as StpNodeData).allVlans)
+            const color = vlanColor(c.vlan, allVlans)
             const dim = selectedVlan != null && selectedVlan !== c.vlan
             return (
               <Box key={c.vlan} title={chipTitle(node, c.vlan)} sx={{
@@ -152,7 +164,7 @@ function StpSwitchNode({ data }: NodeProps) {
 // 边：竖直下探 → 水平管道（按 VLAN 着色）→ 落向目标
 // ============================================================
 function StpVlanEdge({ id, sourceX, sourceY, targetX, targetY, data, markerEnd, style }: EdgeProps) {
-  const d = (data || {}) as any
+  const d = (data || {}) as StpEdgeData
   const pipeY: number | undefined = d.pipeY
   const r = ELBOW_R
   const dashed = !!d.dashed
@@ -283,15 +295,18 @@ function buildLayout(data: StpTopologyData): LayoutResult {
     if (!bandEdges.has(key)) bandEdges.set(key, [])
     bandEdges.get(key)!.push(e)
   }
+  // 边的稳定键：含源端口（同一对设备间若有并行链路也不会撞键）
+  const edgeKey = (e: { source: string; target: string; vlan: number; source_port: string }) =>
+    `${e.source}|${e.target}|${e.vlan}|${e.source_port}`
+
   const offsetOf = new Map<string, number>()
-  for (const [key, arr] of bandEdges) {
+  for (const arr of bandEdges.values()) {
     const sorted = [...arr].sort((a, b) =>
       a.vlan - b.vlan || a.source.localeCompare(b.source) || a.target.localeCompare(b.target))
     sorted.forEach((e, i) => {
       const off = (i - (sorted.length - 1) / 2) * EDGE_SPREAD
-      offsetOf.set(`${e.source}|${e.target}|${e.vlan}`, off)
+      offsetOf.set(edgeKey(e), off)
     })
-    void key
   }
 
   const rfNodes: Node<StpNodeData>[] = data.nodes.map(n => ({
@@ -306,11 +321,11 @@ function buildLayout(data: StpTopologyData): LayoutResult {
     const color = vlanColor(e.vlan, allVlans)
     const sl = layerOf.get(e.source) ?? lastRow
     const tl = layerOf.get(e.target) ?? lastRow
-    const off = offsetOf.get(`${e.source}|${e.target}|${e.vlan}`) ?? 0
+    const off = offsetOf.get(edgeKey(e)) ?? 0
     const pipeY = pipeYFor(Math.min(sl, tl), Math.max(sl, tl)) + off
     const detail = `V${e.vlan} · ${e.source_port || '?'} → ${e.target_port || '?'}`
     return {
-      id: `stp-${e.source}-${e.target}-${e.vlan}`,
+      id: `stp-${e.source}-${e.target}-${e.vlan}-${e.source_port || 'x'}`,
       source: e.source,
       target: e.target,
       sourceHandle: `b-${e.vlan}`,
@@ -347,12 +362,13 @@ export default function StpTopologyCanvas({ location, data }: Props) {
 
   // VLAN 高亮：选中 VLAN 的边全亮，其余淡出；悬停的边显示端口明细
   const finalEdges = useMemo(() => edges.map(e => {
-    const vlan = (e.data as any)?.edge?.vlan as number | undefined
+    const ed = e.data as StpEdgeData | undefined
+    const vlan = ed?.edge?.vlan
     const highlighted = selectedVlan != null && vlan === selectedVlan
     const dimmed = selectedVlan != null && vlan !== selectedVlan
     return {
       ...e,
-      data: { ...(e.data || {}), highlighted, dimmed, detailLabel: e.id === hoveredEdge ? (e.data as any)?.detail : undefined },
+      data: { ...(e.data || {}), highlighted, dimmed, detailLabel: e.id === hoveredEdge ? ed?.detail : undefined },
       zIndex: highlighted ? 10 : 0,
     }
   }), [edges, selectedVlan, hoveredEdge])

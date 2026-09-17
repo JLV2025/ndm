@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Box, Paper, Typography, CircularProgress } from '@mui/material'
 import { AccountTree as TreeIcon } from '@mui/icons-material'
 import { deviceApi, topologyApi } from '../services/api'
@@ -28,7 +28,11 @@ export default function StpTopology() {
     return Array.from(locSet).sort()
   }, [devices])
 
+  // 请求序号：快速切换站点时丢弃过期响应，避免旧数据覆盖新站点
+  const reqSeq = useRef(0)
+
   const loadStp = useCallback((loc: string | null) => {
+    const seq = ++reqSeq.current
     setSelectedLocation(loc)
     if (!loc) {
       setTopoData(null)
@@ -40,10 +44,12 @@ export default function StpTopology() {
     setTopoData(null)
     topologyApi.getLocationStp(loc)
       .then((data) => {
+        if (seq !== reqSeq.current) return
         setTopoData(data)
         setLoading(false)
       })
       .catch((err) => {
+        if (seq !== reqSeq.current) return
         console.error(err)
         setError(err.response?.data?.detail || err.message || 'Failed to load STP topology')
         setLoading(false)
