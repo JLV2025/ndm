@@ -28,8 +28,6 @@ const NODE_PAD = 14
 const NODE_H = HEADER_H + CHIP_H + 22
 const H_GAP = 90
 const V_GAP = 280
-const ELBOW_R = 14
-const EDGE_SPREAD = 4       // 同一层带内相邻边的垂直偏移（形成彩色"线束"）
 const MIN_NODE_W = 340
 
 // ============================================================
@@ -45,7 +43,6 @@ interface StpNodeData {
 
 /** 边的运行时数据（buildLayout 注入；finalEdges 里刷新高亮/明细态） */
 interface StpEdgeData {
-  pipeY?: number
   dashed?: boolean
   dimmed?: boolean
   highlighted?: boolean
@@ -161,12 +158,10 @@ function StpSwitchNode({ data }: NodeProps) {
 }
 
 // ============================================================
-// 边：竖直下探 → 水平管道（按 VLAN 着色）→ 落向目标
+// 边：VLAN 伪端口之间的直线连接（按 VLAN 着色；阻塞为虚线）
 // ============================================================
 function StpVlanEdge({ id, sourceX, sourceY, targetX, targetY, data, markerEnd, style }: EdgeProps) {
   const d = (data || {}) as StpEdgeData
-  const pipeY: number | undefined = d.pipeY
-  const r = ELBOW_R
   const dashed = !!d.dashed
   const dimmed = !!d.dimmed
   const highlighted = !!d.highlighted
@@ -174,32 +169,12 @@ function StpVlanEdge({ id, sourceX, sourceY, targetX, targetY, data, markerEnd, 
   const width = highlighted ? 4.5 : 2.4
   const opacity = dimmed ? 0.05 : (highlighted ? 1 : (dashed ? 0.45 : 0.92))
 
-  let path = ''
+  // 直线：从源芯片直接连到目标芯片
+  // （原先的"下探→水平管道→落地"折线在两侧芯片横向几乎对齐时，
+  //   水平段会因 |dx| < 2×圆角半径而反向折回，视觉上像圆角方向反了）
+  const path = `M ${sourceX} ${sourceY} L ${targetX} ${targetY}`
   const midX = (sourceX + targetX) / 2
-  const midY = pipeY ?? (sourceY + targetY) / 2
-
-  if (pipeY == null || sourceY > pipeY || targetY < pipeY) {
-    // 兜底（同层边等异常几何）：平滑曲线
-    path = `M ${sourceX} ${sourceY} C ${sourceX} ${sourceY + 70}, ${targetX} ${targetY - 70}, ${targetX} ${targetY}`
-  } else if (targetX >= sourceX) {
-    path = [
-      `M ${sourceX} ${sourceY}`,
-      `L ${sourceX} ${pipeY - r}`,
-      `Q ${sourceX} ${pipeY} ${sourceX + r} ${pipeY}`,
-      `L ${targetX - r} ${pipeY}`,
-      `Q ${targetX} ${pipeY} ${targetX} ${pipeY + r}`,
-      `L ${targetX} ${targetY}`,
-    ].join(' ')
-  } else {
-    path = [
-      `M ${sourceX} ${sourceY}`,
-      `L ${sourceX} ${pipeY - r}`,
-      `Q ${sourceX} ${pipeY} ${sourceX - r} ${pipeY}`,
-      `L ${targetX + r} ${pipeY}`,
-      `Q ${targetX} ${pipeY} ${targetX} ${pipeY + r}`,
-      `L ${targetX} ${targetY}`,
-    ].join(' ')
-  }
+  const midY = (sourceY + targetY) / 2
 
   return (
     <>
@@ -246,8 +221,6 @@ function buildLayout(data: StpTopologyData): LayoutResult {
     widths.set(n.id, Math.max(MIN_NODE_W, NODE_PAD * 2 + Math.max(n.vlans.length, 1) * CHIP_PITCH))
   }
 
-  const layerOf = new Map<string, number | null>()
-  for (const n of data.nodes) layerOf.set(n.id, n.layer)
   const numericLayers = data.nodes.map(n => n.layer).filter((l): l is number => l != null)
   const maxLayer = numericLayers.length ? Math.max(...numericLayers) : 0
   const lastRow = maxLayer + 1   // 无 STP 数据的设备放最后一行
@@ -266,48 +239,16 @@ function buildLayout(data: StpTopologyData): LayoutResult {
   const maxW = Math.max(...rowKeys.map(k => rowWidth(rows.get(k)!)), MIN_NODE_W)
 
   const positions = new Map<string, { x: number; y: number }>()
-  const rowY = new Map<number, number>()
   rowKeys.forEach((k, idx) => {
     const arr = [...rows.get(k)!].sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }))
     const w = rowWidth(arr)
     let x = (maxW - w) / 2
     const y = idx * (NODE_H + V_GAP)
-    rowY.set(k, y)
     for (const n of arr) {
       positions.set(n.id, { x, y })
       x += (widths.get(n.id) || MIN_NODE_W) + H_GAP
     }
   })
-
-  // 层带的水平管道 Y（源层底边与目标层顶边的中点）
-  const pipeYFor = (srcLayer: number, tgtLayer: number): number => {
-    const srcY = rowY.get(srcLayer) ?? 0
-    const tgtY = rowY.get(tgtLayer) ?? srcY + NODE_H + V_GAP
-    return (srcY + NODE_H + tgtY) / 2
-  }
-
-  // 同一层带内的边排序后均匀分配垂直偏移 → 彩色"线束"
-  const bandEdges = new Map<string, typeof data.edges>()
-  for (const e of data.edges) {
-    const sl = layerOf.get(e.source) ?? lastRow
-    const tl = layerOf.get(e.target) ?? lastRow
-    const key = `${sl}-${tl}`
-    if (!bandEdges.has(key)) bandEdges.set(key, [])
-    bandEdges.get(key)!.push(e)
-  }
-  // 边的稳定键：含源端口（同一对设备间若有并行链路也不会撞键）
-  const edgeKey = (e: { source: string; target: string; vlan: number; source_port: string }) =>
-    `${e.source}|${e.target}|${e.vlan}|${e.source_port}`
-
-  const offsetOf = new Map<string, number>()
-  for (const arr of bandEdges.values()) {
-    const sorted = [...arr].sort((a, b) =>
-      a.vlan - b.vlan || a.source.localeCompare(b.source) || a.target.localeCompare(b.target))
-    sorted.forEach((e, i) => {
-      const off = (i - (sorted.length - 1) / 2) * EDGE_SPREAD
-      offsetOf.set(edgeKey(e), off)
-    })
-  }
 
   const rfNodes: Node<StpNodeData>[] = data.nodes.map(n => ({
     id: n.id,
@@ -319,10 +260,6 @@ function buildLayout(data: StpTopologyData): LayoutResult {
 
   const rawEdges: Edge[] = data.edges.map(e => {
     const color = vlanColor(e.vlan, allVlans)
-    const sl = layerOf.get(e.source) ?? lastRow
-    const tl = layerOf.get(e.target) ?? lastRow
-    const off = offsetOf.get(edgeKey(e)) ?? 0
-    const pipeY = pipeYFor(Math.min(sl, tl), Math.max(sl, tl)) + off
     const detail = `V${e.vlan} · ${e.source_port || '?'} → ${e.target_port || '?'}`
     return {
       id: `stp-${e.source}-${e.target}-${e.vlan}-${e.source_port || 'x'}`,
@@ -333,7 +270,7 @@ function buildLayout(data: StpTopologyData): LayoutResult {
       type: 'stpVlan',
       style: { stroke: color },
       markerEnd: { type: MarkerType.ArrowClosed, color, width: 7, height: 7 },
-      data: { pipeY, dashed: !e.forwarding, edge: e, detail },
+      data: { dashed: !e.forwarding, edge: e, detail },
     }
   })
 
