@@ -1815,10 +1815,50 @@
       "file": "backend/api/topology.py",
       "root_cause": "SHAD2SWI02 到 C9500 有两条物理链路（Twe2/0/24、Gi1/0/42），STP 只在 Gi1/0/42（根端口）上有端口行；成边逻辑 _stp_best_links「每个邻居只挑一条链路」按数据库顺序挑中无 STP 行的 Twe2/0/24 → 与该端 STP 行无交集 → 0 条边 → BFS 到不了 → 孤立",
       "fix": "改为 _stp_candidate_ports 保留同一邻居全部候选链路，按 VLAN 合并时优先 root 角色端口；同层边（SHA 双根桥并排）按 STP 角色定向 + 前端底部下弧线渲染（bt-<vlan> handle）",
-      "tags": ["stp", "edge-building", "multi-link", "user-reported", "sha"],
-      "related_bugs": ["bug-105"],
+      "tags": [
+        "stp",
+        "edge-building",
+        "multi-link",
+        "user-reported",
+        "sha"
+      ],
+      "related_bugs": [
+        "bug-105"
+      ],
       "occurrences": 1,
       "last_seen": "2026-09-17T05:05:00.000Z"
+    },
+    {
+      "id": "bug-112",
+      "timestamp": "2026-09-17T05:04:52.921Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/package.json",
+      "root_cause": "Had \"2.9.17\"",
+      "fix": "Changed to \"2.9.18\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T05:04:52.921Z"
+    },
+    {
+      "id": "bug-113",
+      "timestamp": "2026-09-17T05:04:58.397Z",
+      "error_message": "Incorrect value in code",
+      "file": "README.md",
+      "root_cause": "Had \"https://img.shields.io/badge/Version-2.9.17-2DD46",
+      "fix": "Changed to \"https://img.shields.io/badge/Version-2.9.18-2DD46",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T05:04:58.397Z"
     }
   ]
 }

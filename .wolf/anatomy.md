@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T04:58:12.325Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T05:05:11.919Z
 > Files: 69 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
@@ -50,7 +50,7 @@
 - `.gitignore` — Git ignore rules (~335 tok)
 - `CLAUDE.md` — OpenWolf (~1885 tok)
 - `NDM用户使用文档.html` — NDM User Guide / 用户使用文档 — Network Device Management (~11324 tok)
-- `README.md` — Project documentation (~2030 tok)
+- `README.md` — Project documentation (~2072 tok)
 - `start.bat` (~981 tok)
 - `VERSION` (~2 tok)
 
