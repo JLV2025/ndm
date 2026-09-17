@@ -1900,7 +1900,7 @@
       "error_message": "Significant refactor of ",
       "file": "backend/tests/test_counter_parser.py",
       "root_cause": "5 lines replaced/restructured",
-      "fix": "Rewrote 8→14 lines (5 removed)",
+      "fix": "已修：_parse_cisco_uptime 去掉 'System ' 前缀要求，改为匹配 'uptime is'（真机行首是主机名；下一行 'Uptime for this control processor is' 不含该子串，不会抢匹配）。真机全量回归：data 下所有 version.raw 的 uptime 行 52/52 解析成功。注意：已入库的历史采集不会追溯（show version 原文不入库，无法回填），需重新采集该设备才有数据",
       "tags": [
         "auto-detected",
         "refactor",
@@ -1908,7 +1908,7 @@
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-09-17T05:23:12.522Z"
+      "last_seen": "2026-09-17T14:11:07"
     },
     {
       "id": "bug-117",
@@ -1916,7 +1916,7 @@
       "error_message": "Null/undefined access in ",
       "file": "frontend/src/pages/Dashboard.tsx",
       "root_cause": "Property access on potentially null/undefined value",
-      "fix": "Added null safety (optional chaining or null check)",
+      "fix": "已修：_parse_aruba_uptime 四段全部改为可选（AOS-CX 会省略数值为 0 的单位，实测 350 days 34 mins 32 secs / 180 days 4 hrs 56 secs / 124 days 5 hrs 19 mins 三种缺段写法），并要求至少一段有值。真机全量回归：库内 299 条 boot_history 全部解析成功",
       "tags": [
         "auto-detected",
         "null-safety",
@@ -1924,7 +1924,7 @@
       ],
       "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-09-17T05:24:40.982Z"
+      "last_seen": "2026-09-17T14:11:07"
     },
     {
       "id": "bug-115",
@@ -1943,6 +1943,125 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T13:29:18"
+    },
+    {
+      "id": "bug-116",
+      "timestamp": "2026-09-17T13:42:49",
+      "error_message": "「自定义报告 → 设备在线时间」Cisco 18 台设备运行时间全部显示「—」（用户看报告时发现）",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "_parse_cisco_uptime 只匹配 'System uptime is ...'，而真机 show version 的行是 '<主机名> uptime is 1 year, 29 weeks, 2 days, 5 hours, 48 minutes'（IOS / IOS-XE 均以主机名开头，实测 SHAD1SWI01 样本）。该函数零测试覆盖，故一直没暴露",
+      "fix": "已修：_parse_cisco_uptime 去掉 'System ' 前缀要求，改为匹配 'uptime is'（真机行首是主机名；下一行 'Uptime for this control processor is' 不含该子串，不会抢匹配）。真机全量回归：data 下所有 version.raw 的 uptime 行 52/52 解析成功。注意：已入库的历史采集不会追溯（show version 原文不入库，无法回填），需重新采集该设备才有数据",
+      "tags": [
+        "reports",
+        "uptime",
+        "cisco",
+        "regex",
+        "解析"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T14:11:07"
+    },
+    {
+      "id": "bug-117",
+      "timestamp": "2026-09-17T13:42:49",
+      "error_message": "「自定义报告 → 设备在线时间」BJQD2QIS01（Aruba）运行时间也显示「—」",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "_parse_aruba_uptime 要求 'Current Boot, up for X days Y hrs Z mins W secs' 四段齐全；该机实为 'Current Boot, up for 350 days 34 mins 32 secs' —— AOS-CX 在 0 小时时省略 'hrs' 段，正则不匹配返回 None",
+      "fix": "已修：_parse_aruba_uptime 四段全部改为可选（AOS-CX 会省略数值为 0 的单位，实测 350 days 34 mins 32 secs / 180 days 4 hrs 56 secs / 124 days 5 hrs 19 mins 三种缺段写法），并要求至少一段有值。真机全量回归：库内 299 条 boot_history 全部解析成功",
+      "tags": [
+        "reports",
+        "uptime",
+        "aruba",
+        "aoscx",
+        "regex"
+      ],
+      "related_bugs": [
+        "bug-116"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T14:11:07"
+    },
+    {
+      "id": "bug-121",
+      "timestamp": "2026-09-17T05:56:30.408Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 50→69 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T05:56:30.408Z"
+    },
+    {
+      "id": "bug-122",
+      "timestamp": "2026-09-17T05:57:20.379Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/reports.py",
+      "root_cause": "20 lines replaced/restructured",
+      "fix": "Rewrote 49→70 lines (20 removed) | Also: async def report_device_uptime():; \"\"\"SELECT d.name, d.type, c.system_uptime_seconds,",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T05:57:29.446Z"
+    },
+    {
+      "id": "bug-123",
+      "timestamp": "2026-09-17T06:02:46.804Z",
+      "error_message": "Type error",
+      "file": "frontend/src/pages/Reports.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: <Box sx={{ flexGrow: 1 }} />; <Button",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T06:03:23.878Z"
+    },
+    {
+      "id": "bug-124",
+      "timestamp": "2026-09-17T06:03:15.712Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/Reports.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T06:03:15.712Z"
+    },
+    {
+      "id": "bug-118",
+      "timestamp": "2026-09-17T14:11:07",
+      "error_message": "报告端点默认参数写成 Query(None) 后无法被直接调用（测试/内部调用）",
+      "file": "backend/api/reports.py",
+      "root_cause": "函数签名 device_type/location 默认值是 FastAPI 的 Query 对象；绕过 FastAPI 直接调用时该对象被当作参数值传给 sqlite3，报 'type Query is not supported'",
+      "fix": "改为普通 None 默认值（与 backend/api/stats.py 的 get_overview 写法一致），FastAPI 仍会识别为查询参数",
+      "tags": [
+        "fastapi",
+        "query",
+        "testability",
+        "reports"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T14:11:07"
     }
   ]
 }

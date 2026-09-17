@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T05:25:17.696Z
-> Files: 70 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T06:03:45.326Z
+> Files: 74 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -105,6 +105,7 @@
 - `collector.py` — 配置收集 API 路由 (~1711 tok)
 - `data.py` — 数据文件 API 路由 (~3944 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
+- `reports.py` — 自定义报告 API 路由 (~2170 tok)
 - `stats.py` — Dashboard 统计 API — 全量从 SQLite 读取 (~2546 tok)
 - `topology.py` — 拓扑图 API 路由 (~15518 tok)
 
@@ -121,7 +122,7 @@
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~17912 tok)
+- `collector_service.py` — 配置收集服务 (~18131 tok)
 
 ## backend/storage/
 
@@ -142,6 +143,7 @@
 - `test_performance_counters.py` — 端口累计计数器与端口详情合并测试（PerformanceAnalyzer 接线） (~2443 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试（21 列 INSERT / NULL 与读数 0 区分 / 大数据精度） (~900 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试 —— 重点：累计计数器列（in_octets / out_octets） (~1043 tok)
+- `test_reports_api.py` — 自定义报告端点测试 —— 临时库直接调端点函数（HTTP 层之下） (~1450 tok)
 - `test_retention.py` — 分层保留与归档测试 (~3006 tok)
 - `test_stats_overview.py` — Dashboard 端口统计口径测试 —— Disabled 单独计数 (~784 tok)
 - `test_stats_window.py` — 区间流量 Top10 周锚定测试（16 用例，**核心：周中再采一次结果完全不变**） (~1900 tok)
@@ -150,6 +152,7 @@
 - `test_stp_graph.py` — 站点级 STP 图构建测试 —— 纯函数 _build_stp_graph（真机样本驱动） (~3076 tok)
 - `test_stp_parser.py` — stp_parser 测试 — 两个平台的真机样本（backend/tests/fixtures/） (~1610 tok)
 - `test_stp_snapshot_write.py` — stp_snapshots 落库测试 —— 生成树快照（站点 STP 拓扑图的数据源） (~1391 tok)
+- `test_uptime_parser.py` — 运行时间解析测试 —— extract_uptime_seconds（Cisco show version / Aruba boot-history） (~1040 tok)
 
 ## backend/utils/
 
@@ -200,19 +203,20 @@
 
 ## frontend/src/i18n/
 
-- `en.ts` — Declares en (~5194 tok)
-- `zh.ts` — Declares zh (~4375 tok)
+- `en.ts` — Declares en (~5483 tok)
+- `zh.ts` — Declares zh (~4456 tok)
 
 ## frontend/src/pages/
 
 - `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~11085 tok)
 - `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5691 tok)
 - `Login.tsx` — Login (~2283 tok)
+- `Reports.tsx` — 三张表的默认排序：型号字母序 / 运行时间升序（刚重启的排最前）/ 吞吐降序 (~4795 tok)
 - `StpTopology.tsx` — StpTopology (~1434 tok)
 
 ## frontend/src/services/
 
-- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~1962 tok)
+- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~1970 tok)
 
 ## frontend/src/shared/
 
