@@ -79,6 +79,7 @@ const TRAFFIC_WINDOW_LABELS: Record<number, string> = {
 const CHART_COLORS = {
   cisco: '#3B82F6',
   aruba: '#06B6D4',
+  router: '#8B5CF6',
   other: '#94A3B8',
   up: '#2DD46E',
   down: '#94A3B8',
@@ -89,6 +90,17 @@ const CHART_COLORS = {
   grid: '#1E293B',
   text: '#94A3B8',
 }
+
+// 设备类型环形图配色 —— 按【原始 type 键】取色，不能按图例显示名比对：
+// 显示名走 i18n（Aruba 实际文案是 'Aruba OS' 而非 'Aruba CX'），
+// 早先按 'Cisco IOS'/'Aruba CX' 字符串匹配，Aruba 与路由器一起落进灰色，两扇区同色。
+const DEVICE_TYPE_COLORS: Record<string, string> = {
+  cisco_ios: CHART_COLORS.cisco,
+  aruba_aoscx: CHART_COLORS.aruba,
+  cisco_ios_router: CHART_COLORS.router,
+}
+// 未登记的新类型依次取用，避免又一次全挤到同一个颜色
+const DEVICE_TYPE_FALLBACK_COLORS = ['#F59E0B', '#EC4899', '#F97316', '#14B8A6']
 
 const TOOLTIP_STYLE = {
   contentStyle: {
@@ -305,10 +317,12 @@ const Dashboard: React.FC = () => {
     const typeLabels: Record<string, string> = {
       'cisco_ios': t('dashboard.cisco'),
       'aruba_aoscx': t('dashboard.aruba'),
+      'cisco_ios_router': t('dashboard.ciscoRouter'),
     }
     const types = dashboardStats?.device_types ?? {}
     return Object.entries(types).map(([name, value]) => ({
       name: typeLabels[name] || name,
+      type: name,
       value,
     }))
   }, [dashboardStats, t])
@@ -473,10 +487,11 @@ const Dashboard: React.FC = () => {
               dataKey="value"
               stroke="none"
             >
-              {deviceTypeChartData.map((entry) => (
+              {deviceTypeChartData.map((entry, i) => (
                 <Cell
                   key={entry.name}
-                  fill={entry.name === 'Cisco IOS' ? CHART_COLORS.cisco : entry.name === 'Aruba CX' ? CHART_COLORS.aruba : CHART_COLORS.other}
+                  fill={DEVICE_TYPE_COLORS[entry.type]
+                    ?? DEVICE_TYPE_FALLBACK_COLORS[i % DEVICE_TYPE_FALLBACK_COLORS.length]}
                 />
               ))}
             </Pie>

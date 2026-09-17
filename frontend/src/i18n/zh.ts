@@ -21,6 +21,7 @@ const zh: Record<string, string> = {
   'dashboard.activeMonitored': '活跃监控中',
   'dashboard.cisco': 'Cisco IOS',
   'dashboard.ciscoDesc': '路由器 / 交换机',
+  'dashboard.ciscoRouter': 'Cisco 路由器',
   'dashboard.aruba': 'Aruba OS',
   'dashboard.arubaDesc': '交换机',
   'dashboard.deviceInventory': '设备清单',

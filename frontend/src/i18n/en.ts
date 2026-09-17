@@ -21,6 +21,7 @@ const en: Record<string, string> = {
   'dashboard.activeMonitored': 'Active Monitored',
   'dashboard.cisco': 'Cisco IOS',
   'dashboard.ciscoDesc': 'Routers / Switches',
+  'dashboard.ciscoRouter': 'Cisco Router',
   'dashboard.aruba': 'Aruba OS',
   'dashboard.arubaDesc': 'Switches',
   'dashboard.deviceInventory': 'Device Inventory',
