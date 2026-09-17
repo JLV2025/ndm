@@ -1,0 +1,247 @@
+PVGD1SWI03#show spanning-tree
+
+VLAN0001
+  Spanning tree enabled protocol rstp
+  Root ID    Priority    8193
+             Address     9c37.0806.b540
+             Cost        4
+             Port        432 (Port-channel48)
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+  Bridge ID  Priority    32769  (priority 32768 sys-id-ext 1)
+             Address     0017.e01b.1000
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+             Aging Time  300 sec
+
+Interface           Role Sts Cost      Prio.Nbr Type
+------------------- ---- --- --------- -------- --------------------------------
+Po48                Root FWD 4         128.432  P2p
+
+
+
+VLAN0002
+  Spanning tree enabled protocol rstp
+  Root ID    Priority    8194
+             Address     9c37.0806.b540
+             Cost        4
+             Port        432 (Port-channel48)
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+  Bridge ID  Priority    32770  (priority 32768 sys-id-ext 2)
+             Address     0017.e01b.1000
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+             Aging Time  300 sec
+
+Interface           Role Sts Cost      Prio.Nbr Type
+------------------- ---- --- --------- -------- --------------------------------
+Po48                Root FWD 4         128.432  P2p
+
+
+
+VLAN0008
+  Spanning tree enabled protocol rstp
+  Root ID    Priority    8200
+             Address     9c37.0806.b540
+             Cost        4
+             Port        432 (Port-channel48)
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+  Bridge ID  Priority    32776  (priority 32768 sys-id-ext 8)
+             Address     0017.e01b.1000
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+             Aging Time  300 sec
+
+Interface           Role Sts Cost      Prio.Nbr Type
+------------------- ---- --- --------- -------- --------------------------------
+Po48                Root FWD 4         128.432  P2p
+
+
+
+VLAN0009
+  Spanning tree enabled protocol rstp
+  Root ID    Priority    8201
+             Address     9c37.0806.b540
+             Cost        4
+             Port        432 (Port-channel48)
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+  Bridge ID  Priority    32777  (priority 32768 sys-id-ext 9)
+             Address     0017.e01b.1000
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+             Aging Time  300 sec
+
+Interface           Role Sts Cost      Prio.Nbr Type
+------------------- ---- --- --------- -------- --------------------------------
+Po48                Root FWD 4         128.432  P2p
+
+
+
+VLAN0016
+  Spanning tree enabled protocol rstp
+  Root ID    Priority    8208
+             Address     9c37.0806.b540
+             Cost        4
+             Port        432 (Port-channel48)
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+  Bridge ID  Priority    32784  (priority 32768 sys-id-ext 16)
+             Address     0017.e01b.1000
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+             Aging Time  300 sec
+
+Interface           Role Sts Cost      Prio.Nbr Type
+------------------- ---- --- --------- -------- --------------------------------
+Fa0/6               Desg FWD 19        128.8    P2p
+Po48                Root FWD 4         128.432  P2p
+
+
+
+VLAN0030
+  Spanning tree enabled protocol rstp
+  Root ID    Priority    8222
+             Address     9c37.0806.b540
+             Cost        4
+             Port        432 (Port-channel48)
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+  Bridge ID  Priority    32798  (priority 32768 sys-id-ext 30)
+             Address     0017.e01b.1000
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+             Aging Time  300 sec
+
+Interface           Role Sts Cost      Prio.Nbr Type
+------------------- ---- --- --------- -------- --------------------------------
+Po48                Root FWD 4         128.432  P2p
+
+
+
+VLAN0031
+  Spanning tree enabled protocol rstp
+  Root ID    Priority    8223
+             Address     9c37.0806.b540
+             Cost        4
+             Port        432 (Port-channel48)
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+  Bridge ID  Priority    32799  (priority 32768 sys-id-ext 31)
+             Address     0017.e01b.1000
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+             Aging Time  300 sec
+
+Interface           Role Sts Cost      Prio.Nbr Type
+------------------- ---- --- --------- -------- --------------------------------
+Po48                Root FWD 4         128.432  P2p
+
+
+
+VLAN0032
+  Spanning tree enabled protocol rstp
+  Root ID    Priority    8224
+             Address     9c37.0806.b540
+             Cost        4
+             Port        432 (Port-channel48)
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+  Bridge ID  Priority    32800  (priority 32768 sys-id-ext 32)
+             Address     0017.e01b.1000
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+             Aging Time  300 sec
+
+Interface           Role Sts Cost      Prio.Nbr Type
+------------------- ---- --- --------- -------- --------------------------------
+Po48                Root FWD 4         128.432  P2p
+
+
+
+VLAN0033
+  Spanning tree enabled protocol rstp
+  Root ID    Priority    8225
+             Address     9c37.0806.b540
+             Cost        4
+             Port        432 (Port-channel48)
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+  Bridge ID  Priority    32801  (priority 32768 sys-id-ext 33)
+             Address     0017.e01b.1000
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+             Aging Time  300 sec
+
+Interface           Role Sts Cost      Prio.Nbr Type
+------------------- ---- --- --------- -------- --------------------------------
+Po48                Root FWD 4         128.432  P2p
+
+
+
+VLAN0037
+  Spanning tree enabled protocol rstp
+  Root ID    Priority    8229
+             Address     9c37.0806.b540
+             Cost        4
+             Port        432 (Port-channel48)
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+  Bridge ID  Priority    32805  (priority 32768 sys-id-ext 37)
+             Address     0017.e01b.1000
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+             Aging Time  300 sec
+
+Interface           Role Sts Cost      Prio.Nbr Type
+------------------- ---- --- --------- -------- --------------------------------
+Po48                Root FWD 4         128.432  P2p
+
+
+
+VLAN0196
+  Spanning tree enabled protocol rstp
+  Root ID    Priority    8388
+             Address     9c37.0806.b540
+             Cost        4
+             Port        432 (Port-channel48)
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+  Bridge ID  Priority    32964  (priority 32768 sys-id-ext 196)
+             Address     0017.e01b.1000
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+             Aging Time  300 sec
+
+Interface           Role Sts Cost      Prio.Nbr Type
+------------------- ---- --- --------- -------- --------------------------------
+Po48                Root FWD 4         128.432  P2p
+
+
+
+VLAN0213
+  Spanning tree enabled protocol rstp
+  Root ID    Priority    8405
+             Address     9c37.0806.b540
+             Cost        4
+             Port        432 (Port-channel48)
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+  Bridge ID  Priority    32981  (priority 32768 sys-id-ext 213)
+             Address     0017.e01b.1000
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+             Aging Time  300 sec
+
+Interface           Role Sts Cost      Prio.Nbr Type
+------------------- ---- --- --------- -------- --------------------------------
+Po48                Root FWD 4         128.432  P2p
+
+
+
+VLAN0255
+  Spanning tree enabled protocol rstp
+  Root ID    Priority    8447
+             Address     9c37.0806.b540
+             Cost        4
+             Port        432 (Port-channel48)
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+
+  Bridge ID  Priority    33023  (priority 32768 sys-id-ext 255)
+             Address     0017.e01b.1000
+             Hello Time   2 sec  Max Age 20 sec  Forward Delay 15 sec
+             Aging Time  300 sec
+
+Interface           Role Sts Cost      Prio.Nbr Type
+------------------- ---- --- --------- -------- --------------------------------
+Po48                Root FWD 4         128.432  P2p

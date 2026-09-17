@@ -1,0 +1,473 @@
+PVGD1SWI01# show spanning-tree
+Spanning tree status           : Enabled Protocol: RPVST
+Extended System-id             : Enabled
+Ignore PVID Inconsistency      : Disabled
+Path cost method               : Short
+RPVST-MSTP Interconnect VLAN   : 1
+Current Virtual Ports Count    : 177
+Maximum Allowed Virtual Ports  : 2048
+
+VLAN1
+  Root ID    Priority   : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             This bridge is the root
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+  Bridge ID  Priority  : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+Port         Role           State      Cost           Priority   Type       BPDU-Tx    BPDU-Rx    TCN-Tx     TCN-Rx
+------------ -------------- ---------- -------------- ---------- ---------- ---------- ---------- ---------- ----------
+1/1/3        Disabled       Down       4              128        Shr        0          0          0          0
+1/1/4        Designated     Forwarding 4              128        P2P        52227066   0          0          0
+1/1/5        Disabled       Down       4              128        Shr        0          0          0          0
+1/1/6        Designated     Forwarding 2              128        P2P        52246420   0          0          0
+1/1/7        Designated     Forwarding 4              128        P2P        52244060   32         174        27
+1/1/8        Disabled       Down       4              128        Shr        0          0          0          0
+1/1/10       Disabled       Down       4              128        Shr        0          0          0          0
+1/1/11       Disabled       Down       4              128        Shr        0          0          0          0
+1/1/12       Disabled       Down       4              128        Shr        0          0          0          0
+1/1/13       Disabled       Down       4              128        Shr        0          0          0          0
+1/1/18       Disabled       Down       4              128        Shr        0          0          0          0
+1/1/19       Disabled       Down       4              128        Shr        0          0          0          0
+1/1/20       Disabled       Down       4              128        Shr        0          0          0          0
+1/1/21       Disabled       Down       4              128        Shr        0          0          0          0
+1/1/22       Disabled       Down       4              128        Shr        0          0          0          0
+1/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+1/1/26       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/3        Disabled       Down       4              128        Shr        0          0          0          0
+2/1/4        Disabled       Down       4              128        Shr        0          0          0          0
+2/1/5        Disabled       Down       4              128        Shr        0          0          0          0
+2/1/6        Designated     Forwarding 2              128        P2P        52246412   0          0          0
+2/1/7        Disabled       Down       4              128        Shr        0          0          0          0
+2/1/8        Disabled       Down       4              128        Shr        0          0          0          0
+2/1/10       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/11       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/12       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/13       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/18       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/19       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/20       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/21       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/22       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/23       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/24       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/26       Disabled       Down       4              128        Shr        0          0          0          0
+lag1         Disabled       Down       4              64         Shr        0          0          0          0
+lag2         Disabled       Down       4              64         Shr        0          0          0          0
+lag14        Designated     Forwarding 2              64         P2P        52246062   24         172        10
+lag15        Designated     Forwarding 4              64         P2P        52245862   20         1084       3
+lag16        Designated     Forwarding 4              64         P2P        52246098   16         1046       3
+lag17        Designated     Forwarding 4              64         P2P        52245524   22         928        6
+lag23        Designated     Forwarding 2              64         P2P        52246260   0          0          0
+
+Number of topology changes    : 9
+Last topology change occurred : 1355 seconds ago
+
+VLAN2
+  Root ID    Priority   : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             This bridge is the root
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+  Bridge ID  Priority  : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+Port         Role           State      Cost           Priority   Type       BPDU-Tx    BPDU-Rx    TCN-Tx     TCN-Rx
+------------ -------------- ---------- -------------- ---------- ---------- ---------- ---------- ---------- ----------
+1/1/6        Designated     Forwarding 2              128        P2P        26123210   0          0          0
+1/1/7        Designated     Forwarding 4              128        P2P        26122001   0          0          0
+1/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/6        Designated     Forwarding 2              128        P2P        26123206   0          0          0
+lag1         Disabled       Down       4              64         Shr        0          0          0          0
+lag2         Disabled       Down       4              64         Shr        0          0          0          0
+lag14        Designated     Forwarding 2              64         P2P        26123001   4          2          2
+lag15        Designated     Forwarding 4              64         P2P        26122932   10         1376       3
+lag16        Designated     Forwarding 4              64         P2P        26123049   11         1349       6
+lag17        Designated     Forwarding 4              64         P2P        26122762   11         1286       6
+lag23        Designated     Forwarding 2              64         P2P        26123130   0          0          0
+
+Number of topology changes    : 10
+Last topology change occurred : 1353 seconds ago
+
+VLAN5
+  Root ID    Priority   : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             This bridge is the root
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+  Bridge ID  Priority  : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+Port         Role           State      Cost           Priority   Type       BPDU-Tx    BPDU-Rx    TCN-Tx     TCN-Rx
+------------ -------------- ---------- -------------- ---------- ---------- ---------- ---------- ---------- ----------
+1/1/7        Designated     Forwarding 4              128        P2P        588        0          0          0
+1/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+lag1         Disabled       Down       4              64         Shr        0          0          0          0
+lag14        Designated     Forwarding 2              64         P2P        589        4          7          2
+lag15        Designated     Forwarding 4              64         P2P        588        0          0          0
+lag16        Designated     Forwarding 4              64         P2P        584        9          3          3
+lag17        Designated     Forwarding 4              64         P2P        588        0          0          0
+lag23        Designated     Forwarding 2              64         P2P        588        0          0          0
+
+Number of topology changes    : 3
+Last topology change occurred : 1162 seconds ago
+
+VLAN8
+  Root ID    Priority   : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             This bridge is the root
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+  Bridge ID  Priority  : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+Port         Role           State      Cost           Priority   Type       BPDU-Tx    BPDU-Rx    TCN-Tx     TCN-Rx
+------------ -------------- ---------- -------------- ---------- ---------- ---------- ---------- ---------- ----------
+1/1/7        Designated     Forwarding 4              128        P2P        26122001   0          0          0
+1/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+lag1         Disabled       Down       4              64         Shr        0          0          0          0
+lag14        Designated     Forwarding 2              64         P2P        26123001   4          2          2
+lag15        Designated     Forwarding 4              64         P2P        26122931   10         271914     3
+lag16        Designated     Forwarding 4              64         P2P        26123049   8          271892     3
+lag17        Designated     Forwarding 4              64         P2P        26122762   11         271965     6
+lag23        Designated     Forwarding 2              64         P2P        26123130   0          0          0
+
+Number of topology changes    : 10
+Last topology change occurred : 1353 seconds ago
+
+VLAN9
+  Root ID    Priority   : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             This bridge is the root
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+  Bridge ID  Priority  : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+Port         Role           State      Cost           Priority   Type       BPDU-Tx    BPDU-Rx    TCN-Tx     TCN-Rx
+------------ -------------- ---------- -------------- ---------- ---------- ---------- ---------- ---------- ----------
+1/1/6        Designated     Forwarding 2              128        P2P        26123210   0          0          0
+1/1/7        Designated     Forwarding 4              128        P2P        26122001   0          0          0
+1/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/6        Designated     Forwarding 2              128        P2P        26123206   0          0          0
+lag1         Disabled       Down       4              64         Shr        0          0          0          0
+lag2         Disabled       Down       4              64         Shr        0          0          0          0
+lag14        Designated     Forwarding 2              64         P2P        26123001   4          2          2
+lag15        Designated     Forwarding 4              64         P2P        26122931   10         492        3
+lag16        Designated     Forwarding 4              64         P2P        26123049   8          471        3
+lag17        Designated     Forwarding 4              64         P2P        26122762   11         410        6
+lag23        Designated     Forwarding 2              64         P2P        26123130   0          0          0
+
+Number of topology changes    : 10
+Last topology change occurred : 1353 seconds ago
+
+VLAN16
+  Root ID    Priority   : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             This bridge is the root
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+  Bridge ID  Priority  : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+Port         Role           State      Cost           Priority   Type       BPDU-Tx    BPDU-Rx    TCN-Tx     TCN-Rx
+------------ -------------- ---------- -------------- ---------- ---------- ---------- ---------- ---------- ----------
+1/1/7        Designated     Forwarding 4              128        P2P        26122001   0          0          0
+1/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+lag1         Disabled       Down       4              64         Shr        0          0          0          0
+lag14        Designated     Forwarding 2              64         P2P        26123001   4          2          2
+lag15        Designated     Forwarding 4              64         P2P        26122931   13         270978     6
+lag16        Designated     Forwarding 4              64         P2P        26123049   8          270947     3
+lag17        Designated     Forwarding 4              64         P2P        26122762   11         271025     6
+lag23        Designated     Forwarding 2              64         P2P        26123130   0          0          0
+
+Number of topology changes    : 10
+Last topology change occurred : 1353 seconds ago
+
+VLAN30
+  Root ID    Priority   : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             This bridge is the root
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+  Bridge ID  Priority  : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+Port         Role           State      Cost           Priority   Type       BPDU-Tx    BPDU-Rx    TCN-Tx     TCN-Rx
+------------ -------------- ---------- -------------- ---------- ---------- ---------- ---------- ---------- ----------
+1/1/7        Designated     Forwarding 4              128        P2P        26122001   0          0          0
+1/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+lag1         Disabled       Down       4              64         Shr        0          0          0          0
+lag14        Designated     Forwarding 2              64         P2P        26123001   4          2          2
+lag15        Designated     Forwarding 4              64         P2P        26122931   10         4261       3
+lag16        Designated     Forwarding 4              64         P2P        26123049   8          4238       3
+lag17        Designated     Forwarding 4              64         P2P        26122762   11         4165       6
+lag23        Designated     Forwarding 2              64         P2P        26123130   0          0          0
+
+Number of topology changes    : 10
+Last topology change occurred : 1353 seconds ago
+
+VLAN31
+  Root ID    Priority   : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             This bridge is the root
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+  Bridge ID  Priority  : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+Port         Role           State      Cost           Priority   Type       BPDU-Tx    BPDU-Rx    TCN-Tx     TCN-Rx
+------------ -------------- ---------- -------------- ---------- ---------- ---------- ---------- ---------- ----------
+1/1/7        Designated     Forwarding 4              128        P2P        26122001   0          0          0
+1/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+lag1         Disabled       Down       4              64         Shr        0          0          0          0
+lag14        Designated     Forwarding 2              64         P2P        26123001   4          2          2
+lag15        Designated     Forwarding 4              64         P2P        26122931   10         366        3
+lag16        Designated     Forwarding 4              64         P2P        26123049   8          348        3
+lag17        Designated     Forwarding 4              64         P2P        26122762   11         288        6
+lag23        Designated     Forwarding 2              64         P2P        26123130   0          0          0
+
+Number of topology changes    : 10
+Last topology change occurred : 1353 seconds ago
+
+VLAN32
+  Root ID    Priority   : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             This bridge is the root
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+  Bridge ID  Priority  : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+Port         Role           State      Cost           Priority   Type       BPDU-Tx    BPDU-Rx    TCN-Tx     TCN-Rx
+------------ -------------- ---------- -------------- ---------- ---------- ---------- ---------- ---------- ----------
+1/1/7        Designated     Forwarding 4              128        P2P        26122001   0          0          0
+1/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+lag1         Disabled       Down       4              64         Shr        0          0          0          0
+lag14        Designated     Forwarding 2              64         P2P        26123001   4          2          2
+lag15        Designated     Forwarding 4              64         P2P        26122931   10         333        3
+lag16        Designated     Forwarding 4              64         P2P        26123049   8          312        3
+lag17        Designated     Forwarding 4              64         P2P        26122762   11         253        6
+lag23        Designated     Forwarding 2              64         P2P        26123130   0          0          0
+
+Number of topology changes    : 10
+Last topology change occurred : 1353 seconds ago
+
+VLAN33
+  Root ID    Priority   : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             This bridge is the root
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+  Bridge ID  Priority  : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+Port         Role           State      Cost           Priority   Type       BPDU-Tx    BPDU-Rx    TCN-Tx     TCN-Rx
+------------ -------------- ---------- -------------- ---------- ---------- ---------- ---------- ---------- ----------
+1/1/7        Designated     Forwarding 4              128        P2P        26122001   0          0          0
+1/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+lag1         Disabled       Down       4              64         Shr        0          0          0          0
+lag14        Designated     Forwarding 2              64         P2P        26123001   4          2          2
+lag15        Designated     Forwarding 4              64         P2P        26122931   10         333        3
+lag16        Designated     Forwarding 4              64         P2P        26123049   8          312        3
+lag17        Designated     Forwarding 4              64         P2P        26122762   11         253        6
+lag23        Designated     Forwarding 2              64         P2P        26123130   0          0          0
+
+Number of topology changes    : 10
+Last topology change occurred : 1353 seconds ago
+
+VLAN37
+  Root ID    Priority   : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             This bridge is the root
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+  Bridge ID  Priority  : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+Port         Role           State      Cost           Priority   Type       BPDU-Tx    BPDU-Rx    TCN-Tx     TCN-Rx
+------------ -------------- ---------- -------------- ---------- ---------- ---------- ---------- ---------- ----------
+1/1/7        Designated     Forwarding 4              128        P2P        26122001   0          0          0
+1/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+lag1         Disabled       Down       4              64         Shr        0          0          0          0
+lag14        Designated     Forwarding 2              64         P2P        26123001   4          2          2
+lag15        Designated     Forwarding 4              64         P2P        26122931   10         400        3
+lag16        Designated     Forwarding 4              64         P2P        26123049   8          380        3
+lag17        Designated     Forwarding 4              64         P2P        26122763   11         326        6
+lag23        Designated     Forwarding 2              64         P2P        26123130   0          0          0
+
+Number of topology changes    : 10
+Last topology change occurred : 1353 seconds ago
+
+VLAN196
+  Root ID    Priority   : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             This bridge is the root
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+  Bridge ID  Priority  : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+Port         Role           State      Cost           Priority   Type       BPDU-Tx    BPDU-Rx    TCN-Tx     TCN-Rx
+------------ -------------- ---------- -------------- ---------- ---------- ---------- ---------- ---------- ----------
+1/1/7        Designated     Forwarding 4              128        P2P        26122001   0          0          0
+1/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+lag1         Disabled       Down       4              64         Shr        0          0          0          0
+lag14        Designated     Forwarding 2              64         P2P        26123001   4          2          2
+lag15        Designated     Forwarding 4              64         P2P        26122932   10         1125       3
+lag16        Designated     Forwarding 4              64         P2P        26123050   8          1105       3
+lag17        Designated     Forwarding 4              64         P2P        26122762   14         1043       9
+lag23        Designated     Forwarding 2              64         P2P        26123130   0          0          0
+
+Number of topology changes    : 10
+Last topology change occurred : 1353 seconds ago
+
+VLAN212
+  Root ID    Priority   : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             This bridge is the root
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+  Bridge ID  Priority  : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+Port         Role           State      Cost           Priority   Type       BPDU-Tx    BPDU-Rx    TCN-Tx     TCN-Rx
+------------ -------------- ---------- -------------- ---------- ---------- ---------- ---------- ---------- ----------
+1/1/1        Designated     Forwarding 2              128        P2P        26123203   0          0          0
+1/1/2        Designated     Forwarding 4              128        P2P        26113477   0          0          0
+1/1/7        Designated     Forwarding 4              128        P2P        26122001   0          0          0
+1/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/1        Designated     Forwarding 2              128        P2P        26123192   0          0          0
+2/1/2        Designated     Forwarding 4              128        P2P        26111317   0          0          0
+lag1         Disabled       Down       4              64         Shr        0          0          0          0
+lag14        Designated     Forwarding 2              64         P2P        26123001   4          2          2
+lag15        Designated     Forwarding 4              64         P2P        26122924   0          0          0
+lag16        Designated     Forwarding 4              64         P2P        26123043   0          0          0
+lag17        Designated     Forwarding 4              64         P2P        26122758   0          0          0
+lag23        Designated     Forwarding 2              64         P2P        26123130   0          0          0
+
+Number of topology changes    : 1
+Last topology change occurred : 1355 seconds ago
+
+VLAN213
+  Root ID    Priority   : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             This bridge is the root
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+  Bridge ID  Priority  : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+Port         Role           State      Cost           Priority   Type       BPDU-Tx    BPDU-Rx    TCN-Tx     TCN-Rx
+------------ -------------- ---------- -------------- ---------- ---------- ---------- ---------- ---------- ----------
+1/1/7        Designated     Forwarding 4              128        P2P        26122001   0          0          0
+1/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+lag1         Disabled       Down       4              64         Shr        0          0          0          0
+lag14        Designated     Forwarding 2              64         P2P        26123001   4          2          2
+lag15        Designated     Forwarding 4              64         P2P        26122931   10         435        3
+lag16        Designated     Forwarding 4              64         P2P        26123049   8          417        3
+lag17        Designated     Forwarding 4              64         P2P        26122762   11         359        6
+lag23        Designated     Forwarding 2              64         P2P        26123130   0          0          0
+
+Number of topology changes    : 10
+Last topology change occurred : 1353 seconds ago
+
+VLAN254
+  Root ID    Priority   : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             This bridge is the root
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+  Bridge ID  Priority  : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+Port         Role           State      Cost           Priority   Type       BPDU-Tx    BPDU-Rx    TCN-Tx     TCN-Rx
+------------ -------------- ---------- -------------- ---------- ---------- ---------- ---------- ---------- ----------
+1/1/6        Designated     Forwarding 2              128        P2P        22444985   0          0          0
+1/1/7        Designated     Forwarding 4              128        P2P        22742979   0          0          0
+1/1/9        Designated     Forwarding 4              128        P2P        22718665   0          2          0
+1/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+2/1/6        Designated     Forwarding 2              128        P2P        22444985   0          0          0
+2/1/9        Designated     Forwarding 4              128        P2P        22716411   0          0          0
+lag1         Disabled       Down       4              64         Shr        0          0          0          0
+lag14        Designated     Forwarding 2              64         P2P        22743954   0          0          0
+lag15        Designated     Forwarding 4              64         P2P        22743884   0          0          0
+lag16        Designated     Forwarding 4              64         P2P        22744035   0          0          0
+lag17        Designated     Forwarding 4              64         P2P        22743798   0          0          0
+lag23        Designated     Forwarding 2              64         P2P        22744090   0          0          0
+
+Number of topology changes    : 1
+Last topology change occurred : 45452004 seconds ago
+
+VLAN255
+  Root ID    Priority   : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             This bridge is the root
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+  Bridge ID  Priority  : 8192
+             MAC-Address: 9c:37:08:06:b5:40
+             Hello time(in seconds):2  Max Age(in seconds):20
+             Forward Delay(in seconds):15
+
+Port         Role           State      Cost           Priority   Type       BPDU-Tx    BPDU-Rx    TCN-Tx     TCN-Rx
+------------ -------------- ---------- -------------- ---------- ---------- ---------- ---------- ---------- ----------
+1/1/7        Designated     Forwarding 4              128        P2P        26122001   0          0          0
+1/1/25       Disabled       Down       4              128        Shr        0          0          0          0
+lag1         Disabled       Down       4              64         Shr        0          0          0          0
+lag14        Designated     Forwarding 2              64         P2P        26123001   4          2          2
+lag15        Designated     Forwarding 4              64         P2P        26122932   10         1735       3
+lag16        Designated     Forwarding 4              64         P2P        26123049   11         1718       6
+lag17        Designated     Forwarding 4              64         P2P        26122762   11         1662       6
+lag23        Designated     Forwarding 2              64         P2P        26123130   0          0          0
+
+Number of topology changes    : 10
+Last topology change occurred : 1353 seconds ago
