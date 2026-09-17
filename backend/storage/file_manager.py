@@ -8,6 +8,7 @@
   | 配置文本文件 | 最近 ``WEEKLY_KEEP`` 周按周保留；更早的**按月收缩** —— 该月**最后一个**版本移入 ``archive/{YYYY}-M{MM}/running-config.raw``，该月其余版本删除 |
   | DB ``collections.running_config`` | 每设备留最近 ``CONFIG_KEEP`` 次全文，更早的置 NULL |
   | DB ``device_logs`` | 每设备留最近 ``LOGS_KEEP`` 次采集的日志 |
+  | DB ``stp_snapshots`` | 每设备留最近 ``STP_KEEP`` 次采集的生成树快照 |
 
 归档的动机是**可查看性**，不是省空间（实测约 140 MB/年）。能保留就保留，只把粒度放粗。
 
@@ -33,6 +34,10 @@ CONFIG_KEEP = 2
 
 # DB 日志保留次数
 LOGS_KEEP = 2
+
+# DB 生成树快照保留次数。图只读最新一轮；留第 2 轮是为了将来能做
+# 「根桥/阻塞变化」的对比基线（与配置全文留 2 次同理）。
+STP_KEEP = 2
 
 ARCHIVE_DIR = "archive"
 CONFIG_FILENAME = "running-config.raw"
@@ -160,41 +165,57 @@ def apply_archive(plan: list) -> dict:
 # DB：配置全文与日志按次数保留
 # ============================================================
 
-def prune_db(conn, config_keep: int = CONFIG_KEEP, logs_keep: int = LOGS_KEEP) -> dict:
+def prune_db(conn, config_keep: int = CONFIG_KEEP, logs_keep: int = LOGS_KEEP,
+             stp_keep: int = STP_KEEP) -> dict:
     """DB 分层保留
 
     - ``collections.running_config``：每设备只留最近 ``config_keep`` 次采集的**全文**
       （即 682 份 = 22.93 MB，占 43 MB 库的 53%）。``running_config_lines`` 保留 ——
       配置变更趋势图要用它。
     - ``device_logs``：每设备只留最近 ``logs_keep`` 次采集的日志。
+    - ``stp_snapshots``：每设备只留最近 ``stp_keep`` 次采集的生成树快照。
 
     按**记录数**而非时间 —— 不受采集间隔不均影响（实测 13 分钟到 21 天不等）。
+    三种数据各自按自己的保留次数取 keep 列表（此前 logs/stp 误用 config 的列表，
+    参数形同虚设——都默认 2 才没出事）。
     """
-    stats = {"config_cleared": 0, "logs_deleted": 0}
+    stats = {"config_cleared": 0, "logs_deleted": 0, "stp_deleted": 0}
 
-    for (device_id,) in conn.execute("SELECT id FROM devices").fetchall():
-        keep_ids = [
+    def _keep_ids(device_id: int, limit: int) -> list:
+        return [
             r[0] for r in conn.execute(
                 "SELECT id FROM collections WHERE device_id = ? AND phase = '1' "
                 "ORDER BY collected_at DESC, id DESC LIMIT ?",
-                (device_id, config_keep),
+                (device_id, limit),
             ).fetchall()
         ]
-        if not keep_ids:
-            continue
-        marks = ",".join("?" * len(keep_ids))
 
-        stats["config_cleared"] += conn.execute(
-            f"UPDATE collections SET running_config = NULL "
-            f"WHERE device_id = ? AND phase = '1' AND running_config IS NOT NULL "
-            f"AND id NOT IN ({marks})",
-            (device_id, *keep_ids),
-        ).rowcount
+    for (device_id,) in conn.execute("SELECT id FROM devices").fetchall():
+        keep_ids = _keep_ids(device_id, config_keep)
+        if keep_ids:
+            marks = ",".join("?" * len(keep_ids))
+            stats["config_cleared"] += conn.execute(
+                f"UPDATE collections SET running_config = NULL "
+                f"WHERE device_id = ? AND phase = '1' AND running_config IS NOT NULL "
+                f"AND id NOT IN ({marks})",
+                (device_id, *keep_ids),
+            ).rowcount
 
-        stats["logs_deleted"] += conn.execute(
-            f"DELETE FROM device_logs WHERE device_id = ? AND collection_id NOT IN ({marks})",
-            (device_id, *keep_ids),
-        ).rowcount
+        log_keep_ids = _keep_ids(device_id, logs_keep)
+        if log_keep_ids:
+            marks = ",".join("?" * len(log_keep_ids))
+            stats["logs_deleted"] += conn.execute(
+                f"DELETE FROM device_logs WHERE device_id = ? AND collection_id NOT IN ({marks})",
+                (device_id, *log_keep_ids),
+            ).rowcount
+
+        stp_keep_ids = _keep_ids(device_id, stp_keep)
+        if stp_keep_ids:
+            marks = ",".join("?" * len(stp_keep_ids))
+            stats["stp_deleted"] += conn.execute(
+                f"DELETE FROM stp_snapshots WHERE device_id = ? AND collection_id NOT IN ({marks})",
+                (device_id, *stp_keep_ids),
+            ).rowcount
 
     return stats
 
@@ -217,6 +238,7 @@ def run_retention(data_root: str, conn=None, dry_run: bool = False,
         "deleted": 0,
         "config_cleared": 0,
         "logs_deleted": 0,
+        "stp_deleted": 0,
         "errors": [],
         "dry_run": dry_run,
     }
@@ -233,6 +255,7 @@ def run_retention(data_root: str, conn=None, dry_run: bool = False,
             conn.rollback()
             result["config_cleared"] = pruned["config_cleared"]
             result["logs_deleted"] = pruned["logs_deleted"]
+            result["stp_deleted"] = pruned["stp_deleted"]
         return result
 
     if plan:
@@ -245,6 +268,7 @@ def run_retention(data_root: str, conn=None, dry_run: bool = False,
         pruned = prune_db(conn)
         result["config_cleared"] = pruned["config_cleared"]
         result["logs_deleted"] = pruned["logs_deleted"]
+        result["stp_deleted"] = pruned["stp_deleted"]
         conn.commit()
 
     return result

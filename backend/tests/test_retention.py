@@ -173,6 +173,17 @@ def add_collection(c, when: str, config: str = "hostname X", logs: int = 0) -> i
     return cid
 
 
+def add_stp_rows(c, collection_id: int, n: int = 3) -> None:
+    """给某次采集插 n 行 STP 快照（设备 1）"""
+    for i in range(n):
+        c.execute(
+            "INSERT INTO stp_snapshots (collection_id, device_id, vlan, port_name, role, state, mode) "
+            "VALUES (?, 1, 10, ?, 'root', 'forwarding', 'rapid-pvst')",
+            (collection_id, f"lag{i}"),
+        )
+    c.commit()
+
+
 def test_DB配置只留最近两次(tmp_path, conn):
     ids = [add_collection(conn, f"2026-09-{d:02d}T09:00:00") for d in range(1, 6)]
 
@@ -225,6 +236,36 @@ def test_留两次才能保住变更检测的基线(tmp_path, conn):
     assert baseline[0] == "middle"
 
 
+def test_STP快照只留最近两次采集(tmp_path, conn):
+    """STP 图只读最新一轮；留第 2 轮作为「根桥/阻塞变化」的对比基线（用户指定）"""
+    ids = [add_collection(conn, f"2026-09-{d:02d}T09:00:00") for d in range(1, 6)]
+    for cid in ids:
+        add_stp_rows(conn, cid, n=3)
+
+    prune_db(conn)
+    conn.commit()
+
+    remaining = {r[0] for r in conn.execute("SELECT DISTINCT collection_id FROM stp_snapshots")}
+    assert remaining == set(ids[-2:])
+    assert conn.execute("SELECT COUNT(*) FROM stp_snapshots").fetchone()[0] == 6
+
+
+def test_三种数据的保留次数各自生效(tmp_path, conn):
+    """logs_keep / stp_keep 各自取 keep 列表 —— 曾错误借用 config 的列表（参数形同虚设）"""
+    ids = [add_collection(conn, f"2026-09-{d:02d}T09:00:00", logs=2) for d in range(1, 6)]
+    for cid in ids:
+        add_stp_rows(conn, cid, n=2)
+
+    prune_db(conn, config_keep=4, logs_keep=3, stp_keep=1)
+    conn.commit()
+
+    assert conn.execute(
+        "SELECT COUNT(*) FROM collections WHERE running_config IS NOT NULL").fetchone()[0] == 4
+    assert len({r[0] for r in conn.execute("SELECT DISTINCT collection_id FROM device_logs")}) == 3
+    assert {r[0] for r in conn.execute(
+        "SELECT DISTINCT collection_id FROM stp_snapshots")} == {ids[-1]}
+
+
 # ============================================================
 # 统一入口
 # ============================================================
@@ -232,22 +273,26 @@ def test_留两次才能保住变更检测的基线(tmp_path, conn):
 def test_dry_run不修改任何东西(tmp_path, conn):
     make_weeks(tmp_path, "D1SWI01", ["2026-30", "2026-31", "2026-32", "2026-33"])
     for d in range(1, 5):
-        add_collection(conn, f"2026-09-{d:02d}T09:00:00")
+        cid = add_collection(conn, f"2026-09-{d:02d}T09:00:00")
+        add_stp_rows(conn, cid, n=3)
 
     result = run_retention(str(tmp_path), conn=conn, dry_run=True, weekly_keep=2)
 
     assert result["planned"] == len(result["plan"]) > 0
     assert result["config_cleared"] > 0          # 如实报数
+    assert result["stp_deleted"] > 0
     # 但一个字节都没动
     assert week_dirs(tmp_path, "D1SWI01") == ["2026-30", "2026-31", "2026-32", "2026-33"]
     assert conn.execute(
         "SELECT COUNT(*) FROM collections WHERE running_config IS NOT NULL").fetchone()[0] == 4
+    assert conn.execute("SELECT COUNT(*) FROM stp_snapshots").fetchone()[0] == 12
 
 
 def test_执行会真的归档与收缩(tmp_path, conn):
     make_weeks(tmp_path, "D1SWI01", ["2026-30", "2026-31", "2026-32", "2026-33"])
     for d in range(1, 5):
-        add_collection(conn, f"2026-09-{d:02d}T09:00:00")
+        cid = add_collection(conn, f"2026-09-{d:02d}T09:00:00")
+        add_stp_rows(conn, cid, n=3)
 
     result = run_retention(str(tmp_path), conn=conn, dry_run=False, weekly_keep=2)
 
@@ -255,6 +300,9 @@ def test_执行会真的归档与收缩(tmp_path, conn):
     assert week_dirs(tmp_path, "D1SWI01") == ["2026-32", "2026-33"]
     assert conn.execute(
         "SELECT COUNT(*) FROM collections WHERE running_config IS NOT NULL").fetchone()[0] == 2
+    assert result["stp_deleted"] > 0
+    assert len({r[0] for r in conn.execute(
+        "SELECT DISTINCT collection_id FROM stp_snapshots")}) == 2      # 只留最近 2 次
 
 
 def test_没有过期目录时什么都不做(tmp_path, conn):

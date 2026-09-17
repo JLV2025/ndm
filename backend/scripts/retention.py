@@ -43,11 +43,13 @@ def main() -> int:
         for line in plan:
             print(f"  {line}")
         print(f"DB 待处理：配置全文置空 {result['config_cleared']} 条，"
-              f"日志删除 {result['logs_deleted']} 条")
+              f"日志删除 {result['logs_deleted']} 条，"
+              f"STP 快照删除 {result['stp_deleted']} 条")
         print("（--dry-run：未做任何修改）")
     else:
         print(f"归档 {result['archived']} 个周目录，删除 {result['deleted']} 个")
-        print(f"配置全文置空 {result['config_cleared']} 条，日志删除 {result['logs_deleted']} 条")
+        print(f"配置全文置空 {result['config_cleared']} 条，日志删除 {result['logs_deleted']} 条，"
+              f"STP 快照删除 {result['stp_deleted']} 条")
 
     for err in result["errors"]:
         print(f"  [错误] {err}")

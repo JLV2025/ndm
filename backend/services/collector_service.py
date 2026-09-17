@@ -825,11 +825,13 @@ def collect_device(
         # 保留策略失败绝不能影响采集结果，故整体兜住。
         try:
             retention = run_retention(data_root, conn=get_db())
-            if retention["archived"] or retention["deleted"] or retention["config_cleared"]:
+            if retention["archived"] or retention["deleted"] or retention["config_cleared"] \
+                    or retention["stp_deleted"]:
                 print(f"[保留策略] 归档 {retention['archived']} 个周目录、"
                       f"删除 {retention['deleted']} 个、"
                       f"配置全文置空 {retention['config_cleared']} 条、"
-                      f"日志删除 {retention['logs_deleted']} 条")
+                      f"日志删除 {retention['logs_deleted']} 条、"
+                      f"STP 快照删除 {retention['stp_deleted']} 条")
         except Exception as e:
             print(f"[保留策略] 跳过：{e}")
 
