@@ -69,8 +69,9 @@ def test_C9500_排除逻辑口与堆叠口():
     assert len(counters) == 48
     assert not [n for n in counters if n.startswith(("Po", "Hu"))]
     assert counters["Twe1/0/2"] == (16101977364549, 9422674234620)
-    # 被排除的口仍在 status 清单里（只是没有流量），面板照常显示
-    assert "Po1" in {d["name"] for d in details}
+    # Po 是逻辑口：status 与 counters 两侧都不进清单（与 Aruba 跳过 lag 口径一致），
+    # 否则它与成员口同时计入端口统计与流量排行，同一条链路会被算两次
+    assert "Po1" not in {d["name"] for d in details}
 
 
 # ============================================================

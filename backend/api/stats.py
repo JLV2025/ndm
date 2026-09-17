@@ -181,16 +181,26 @@ async def get_overview(window: int = DEFAULT_WINDOW):
         if ts and (last_collection is None or ts > last_collection):
             last_collection = ts
 
-        # 端口统计（单次聚合查询）
+        # 端口统计（单次聚合查询）—— 「Disabled」按管理性关闭（手动 shutdown）单独计数：
+        #   Cisco 交换机 show interface status → 'disabled'
+        #   路由器 show interfaces description → 'admin'（admin/administratively down 归一化值）
+        # 其余非 up（notconnect / down / err-disabled / unknown）归 Down。
+        # 前端「空闲端口」卡片 = Down + Disabled，柱状图三段各自成形。
         port_row = db.execute(
-            "SELECT COUNT(*) AS total, SUM(status_up) AS up "
+            "SELECT COUNT(*) AS total, "
+            "SUM(status_up) AS up, "
+            "SUM(CASE WHEN status IN ('disabled', 'admin') THEN 1 ELSE 0 END) AS disabled "
             "FROM port_snapshots WHERE collection_id = ?",
             (col["cid"],)
         ).fetchone()
         if port_row:
-            port_stats["total"] += port_row["total"] or 0
-            port_stats["up"] += port_row["up"] or 0
-            port_stats["down"] += (port_row["total"] or 0) - (port_row["up"] or 0)
+            total_n = port_row["total"] or 0
+            up_n = port_row["up"] or 0
+            disabled_n = port_row["disabled"] or 0
+            port_stats["total"] += total_n
+            port_stats["up"] += up_n
+            port_stats["disabled"] += disabled_n
+            port_stats["down"] += max(0, total_n - up_n - disabled_n)
 
     # 区间流量 Top 10（周锚定计数器差值，与「最新一次采集」无关）
     top_traffic = _top_traffic(db, window)

@@ -67,20 +67,23 @@ def normalize_port_name(name: str) -> str:
 # 排除规则
 # ============================================================
 
-# C9500 专用：它的 show interfaces counters 会额外输出逻辑口与堆叠口，必须排除。
-#   Po* = port-channel，计数器是成员口的聚合，与成员口同时计入会**重复计数**
-#   Hu* = HundredGigE 堆叠口（如 Hu2/0/27），跑的是成员间背板流量，不属于边缘流量
-# 全网只有一套 C9500 且今年退休，故硬编码，不做可配置层。
-# 2960X / IOS-XE / Aruba 的该命令均只输出物理口，无需排除。
+# Po* = port-channel，任何 Cisco 平台上都是逻辑口：计数器是成员口的聚合，与成员口
+# 同时计入会**重复计数**（实测 2960X / 3850 / 3560 / 9200L 的该命令同样输出 Po，
+# 并非 C9500 独有）→ 全平台排除，与 Aruba 侧排除 lag 的口径一致。
+# Hu* = HundredGigE 堆叠口（如 Hu2/0/27），跑的是堆叠成员间背板流量，不属于边缘流量；
+# 它只在 C9500 上出现（其他平台的 Hu 是真实 100G 物理口），故按型号排除。
 C9500_MODEL_MARKER = "C9500"
-C9500_EXCLUDED_PREFIXES = ("Po", "Hu")
+PORT_CHANNEL_PREFIX = "Po"
+STACK_PORT_PREFIXES = ("Hu",)
 
 
 def is_excluded_port(name: str, model: str = "") -> bool:
-    """端口是否属于需要排除的逻辑口 / 堆叠口（见 C9500_EXCLUDED_PREFIXES）"""
+    """端口是否属于需要排除的逻辑口 / 堆叠口（见上方说明）"""
+    if name.startswith(PORT_CHANNEL_PREFIX):
+        return True
     if C9500_MODEL_MARKER not in (model or "").upper():
         return False
-    return name.startswith(C9500_EXCLUDED_PREFIXES)
+    return name.startswith(STACK_PORT_PREFIXES)
 
 
 def is_subinterface(port_name: str) -> bool:

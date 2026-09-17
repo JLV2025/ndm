@@ -148,9 +148,12 @@ class PerformanceAnalyzer:
         """Cisco IOS 交换机 show interface status（7 列格式）
 
         列: Port  Name  Status  Vlan  Duplex  Speed  Type
+
+        po* = port-channel 逻辑口，不进端口清单 —— 与 Aruba 侧跳过 lag 口径一致：
+        它是成员口的聚合，与成员口同时计入端口统计与流量排行会重复计数。
         """
         return self._parse_cisco_interface_status(
-            skip_prefixes=("vlan", "loopback"),
+            skip_prefixes=("vlan", "loopback", "po"),
             speed_offset=3,
         )
 

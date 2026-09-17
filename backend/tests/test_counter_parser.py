@@ -86,11 +86,17 @@ def test_子接口判定():
     assert not is_subinterface("Gi1/0/1")
 
 
-def test_排除规则_仅对C9500生效():
-    for prefix in ("Po1", "Hu1/0/27"):
-        assert is_excluded_port(prefix, C9500_MODEL)
-        assert not is_excluded_port(prefix, "WS-C2960X-48FPD-L")
-        assert not is_excluded_port(prefix, "")
+def test_排除规则_Po全平台排除_Hu仅C9500():
+    # port-channel 是逻辑口，任何 Cisco 平台都排除（计数器是成员口聚合，重复计入会翻倍）
+    assert is_excluded_port("Po1", C9500_MODEL)
+    assert is_excluded_port("Po1", "WS-C2960X-48FPD-L")
+    assert is_excluded_port("Po1", "")
+    assert is_excluded_port("Port-channel1", "")
+
+    # Hu（100G 堆叠口）只在 C9500 上按堆叠口排除；其他平台的 Hu 是真实物理口
+    assert is_excluded_port("Hu1/0/27", C9500_MODEL)
+    assert not is_excluded_port("Hu1/0/27", "WS-C2960X-48FPD-L")
+    assert not is_excluded_port("Hu1/0/27", "")
 
     # 普通物理口任何型号都不排除
     assert not is_excluded_port("Twe1/0/1", C9500_MODEL)
@@ -121,11 +127,12 @@ def test_交换机_解析真机样本_9500_排除逻辑口与堆叠口():
     assert counters["Twe1/0/2"] == {"in_octets": 16101977364549, "out_octets": 9422674234620}
 
 
-def test_交换机_不给型号则不做排除():
-    """其他 Cisco 交换机没有这个问题，排除规则只在 C9500 上生效"""
+def test_交换机_非C9500型号只排除Po():
+    """Po 全平台排除；Hu 只有在 C9500 上才是堆叠口，换个型号就是真实物理口，须保留"""
     counters = parse_cisco_switch_counters(read_fixture(CISCO_9500_COUNTERS), "WS-C2960X")
-    assert len(counters) == 57
-    assert "Po1" in counters and "Hu1/0/27" in counters
+    assert len(counters) == 56
+    assert "Po1" not in counters
+    assert "Hu1/0/27" in counters
 
 
 def test_交换机_重复表头不干扰取值():
