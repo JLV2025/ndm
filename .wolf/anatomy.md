@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T05:05:11.919Z
-> Files: 69 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T05:25:17.696Z
+> Files: 70 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -95,9 +95,9 @@
 
 ## backend/analyzers/
 
-- `counter_parser.py` — 端口累计计数器解析器 (~3175 tok)
+- `counter_parser.py` — 端口累计计数器解析器 (~3198 tok)
 - `neighbor_parser.py` — CDP / LLDP 邻居解析器 (~6462 tok)
-- `performance.py` — PerformanceAnalyzer: analyze (~7635 tok)
+- `performance.py` — PerformanceAnalyzer: analyze (~7668 tok)
 - `stp_parser.py` — 生成树（STP）输出解析器 (~2662 tok)
 
 ## backend/api/
@@ -105,7 +105,7 @@
 - `collector.py` — 配置收集 API 路由 (~1711 tok)
 - `data.py` — 数据文件 API 路由 (~3944 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
-- `stats.py` — Dashboard 统计 API — 全量从 SQLite 读取 (~2386 tok)
+- `stats.py` — Dashboard 统计 API — 全量从 SQLite 读取 (~2546 tok)
 - `topology.py` — 拓扑图 API 路由 (~15518 tok)
 
 ## backend/collectors/
@@ -135,14 +135,15 @@
 - `conftest.py` — test_password_manager (~78 tok)
 - `test_collector_service.py` — collector_service 型号/序列号/成员ID提取测试 — 重点：Aruba CX VSF 堆叠 (~1644 tok)
 - `test_collector_service.py` — extract_model/extract_serial_number 测试（重点 VSF 堆叠成员型号，4 用例） (~500 tok)
-- `test_counter_parser.py` — 端口累计计数器解析器测试 (~3926 tok)
+- `test_counter_parser.py` — 端口累计计数器解析器测试 (~4010 tok)
 - `test_database_migration.py` — 数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表） (~1673 tok)
 - `test_neighbor_parser.py` — CDP/LLDP 邻居解析器测试 — 重点：Aruba AP 名识别 (~1543 tok)
 - `test_performance_aruba.py` — Aruba show interface brief 解析测试 (~389 tok)
-- `test_performance_counters.py` — 端口累计计数器与端口详情合并测试（PerformanceAnalyzer 接线） (~2424 tok)
+- `test_performance_counters.py` — 端口累计计数器与端口详情合并测试（PerformanceAnalyzer 接线） (~2443 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试（21 列 INSERT / NULL 与读数 0 区分 / 大数据精度） (~900 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试 —— 重点：累计计数器列（in_octets / out_octets） (~1043 tok)
 - `test_retention.py` — 分层保留与归档测试 (~3006 tok)
+- `test_stats_overview.py` — Dashboard 端口统计口径测试 —— Disabled 单独计数 (~784 tok)
 - `test_stats_window.py` — 区间流量 Top10 周锚定测试（16 用例，**核心：周中再采一次结果完全不变**） (~1900 tok)
 - `test_stats_window.py` — 区间流量 Top10 测试 —— 周锚定口径 (~2078 tok)
 - `test_stp_api.py` — STP 端点集成测试 —— 临时库 + 真机样本 → 完整 JSON（HTTP 层之下） (~1658 tok)
@@ -199,12 +200,12 @@
 
 ## frontend/src/i18n/
 
-- `en.ts` — Declares en (~5182 tok)
-- `zh.ts` — Declares zh (~4363 tok)
+- `en.ts` — Declares en (~5194 tok)
+- `zh.ts` — Declares zh (~4375 tok)
 
 ## frontend/src/pages/
 
-- `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~10929 tok)
+- `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~11085 tok)
 - `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5691 tok)
 - `Login.tsx` — Login (~2283 tok)
 - `StpTopology.tsx` — StpTopology (~1434 tok)

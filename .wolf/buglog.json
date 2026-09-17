@@ -1859,6 +1859,90 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T05:04:58.397Z"
+    },
+    {
+      "id": "bug-114",
+      "timestamp": "2026-09-17T13:15:50",
+      "error_message": "仪表盘「空闲端口」1438 的口径不是纯物理端口；且柱状图 Disabled 段恒为 0",
+      "file": "backend/api/stats.py",
+      "root_cause": "两层口径偏差：1) port_stats['disabled'] 初始化后从未累加，down += total-up 把 disabled(73)/admin(6)/err-disabled(1)/unknown(1) 全并入 down，「空闲端口」卡片 = down+disabled 实际等于全部非 up；2) 端口清单源自 show interface status/brief，Aruba 解析已过滤 lag/vlan/loopback，但 Cisco _parse_cisco_ios 只过滤 vlan/loopback，未过滤 Port-Channel(Po1/Po2/Po3/Po24/Po48 共 12 个逻辑口入库)；口径还含 3 台路由器的 12 个接口。实测 1438 = Aruba 物理 802 + Cisco 交换机物理 624 + 路由器 11 物理 + Loopback1",
+      "fix": "已修（用户选方案 A）：stats.get_overview 端口统计按 status 分桶，disabled/admin（管理性关闭）单独计数，down = 其余非 up；Cisco 侧 Po 全平台排除（counter_parser.is_excluded_port 全局判 Po + performance._parse_cisco_ios skip_prefixes 加 po），与 Aruba 排除 lag 口径一致。真实库实测 total 2077 / up 639 / down 1359 / disabled 79，空闲卡片仍 1438（口径=全部非 up）",
+      "tags": [
+        "dashboard",
+        "port-stats",
+        "disabled",
+        "port-channel",
+        "口径"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T13:29:18"
+    },
+    {
+      "id": "bug-115",
+      "timestamp": "2026-09-17T05:22:50.663Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/stats.py",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 10→20 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T05:22:50.663Z"
+    },
+    {
+      "id": "bug-116",
+      "timestamp": "2026-09-17T05:23:12.522Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_counter_parser.py",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 8→14 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T05:23:12.522Z"
+    },
+    {
+      "id": "bug-117",
+      "timestamp": "2026-09-17T05:24:40.982Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T05:24:40.982Z"
+    },
+    {
+      "id": "bug-115",
+      "timestamp": "2026-09-17T13:29:18",
+      "error_message": "仪表盘「设备类型」环形图三种设备有两种同色（用户反馈）",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "Cell fill 按【图例显示名】字符串比对：entry.name === 'Cisco IOS' / 'Aruba CX'。实际 i18n 文案是 'Aruba OS'，Aruba 比对失败落进 CHART_COLORS.other 灰；cisco_ios_router 无标签，同样落 other —— 两个扇区同为 #94A3B8。显示名走 i18n，改文案或切语言会再次触发同类同色问题",
+      "fix": "改为按原始 type 键取色：DEVICE_TYPE_COLORS（cisco_ios 蓝 / aruba_aoscx 青 / cisco_ios_router 紫 #8B5CF6），未登记类型按 fallback 色表轮转避免再撞色；顺带补 i18n 键 dashboard.ciscoRouter（原来图例显示原始 'cisco_ios_router'）",
+      "tags": [
+        "dashboard",
+        "pie-chart",
+        "color",
+        "i18n",
+        "recharts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T13:29:18"
     }
   ]
 }

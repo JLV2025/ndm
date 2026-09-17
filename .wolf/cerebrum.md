@@ -473,3 +473,14 @@
 ## Decision Log
 - [2026-09-17] 不用 running-config 推算 STP：配置只有意图（优先级/模式），缺实际根桥（需桥 MAC 决胜、可能站点外）、端口角色、转发/阻塞（纯运行态）；trunk 口常隐式全放行，连「链路承载哪些 VLAN」都查不全。只新增一条采集命令 `show spanning-tree`。
 - [2026-09-17] STP 图按 LAG 逻辑口成边（物理成员隐藏，与既有偏好一致）；堆叠成员合并为逻辑节点（STP 以逻辑桥运行）；`show spanning-tree detail` 不需要（完整版已含端口表）。
+
+## Key Learnings
+- [2026-09-17] **Dashboard 端口统计的三个桶**：`port_stats` = up / disabled（管理性关闭，status ∈ {disabled, admin}）/ down（其余非 up：notconnect、err-disabled、unknown…）。「空闲端口」卡片口径 = down + disabled = 全部非 up。此前 `disabled` 初始化后从未累加（恒 0），柱状图 Disabled 段永远为 0——聚合 SQL 用 `SUM(CASE WHEN status IN ('disabled','admin') THEN 1 ELSE 0 END)` 分类即可（bug-114）。
+- [2026-09-17] **port-channel（Po*）在任何 Cisco 平台上都是逻辑口**：`show interfaces counters` 对 2960X/3850/3560/9200L 同样输出 Po（counter_parser 里「只有 C9500 输出逻辑口」的注释是过时的），Po 计数器 = 成员口聚合，与成员口同时入库会**双重计数**（实测 KR5D1SWI01：Te1/0/1 与 Po1 读数几乎相同）。排除要**两侧同时做**，否则 status 侧过滤后 `_enrich_counters` 会把它当「清单外物理口」以 status=unknown 补回来：`is_excluded_port` 全局判 Po（Hu 仍仅 C9500）+ `_parse_cisco_ios` skip_prefixes 加 "po"。与 Aruba 排除 lag 口径一致。
+- [2026-09-17] **前端图表配色按数据键，不按显示名**：环形图曾经用 `entry.name === 'Cisco IOS'` 比对图例文案，而 Aruba 的 i18n 实际文案是 'Aruba OS' → 匹配失败落进 other 灰，与路由器同色（bug-115）。显示名走 i18n，改文案/切语言就会再次撞色。正确做法：数据里带原始 `type` 键，颜色表 `Record<rawType, color>`，未登记类型走 fallback 色表轮转。
+
+## Do-Not-Repeat
+- [2026-09-17] 端口清单/流量口径改动要考虑**双数据源**（status 解析 + counters 补录），只改一侧会把端口以错误状态补回来——见上条 Key Learning 的具体机制。
+
+## User Preferences
+- [2026-09-17] 用户认可用「先查真实库把数字构成摊开（每类多少条、都是什么）」的方式回答数据疑问，再给方案让其选择（本轮 1438 idle 端口的构成分析）。
