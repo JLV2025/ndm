@@ -27,10 +27,12 @@ const DESC_FIRST = new Set(['uptime', 'total_mbps', 'rx_mbps', 'tx_mbps', 'rx_pc
 // 三张表的取值口径（排序与导出共用同一套，避免两处对不上）
 const VERSION_GETTERS: Record<string, (r: Row) => any> = {
   name: r => r.name,
-  type: r => r.type,
   location: r => r.location,
   model: r => r.model,
+  serial: r => r.serial,
   version: r => r.version,
+  rom: r => r.rom_version,
+  uptime: r => r.uptime_days,
   last_synced: r => r.last_synced,
 }
 const UPTIME_GETTERS: Record<string, (r: Row) => any> = {
@@ -170,9 +172,10 @@ export default function ReportsPage() {
     if (reportType === 'software-versions') {
       const rows = sortRows(data?.devices || [], sort, VERSION_GETTERS)
       downloadCsv(`${t('reports.softwareVersions')}_${loc}_${stamp}.csv`,
-        [t('reports.device'), t('reports.type'), t('reports.location'), t('reports.model'),
-         t('reports.version'), t('reports.lastSynced')],
-        rows.map(r => [r.name, r.type, r.location, r.model, r.version, fmtTime(r.last_synced)]))
+        [t('reports.member'), t('reports.location'), t('reports.model'), t('reports.serialNumber'),
+         t('reports.version'), t('reports.romVersion'), t('reports.uptimeDaysCol'), t('reports.lastSynced')],
+        rows.map(r => [r.name, r.location, r.model, r.serial,
+                       r.version, r.rom_version, r.uptime_days ?? '', fmtTime(r.last_synced)]))
     } else if (reportType === 'device-uptime') {
       const rows = sortRows(data?.devices || [], sort, UPTIME_GETTERS)
       downloadCsv(`${t('reports.deviceUptime')}_${loc}_${stamp}.csv`,
@@ -192,27 +195,46 @@ export default function ReportsPage() {
 
   const renderVersions = () => {
     const rows: Row[] = data?.devices || []
-    const mismatches: Array<{ model: string; versions: string[] }> = data?.mismatches || []
-    const mismatchModels = new Set(mismatches.map(m => m.model))
+    const mismatches: Array<{ device: string; versions: string[]; rom_versions: string[]; members: Row[] }> =
+      data?.mismatches || []
+    const mismatchDevices = new Set(mismatches.map(m => m.device))
     const sorted = sortRows(rows, sort, VERSION_GETTERS)
+
+    /** 告警文案：点名哪台成员是什么版本（按版本分组） */
+    const describeMismatch = (m: typeof mismatches[number]) => {
+      const fmt = (field: 'version' | 'rom_version') => {
+        const groups = new Map<string, string[]>()
+        m.members.forEach(x => {
+          const v = x[field] || '—'
+          groups.set(v, [...(groups.get(v) || []), x.name])
+        })
+        return [...groups.entries()].map(([v, names]) => `${names.join('、')} 为 ${v}`).join('；')
+      }
+      const parts = [m.versions.length > 1 ? fmt('version') : '', m.rom_versions.length > 1 ? `ROM ${fmt('rom_version')}` : '']
+      return `${m.device}：${parts.filter(Boolean).join('；')}`
+    }
 
     return (
       <Box>
         {mismatches.length > 0 && (
           <Alert severity="warning" icon={<WarningIcon />} sx={{ mb: 2 }}>
-            <strong>{t('reports.versionMismatch')}</strong>：
-            {mismatches.map(m => ` ${m.model}（${m.versions.join(' / ')}）`).join('；')}
+            <strong>{t('reports.memberMismatch')}</strong>
+            <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
+              {mismatches.map(m => <li key={m.device}>{describeMismatch(m)}</li>)}
+            </Box>
           </Alert>
         )}
         <TableContainer component={Paper} sx={{ maxHeight: '72vh' }}>
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
-                <SortHead field="name" label={t('reports.device')} sort={sort} onSort={handleSort} />
-                <SortHead field="type" label={t('reports.type')} sort={sort} onSort={handleSort} />
+                <SortHead field="name" label={t('reports.member')} sort={sort} onSort={handleSort} />
                 <SortHead field="location" label={t('reports.location')} sort={sort} onSort={handleSort} />
                 <SortHead field="model" label={t('reports.model')} sort={sort} onSort={handleSort} />
+                <SortHead field="serial" label={t('reports.serialNumber')} sort={sort} onSort={handleSort} />
                 <SortHead field="version" label={t('reports.version')} sort={sort} onSort={handleSort} />
+                <SortHead field="rom" label={t('reports.romVersion')} sort={sort} onSort={handleSort} />
+                <SortHead field="uptime" label={t('reports.uptime')} sort={sort} onSort={handleSort} />
                 <SortHead field="last_synced" label={t('reports.lastSynced')} sort={sort} onSort={handleSort} />
               </TableRow>
             </TableHead>
@@ -221,14 +243,26 @@ export default function ReportsPage() {
                 <TableRow
                   key={r.name}
                   hover
-                  sx={mismatchModels.has(r.model) ? { bgcolor: 'rgba(245, 158, 11, 0.08)' } : undefined}
+                  sx={mismatchDevices.has(r.device) ? { bgcolor: 'rgba(245, 158, 11, 0.08)' } : undefined}
                 >
                   <TableCell>{r.name}</TableCell>
-                  <TableCell>{r.type}</TableCell>
                   <TableCell>{r.location || '—'}</TableCell>
                   <TableCell>{r.model}</TableCell>
+                  <TableCell sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem' }}>
+                    {r.serial || '—'}
+                  </TableCell>
                   <TableCell>
-                    <Chip label={r.version} size="small" color={mismatchModels.has(r.model) ? 'warning' : 'default'} />
+                    <Chip label={r.version} size="small" color={mismatchDevices.has(r.device) ? 'warning' : 'default'} />
+                  </TableCell>
+                  <TableCell>
+                    {r.rom_version
+                      ? <Chip label={r.rom_version} size="small" variant="outlined" />
+                      : <Typography variant="caption" color="text.disabled">—</Typography>}
+                  </TableCell>
+                  <TableCell>
+                    {r.uptime_days != null
+                      ? t('reports.uptimeDays').replace('{days}', String(r.uptime_days))
+                      : <Typography variant="caption" color="text.disabled">—</Typography>}
                   </TableCell>
                   <TableCell>{fmtTime(r.last_synced)}</TableCell>
                 </TableRow>
