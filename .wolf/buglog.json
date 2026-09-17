@@ -1743,6 +1743,82 @@
       "related_bugs": [],
       "occurrences": 3,
       "last_seen": "2026-09-17T04:51:15.300Z"
+    },
+    {
+      "id": "bug-107",
+      "timestamp": "2026-09-17T04:55:55.762Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/topology.py",
+      "root_cause": "11 lines replaced/restructured",
+      "fix": "Rewrote 30→43 lines (11 removed) | Also: # ---- 边方向：从高层（层号小）指向下一层 ----; if la is not None and lb is not None and la > lb:",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T04:57:10.528Z"
+    },
+    {
+      "id": "bug-108",
+      "timestamp": "2026-09-17T04:57:25.956Z",
+      "error_message": "CSS fix: left",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "left: chipX(i), top: -3 → chipX(i), bottom: -3",
+      "fix": "Changed left: chipX(i), top: -3 → chipX(i), bottom: -3",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T04:57:25.956Z"
+    },
+    {
+      "id": "bug-109",
+      "timestamp": "2026-09-17T04:57:37.082Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 11→24 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T04:57:37.082Z"
+    },
+    {
+      "id": "bug-110",
+      "timestamp": "2026-09-17T04:57:47.602Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: const sameRowBand = new Map<string, boolean>(); const [src, tgt] = key.split('->') | Also: const key = `${e.source}->${e.target}`; const sameRow = sameRowBand.get(key) ?? false",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-17T04:57:57.656Z"
+    },
+    {
+      "id": "bug-106",
+      "timestamp": "2026-09-17T05:05:00.000Z",
+      "error_message": "用户报：STP 图 SHA 站点错误——SHAD2SWI02 节点孤立漂浮，一条边都没有（layer=None → 被排到最后一行）",
+      "file": "backend/api/topology.py",
+      "root_cause": "SHAD2SWI02 到 C9500 有两条物理链路（Twe2/0/24、Gi1/0/42），STP 只在 Gi1/0/42（根端口）上有端口行；成边逻辑 _stp_best_links「每个邻居只挑一条链路」按数据库顺序挑中无 STP 行的 Twe2/0/24 → 与该端 STP 行无交集 → 0 条边 → BFS 到不了 → 孤立",
+      "fix": "改为 _stp_candidate_ports 保留同一邻居全部候选链路，按 VLAN 合并时优先 root 角色端口；同层边（SHA 双根桥并排）按 STP 角色定向 + 前端底部下弧线渲染（bt-<vlan> handle）",
+      "tags": ["stp", "edge-building", "multi-link", "user-reported", "sha"],
+      "related_bugs": ["bug-105"],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T05:05:00.000Z"
     }
   ]
 }

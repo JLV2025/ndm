@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T03:52:12.615Z
-> Files: 68 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T04:58:12.325Z
+> Files: 69 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -91,6 +91,7 @@
 
 - `_verify_version.py` — 临时验证脚本：检查 FastAPI 应用版本号动态读取（验证后删除） (~76 tok)
 - `main.py` — API: 3 endpoints (~1274 tok)
+- `tmp_stp_check.py` — 临时诊断：用真实库数据模拟前端层带判定（跑完即删） (~889 tok)
 
 ## backend/analyzers/
 
@@ -105,7 +106,7 @@
 - `data.py` — 数据文件 API 路由 (~3944 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
 - `stats.py` — Dashboard 统计 API — 全量从 SQLite 读取 (~2386 tok)
-- `topology.py` — 拓扑图 API 路由 (~15252 tok)
+- `topology.py` — 拓扑图 API 路由 (~15518 tok)
 
 ## backend/collectors/
 
@@ -116,18 +117,18 @@
 
 ## backend/scripts/
 
-- `retention.py` — 数据保留与归档工具 (~529 tok)
+- `retention.py` — 数据保留与归档工具 (~560 tok)
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~17879 tok)
+- `collector_service.py` — 配置收集服务 (~17912 tok)
 
 ## backend/storage/
 
 - `__init__.py` — 数据存储服务模块 (~162 tok)
 - `database.py` — init_db, get_connection, close_connection (~5490 tok)
 - `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~2165 tok)
-- `file_manager.py` — 存储管理模块 (~2286 tok)
+- `file_manager.py` — 存储管理模块 (~2595 tok)
 
 ## backend/tests/
 
@@ -141,11 +142,11 @@
 - `test_performance_counters.py` — 端口累计计数器与端口详情合并测试（PerformanceAnalyzer 接线） (~2424 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试（21 列 INSERT / NULL 与读数 0 区分 / 大数据精度） (~900 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试 —— 重点：累计计数器列（in_octets / out_octets） (~1043 tok)
-- `test_retention.py` — 分层保留与归档测试 (~2460 tok)
+- `test_retention.py` — 分层保留与归档测试 (~3006 tok)
 - `test_stats_window.py` — 区间流量 Top10 周锚定测试（16 用例，**核心：周中再采一次结果完全不变**） (~1900 tok)
 - `test_stats_window.py` — 区间流量 Top10 测试 —— 周锚定口径 (~2078 tok)
 - `test_stp_api.py` — STP 端点集成测试 —— 临时库 + 真机样本 → 完整 JSON（HTTP 层之下） (~1658 tok)
-- `test_stp_graph.py` — 站点级 STP 图构建测试 —— 纯函数 _build_stp_graph（真机样本驱动） (~1959 tok)
+- `test_stp_graph.py` — 站点级 STP 图构建测试 —— 纯函数 _build_stp_graph（真机样本驱动） (~3076 tok)
 - `test_stp_parser.py` — stp_parser 测试 — 两个平台的真机样本（backend/tests/fixtures/） (~1610 tok)
 - `test_stp_snapshot_write.py` — stp_snapshots 落库测试 —— 生成树快照（站点 STP 拓扑图的数据源） (~1391 tok)
 
@@ -193,7 +194,7 @@
 - `LabeledSmoothstepEdge.tsx` — 带端点端口标签的 smoothstep 边。 (~1026 tok)
 - `LocationTopologyCanvas.tsx` — NODE_H (~7754 tok)
 - `PortTopologyCanvas.tsx` — 解析设备命名规范：PVGD1SWI02 → { site: "PVG", room: "D1", typeCode: "SWI", num: 2 } (~14392 tok)
-- `StpTopologyCanvas.tsx` — HEADER_H (~5987 tok)
+- `StpTopologyCanvas.tsx` — 边的运行时数据（buildLayout 注入；finalEdges 里刷新高亮/明细态） (~6774 tok)
 - `TopologyCanvas.tsx` — 判断端口拓扑是否符合三层结构：有 WAN 设备 + 中心交换机 + 终端设备 (~6637 tok)
 
 ## frontend/src/i18n/
@@ -206,7 +207,7 @@
 - `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~10929 tok)
 - `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5691 tok)
 - `Login.tsx` — Login (~2283 tok)
-- `StpTopology.tsx` — StpTopology (~1379 tok)
+- `StpTopology.tsx` — StpTopology (~1434 tok)
 
 ## frontend/src/services/
 
