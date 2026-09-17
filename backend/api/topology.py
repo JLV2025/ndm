@@ -1083,3 +1083,305 @@ async def audit_location_roles(location: str):
 
     return result
 
+
+# ============================================================
+# 站点级 STP 拓扑图（生成树）
+# ============================================================
+
+def _scan_stp_snapshots(location: str) -> dict[str, list[dict]]:
+    """一次查询聚合站点内所有设备最新一轮的 STP 快照
+
+    只返回有 stp_snapshots 数据的设备（采集层已过滤 Down/Disabled 端口）。
+
+    Returns:
+        {device_name: [{vlan, port_name, role, state, cost, is_root, root_priority,
+                        root_mac, bridge_priority, bridge_mac, mode}, ...]}
+    """
+    db = _get_db()
+    if not db:
+        return {}
+    rows = db.execute("""
+        SELECT d.name AS device_name, s.vlan, s.port_name, s.role, s.state, s.cost,
+               s.is_root, s.root_priority, s.root_mac, s.bridge_priority, s.bridge_mac, s.mode
+        FROM stp_snapshots s
+        JOIN devices d ON s.device_id = d.id
+        WHERE UPPER(d.location) = UPPER(?)
+          AND s.collection_id = (
+              SELECT c.id FROM collections c
+              WHERE c.device_id = s.device_id
+              ORDER BY c.id DESC LIMIT 1
+          )
+    """, (location,)).fetchall()
+    result: dict[str, list[dict]] = {}
+    for r in rows:
+        result.setdefault(r["device_name"], []).append(dict(r))
+    return result
+
+
+def _stp_vlan_chips(rows: list[dict]) -> list[dict]:
+    """设备行数据 → 每 VLAN 的伪端口摘要（节点渲染用）
+
+    role/state 取「本设备朝根方向的端口」（role=root 的行）；根桥自身为 root/forwarding。
+    没有根端口的孤立 VLAN（本地 VLAN / 异常）退化为取首个端口如实呈现。
+    blocked 标注该 VLAN 内是否存在阻塞端口（Alternate / Blocking）——前端用虚线区分。
+    """
+    by_vlan: dict[int, list[dict]] = {}
+    for r in rows:
+        by_vlan.setdefault(r["vlan"], []).append(r)
+
+    chips = []
+    for vlan in sorted(by_vlan):
+        prows = by_vlan[vlan]
+        is_root = any(r["is_root"] for r in prows)
+        root_ports = [r for r in prows if r["role"] == "root"]
+        blocked = any(r["role"] == "alternate" or r["state"] == "blocking" for r in prows)
+        if is_root:
+            role, state, port = "root", "forwarding", None
+        elif root_ports:
+            role, state, port = "root", root_ports[0]["state"], root_ports[0]["port_name"]
+        else:
+            role, state, port = prows[0]["role"], prows[0]["state"], prows[0]["port_name"]
+        chips.append({
+            "vlan": vlan,
+            "is_root": is_root,
+            "role": role,
+            "state": state,
+            "port": port,
+            "blocked": blocked,
+            "priority": prows[0]["bridge_priority"],
+            "root_priority": prows[0]["root_priority"],
+            "root_mac": prows[0]["root_mac"],
+        })
+    return chips
+
+
+def _stp_best_links(device_name: str, neighbor_rows: list[dict],
+                    switch_names: set, lag_members: set) -> dict[str, dict]:
+    """设备 → 每个交换机邻居只保留一条链路：LAG 逻辑口优先，物理成员口隐藏
+
+    与既有拓扑偏好一致（LAG 高度概括，成员口不重复画线）。
+    `Po48` / `po 48` 这类重复条目按邻居名归并后天然去重。
+    """
+    best: dict[str, dict] = {}
+    for nb in neighbor_rows:
+        nb_name = nb.get("neighbor_name", "")
+        if not nb_name or nb_name == device_name or nb_name not in switch_names:
+            continue
+        raw_port = nb.get("local_port", "")
+        if not raw_port:
+            continue
+        port_short = _norm_port(raw_port)
+        is_logical = bool(nb.get("is_logical"))
+        if not is_logical and port_short in lag_members:
+            continue  # 被 LAG 覆盖的物理成员口：不单独画线
+        cur = best.get(nb_name)
+        if cur is None or (is_logical and not cur["is_logical"]):
+            best[nb_name] = {"local_port": raw_port, "is_logical": is_logical}
+    return best
+
+
+def _build_stp_graph(switch_devices: list[dict],
+                     stp_map: dict[str, list[dict]],
+                     neighbor_map: dict[str, list[dict]],
+                     lag_members_map: dict[str, set]) -> dict:
+    """站点 STP 图构建（纯函数，便于单测）
+
+    - 节点 = 交换机；VLAN 为伪端口（芯片摘要见 _stp_vlan_chips）
+    - 边 = 邻居链路 × 两端同 VLAN 的 STP 端口（LAG 优先）
+    - 分层 = 以转发中的边从根桥 BFS（根 = 第 1 层）；根在站点外时从「朝外」的设备起算
+    """
+    switch_names = {d["id"] for d in switch_devices}
+
+    # ---- 节点 ----
+    nodes: list[dict] = []
+    for dev in switch_devices:
+        name = dev["id"]
+        rows = stp_map.get(name, [])
+        chips = _stp_vlan_chips(rows) if rows else []
+        nodes.append({
+            **dev,
+            "mode": rows[0]["mode"] if rows else "",
+            "has_stp_data": bool(rows),
+            "is_root_bridge": False,   # 建边后按「站点级根桥」重算（见下方）
+            "vlans": chips,
+            "layer": None,
+        })
+
+    # ---- 每设备的最佳链路与 STP 端口索引（端口名归一化后比对）----
+    links: dict[str, dict] = {}
+    port_index: dict[str, dict] = {}
+    for n in nodes:
+        name = n["id"]
+        links[name] = _stp_best_links(
+            name, neighbor_map.get(name, []), switch_names, lag_members_map.get(name, set()))
+        index: dict[str, dict] = {}
+        for r in stp_map.get(name, []):
+            key = _norm_lag_name(_norm_port(r["port_name"]))
+            index.setdefault(key, {})[r["vlan"]] = r
+        port_index[name] = index
+
+    # ---- 边（每对邻居只处理一次）----
+    edges: list[dict] = []
+    seen_pairs: set = set()
+    for a in nodes:
+        a_id = a["id"]
+        for b_name, link in sorted(links[a_id].items()):
+            pair = frozenset((a_id, b_name))
+            if pair in seen_pairs:
+                continue
+            seen_pairs.add(pair)
+            b_link = links.get(b_name, {}).get(a_id)
+            a_key = _norm_lag_name(_norm_port(link["local_port"]))
+            b_key = _norm_lag_name(_norm_port(b_link["local_port"])) if b_link else ""
+            a_ports = port_index[a_id].get(a_key, {})
+            b_ports = port_index[b_name].get(b_key, {})
+            for vlan in sorted(set(a_ports) & set(b_ports)):
+                a_row, b_row = a_ports[vlan], b_ports[vlan]
+                edges.append({
+                    "source": a_id, "target": b_name,
+                    "vlan": vlan,
+                    "source_port": a_row["port_name"], "target_port": b_row["port_name"],
+                    "source_role": a_row["role"], "source_state": a_row["state"],
+                    "target_role": b_row["role"], "target_state": b_row["state"],
+                    "forwarding": (a_row["state"] == "forwarding"
+                                   and b_row["state"] == "forwarding"),
+                })
+
+    # ---- 站点级根桥：至少是一个「有跨设备边的 VLAN」的根 ----
+    # 本地孤立 VLAN 的根（如 SWI02 的 VLAN34、SWI04 的 VLAN4092/4093）不算站点根桥 ——
+    # 它不参与任何跨设备树，若计入会把接入交换机错误地抬到第一层。
+    vlans_with_edges = {e["vlan"] for e in edges}
+    for n in nodes:
+        n["is_root_bridge"] = any(
+            c["is_root"] and c["vlan"] in vlans_with_edges for c in n["vlans"])
+
+    # ---- 分层：转发边 BFS ----
+    adjacency: dict[str, set] = {n["id"]: set() for n in nodes}
+    for e in edges:
+        if e["forwarding"]:
+            adjacency[e["source"]].add(e["target"])
+            adjacency[e["target"]].add(e["source"])
+
+    roots = [n["id"] for n in nodes if n["is_root_bridge"]]
+
+    # 根在站点外：站点里出现但不属于本站点任何桥 MAC 的根 MAC
+    site_bridge_macs = {r["bridge_mac"] for rows in stp_map.values()
+                        for r in rows if r["bridge_mac"]}
+    seen_root_macs = {r["root_mac"] for rows in stp_map.values()
+                      for r in rows if r["root_mac"]}
+    outside_root_macs = sorted(seen_root_macs - site_bridge_macs)
+
+    if not roots and outside_root_macs:
+        # 根不在本站点：把「根 MAC 朝外」的设备当作顶层
+        roots = [n["id"] for n in nodes if n["has_stp_data"]
+                 and any(c["root_mac"] in outside_root_macs for c in n["vlans"])]
+    if not roots:
+        roots = [n["id"] for n in nodes if n["has_stp_data"]]
+
+    layer: dict[str, int] = {}
+    frontier = list(roots)
+    depth = 1
+    while frontier:
+        next_frontier = []
+        for name in frontier:
+            if name in layer:
+                continue
+            layer[name] = depth
+            next_frontier.extend(sorted(adjacency.get(name, ())))
+        frontier = [x for x in next_frontier if x not in layer]
+        depth += 1
+    for n in nodes:
+        n["layer"] = layer.get(n["id"])
+
+    # ---- 边方向：从高层（层号小）指向下一层 ----
+    for e in edges:
+        la, lb = layer.get(e["source"]), layer.get(e["target"])
+        if la is not None and lb is not None and la > lb:
+            e["source"], e["target"] = e["target"], e["source"]
+            e["source_port"], e["target_port"] = e["target_port"], e["source_port"]
+            e["source_role"], e["target_role"] = e["target_role"], e["source_role"]
+            e["source_state"], e["target_state"] = e["target_state"], e["source_state"]
+
+    all_vlans = sorted({c["vlan"] for n in nodes for c in n["vlans"]})
+    return {
+        "nodes": nodes,
+        "edges": edges,
+        "summary": {
+            "node_count": len(nodes),
+            "edge_count": len(edges),
+            "vlan_count": len(all_vlans),
+            "vlans": all_vlans,
+        },
+        "root_outside_site": bool(outside_root_macs),
+        "outside_root_macs": outside_root_macs,
+    }
+
+
+@router.get("/topology/location/{location}/stp")
+async def get_location_stp_topology(location: str):
+    """站点级 STP 拓扑图数据（生成树）
+
+    节点 = 站点内交换机（VLAN 为伪端口，标注根/转发/阻塞）；
+    边 = 邻居链路 × 两端同 VLAN 的 STP 端口（LAG 优先、成员口隐藏）。
+    附模式一致性检查：同站点模式必须同族（RPVST ≡ Rapid-PVST）。
+    """
+    # 参数校验（与 get_location_topology 保持一致）
+    if not location or not isinstance(location, str):
+        raise HTTPException(status_code=400, detail="location 参数无效")
+    if '..' in location or '/' in location or '\\' in location:
+        raise HTTPException(status_code=400, detail="location 包含非法字符")
+    if not re.match(r'^[a-zA-Z0-9_\-]+$', location):
+        raise HTTPException(status_code=400, detail="location 包含非法字符")
+
+    from storage.device_dal import get_all_devices
+    all_devices = get_all_devices()
+    location_devices = [
+        d for d in all_devices
+        if (d.get("location") or "").upper() == location.upper()
+    ]
+    if not location_devices:
+        raise HTTPException(status_code=404, detail=f"未找到 location={location} 的设备")
+
+    # 只画交换机（路由器/防火墙等不参与 STP）
+    switch_devices: list[dict] = []
+    for d in location_devices:
+        name = d.get("name", "")
+        display_type = _map_device_type(d.get("type", ""), name)
+        if display_type != "switch":
+            continue
+        switch_devices.append({
+            "id": name,
+            "label": name,
+            "type": display_type,
+            "ip": d.get("ip", ""),
+            "model": d.get("model", ""),
+            "notes": d.get("notes", ""),
+            "tier": _compute_tier(name, d.get("notes", "")),
+        })
+    if not switch_devices:
+        raise HTTPException(status_code=404, detail=f"location={location} 下没有交换机设备")
+
+    stp_map = _scan_stp_snapshots(location)
+
+    neighbor_map = _scan_device_neighbors()
+    lag_members_map: dict[str, set] = {}
+    for dev in switch_devices:
+        lag_members: set = set()
+        for members in _get_latest_lag_membership(dev["id"]).values():
+            for mp in members:
+                lag_members.add(_norm_port(mp))
+        lag_members_map[dev["id"]] = lag_members
+
+    graph = _build_stp_graph(switch_devices, stp_map, neighbor_map, lag_members_map)
+
+    # 模式一致性检查：同站点必须同族（RPVST ≡ Rapid-PVST）
+    modes = {n["id"]: n["mode"] for n in graph["nodes"] if n["mode"]}
+    families = sorted(set(modes.values()))
+    graph["mode_check"] = {
+        "consistent": len(families) <= 1,
+        "families": families,
+        "modes": modes,
+    }
+    graph["location"] = location.upper()
+    return graph
+

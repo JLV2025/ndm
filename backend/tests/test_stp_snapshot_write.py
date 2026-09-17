@@ -111,3 +111,24 @@ def test_stp为空不报错(tmp_path, restore_db_path):
     """路由器等不采集 STP 的设备：stp_data 为 None，落库不报错"""
     conn = save(tmp_path, None)
     assert conn.execute("SELECT COUNT(*) FROM stp_snapshots").fetchone()[0] == 0
+
+
+# ---- API 数据源：按 location 聚合 ----
+
+def test_scan_stp_snapshots_按location聚合最新一轮(tmp_path, restore_db_path):
+    """API 的数据入口：只取每台设备最新一次采集、按 location 过滤"""
+    from api.topology import _scan_stp_snapshots
+
+    result = parse_spanning_tree(_load("PVGD1SWI05 show spanning-tree.txt"), "PVGD1SWI05")
+    conn = save(tmp_path, _build_stp_rows(result))
+    # devices.location 由设备管理维护，落库接口不写 —— 测试里补上
+    conn.execute("UPDATE devices SET location='PVG' WHERE name='TEST1SWI01'")
+    conn.commit()
+
+    stp_map = _scan_stp_snapshots("PVG")
+    assert set(stp_map) == {"TEST1SWI01"}
+    assert len(stp_map["TEST1SWI01"]) == 61
+    assert all(r["mode"] == "rapid-pvst" for r in stp_map["TEST1SWI01"])
+
+    # location 不匹配 → 空
+    assert _scan_stp_snapshots("XXX") == {}
