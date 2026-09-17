@@ -9,11 +9,33 @@ router = APIRouter()
 from storage.database import get_connection as _get_db
 
 
+def _distinct_models(model: str) -> list[str]:
+    """型号字段去重（堆叠设备的 model 是逗号拼接的成员型号，同型号成员会重复）
+
+    "JL658A, JL658A"                    → ["JL658A"]
+    "WS-C2960X-48FPD-L, ...-48LPD-L, ...-48LPD-L" → ["WS-C2960X-48FPD-L", "WS-C2960X-48LPD-L"]
+    """
+    seen: list[str] = []
+    for part in (model or "").split(","):
+        p = part.strip()
+        if p and p not in seen:
+            seen.append(p)
+    return seen or ["未知"]
+
+
 @router.get("/api/reports/software-versions")
 async def report_software_versions(
-    device_type: Optional[str] = Query(None, description="设备类型: cisco_ios / aruba_aoscx"),
+    device_type: Optional[str] = None,
+    location: Optional[str] = None,
 ):
-    """所有设备的软件版本报告"""
+    """软件版本报告（扁平列表，前端一张表 + 列头排序）
+
+    查询参数：device_type（设备类型）、location（位置，不传则查全部）。
+    默认值用普通 None 而非 Query(...) —— Query 对象在直接调用（测试）时会原样传进 SQL。
+
+    型号字段含堆叠成员（逗号拼接）→ 去重后作为分组/比较键：
+    单机 "JL658A" 与堆叠 "JL658A, JL658A" 归为同一型号，版本一致性比较才成立。
+    """
     db = _get_db()
 
     conditions = ["d.version != ''", "d.version != '未知'"]
@@ -25,53 +47,67 @@ async def report_software_versions(
         else:
             conditions.append("d.type = ?")
             params.append(device_type)
+    if location:
+        conditions.append("d.location = ?")
+        params.append(location)
 
     where = " AND ".join(conditions)
     rows = db.execute(
-        f"""SELECT d.name, d.type, d.model, d.version, d.last_synced
+        f"""SELECT d.name, d.type, d.location, d.model, d.version, d.last_synced
             FROM devices d WHERE {where}
-            ORDER BY d.type, d.model, d.version""",
+            ORDER BY d.model, d.name""",
         params,
     ).fetchall()
 
-    # 按型号分组，找出不一致
-    by_model = {}
+    devices = []
+    versions_by_model: dict[str, set] = {}
     for r in rows:
-        model = r["model"] or "未知"
-        if model not in by_model:
-            by_model[model] = []
-        by_model[model].append({
+        models = _distinct_models(r["model"])
+        model_key = ", ".join(models)
+        devices.append({
             "name": r["name"],
             "type": r["type"],
+            "location": r["location"] or "",
+            "model": model_key,
             "version": r["version"],
             "last_synced": r["last_synced"],
         })
+        versions_by_model.setdefault(model_key, set()).add(r["version"])
 
-    return {
-        "devices": [dict(r) for r in rows],
-        "by_model": {
-            model: {
-                "devices": devs,
-                "has_mismatch": len(set(d["version"] for d in devs)) > 1,
-                "versions": list(set(d["version"] for d in devs)),
-            }
-            for model, devs in by_model.items()
-        },
-    }
+    # 同一型号出现多个版本 → 版本不一致（只报有比较对象的：≥2 台且版本不同）
+    mismatches = [
+        {"model": model, "versions": sorted(versions)}
+        for model, versions in versions_by_model.items()
+        if len(versions) > 1
+    ]
+
+    return {"devices": devices, "mismatches": mismatches}
 
 
 @router.get("/api/reports/device-uptime")
-async def report_device_uptime():
-    """所有设备的最新在线时间报告（含暂无数据的设备）"""
+async def report_device_uptime(location: Optional[str] = None):
+    """所有设备的最新在线时间报告（含暂无数据的设备）
+
+    查询参数：location（位置，不传则查全部）。
+    """
     db = _get_db()
 
+    params = []
+    location_filter = ""
+    if location:
+        location_filter = "WHERE d.location = ?"
+        params.append(location)
+
     rows = db.execute(
-        """SELECT d.name, d.type, c.system_uptime_seconds, c.collected_at, c.software_version
+        f"""SELECT d.name, d.type, d.location, c.system_uptime_seconds,
+                   c.collected_at, c.software_version
            FROM devices d
            LEFT JOIN collections c ON c.device_id = d.id
                AND c.id = (SELECT MAX(c2.id) FROM collections c2
                            WHERE c2.device_id = d.id AND c2.phase = '1')
-           ORDER BY d.name"""
+           {location_filter}
+           ORDER BY d.name""",
+        params,
     ).fetchall()
 
     devices = []
@@ -80,6 +116,7 @@ async def report_device_uptime():
         devices.append({
             "name": r["name"],
             "type": r["type"],
+            "location": r["location"] or "",
             "system_uptime_seconds": secs,
             "uptime_days": round(secs / 86400, 1) if secs else None,
             "collected_at": r["collected_at"],
@@ -144,21 +181,27 @@ async def report_port_trend(
 
 
 @router.get("/api/reports/bandwidth-summary")
-async def report_bandwidth_summary(
-    device_name: Optional[str] = Query(None, description="设备名称，不传则查全部"),
-):
-    """带宽利用率汇总"""
+async def report_bandwidth_summary(location: Optional[str] = None):
+    """带宽利用率汇总（每台设备最新一次采集，只列有流量的端口）
+
+    查询参数：location（位置，不传则查全部）。
+
+    默认按吞吐（RX+TX Mbps）降序 —— 前端表头可再切按利用率排。
+    利用率在 SQL 侧过滤而非 Python 侧：这两列可能为 NULL，
+    原先的 max(rx, tx) 遇到 NULL 会直接抛 TypeError。
+    """
     db = _get_db()
 
     params = []
-    device_filter = ""
-    if device_name:
-        device_filter = "AND d.name = ?"
-        params.append(device_name)
+    location_filter = ""
+    if location:
+        location_filter = "AND d.location = ?"
+        params.append(location)
 
     rows = db.execute(
-        f"""SELECT d.name AS device_name, p.port_name, p.rx_util_pct, p.tx_util_pct,
-                   p.rx_mbps, p.tx_mbps, p.status, p.description
+        f"""SELECT d.name AS device_name, d.location, p.port_name,
+                   p.rx_util_pct, p.tx_util_pct, p.rx_mbps, p.tx_mbps,
+                   p.status, p.description, c.collected_at
             FROM port_snapshots p
             JOIN collections c ON c.id = p.collection_id
             JOIN devices d ON d.id = p.device_id
@@ -166,25 +209,26 @@ async def report_bandwidth_summary(
                 SELECT MAX(c2.id) FROM collections c2
                 WHERE c2.phase = '1' GROUP BY c2.device_id
             )
-            {device_filter}
-            ORDER BY (p.rx_util_pct + p.tx_util_pct) DESC
-            LIMIT 200""",
+            {location_filter}
+              AND (p.rx_util_pct > 0 OR p.tx_util_pct > 0)
+            ORDER BY (COALESCE(p.rx_mbps, 0) + COALESCE(p.tx_mbps, 0)) DESC
+            LIMIT 1000""",
         params,
     ).fetchall()
 
-    high_util_ports = []
+    ports = []
     for r in rows:
-        max_util = max(r["rx_util_pct"], r["tx_util_pct"])
-        if max_util > 0:
-            high_util_ports.append({
-                "device_name": r["device_name"],
-                "port_name": r["port_name"],
-                "rx_util_pct": r["rx_util_pct"],
-                "tx_util_pct": r["tx_util_pct"],
-                "rx_mbps": r["rx_mbps"],
-                "tx_mbps": r["tx_mbps"],
-                "status": r["status"],
-                "description": r["description"],
-            })
+        ports.append({
+            "device_name": r["device_name"],
+            "location": r["location"] or "",
+            "port_name": r["port_name"],
+            "rx_util_pct": r["rx_util_pct"],
+            "tx_util_pct": r["tx_util_pct"],
+            "rx_mbps": r["rx_mbps"],
+            "tx_mbps": r["tx_mbps"],
+            "status": r["status"],
+            "description": r["description"],
+            "collected_at": r["collected_at"],
+        })
 
-    return {"ports": high_util_ports, "count": len(high_util_ports)}
+    return {"ports": ports, "count": len(ports)}

@@ -297,7 +297,7 @@ def extract_model(system_output: str, version_output: str, device_type: str, vsf
 def extract_uptime_seconds(version_output: str = "", boot_history: str = "", device_type: str = "") -> int | None:
     """从 show version (Cisco) 或 show boot-history (Aruba) 提取设备运行时间（秒）
 
-    Cisco: System uptime is 2 years, 12 weeks, 3 days, 5 hours, 22 minutes
+    Cisco: SHAD1SWI01 uptime is 1 year, 29 weeks, 2 days, 5 hours, 48 minutes
     Aruba: Current Boot, up for 545 days 19 hrs 43 mins 22 secs
     """
     if device_type == "aruba_aoscx" and boot_history:
@@ -308,10 +308,18 @@ def extract_uptime_seconds(version_output: str = "", boot_history: str = "", dev
 
 
 def _parse_cisco_uptime(version_output: str) -> int | None:
-    """解析 Cisco show version 中的 System uptime"""
+    """解析 Cisco show version 中的运行时间
+
+    真机格式的**行首是主机名**，不是 "System"（IOS / IOS-XE 一致，实测样本）：
+        SHAD1SWI01 uptime is 1 year, 29 weeks, 2 days, 5 hours, 48 minutes
+        KR5D1SWI01 uptime is 6 years, 27 weeks, 12 hours, 41 minutes
+
+    下一行还有 "Uptime for this control processor is ..."，它不含 "uptime is"
+    子串（中间隔着 for this control processor），不会抢到第一个匹配。
+    """
     output = _strip_ansi(version_output)
     m = re.search(
-        r'System uptime is\s+'
+        r'uptime is\s+'
         r'(?:(\d+)\s+years?,\s*)?'
         r'(?:(\d+)\s+weeks?,\s*)?'
         r'(?:(\d+)\s+days?,\s*)?'
@@ -331,18 +339,29 @@ def _parse_cisco_uptime(version_output: str) -> int | None:
 
 
 def _parse_aruba_uptime(boot_history: str) -> int | None:
-    """解析 Aruba show boot-history 中的 Current Boot 运行时间"""
+    """解析 Aruba show boot-history 中的 Current Boot 运行时间
+
+    AOS-CX **会省略数值为 0 的单位**，四段中任意一段都可能缺席（实测样本）：
+        Current Boot, up for 350 days 34 mins 32 secs     ← 无 hrs
+        Current Boot, up for 180 days 4 hrs 56 secs       ← 无 mins
+        Current Boot, up for 124 days 5 hrs 19 mins       ← 无 secs
+    故每段都做成可选，按实际出现的段累加；一段都没有则视为解析失败。
+    """
     output = _strip_ansi(boot_history)
     m = re.search(
-        r'Current Boot, up for (\d+) days (\d+) hrs (\d+) mins (\d+) secs',
-        output
+        r'Current Boot, up for\s+'
+        r'(?:(\d+)\s+days?\s*)?'
+        r'(?:(\d+)\s+hrs?\s*)?'
+        r'(?:(\d+)\s+mins?\s*)?'
+        r'(?:(\d+)\s+secs?)?',
+        output, re.IGNORECASE
     )
-    if not m:
+    if not m or not any(m.groups()):
         return None
-    days = int(m.group(1))
-    hours = int(m.group(2))
-    minutes = int(m.group(3))
-    seconds = int(m.group(4))
+    days = int(m.group(1) or 0)
+    hours = int(m.group(2) or 0)
+    minutes = int(m.group(3) or 0)
+    seconds = int(m.group(4) or 0)
     return days * 86400 + hours * 3600 + minutes * 60 + seconds
 
 
