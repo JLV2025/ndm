@@ -273,6 +273,15 @@ class DeviceConnection:
         """收集路由表（Cisco IOS 路由器）"""
         return self.send_command("show ip route", read_timeout=45)
 
+    def collect_spanning_tree(self) -> str:
+        """收集生成树信息（仅交换机；路由器不跑 STP）
+
+        Cisco（PVST / Rapid-PVST）与 Aruba AOS-CX（RPVST）用同一条命令，
+        输出均含每 VLAN 的 Root/Bridge ID 与端口级 Role/State 表。
+        真机输出 9~33KB（15 个 VLAN 级别），read_timeout 放宽到 60 秒。
+        """
+        return self.send_command("show spanning-tree", read_timeout=60)
+
     def disconnect(self) -> None:
         """断开连接"""
         if self.connection is not None:

@@ -17,6 +17,7 @@ def _get_device_connection():
 from analyzers.config_validator import ConfigValidator
 from analyzers.performance import PerformanceAnalyzer
 from analyzers.change_detector import ChangeDetector
+from analyzers.stp_parser import parse_spanning_tree
 from utils.settings_loader import load_settings
 from utils.password import password_manager
 from storage.file_manager import get_week_dir, run_retention
@@ -516,6 +517,8 @@ def collect_device(
         total_cmds += 2  # routing table + interface description（端口清单）
     if device_type == "aruba_aoscx" or "cisco" in (device_type or ""):
         total_cmds += 1  # LAG 成员关系 (lacp aggregates / etherchannel summary)
+    if not _is_router_device(device_type):
+        total_cmds += 1  # spanning-tree（仅交换机；路由器不跑 STP）
     cmd_done = 0
 
     def _advance(label: str = ""):
@@ -610,6 +613,8 @@ def collect_device(
             total_cmds += 2
         if device_type == "aruba_aoscx" or "cisco" in (device_type or ""):
             total_cmds += 1  # LAG 成员关系
+        if not _is_router_device(device_type):
+            total_cmds += 1  # spanning-tree（仅交换机）
 
     def _safe_collect(collect_func, label: str) -> str:
         """安全执行单条命令收集，失败时返回错误信息但不抛异常"""
@@ -712,6 +717,13 @@ def collect_device(
             lacp_raw = _safe_collect(conn.collect_etherchannel_summary, "show etherchannel summary")
             _advance("show etherchannel summary")
 
+        # 生成树（仅交换机；路由器不跑 STP）
+        spanning_tree_raw = ""
+        if not _is_router_device(device_type):
+            print(f"[收集进度] 获取 spanning-tree...")
+            spanning_tree_raw = _safe_collect(conn.collect_spanning_tree, "show spanning-tree")
+            _advance("show spanning-tree")
+
         # 提取版本号和序列号（使用实际设备类型，传入 system + vsf 信息）
         software_version = extract_software_version(version_info, effective_type)
         serial_number = extract_serial_number(version_info, effective_type, system_info, vsf_info, platform=device_platform)
@@ -729,6 +741,14 @@ def collect_device(
 
         # 提取设备运行时间（秒）
         system_uptime_seconds = extract_uptime_seconds(version_info, boot_history, effective_type)
+
+        # 解析生成树（仅交换机；解析失败不影响采集主流程）
+        stp_rows: list = []
+        if spanning_tree_raw and not spanning_tree_raw.startswith("% 收集失败"):
+            try:
+                stp_rows = _build_stp_rows(parse_spanning_tree(spanning_tree_raw, device_name))
+            except Exception as e:
+                print(f"[分析异常] STP 解析: {e}")
 
         # 从 SQLite 查找上一次采集的 running-config（基线对比）
         old_running_config = None
@@ -797,6 +817,7 @@ def collect_device(
             system_uptime_seconds=system_uptime_seconds,
             platform=device_platform,
             lacp_raw=lacp_raw,
+            stp_rows=stp_rows,
         )
 
         # 分层保留：配置文本按周保留（更早的按月归档）、DB 配置全文与日志各留最近 2 次。
@@ -844,6 +865,34 @@ def collect_device(
         conn.disconnect()
 
 
+def _build_stp_rows(result) -> list:
+    """STP 解析结果 → 落库行（一行 = 设备 × VLAN × 端口）
+
+    只保留参与生成树的端口（forwarding/blocking/loop-inc 等）：Down/Disabled
+    端口不携带树信息，全量入库会让行数翻数倍（实测一台 Aruba 43 个端口里 26 个是 Down）。
+    """
+    rows = []
+    for vlan in sorted(result.vlans.values(), key=lambda v: v.vlan):
+        for port in vlan.ports:
+            if port.state == "down" or port.role == "disabled":
+                continue
+            rows.append({
+                "vlan": vlan.vlan,
+                "port_name": port.name,
+                "role": port.role,
+                "state": port.state,
+                "cost": port.cost,
+                "port_priority": port.port_priority,
+                "is_root": vlan.is_root,
+                "root_priority": vlan.root_priority,
+                "root_mac": vlan.root_mac,
+                "bridge_priority": vlan.bridge_priority,
+                "bridge_mac": vlan.bridge_mac,
+                "mode": result.mode,
+            })
+    return rows
+
+
 def _save_to_sqlite(
     device_name: str, device_ip: str, device_type: str, device_platform: str,
     week: str, collected_at: str,
@@ -855,6 +904,7 @@ def _save_to_sqlite(
     neighbors_data: list, boot_history: str,
     lag_membership_json: str = "{}",
     member_ids: str = "",
+    stp_data: list | None = None,
 ) -> dict:
     """将采集数据写入 SQLite 数据库
 
@@ -1007,6 +1057,26 @@ def _save_to_sqlite(
                 neigh_rows,
             )
 
+        # 5.1 写入生成树快照（仅交换机；一行 = VLAN × 端口）
+        if stp_data:
+            stp_insert_rows = [(
+                collection_id, device_id,
+                r.get("vlan"), r.get("port_name", ""),
+                r.get("role", ""), r.get("state", ""),
+                r.get("cost"), r.get("port_priority"),
+                1 if r.get("is_root") else 0,
+                r.get("root_priority"), r.get("root_mac", ""),
+                r.get("bridge_priority"), r.get("bridge_mac", ""),
+                r.get("mode", ""),
+            ) for r in stp_data]
+            db.executemany("""
+                INSERT INTO stp_snapshots
+                    (collection_id, device_id, vlan, port_name, role, state,
+                     cost, port_priority, is_root, root_priority, root_mac,
+                     bridge_priority, bridge_mac, mode)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, stp_insert_rows)
+
         # 6. 写入配置变更
         if change_results and change_results != "{}":
             try:
@@ -1089,6 +1159,7 @@ def _save_to_sqlite(
             "port_snapshots": len(port_details),
             "port_errors": sum(len(v) for v in (port_errors or {}).values()),
             "neighbors": len(neighbors_data),
+            "stp_snapshots": len(stp_data or []),
             "logs": len(logs_raw.splitlines()) if logs_raw else 0,
         }
         print(f"[SQLite] 数据已写入: {stats}")
@@ -1116,6 +1187,7 @@ def _save_data(
     boot_history: str = "", system_uptime_seconds: int | None = None,
     platform: str = "",
     lacp_raw: str = "",
+    stp_rows: list | None = None,
 ) -> None:
     """保存数据到本地"""
 
@@ -1356,6 +1428,7 @@ def _save_data(
             neighbors_data=neighbors_list,
             boot_history=boot_history,
             lag_membership_json=lag_membership_json,
+            stp_data=stp_rows,
         )
         # 写入完成后自动运行异常检测
         if isinstance(sqlite_result, dict) and sqlite_result.get("collection_id"):

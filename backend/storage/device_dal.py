@@ -121,6 +121,7 @@ def delete_device(name: str) -> bool:
     conn.execute("DELETE FROM port_errors WHERE device_id = ?", (device_id,))
     conn.execute("DELETE FROM port_snapshots WHERE device_id = ?", (device_id,))
     conn.execute("DELETE FROM neighbors WHERE device_id = ?", (device_id,))
+    conn.execute("DELETE FROM stp_snapshots WHERE device_id = ?", (device_id,))
     conn.execute("DELETE FROM config_changes WHERE device_id = ?", (device_id,))
     conn.execute("DELETE FROM validation_results WHERE device_id = ?", (device_id,))
     conn.execute(

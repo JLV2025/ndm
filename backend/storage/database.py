@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 # 当前 Schema 版本（每次 schema 变更递增）
-SCHEMA_VERSION = 10
+SCHEMA_VERSION = 11
 
 # 线程本地存储 —— 每个线程持有自己的连接
 _local = threading.local()
@@ -311,6 +311,31 @@ def _migrate_v1(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_neighbors_device
             ON neighbors(device_id, collection_id);
 
+        -- 生成树快照（一行 = 设备 × VLAN × 参与 STP 的端口；根/本桥信息按行冗余）
+        CREATE TABLE IF NOT EXISTS stp_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            collection_id INTEGER NOT NULL REFERENCES collections(id),
+            device_id INTEGER NOT NULL,
+            vlan INTEGER NOT NULL,
+            port_name TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT '',
+            state TEXT NOT NULL DEFAULT '',
+            cost INTEGER,
+            port_priority INTEGER,
+            is_root INTEGER NOT NULL DEFAULT 0,
+            root_priority INTEGER,
+            root_mac TEXT DEFAULT '',
+            bridge_priority INTEGER,
+            bridge_mac TEXT DEFAULT '',
+            mode TEXT DEFAULT '',
+            FOREIGN KEY (collection_id) REFERENCES collections(id),
+            FOREIGN KEY (device_id) REFERENCES devices(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_stp_device_collection
+            ON stp_snapshots(device_id, collection_id);
+        CREATE INDEX IF NOT EXISTS idx_stp_device_vlan
+            ON stp_snapshots(device_id, vlan);
+
         -- 配置变更记录
         CREATE TABLE IF NOT EXISTS config_changes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -488,6 +513,44 @@ def _migrate_v10(conn: sqlite3.Connection) -> None:
     )
 
 
+def _migrate_v11(conn: sqlite3.Connection) -> None:
+    """Schema v11: 建 stp_snapshots 生成树快照表（站点 STP 拓扑图的数据源）
+
+    一行 = 设备 × VLAN × 端口，只存参与生成树的端口（解析层已过滤 Down/Disabled）。
+    根/本桥信息（is_root / root_* / bridge_*）与设备级模式（mode）按行冗余：
+    查询简单（无需 join 汇总表），单轮量级约 1 万行，SQLite 毫无压力。
+    """
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS stp_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            collection_id INTEGER NOT NULL REFERENCES collections(id),
+            device_id INTEGER NOT NULL,
+            vlan INTEGER NOT NULL,
+            port_name TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT '',
+            state TEXT NOT NULL DEFAULT '',
+            cost INTEGER,
+            port_priority INTEGER,
+            is_root INTEGER NOT NULL DEFAULT 0,
+            root_priority INTEGER,
+            root_mac TEXT DEFAULT '',
+            bridge_priority INTEGER,
+            bridge_mac TEXT DEFAULT '',
+            mode TEXT DEFAULT '',
+            FOREIGN KEY (collection_id) REFERENCES collections(id),
+            FOREIGN KEY (device_id) REFERENCES devices(id)
+        )
+    """)
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_stp_device_collection "
+        "ON stp_snapshots(device_id, collection_id)"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_stp_device_vlan "
+        "ON stp_snapshots(device_id, vlan)"
+    )
+
+
 # 迁移注册表
 _MIGRATIONS = {
     1: _migrate_v1,
@@ -500,4 +563,5 @@ _MIGRATIONS = {
     8: _migrate_v8,
     9: _migrate_v9,
     10: _migrate_v10,
+    11: _migrate_v11,
 }

@@ -1,4 +1,4 @@
-"""数据库迁移测试（重点 v10：port_snapshots 增加累计计数器列）"""
+"""数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表）"""
 import sqlite3
 
 import pytest
@@ -26,8 +26,9 @@ def test_全新库包含计数器列且版本为最新(tmp_path, restore_db_path
     db_path = db.init_db(str(tmp_path))
     conn = sqlite3.connect(db_path)
 
-    assert max_version(conn) == db.SCHEMA_VERSION == 10
+    assert max_version(conn) == db.SCHEMA_VERSION == 11
     assert {"in_octets", "out_octets"} <= table_columns(conn, "port_snapshots")
+    assert {"vlan", "port_name", "role", "state", "is_root", "mode"} <= table_columns(conn, "stp_snapshots")
 
 
 def test_迁移幂等_重复init不报错也不改变结构(tmp_path, restore_db_path):
@@ -38,7 +39,7 @@ def test_迁移幂等_重复init不报错也不改变结构(tmp_path, restore_db
     conn = sqlite3.connect(db_path)
 
     assert table_columns(conn, "port_snapshots") == before
-    assert conn.execute("SELECT COUNT(*) FROM schema_version WHERE version=10").fetchone()[0] == 1
+    assert conn.execute("SELECT COUNT(*) FROM schema_version WHERE version=11").fetchone()[0] == 1
 
 
 V9_TABLE = """
@@ -89,7 +90,7 @@ def test_v9老库升级到v10补上计数器列且旧数据保留():
 
     db._run_migrations(conn)
 
-    assert max_version(conn) == 10
+    assert max_version(conn) == 11
     assert {"in_octets", "out_octets"} <= table_columns(conn, "port_snapshots")
 
     row = conn.execute("SELECT port_name, status, in_octets, out_octets FROM port_snapshots").fetchone()
@@ -129,3 +130,52 @@ def test_基准查询索引已建立():
     # PRAGMA index_list 列序为 (seq, name, unique, origin, partial)
     indexes = {row[1] for row in conn.execute("PRAGMA index_list(port_snapshots)")}
     assert "idx_ports_device_port_collection" in indexes
+
+
+# ---- v11：生成树快照表 ----
+
+def test_v11可重复执行():
+    """stp_snapshots 建表迁移必须幂等（IF NOT EXISTS）"""
+    conn = sqlite3.connect(":memory:")
+
+    db._migrate_v11(conn)
+    db._migrate_v11(conn)  # 不得抛异常
+
+    assert {"vlan", "port_name", "role", "state", "cost", "port_priority",
+            "is_root", "root_mac", "bridge_mac", "mode"} <= table_columns(conn, "stp_snapshots")
+    indexes = {row[1] for row in conn.execute("PRAGMA index_list(stp_snapshots)")}
+    assert {"idx_stp_device_collection", "idx_stp_device_vlan"} <= indexes
+
+
+def test_v10老库升级到v11补上生成树表且旧数据保留():
+    """升级路径：老库只跑 v11，port_snapshots 历史行照常保留"""
+    conn = sqlite3.connect(":memory:")
+    conn.execute("""
+        CREATE TABLE schema_version (
+            version INTEGER PRIMARY KEY,
+            applied_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    conn.execute("INSERT INTO schema_version (version) VALUES (10)")
+    conn.execute("""
+        CREATE TABLE port_snapshots (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            collection_id INTEGER NOT NULL,
+            device_id INTEGER NOT NULL,
+            port_name TEXT NOT NULL,
+            in_octets INTEGER
+        )
+    """)
+    conn.execute(
+        "INSERT INTO port_snapshots (collection_id, device_id, port_name, in_octets) "
+        "VALUES (1, 1, 'Gi1/0/1', 0)"
+    )
+
+    db._run_migrations(conn)
+
+    assert max_version(conn) == 11
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "stp_snapshots" in tables
+
+    row = conn.execute("SELECT port_name, in_octets FROM port_snapshots").fetchone()
+    assert row[0] == "Gi1/0/1" and row[1] == 0   # 0 是合法读数，不能被迁移改动
