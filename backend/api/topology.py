@@ -1155,14 +1155,18 @@ def _stp_vlan_chips(rows: list[dict]) -> list[dict]:
     return chips
 
 
-def _stp_best_links(device_name: str, neighbor_rows: list[dict],
-                    switch_names: set, lag_members: set) -> dict[str, dict]:
-    """设备 → 每个交换机邻居只保留一条链路：LAG 逻辑口优先，物理成员口隐藏
+def _stp_candidate_ports(device_name: str, neighbor_rows: list[dict],
+                         switch_names: set, lag_members: set) -> dict[str, list[str]]:
+    """设备 → {交换机邻居: [候选本地端口原始名]}
 
-    与既有拓扑偏好一致（LAG 高度概括，成员口不重复画线）。
-    `Po48` / `po 48` 这类重复条目按邻居名归并后天然去重。
+    - LAG 逻辑口优先：被 LAG 覆盖的物理成员口隐藏（与既有拓扑偏好一致）
+    - **同一邻居的多条独立链路全部保留**——STP 可能只在一部分端口上运行。
+      例：SHAD2SWI02 到 C9500 有 Gi1/0/42 与 Twe2/0/24 两条物理链路，
+      但 STP 只在 Gi1/0/42（根端口）上有端口行，Twe2/0/24 为 down 不参与；
+      若只挑一条（按库序可能挑中 Twe2/0/24）会与该端 STP 行无交集 → 节点孤立
+    - `Po48` / `po 48` 这类重复条目按归一化端口名归并
     """
-    best: dict[str, dict] = {}
+    cands: dict[str, list[str]] = {}
     for nb in neighbor_rows:
         nb_name = nb.get("neighbor_name", "")
         if not nb_name or nb_name == device_name or nb_name not in switch_names:
@@ -1171,13 +1175,13 @@ def _stp_best_links(device_name: str, neighbor_rows: list[dict],
         if not raw_port:
             continue
         port_short = _norm_port(raw_port)
-        is_logical = bool(nb.get("is_logical"))
-        if not is_logical and port_short in lag_members:
+        if not bool(nb.get("is_logical")) and port_short in lag_members:
             continue  # 被 LAG 覆盖的物理成员口：不单独画线
-        cur = best.get(nb_name)
-        if cur is None or (is_logical and not cur["is_logical"]):
-            best[nb_name] = {"local_port": raw_port, "is_logical": is_logical}
-    return best
+        norm = _norm_lag_name(port_short)
+        ports = cands.setdefault(nb_name, [])
+        if all(_norm_lag_name(_norm_port(p)) != norm for p in ports):
+            ports.append(raw_port)
+    return cands
 
 
 def _build_stp_graph(switch_devices: list[dict],
@@ -1207,12 +1211,12 @@ def _build_stp_graph(switch_devices: list[dict],
             "layer": None,
         })
 
-    # ---- 每设备的最佳链路与 STP 端口索引（端口名归一化后比对）----
-    links: dict[str, dict] = {}
+    # ---- 每设备的候选端口与 STP 端口索引（端口名归一化后比对）----
+    candidates: dict[str, dict] = {}
     port_index: dict[str, dict] = {}
     for n in nodes:
         name = n["id"]
-        links[name] = _stp_best_links(
+        candidates[name] = _stp_candidate_ports(
             name, neighbor_map.get(name, []), switch_names, lag_members_map.get(name, set()))
         index: dict[str, dict] = {}
         for r in stp_map.get(name, []):
@@ -1220,23 +1224,36 @@ def _build_stp_graph(switch_devices: list[dict],
             index.setdefault(key, {})[r["vlan"]] = r
         port_index[name] = index
 
+    def _vlan_rows(device_name: str, ports: list) -> dict:
+        """候选端口集合 → {vlan: STP 行}
+
+        同一 VLAN 出现在多个候选端口时优先 `root` 角色——它才是该 VLAN 的真实上行。
+        （VLAN 级负载分担时不同 VLAN 的根端口可以不同，这样各自取到正确端口。）
+        """
+        merged: dict = {}
+        for p in ports:
+            key = _norm_lag_name(_norm_port(p))
+            for vlan, row in port_index[device_name].get(key, {}).items():
+                cur = merged.get(vlan)
+                if cur is None or (row["role"] == "root" and cur["role"] != "root"):
+                    merged[vlan] = row
+        return merged
+
     # ---- 边（每对邻居只处理一次）----
     edges: list[dict] = []
     seen_pairs: set = set()
     for a in nodes:
         a_id = a["id"]
-        for b_name, link in sorted(links[a_id].items()):
+        for b_name, ports in sorted(candidates[a_id].items()):
             pair = frozenset((a_id, b_name))
             if pair in seen_pairs:
                 continue
             seen_pairs.add(pair)
-            b_link = links.get(b_name, {}).get(a_id)
-            a_key = _norm_lag_name(_norm_port(link["local_port"]))
-            b_key = _norm_lag_name(_norm_port(b_link["local_port"])) if b_link else ""
-            a_ports = port_index[a_id].get(a_key, {})
-            b_ports = port_index[b_name].get(b_key, {})
-            for vlan in sorted(set(a_ports) & set(b_ports)):
-                a_row, b_row = a_ports[vlan], b_ports[vlan]
+            b_ports = candidates.get(b_name, {}).get(a_id, [])
+            a_rows = _vlan_rows(a_id, ports)
+            b_rows = _vlan_rows(b_name, b_ports)
+            for vlan in sorted(set(a_rows) & set(b_rows)):
+                a_row, b_row = a_rows[vlan], b_rows[vlan]
                 edges.append({
                     "source": a_id, "target": b_name,
                     "vlan": vlan,
@@ -1293,14 +1310,22 @@ def _build_stp_graph(switch_devices: list[dict],
     for n in nodes:
         n["layer"] = layer.get(n["id"])
 
-    # ---- 边方向：从高层（层号小）指向下一层 ----
+    # ---- 边方向：跨层从高层（层号小）指向下一层；同层按 STP 角色定向（designated → root）----
+    def _flip(e: dict) -> None:
+        e["source"], e["target"] = e["target"], e["source"]
+        e["source_port"], e["target_port"] = e["target_port"], e["source_port"]
+        e["source_role"], e["target_role"] = e["target_role"], e["source_role"]
+        e["source_state"], e["target_state"] = e["target_state"], e["source_state"]
+
     for e in edges:
         la, lb = layer.get(e["source"]), layer.get(e["target"])
-        if la is not None and lb is not None and la > lb:
-            e["source"], e["target"] = e["target"], e["source"]
-            e["source_port"], e["target_port"] = e["target_port"], e["source_port"]
-            e["source_role"], e["target_role"] = e["target_role"], e["source_role"]
-            e["source_state"], e["target_state"] = e["target_state"], e["source_state"]
+        if la is None or lb is None:
+            continue
+        if la > lb:
+            _flip(e)
+        elif la == lb and e["source_role"] != "designated" and e["target_role"] == "designated":
+            # 同层（如 SHA 两个根桥）：designated 一端是上游，箭头朝根端画
+            _flip(e)
 
     all_vlans = sorted({c["vlan"] for n in nodes for c in n["vlans"]})
     return {

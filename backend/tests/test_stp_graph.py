@@ -178,3 +178,94 @@ def test_根在站点内不触发外部根标记():
     graph = _graph()
     assert graph["root_outside_site"] is False
     assert graph["outside_root_macs"] == []
+
+
+# ---- 多物理链路（SHA 真实场景）----
+
+def test_多物理链路只在其一成边_SHA场景():
+    """SHAD2SWI02：到上游有两条物理链路，STP 只在第二条（根端口 Gi1/0/42）上有行
+
+    若成边逻辑只挑一条、恰好挑中无 STP 行的 Twe2/0/24 → 交集为空 → 节点孤立漂浮。
+    """
+    devices = [
+        {"id": "SHAD1SWI01", "label": "SHAD1SWI01", "type": "switch", "tier": "core"},
+        {"id": "SHAD2SWI02", "label": "SHAD2SWI02", "type": "switch", "tier": "access"},
+    ]
+    stp_map = {
+        "SHAD1SWI01": [
+            {"vlan": 255, "port_name": "Twe2/0/24", "role": "designated", "state": "forwarding",
+             "cost": 2, "port_priority": 128, "is_root": 1, "root_priority": 4096,
+             "root_mac": "aaaaaaaaaaaa", "bridge_priority": 4096,
+             "bridge_mac": "aaaaaaaaaaaa", "mode": "rapid-pvst"},
+        ],
+        "SHAD2SWI02": [
+            {"vlan": 255, "port_name": "Gi1/0/42", "role": "root", "state": "forwarding",
+             "cost": 4, "port_priority": 128, "is_root": 0, "root_priority": 4096,
+             "root_mac": "aaaaaaaaaaaa", "bridge_priority": 32768,
+             "bridge_mac": "bbbbbbbbbbbb", "mode": "rapid-pvst"},
+        ],
+    }
+    neighbor_map = {
+        "SHAD1SWI01": [{"local_port": "Twe2/0/24", "neighbor_name": "SHAD2SWI02", "is_logical": 0}],
+        "SHAD2SWI02": [
+            {"local_port": "Twe2/0/24", "neighbor_name": "SHAD1SWI01", "is_logical": 0},
+            {"local_port": "Gi1/0/42", "neighbor_name": "SHAD1SWI01", "is_logical": 0},
+        ],
+    }
+
+    graph = _build_stp_graph(devices, stp_map, neighbor_map, {})
+
+    assert len(graph["edges"]) == 1
+    edge = graph["edges"][0]
+    assert edge["source"] == "SHAD1SWI01" and edge["target"] == "SHAD2SWI02"
+    assert edge["target_port"] == "Gi1/0/42"        # 用 STP 实际运行的那条链路
+
+    nodes = {n["id"]: n for n in graph["nodes"]}
+    assert nodes["SHAD1SWI01"]["layer"] == 1
+    assert nodes["SHAD2SWI02"]["layer"] == 2        # 不再孤立漂浮（回归锚点）
+
+
+def test_同层双根桥_边按角色定向():
+    """SHA 场景：SWI01 与 SHAD2SWI02 各是部分 VLAN 的根 → 同层并排
+
+    VLAN1：SWI01 designated → SHAD2SWI02 root（方向不变）
+    VLAN4092：SHAD2SWI02 designated（它是根）→ SHAD1SWI01 root 端（方向翻转，箭头朝根画）
+    """
+    devices = [
+        {"id": "SHAD1SWI01", "label": "SHAD1SWI01", "type": "switch", "tier": "core"},
+        {"id": "SHAD2SWI02", "label": "SHAD2SWI02", "type": "switch", "tier": "access"},
+    ]
+
+    def row(vlan, port, role, is_root, root_mac, bridge_mac):
+        return {"vlan": vlan, "port_name": port, "role": role, "state": "forwarding",
+                "cost": 4, "port_priority": 128, "is_root": is_root,
+                "root_priority": 4096, "root_mac": root_mac,
+                "bridge_priority": 4096, "bridge_mac": bridge_mac, "mode": "rapid-pvst"}
+
+    stp_map = {
+        "SHAD1SWI01": [
+            row(1, "Twe2/0/24", "designated", 1, "aaaaaaaaaaaa", "aaaaaaaaaaaa"),
+            row(4092, "Twe2/0/24", "root", 0, "bbbbbbbbbbbb", "aaaaaaaaaaaa"),
+        ],
+        "SHAD2SWI02": [
+            row(1, "Gi1/0/42", "root", 0, "aaaaaaaaaaaa", "bbbbbbbbbbbb"),
+            row(4092, "Gi1/0/42", "designated", 1, "bbbbbbbbbbbb", "bbbbbbbbbbbb"),
+        ],
+    }
+    neighbor_map = {
+        "SHAD1SWI01": [{"local_port": "Twe2/0/24", "neighbor_name": "SHAD2SWI02", "is_logical": 0}],
+        "SHAD2SWI02": [{"local_port": "Gi1/0/42", "neighbor_name": "SHAD1SWI01", "is_logical": 0}],
+    }
+
+    graph = _build_stp_graph(devices, stp_map, neighbor_map, {})
+    nodes = {n["id"]: n for n in graph["nodes"]}
+
+    # 双方各是部分 VLAN 的根 → 都在第一层（同层并排）
+    assert nodes["SHAD1SWI01"]["layer"] == 1 and nodes["SHAD2SWI02"]["layer"] == 1
+    assert nodes["SHAD1SWI01"]["is_root_bridge"] and nodes["SHAD2SWI02"]["is_root_bridge"]
+
+    e1 = next(e for e in graph["edges"] if e["vlan"] == 1)
+    assert e1["source"] == "SHAD1SWI01" and e1["target"] == "SHAD2SWI02"
+
+    e4092 = next(e for e in graph["edges"] if e["vlan"] == 4092)
+    assert e4092["source"] == "SHAD2SWI02" and e4092["target"] == "SHAD1SWI01"   # designated 端为上游

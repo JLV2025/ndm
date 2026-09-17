@@ -47,6 +47,8 @@ interface StpNodeData {
 /** 边的运行时数据（buildLayout 注入；finalEdges 里刷新高亮/明细态） */
 interface StpEdgeData {
   pipeY?: number
+  corridorY?: number
+  sameRow?: boolean
   straight?: boolean
   dashed?: boolean
   dimmed?: boolean
@@ -108,6 +110,11 @@ function StpSwitchNode({ data }: NodeProps) {
         <Handle key={`t-${c.vlan}`} type="target" position={Position.Top} id={`t-${c.vlan}`}
           style={{ ...handleStyle(vlanColor(c.vlan, allVlans)), left: chipX(i), top: -3 }} />
       ))}
+      {/* 同层边的落点：底部 target handle（与底部 source 同位，仅作锚点） */}
+      {node.vlans.map((c, i) => (
+        <Handle key={`bt-${c.vlan}`} type="target" position={Position.Bottom} id={`bt-${c.vlan}`}
+          style={{ ...handleStyle(vlanColor(c.vlan, allVlans)), left: chipX(i), bottom: -3 }} />
+      ))}
 
       {/* 头部 */}
       <Box sx={{ height: HEADER_H, display: 'flex', alignItems: 'center', gap: 1.2, px: 2, pt: 1 }}>
@@ -162,6 +169,12 @@ function StpSwitchNode({ data }: NodeProps) {
   )
 }
 
+/** 折线可用性：有管道 Y、竖直空间正确、且横向放得下两个圆角 */
+function useElbowPath(d: StpEdgeData, pipeY: number | undefined,
+                      sourceY: number, targetY: number, dx: number, r: number): boolean {
+  return !d.straight && pipeY != null && sourceY <= pipeY && targetY >= pipeY && dx >= 2 * r
+}
+
 // ============================================================
 // 边：直线 或 管道折线（按 VLAN 着色；阻塞为虚线）
 // ============================================================
@@ -177,16 +190,29 @@ function StpVlanEdge({ id, sourceX, sourceY, targetX, targetY, data, markerEnd, 
   const opacity = dimmed ? 0.05 : (highlighted ? 1 : (dashed ? 0.45 : 0.92))
 
   const midX = (sourceX + targetX) / 2
-  const midY = pipeY ?? (sourceY + targetY) / 2
+  const corridorY: number | undefined = d.corridorY
+  const midY = d.sameRow && corridorY != null
+    ? corridorY - 12
+    : (pipeY ?? (sourceY + targetY) / 2)
 
   // 直线：两端芯片列对齐的层带（如 BJQ 三层链——每层 VLAN 相同、列对位，直连即可）
   // 折线：其余拓扑（如 PVG 星型，连线横跨很远）——下探 → 水平管道 → 落向目标
+  // 同层：两个根桥并排（如 SHA）——底部下探 → 水平 → 回落到对方底部（U 形）
   // 圆角前提：水平段必须容得下两个圆角（|dx| ≥ 2r），否则会反向折回画出钩形（bug-105）
+  const dx = Math.abs(targetX - sourceX)
   let path = `M ${sourceX} ${sourceY} L ${targetX} ${targetY}`
-  const useElbow = !d.straight && pipeY != null
-    && sourceY <= pipeY && targetY >= pipeY
-    && Math.abs(targetX - sourceX) >= 2 * r
-  if (useElbow) {
+  if (d.sameRow && corridorY != null && corridorY > Math.max(sourceY, targetY) && dx >= 2 * r) {
+    const c1 = targetX >= sourceX ? sourceX + r : sourceX - r
+    const c2 = targetX >= sourceX ? targetX - r : targetX + r
+    path = [
+      `M ${sourceX} ${sourceY}`,
+      `L ${sourceX} ${corridorY - r}`,
+      `Q ${sourceX} ${corridorY} ${c1} ${corridorY}`,
+      `L ${c2} ${corridorY}`,
+      `Q ${targetX} ${corridorY} ${targetX} ${corridorY - r}`,
+      `L ${targetX} ${targetY}`,
+    ].join(' ')
+  } else if (useElbowPath(d, pipeY, sourceY, targetY, dx, r)) {
     if (targetX >= sourceX) {
       path = [
         `M ${sourceX} ${sourceY}`,
@@ -302,7 +328,10 @@ function buildLayout(data: StpTopologyData): LayoutResult {
     bandEdges.get(key)!.push(e)
   }
   const straightBand = new Map<string, boolean>()
+  const sameRowBand = new Map<string, boolean>()
   for (const [key, arr] of bandEdges) {
+    const [src, tgt] = key.split('->')
+    sameRowBand.set(key, (positions.get(src)?.y ?? -1) === (positions.get(tgt)?.y ?? -2))
     let maxDx = 0
     for (const e of arr) {
       const a = chipXOf.get(`${e.source}|${e.vlan}`)
@@ -339,20 +368,26 @@ function buildLayout(data: StpTopologyData): LayoutResult {
 
   const rawEdges: Edge[] = data.edges.map(e => {
     const color = vlanColor(e.vlan, allVlans)
-    const straight = straightBand.get(`${e.source}->${e.target}`) ?? false
+    const key = `${e.source}->${e.target}`
+    const sameRow = sameRowBand.get(key) ?? false
+    const straight = !sameRow && (straightBand.get(key) ?? false)
     const off = offsetOf.get(edgeKey(e)) ?? 0
-    const pipeY = straight ? undefined : pipeYForPair(e.source, e.target) + off
+    // 同层边（两个根桥并排）走底部下弧线；跨层边走管道折线
+    const corridorY = sameRow
+      ? (positions.get(e.source)?.y ?? 0) + NODE_H + 44 + off
+      : undefined
+    const pipeY = sameRow || straight ? undefined : pipeYForPair(e.source, e.target) + off
     const detail = `V${e.vlan} · ${e.source_port || '?'} → ${e.target_port || '?'}`
     return {
       id: `stp-${e.source}-${e.target}-${e.vlan}-${e.source_port || 'x'}`,
       source: e.source,
       target: e.target,
       sourceHandle: `b-${e.vlan}`,
-      targetHandle: `t-${e.vlan}`,
+      targetHandle: sameRow ? `bt-${e.vlan}` : `t-${e.vlan}`,
       type: 'stpVlan',
       style: { stroke: color },
       markerEnd: { type: MarkerType.ArrowClosed, color, width: 7, height: 7 },
-      data: { pipeY, straight, dashed: !e.forwarding, edge: e, detail },
+      data: { pipeY, corridorY, sameRow, straight, dashed: !e.forwarding, edge: e, detail },
     }
   })
 
