@@ -257,24 +257,56 @@ def extract_member_versions(version_output: str = "") -> str:
     return ", ".join(versions)
 
 
-def extract_member_rom_versions(vsf_output: str = "") -> str:
-    """提取 Aruba VSF 各成员的 ROM 版本（逗号拼接，与成员 ID / 序列号同序）
+def _member_count(serial_number: str) -> int:
+    """序列号（逗号拼接）→ 物理成员台数（用于把设备级字段复制到各成员行）"""
+    return len([s for s in (serial_number or "").split(",") if s.strip()])
 
-    数据源是 ``show vsf detail`` 的成员段（真机样本：BJQD1SWI01）：
-        Member ID                            : 1
-                ROM Version                  : FL.01.11.0001
 
-    AOS-CX 的**软件**版本是整堆叠一个（堆叠级 Software Version），成员级唯一
-    逐成员给出的版本就是 ROM Version —— 升级引导时逐个成员更新，可能出现不一致。
+def _cisco_boot_version(text: str) -> str:
+    """从 Cisco ``show version`` 提取引导（ROM/BOOTLDR）版本号
+
+    真机样本（2960X）：
+        ROM: Bootstrap program is C2960X boot loader          ← 无版本号，跳过
+        BOOTLDR: C2960X Boot Loader (C2960X-HBOOT-M) Version 15.2(4r)E3, RELEASE SOFTWARE (fc4)
+    老 IOS 的 ROM 行带版本：``ROM: System Bootstrap, Version 12.2(44)SE6, ...``
+    BOOTLDR 行优先（更完整），没有时再看 ROM 行。
     """
-    if not vsf_output:
-        return ""
-    roms: list[str] = []
-    for line in _strip_ansi(vsf_output).splitlines():
-        match = re.search(r'^\s*ROM\s+Version\s*:\s*(\S+)', line, re.IGNORECASE)
-        if match:
-            roms.append(match.group(1))
-    return ", ".join(roms)
+    lines = _strip_ansi(text).splitlines()
+    for prefix in ("BOOTLDR", "ROM"):
+        for line in lines:
+            if not line.strip().upper().startswith(prefix):
+                continue
+            match = re.search(r'\bVersion\s+(\S+?)(?:[,\s]|$)', line, re.IGNORECASE)
+            if match:
+                return match.group(1)
+    return ""
+
+
+def extract_member_rom_versions(vsf_output: str = "", version_output: str = "",
+                                member_count: int = 0) -> str:
+    """提取各成员的 ROM（引导）版本（逗号拼接，与成员 ID / 序列号同序）
+
+    - Aruba（``show vsf detail``）：成员段的 ``ROM Version : FL.01.11.0001``，逐成员给出。
+      AOS-CX 的**软件**版本是整堆叠一个（堆叠级 Software Version），成员级唯一
+      逐成员给出的版本就是 ROM Version —— 升级引导时逐个成员更新，可能出现不一致。
+    - Cisco（``show version``）：``BOOTLDR: ... Version 15.2(4r)E3``。真机只上报
+      主交换机的引导版本（成员段不含该字段）→ **按成员数复制**，保持
+      「与序列号同序对齐」的列约定（整堆叠共享同一镜像，引导版本随镜像走）。
+    """
+    if vsf_output:
+        roms: list[str] = []
+        for line in _strip_ansi(vsf_output).splitlines():
+            match = re.search(r'^\s*ROM\s+Version\s*:\s*(\S+)', line, re.IGNORECASE)
+            if match:
+                roms.append(match.group(1))
+        if roms:
+            return ", ".join(roms)
+
+    if version_output:
+        boot = _cisco_boot_version(version_output)
+        if boot:
+            return ", ".join([boot] * max(member_count, 1))
+    return ""
 
 
 def extract_member_uptimes(version_output: str = "", vsf_output: str = "") -> str:
@@ -1544,7 +1576,11 @@ def _save_data(
             # VSF 成员 ID（仅 Aruba VSF 有值；与序列号同源同序 1:1）
             member_ids=extract_member_ids(vsf_info),
             member_versions=extract_member_versions(version_info),
-            member_rom_versions=extract_member_rom_versions(vsf_info),
+            # ROM 版本：Aruba 逐成员（show vsf detail）；Cisco 整机 BOOTLDR（show version）
+            # 按成员数复制，保持「与序列号同序对齐」
+            member_rom_versions=extract_member_rom_versions(
+                vsf_info, version_info, _member_count(serial_number)
+            ),
             member_uptimes=extract_member_uptimes(version_info, vsf_info),
             system_uptime_seconds=system_uptime_seconds,
             port_details=port_details,

@@ -85,6 +85,37 @@ def test_非vsf没有ROM版本():
     assert extract_member_rom_versions("SHAD1SWI01 uptime is 1 day\n") == ""
 
 
+def test_cisco_从BOOTLDR行取ROM版本_按成员数复制():
+    """Cisco 只上报主交换机的引导版本（成员段无该字段）→ 复制到每个成员行"""
+    roms = extract_member_rom_versions(version_output=read_fixture(CISCO_STACK), member_count=3)
+    assert roms == "15.2(4r)E3, 15.2(4r)E3, 15.2(4r)E3"
+
+
+def test_cisco_老IOS的ROM行带版本():
+    raw = "ROM: System Bootstrap, Version 12.2(44)SE6, RELEASE SOFTWARE (fc1)\n"
+    assert extract_member_rom_versions(version_output=raw, member_count=1) == "12.2(44)SE6"
+
+
+def test_cisco_BOOTLDR优先于ROM行():
+    raw = (
+        "ROM: System Bootstrap, Version 12.2(44)SE6, RELEASE SOFTWARE (fc1)\n"
+        "BOOTLDR: C2960X Boot Loader (C2960X-HBOOT-M) Version 15.2(4r)E3, RELEASE SOFTWARE (fc4)\n"
+    )
+    assert extract_member_rom_versions(version_output=raw, member_count=2) == "15.2(4r)E3, 15.2(4r)E3"
+
+
+def test_cisco_ROM行无版本号时为空():
+    """真机 2960X 的 ROM 行是「Bootstrap program is ...」（无版本），版本在 BOOTLDR 行"""
+    raw = "ROM: Bootstrap program is C2960X boot loader\n"
+    assert extract_member_rom_versions(version_output=raw, member_count=2) == ""
+
+
+def test_aruba成员ROM优先于cisco分支():
+    vsf = "Member ID                            : 1\n\tROM Version                  : FL.01.11.0002\n"
+    roms = extract_member_rom_versions(vsf, "BOOTLDR: x Version 1.2.3, RELEASE\n", member_count=2)
+    assert roms == "FL.01.11.0002"
+
+
 # ============================================================
 # 成员运行时间
 # ============================================================
