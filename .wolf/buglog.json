@@ -2225,6 +2225,164 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-17T14:59:55"
+    },
+    {
+      "id": "bug-121",
+      "timestamp": "2026-09-18T09:20:00",
+      "error_message": "自定义报告→软件版本报告：「运行时间」列对单机设备恒为空 —— 28/49 行显示 —（Cisco 非堆叠全部 14 台 + 3 台路由器 + Aruba 单机 JL659A/JL726A/JL727B/JL724A 等 7 台，加 C9500 SVL 两个成员行与 KORD1SWI02 两个成员行）",
+      "file": "backend/api/reports.py",
+      "root_cause": "extract_member_uptimes() 在成员值 <2 时有意返回空（注释写明「单机运行时间由设备级字段负责，避免重复」），但 _expand_device_members() 只读 member_uptimes，从不回退到设备级 collections.system_uptime_seconds —— 设备级数据一直都在（「设备在线时间」报告 36 台全有值，实测 DZND1SWI01=18,677,785s 等）。属报告侧漏接线，不是采集问题",
+      "fix": "已实施：report_software_versions 的 SQL LEFT JOIN 每设备最新 collection 取 system_uptime_seconds；_expand_device_members 在 total==1 且成员级缺失时回退该值。多成员无成员级数据的（C9500 SVL）保持 —（设备级值只代表主/活动成员，复制给其它成员是错的）。真实库实测：28 行空 → 4 行空（余 SHAD1SWI01-1/-2 与采集失败的 KORD1SWI02-1/-2）",
+      "tags": [
+        "uptime",
+        "reports",
+        "成员级",
+        "单机设备",
+        "接线遗漏"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T09:20:00"
+    },
+    {
+      "id": "bug-122",
+      "timestamp": "2026-09-18T09:20:00",
+      "error_message": "2026-09-18 全量采集中 KORD1SWI02（Aruba JL727B VSF 双成员）整体失败：running_config 只 1 行、端口 0 条、邻居 0 条、software_version/serial/model 全为「未知」、无 uptime",
+      "file": "（设备侧，非代码缺陷）",
+      "root_cause": "SSH 会话中 show 类命令被设备逐条拒绝，boot_history_raw 落库内容即设备原话 'Cannot execute command. Command not allowed.'（AOS-CX 权限/角色问题）；采集器逐条容错继续，最终落库为空值。报告里该设备仍显示 9-15 的旧版本值，是因为既有保护「空串/未知不覆盖旧值」+ 报告 SQL 过滤 d.version != '未知'",
+      "fix": "需在设备上核查该 SSH 账号的 role/权限后重新采集；非代码缺陷",
+      "tags": [
+        "aruba",
+        "采集失败",
+        "权限",
+        "command-not-allowed",
+        "数据未覆盖保护"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T09:20:00"
+    },
+    {
+      "id": "bug-123",
+      "timestamp": "2026-09-18T09:20:00",
+      "error_message": "IOS-XE 堆叠的成员软件版本未解析：KWJD1SWI01（WS-C3850 双成员堆叠）成员运行时间解析成功（199686600, 31451340）但 member_versions 为空；C9500 SVL（SHAD1SWI01）成员版本/运行时间均为空 → 报告只能用整机版本兜底，「堆叠内成员版本不一致」告警对 IOS-XE 堆叠整体失效",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "疑似 _CISCO_MEMBER_TABLE_ROW 正则只兼容 classic IOS 的 5 列成员表（Switch/Ports/Model/SW Version/SW Image）；IOS-XE 16.x 同一张表多一列 Mode（INSTALL/BUNDLE），行尾多一个 token → 整行不匹配。已用正则直接实测：5 列样本匹配（15.2(4)E8），带 Mode 的 6 列样本不匹配。3850 能解析出成员运行时间（Switch Uptime 行）说明其 show version 确有成员段，间接支持该判断",
+      "fix": "（待办）需要一台 IOS-XE 设备（3850 或 C9200L/C9500）的真实 show version 输出确认表头与列序后再放宽正则；项目约定是「用真机样本写解析器，不凭记忆猜格式」",
+      "tags": [
+        "cisco",
+        "ios-xe",
+        "堆叠",
+        "成员版本",
+        "正则",
+        "待真机样本"
+      ],
+      "related_bugs": [
+        "bug-120"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T09:20:00"
+    },
+    {
+      "id": "bug-139",
+      "timestamp": "2026-09-18T01:21:16.016Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/reports.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→14 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T01:21:16.017Z"
+    },
+    {
+      "id": "bug-140",
+      "timestamp": "2026-09-18T01:21:30.391Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 18→50 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T01:21:30.391Z"
+    },
+    {
+      "id": "bug-141",
+      "timestamp": "2026-09-18T01:21:53.362Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/main.py",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 22→34 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T01:21:53.362Z"
+    },
+    {
+      "id": "bug-142",
+      "timestamp": "2026-09-18T01:22:59.687Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "No early return/throw for edge case: !running.startsWith('index-'",
+      "fix": "Added guard clause: if (!running.startsWith('index-')",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T01:22:59.687Z"
+    },
+    {
+      "id": "bug-143",
+      "timestamp": "2026-09-18T09:55:00",
+      "error_message": "用户报「通过 start.bat 启动，看到的是旧版网页，所以软件版本报告里 Cisco 设备没有软件版本」—— 实测服务端 dist 与接口数据都是最新（页面 DOM 逐格读取：版本列每行都有值），旧的是浏览器里驻留的 JS",
+      "file": "backend/main.py, frontend/src/App.tsx",
+      "root_cause": "两个独立缺陷叠加：① SPA 的 404 回退把 /assets/xxx.js 也回退成 index.html（200 + HTML 当 JS 交付），请求已删除的旧 bundle 既不报错也不刷新，极难排查；② index.html 未设 Cache-Control，加之 SPA 站内跳转不触发整页加载 —— 后台重建（start.bat 每次启动都会重建）之后，长期开着的标签页继续跑旧 JS：界面代码旧、接口数据新，字段对不上号，看着就是「数据没显示」",
+      "fix": "① index.html 一律 Cache-Control: no-cache, no-store, must-revalidate；② SPA 回退排除 /assets/（缺文件返回 404 JSON）；③ App.tsx 增加构建新鲜度检测：当前运行 bundle 名与 /index.html 引用的不一致时弹「系统已更新」提示条（focus + 5 分钟轮询，dev 模式跳过）。已验证：伪造 index.html 指向新 bundle 后 focus 即出现提示条，恢复后不再误报",
+      "tags": [
+        "start.bat",
+        "浏览器缓存",
+        "SPA回退",
+        "bundle",
+        "旧页面",
+        "误判"
+      ],
+      "related_bugs": [
+        "bug-121"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T09:55:00"
+    },
+    {
+      "id": "bug-144",
+      "timestamp": "2026-09-18T09:55:00",
+      "error_message": "用户要求：自定义报告页面同时存在页面滚动条与表格容器滚动条，操作不便",
+      "file": "frontend/src/pages/Reports.tsx",
+      "root_cause": "三张表（软件版本 / 设备在线时间 / 带宽利用率）的 TableContainer 都带 sx={{ maxHeight: '72vh' }}，在三张大表改造时按「表格内部滚动」的常规做法加的，实际造成双滚动条",
+      "fix": "去掉三处 maxHeight，只留页面级滚动条（实测表格容器 scrollHeight == clientHeight，不再产生内滚动）",
+      "tags": [
+        "ui",
+        "滚动条",
+        "reports"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T09:55:00"
     }
   ]
 }

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-17T07:10:01.955Z
-> Files: 80 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-18T01:25:00.288Z
+> Files: 81 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -84,13 +84,17 @@
 - `silly-weaving-hearth.md` — VSF 成员编号透传 + 物理设备档案 + 离线设备视图 实施计划 (~1286 tok)
 - `spanning-tree-glowing-gray.md` — STP 生成树拓扑图 — 实施计划 (~1859 tok)
 
+## C:/Users/jingl/AppData/Local/Temp/
+
+- `ndm_diag_report.py` — 诊断：用真实函数跑「软件版本报告」的展开逻辑，看每一行缺什么 (~297 tok)
+
 ## agents/
 
 
 ## backend/
 
 - `_verify_version.py` — 临时验证脚本：检查 FastAPI 应用版本号动态读取（验证后删除） (~76 tok)
-- `main.py` — API: 3 endpoints (~1274 tok)
+- `main.py` — API: 3 endpoints (~1379 tok)
 - `tmp_stp_check.py` — 临时诊断：用真实库数据模拟前端层带判定（跑完即删） (~889 tok)
 
 ## backend/analyzers/
@@ -107,7 +111,7 @@
 - `collector.py` — 配置收集 API 路由 (~1711 tok)
 - `data.py` — 数据文件 API 路由 (~3944 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
-- `reports.py` — 自定义报告 API 路由 (~2668 tok)
+- `reports.py` — 自定义报告 API 路由 (~2861 tok)
 - `stats.py` — Dashboard 统计 API — 全量从 SQLite 读取 (~2546 tok)
 - `topology.py` — 拓扑图 API 路由 (~15518 tok)
 
@@ -124,7 +128,7 @@
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~19563 tok)
+- `collector_service.py` — 配置收集服务 (~19985 tok)
 
 ## backend/storage/
 
@@ -142,13 +146,13 @@
 - `test_collector_service.py` — extract_model/extract_serial_number 测试（重点 VSF 堆叠成员型号，4 用例） (~500 tok)
 - `test_counter_parser.py` — 端口累计计数器解析器测试 (~4010 tok)
 - `test_database_migration.py` — 数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表） (~1673 tok)
-- `test_member_parser.py` — 堆叠成员级解析测试 —— 编号 / 序列号 / 版本 / ROM / 运行时间 (~2404 tok)
+- `test_member_parser.py` — 堆叠成员级解析测试 —— 编号 / 序列号 / 版本 / ROM / 运行时间 (~2776 tok)
 - `test_neighbor_parser.py` — CDP/LLDP 邻居解析器测试 — 重点：Aruba AP 名识别 (~1543 tok)
 - `test_performance_aruba.py` — Aruba show interface brief 解析测试 (~389 tok)
 - `test_performance_counters.py` — 端口累计计数器与端口详情合并测试（PerformanceAnalyzer 接线） (~2443 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试（21 列 INSERT / NULL 与读数 0 区分 / 大数据精度） (~900 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试 —— 重点：累计计数器列（in_octets / out_octets） (~1043 tok)
-- `test_reports_api.py` — 自定义报告端点测试 —— 临时库直接调端点函数（HTTP 层之下） (~2077 tok)
+- `test_reports_api.py` — 自定义报告端点测试 —— 临时库直接调端点函数（HTTP 层之下） (~2395 tok)
 - `test_retention.py` — 分层保留与归档测试 (~3006 tok)
 - `test_stats_overview.py` — Dashboard 端口统计口径测试 —— Disabled 单独计数 (~784 tok)
 - `test_stats_window.py` — 区间流量 Top10 周锚定测试（16 用例，**核心：周中再采一次结果完全不变**） (~1900 tok)
@@ -188,7 +192,7 @@
 
 ## frontend/src/
 
-- `App.tsx` — DRAWER_WIDTH — renders modal (~3083 tok)
+- `App.tsx` — DRAWER_WIDTH — renders modal (~3452 tok)
 
 ## frontend/src/components/
 
@@ -208,8 +212,8 @@
 
 ## frontend/src/i18n/
 
-- `en.ts` — Declares en (~5862 tok)
-- `zh.ts` — Declares zh (~4556 tok)
+- `en.ts` — Declares en (~5891 tok)
+- `zh.ts` — Declares zh (~4574 tok)
 
 ## frontend/src/pages/
 
@@ -217,7 +221,7 @@
 - `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~11085 tok)
 - `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5691 tok)
 - `Login.tsx` — Login (~2283 tok)
-- `Reports.tsx` — 三张表的默认排序：型号字母序 / 运行时间升序（刚重启的排最前）/ 吞吐降序 (~5326 tok)
+- `Reports.tsx` — 三张表的默认排序：型号字母序 / 运行时间升序（刚重启的排最前）/ 吞吐降序 (~5302 tok)
 - `StpTopology.tsx` — StpTopology (~1434 tok)
 
 ## frontend/src/services/

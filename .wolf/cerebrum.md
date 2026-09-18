@@ -517,3 +517,18 @@
 - [2026-09-17] 英文模式下的原始 key 问题（en.ts 缺整段 alerts.* / reports.*）要顺手补齐，不留英文界面显示 `alerts.title` 这种半成品。
 ## Do-Not-Repeat
 - [2026-09-17] **0 字节垃圾文件的根因找到了**：在 bash heredoc 里写 Python **f-string 且文本含裸花括号**（如中文里出现 `7}`、`{nb`）时，f-string 解析失败 → heredoc/重定向把残缺片段落成文件名（本项目已出现过 `{nb`、`ZGND1SWI01`、`1`、`7}` 四种）。**预防**：heredoc 里拼字符串用普通字符串 + `+` 或 `''.format()`，不要用 f-string 包裹含 `{}` 的自由文本；每次 `git add` 前照旧 `git status --short` 拦截（本轮又抓到 `1` 混进发布提交、`7}` 出现在工作区）。
+
+## Key Learnings
+- [2026-09-18] **成员级运行时间只在 ≥2 个成员时才落库**（`extract_member_uptimes` 有意为之，注释写「单机运行时间由设备级字段负责」）→ 报告侧必须**自己回退设备级** `collections.system_uptime_seconds`，否则单机设备（Cisco 非堆叠 11 台 + 3 台路由器 + Aruba 单机 10 台）整列显示 "—"。回退只对**单成员**设备做：多成员设备拿不到成员级数据时（C9500 StackWise Virtual 没有成员段）保持空 —— 设备级 uptime 只代表主/活动成员，复制给其它成员是错的（bug-121）。
+- [2026-09-18] **Cisco 的 ROM（引导）版本在 `show version` 里**：`BOOTLDR: ... Version 15.2(4r)E3`（优先）/ `ROM: System Bootstrap, Version 12.2(44)SE6`（老 IOS）。真机只上报主交换机的引导版本、成员段没有该字段 → 解析后**按成员数复制**，保持「与序列号同序对齐」的列约定。注意 2960X 的 `ROM:` 行是 `Bootstrap program is C2960X boot loader`（无版本号，跳过）。
+- [2026-09-18] **IOS-XE 堆叠的成员软件版本解析不到**（KWJD1SWI01 3850：成员运行时间解析成功、成员版本为空；C9500 SVL 两者都空）。原因很可能是 IOS-XE 的成员表多一列 `Mode`（INSTALL/BUNDLE），现有 `_CISCO_MEMBER_TABLE_ROW` 正则只吃 5 列（bug-123，待真机样本确认后修）。
+- [2026-09-18] **「我看到的页面是不是最新版」的根源**：start.bat 每次启动都会重建前端（dist 确实是新的），但**浏览器标签页里驻留的旧 JS 不会自己更新** —— 界面代码是旧的、接口数据是新的，字段对不上号，看着就是"数据没显示"。SPA 尤其明显（站内跳转不触发整页加载）。已加两层防护：① index.html 一律 `no-cache, no-store`（bundle 名带内容哈希，index.html 是唯一引路文件）；② 前端自己的 bundle 名与 `/index.html` 里引用的不一致时弹「系统已更新」提示条（App.tsx，focus + 5 分钟轮询）。
+- [2026-09-18] **SPA 回退必须排除 `/assets/`**：原先 404 处理器把 `/assets/xxx.js` 也回退成 index.html（200 + HTML 当 JS 交付）→ 请求已删除的旧 bundle 时模块解析失败且极难排查。现在返回 404 JSON。
+
+## Do-Not-Repeat
+- [2026-09-18] **别用 `kill $!` 停 Windows 上后台启动的 `python backend/main.py`**：Git Bash 的 `$!` 不是那个 python 进程（实测杀完端口仍 LISTENING，且后来 `start.bat` 的端口检查会误判）。停服务用 `netstat -ano | findstr ":8002" | findstr LISTENING` 取真实 PID + `taskkill //PID <pid> //F`。
+- [2026-09-18] 用户报「页面数据没显示」时，**先确认浏览器里跑的是哪个 bundle**（`index.html` 引用的 vs. 内存里运行的），再看数据 —— 本次"版本列为空"实为旧页面假象，白查了一轮数据库。
+
+## User Preferences
+- [2026-09-18] 报告页**只留页面级滚动条**：表格容器不要再套一层 `maxHeight` 内滚动（三张表的 `TableContainer sx={{ maxHeight: '72vh' }}` 已去掉）。
+- [2026-09-18] 用户日常通过 `start.bat` 启动，期望**打开就是最新版页面**。
