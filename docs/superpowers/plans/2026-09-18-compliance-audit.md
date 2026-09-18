@@ -82,6 +82,16 @@ NDM 从库里取名字 + 配置文本直接调即可，**不用**它的 HTTP 服
 | 11 | 报告渲染（原在前端 JS） | NDM 服务端重实现（Markdown/HTML 导出）+ 行号标红 |
 | 12 | 规则保存 | 现校验很薄 → 补 level 枚举、platforms、params 与 check 匹配、站点分组存在性；**原子写入 + 备份** |
 | 13 | `GET /api/rules` 投影 | 现丢 `params/note/exempt_sites`，规则编辑器不能用 |
+| 14 | `Device.lines` | 由 `splitlines()` 改 **`split("\n")`** —— 与前端完全同源；实测 **18/36 台配置以换行结尾**，两种分行差一个尾部空元素（索引仍对齐，但行数显示差 1，且前端若顺手 `.filter(Boolean)` 就全错位） |
+| 15 | `_finding()` 的 `line:0` | 统一改 `line: None` + **`locatable: bool`**（涉及 `check_device_name_format` / `check_hostname_match`） |
+| 16 | `_matches()` | 加 `functools.lru_cache` 正则编译缓存（原实现每设备重复编译） |
+| 17 | `check_enable_secret_type` | 去掉硬编码 `enable secret 5`，改由 `params.pattern` 驱动 |
+| 18 | 端口名归一化 | `_CISCO_PORT_SHORT` / `_normalize_port_name` 现为 `collector_service.py:_save_data` 内的**嵌套闭包**，外部不可导入 → 抽到 `backend/utils/port_names.py`（**本任务唯一触及既有采集代码的重构**，必须 238 项测试全绿） |
+
+**两个"别踩"的事实**（Plan agent 实测）：`devices.type` 是 Netmiko 驱动名（`aruba_aoscx`/`cisco_ios`/`cisco_ios_router`），
+**不是命名规范里的 SWI/RTW/QIS** —— 命名类规则只能从**设备名**解析；`devices.platform` 有 4 种取值
+（aruba_aoscx 18 / cisco_ios 14 / cisco_ios_router 3 / cisco_ios_xe 1），与规则的 `platforms: [cx|cisco]` 不是同一套枚举
+→ 平台判定仍以**配置文本**为准，`devices.platform` 只做交叉校验。
 
 另：`rules/standard.yaml` 里 `default_present`/`in_use_requires`/`resource_type`/`wifi_*`/`address_pattern`/`segments`/`site_codes`
 **写了但引擎不消费** → 移植时要么实现、要么删掉。
@@ -92,26 +102,31 @@ NDM 从库里取名字 + 配置文本直接调即可，**不用**它的 HTTP 服
 
 **A. 引擎移植与改造（后端）**
 1. 新建 `backend/analyzers/compliance/`：`engine.py`（移植 + 上表 13 处改造）、`checks.py`（12 + 组合判定器）、`loader.py`（规则加载 + 校验）。
-2. 规则文件：`config/compliance/vendor_baseline.yaml`（厂商基线）+ `config/compliance/company_standard.yaml`（公司规范）
-   —— 从 netstd `standard.yaml` 拆两层（`source` 字段仍在，文件分层更直观）；`sites`/`naming`/`vlans` 等组织参数放公司规范文件。
+2. 规则文件：`config/audit/` 下三个 —— `_scopes.yaml`（**共用段唯一一份**：meta/sites/naming/vlans，避免两处各写站点表导致漂移）
+   + `vendor-baseline.yaml`（厂商基线）+ `company-standard.yaml`（公司规范）；加载器按固定顺序合并、每条注入 `source_file`（决定保存时写回哪个文件）；
+   **启停 = 规则里的 `enabled: true|false` 字段**（写回 YAML，不引入 DB 状态位）。
 3. 数据源：新增 `backend/analyzers/compliance/source.py`，取「最新一次采集的 running-config」
    （`collections.running_config`，`ORDER BY collections.id DESC`；跳过采集失败文本 `% 收集失败:`）。
 4. 组合判定器：`check_group_all_of`（命令组齐备，缺项点名）、`check_requires`（有 A 必须有 B）、`check_conflict`（可选，端口级）。
 5. 端口角色：新增 `port_roles.py`（neighbors + stp_snapshots + lag 成员 + description → uplink/access/unknown），供端口级规则使用（一期先只做判定函数 + 单测，规则可后接）。
 
-**B. 存储（v13 迁移）**
+**B. 存储（v13 迁移）**（Plan agent 修正：审计结果**自包含**，不引用会被保留策略清空的配置全文；启停不引入 DB 状态位）
 6. `backend/storage/database.py`：`SCHEMA_VERSION 12 → 13`；`_migrate_v13` 建两张表：
-   - `compliance_findings(id, collection_id, device_id, rule_id, level, source, platform, lines, current, fix, why, note, created_at)`
-   - `compliance_rules_state(rule_id, enabled, exceptions, updated_at)`（规则本体仍在 YAML，此表只存启停/例外）
+   - `audit_runs(id, started_at, finished_at, trigger(manual|scheduled|post_collect), ruleset_hash, ruleset_version, device_count, finding_count, status)` —— 趋势的基座
+   - `audit_findings(id, run_id, device_id, collection_id, week, rule_id, level, source, title, detail, current_text, fix_text, why_text, note_text, evidence_json, missing_json, config_hash, created_at)` + 索引 `(run_id, level)`、`(device_id, rule_id)`
+   - **不建规则状态表**：启停直接写回 YAML 的 `enabled: true|false`（YAML 保持唯一权威，与用户定案一致）
 
 **C. API**
-7. `backend/api/compliance.py`（`main.py` 注册，照 `devices.py` 风格）：
-   - `POST /api/compliance/audit/{device}` → 单台即时审计（返回配置全文行 + findings + counts，**行号由后端按 `splitlines()` 算好**，1-based）
-   - `POST /api/compliance/audit-all` → 全网审计并入库；`GET /api/compliance/findings?device=&location=&level=` → 读库
-   - `GET /api/compliance/rules` → 规则完整结构（含 params/note/scope）；`PUT /api/compliance/rules` → 校验 + 原子写 + 备份
-     （**照抄 `backend/api/logs.py` 的 GET/PUT `/api/settings/llm` 读写模式**）
-   - `GET /api/compliance/export/{device}?format=md|html` → 左右对照报告（服务端渲染）
-8. 返回结构参考既有先例 `analyzers/role_verifier.py` 的 `audit_location()`（`{location, devices[], warnings[], summary{total/passed/warnings/errors}}`）。
+7. `backend/api/audit.py`（`main.py` 注册，照 `reports_router` 写法）：
+   - `GET /api/audit/device/{name}` → **单台即时审计（不落库）**，返回 **envelope**：
+     `{device, config, config_hash, findings, counts, port_roles, ruleset_hash, generated_at}`
+     —— **必须带 `config` 原文**：前端行号对齐只认这一份；`analyze()` 的原 dict 直接喂前端不够用（缺配置原文、`evidence` 有截断、`line:0` 非法）
+   - `POST /api/audit/run` → 全网审计入库（**实测 512 ms / 36 台，同步返回即可**，无需后台任务）；`GET /api/audit/runs`、`/runs/{id}` → 历史与明细
+   - `GET /api/audit/standards` → 规则树（按来源/平台/档位分组）+ 共用段；`PUT /api/audit/standards/{file}` → 校验 → 备份 → **原子写入** → 清缓存
+   - `GET /api/audit/device/{name}/export?format=md|html` → **服务端渲染**导出（前端拼会与 i18n/排序两处逻辑漂移）
+   - 边界：区分"配置全文已按保留策略清理"与"从未采集"，给可读提示
+8. 请求/响应类型写进 `frontend/src/types/index.ts`（一次性定义契约，别让补丁散落在 React 组件里）；
+   响应结构可参考既有先例 `analyzers/role_verifier.py` 的 `audit_location()`。
 
 **D. 前端**
 9. `pages/Viewer.tsx` 加「审计」按钮 + 审计模式：**复用 Compare 模式的逐行渲染 + 左右双栏同步滚动**
@@ -153,8 +168,10 @@ NDM 从库里取名字 + 配置文本直接调即可，**不用**它的 HTTP 服
 
 ## 六、风险与坑
 
-1. **行号口径**：实测库内配置文本无 CR、无末尾空行，`running_config_lines == splitlines() == split('\n')`（PVGD1SWI01 = 585 行三者一致）→ 行号可信；
-   但仍**由后端算好行号返回**（1-based），前端按 index 对齐；`pre-wrap` 下长行视觉折行 ≠ 逻辑行，不要用行高×行号做像素定位。
+1. **行号映射链有三个断裂点，必须一起治**（Plan agent 实测更正）：
+   - **入库**：DB 全文无 CR（netmiko `normalize` 已归一为 LF）✓；但 **35/36 台配置带行尾空格** → **标红只认行号，禁止"拿证据文本回配置里搜"**；**18/36 台以换行结尾** → `splitlines()` 与 `split("\n")` 差一个尾部空元素（索引仍对齐，行数显示差 1；前端绝不能顺手 `.filter(Boolean)` / `.trim()`，否则从此全部错位）。
+   - **不同源**：**磁盘 `running-config.raw` 是 CRLF**（Python 文本模式写出），与 DB 全文（LF）不是同一份 → 审计面板**禁止**用 `dataApi.getFile`/`getRawData` 的磁盘内容做对齐，必须渲染审计接口 envelope 返回的 `config`（同一次读取、同一份文本）。
+   - **展示**：`pre-wrap` 下长行视觉折行 ≠ 逻辑行，不要用行高×行号做像素定位。
 2. **配置全文只有最近 2 次**（`CONFIG_KEEP=2`，更早置 NULL）→ 审计只保证最近 2 次采集可跑；全量审计要在采集后跑或提示"该设备无可用全文"。
 3. **采集失败文本**（`% 收集失败: …`，`running_lines=0`）必须跳过，否则整台设备会被误判成"配置全缺"。
 4. **规则热更新与并发**：现有 settings 读改写无锁；规则保存需**原子写（临时文件 + 替换）+ 备份 + 失败回滚**，保存后清规则缓存。
@@ -163,7 +180,25 @@ NDM 从库里取名字 + 配置文本直接调即可，**不用**它的 HTTP 服
 7. **不翻既有决策**：不采纳项不得作为新规则上线；挂起项只能以配套组形式出现。
 8. **安全注意**：`main.py` 把 `data_root` 挂到了 `/data` 静态目录（免登录），审计端点不要依赖它取配置；规则文件读写要防路径穿越（规则文件名白名单）。
 
-## 七、落地安排
+## 七、Plan agent 复核补充（2026-09-18，实施时按此执行）
+
+1. **组合规则只做一个判定器**：新增单个 `command_set`，用 `params.mode` 覆盖三种语义（`all_of` / `requires` / `conflict`），三种 mode 复用同一个 `_eval_scope()`；
+   `_finding()` 扩展 `check_kind / missing[] / satisfied[]`（`satisfied` 让 UI 能显示"三件套已配 2/3"的进度感，而不是非黑即白）。
+   **一期只落地 3 条样板规则**验证模型：`cx_snmpv3_group`（all_of）、`cs_dai_requires_dhcp_snooping`（requires）、`cs_bpduguard_not_on_uplink`（conflict + 端口角色）；其余 23 条原样不动。
+2. **端口角色（`backend/audit/port_role.py`）信号优先级**（覆盖率已实测）：
+   STP `role='root'`（19/36 台，只有 root/designated，无 alternate）→ `neighbors.neighbor_type='switch'`（**36/36 台**）→
+   `collections.lag_membership` JSON（222 次采集有值）→ `devices.uplink_ports`（**仅 4/36，只作佐证**）→ 接口 description 关键词。
+   `port_snapshots.is_uplink` **实测仅 14 行为 1（4.5 万行）→ 不可用**。
+   conflict 类判定**只在 `confidence: high`**（有 STP root 或 switch 邻居佐证）时出 finding；低置信降级为「需人工判断」并注明"无法确定端口角色"。
+3. **移植等价性基线**：用库里 36 台真机配置跑一遍，**锁定总命中数 205**（14.2 ms/台、全网 512 ms、0 异常）—— 移植前后必须一致，作为引擎回归的硬断言。
+4. **YAML 保存的工程细节**：`config/manager.py` 是交互式菜单、不是可复用的原子写 helper → 新写：同目录 tmp + `os.replace`（同分区才原子）；
+   **Windows 上目标文件被占用会抛 `PermissionError` → 必须带重试**；备份加时间戳并限制保留份数；并发用 `base_hash`（前端带上打开时的 mtime/hash）做乐观锁拒绝后写。
+5. **YAML 注释**：环境里装了 `ruamel.yaml` 但 `requirements.txt` 未声明 → **一期用 PyYAML**（保存会丢注释，在规则文件顶部声明"注释由 git 保留"），保注释的往返编辑列二期。
+6. **审计面板渲染禁令**：左侧必须渲染审计接口返回的 `config`（唯一同源），**禁止**用 `dataApi.getFile`/`getRawData`（磁盘 raw 是 CRLF，行号会整体错位）；标红**只认行号查表**（`Map<line, findings[]>`），禁止文本匹配（35/36 台有行尾空格）；`line: null` 的条目禁用"定位到行"按钮。
+7. **采集后自动跑**：放最后做，默认**关闭**（`config/settings.yaml` 开关），避免影响既有采集耗时。
+8. **语义与文案**：五档若配 red/amber 色块 + "问题条目"字样会被读成违规清单 → 标题用「评审意见/建议」、常驻"本页为建议，非强制"提示、避免用 `error` severity 的 Alert 承载；规则正文（title/fix/why）**不入 i18n**（英文环境显示中文规则可接受，胜过维护两份规则副本）。
+
+## 八、落地安排
 
 - **2026-09-18（今天）**：只出计划，落到 `docs/superpowers/plans/2026-09-18-compliance-audit.md`（项目既有约定），提交留档，不动代码。
 - **周日开发**：按 §三 第一期 A→E 顺序做，每步单独提交（项目约定），先跑通"标准页 + 单台审计"，再补全量入库。
