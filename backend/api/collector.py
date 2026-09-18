@@ -142,6 +142,8 @@ async def collect_config(
             device_type=device.get("type", "cisco_ios"),
         )
         device_obj.platform = device.get("platform") or ""
+        # 型号：C9500 SVL 特例判定要用（也可以进进度条的预计算），漏了它特例不生效
+        device_obj.model = device.get("model") or ""
         device_obj.location = device.get("location") or ""
         device_obj.notes = device.get("notes") or ""
         device_obj.serial_number = device.get("serial_number") or ""

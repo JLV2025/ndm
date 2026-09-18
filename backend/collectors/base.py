@@ -269,6 +269,24 @@ class DeviceConnection:
             return self.send_command("show switch", read_timeout=20)
         return self.send_command("show switch detail", read_timeout=20)
 
+    def collect_svl_uptime(self) -> str:
+        """C9500 StackWise Virtual 特例：两个成员各自的运行时间
+
+        老 C9500 的命令与其它平台都不一样：show version 里没有成员表、成员段也没有
+        Switch Uptime，成员运行时间只能从 onboard logging 的 UPTIME SUMMARY 取
+        （真机样本：SHAD1SWI01）。两段输出按 active、standby 顺序拼接，
+        与 show version 的序列号顺序（1 号 = active）一致。
+        """
+        parts: list[str] = []
+        for cmd in ("show logging onboard switch active RP active uptime",
+                    "show logging onboard switch standby RP active uptime"):
+            try:
+                parts.append(self.send_command(cmd, read_timeout=25))
+            except Exception as e:
+                # 单机 C9500 没有 standby 段 —— 失败就少一段，由解析侧按值数决定是否使用
+                print(f"[警告] {cmd} 采集失败: {e}")
+        return "\n".join(parts)
+
     def collect_routing_table(self) -> str:
         """收集路由表（Cisco IOS 路由器）"""
         return self.send_command("show ip route", read_timeout=45)

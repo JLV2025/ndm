@@ -1,0 +1,31 @@
+SHAD1SWI01#show logging onboard switch active RP active uptime
+--------------------------------------------------------------------------------
+UPTIME SUMMARY INFORMATION
+--------------------------------------------------------------------------------
+First customer power on : 06/03/2019 04:36:58
+Total uptime            :  7  years  1  weeks  2  days  13 hours  25 minutes
+Total downtime          :  0  years  14 weeks  1  days  7  hours  31 minutes
+Number of resets        : 139
+Number of slot changes  : 1
+Current reset reason    : PowerOn
+Current reset timestamp : 12/07/2024 02:26:50
+Current slot            : 0
+Chassis type            : 46
+Current uptime          :  1  years  40 weeks  4  days  23 hours  6  minutes
+--------------------------------------------------------------------------------
+
+SHAD1SWI01#show logging onboard switch standby RP active uptime
+--------------------------------------------------------------------------------
+UPTIME SUMMARY INFORMATION
+--------------------------------------------------------------------------------
+First customer power on : 05/15/2019 14:02:57
+Total uptime            :  7  years  1  weeks  1  days  12 hours  36 minutes
+Total downtime          :  0  years  17 weeks  1  days  7  hours  2  minutes
+Number of resets        : 39
+Number of slot changes  : 1
+Current reset reason    : PowerOn
+Current reset timestamp : 12/08/2024 10:36:51
+Current slot            : 0
+Chassis type            : 46
+Current uptime          :  1  years  40 weeks  4  days  23 hours  5  minutes
+--------------------------------------------------------------------------------

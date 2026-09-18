@@ -75,6 +75,17 @@ def _is_router_device(device_type: str) -> bool:
     return device_type == "cisco_ios_router"
 
 
+def _is_svl_device(device_model: str) -> bool:
+    """是否为 C9500 StackWise Virtual（特例平台）
+
+    老 C9500 的命令与其它 Cisco 平台都不一样：show version 没有成员表、成员段
+    也没有 Switch Uptime，成员运行时间只能用 onboard logging 单独采（见
+    base.py:collect_svl_uptime）。按**型号**判断 —— platform 是 cisco_ios_xe，
+    与 C9200L 等共用，区分不开。
+    """
+    return "C9500" in (device_model or "").upper()
+
+
 def _strip_ansi(text: str) -> str:
     """去除 ANSI 转义码和终端控制字符"""
     # ANSI escape sequences: ESC[...m, ESC[...K, etc.
@@ -309,16 +320,32 @@ def extract_member_rom_versions(vsf_output: str = "", version_output: str = "",
     return ""
 
 
-def extract_member_uptimes(version_output: str = "", vsf_output: str = "") -> str:
+def extract_member_uptimes(version_output: str = "", vsf_output: str = "",
+                           svl_output: str = "") -> str:
     """提取堆叠各成员的运行时间（秒，逗号拼接，与序列号同序）；无成员段返回 ""
 
     - Cisco（show version）：设备级 ``<主机名> uptime is ...`` 是 1 号成员（主交换机，
       实测 SZXD1SWI01 主交换机与成员段数值一致），其余成员在各成员段的
       ``Switch Uptime : ...``
     - Aruba（show vsf detail）：各成员段的 ``Uptime : ...``
+    - C9500 StackWise Virtual（onboard logging，特例）：两段 ``Current uptime``，
+      顺序 = active、standby（与 show version 的序列号顺序一致：1 号 = active）
 
     成员级运行时间能看出设备级 uptime 看不出的信号：堆叠里**单台成员**重启。
     """
+    # C9500 SVL 特例优先：show version 里既没有成员表也没有 Switch Uptime，
+    # 只有 onboard logging 的 UPTIME SUMMARY 逐成员给运行时间。
+    # 只有拿到 2 段才算数（单机 C9500 的 standby 段会失败）——
+    # 1 段时走常规逻辑返回空，由报告侧回退设备级运行时间，避免把 active 的值错标成别人。
+    if svl_output:
+        svl_values: list[int] = []
+        for match in re.finditer(r'Current uptime\s*:\s*([^\n\r]+)', _strip_ansi(svl_output), re.IGNORECASE):
+            value = _parse_uptime_phrase(match.group(1))
+            if value is not None:
+                svl_values.append(value)
+        if len(svl_values) >= 2:
+            return ", ".join(str(v) for v in svl_values[:2])
+
     seconds_list: list[int] = []
 
     if version_output:
@@ -637,6 +664,9 @@ def collect_device(
     device_ip = device.ip
     device_type = device.type
     device_platform = getattr(device, 'platform', '') or ''
+    # 型号提示（来自上次采集入库的 devices.model）：只在命令总数预计算与
+    # C9500 SVL 特例分支里用 —— 采集当下要等 show version 才知道型号，赶不上进度条。
+    device_model_hint = getattr(device, 'model', '') or ''
     data_root = settings.get("data_root", "./data")
 
     # ---- 预计算命令总数（含 Ping），用于进度条百分比 ----
@@ -653,6 +683,8 @@ def collect_device(
         total_cmds += 1  # LAG 成员关系 (lacp aggregates / etherchannel summary)
     if not _is_router_device(device_type):
         total_cmds += 1  # spanning-tree（仅交换机；路由器不跑 STP）
+    if _is_svl_device(device_model_hint):
+        total_cmds += 1  # C9500 SVL 成员运行时间（onboard logging，两条命令算一步）
     cmd_done = 0
 
     def _advance(label: str = ""):
@@ -749,6 +781,8 @@ def collect_device(
             total_cmds += 1  # LAG 成员关系
         if not _is_router_device(device_type):
             total_cmds += 1  # spanning-tree（仅交换机）
+        if _is_svl_device(device_model_hint):
+            total_cmds += 1  # C9500 SVL 成员运行时间
 
     def _safe_collect(collect_func, label: str) -> str:
         """安全执行单条命令收集，失败时返回错误信息但不抛异常"""
@@ -822,6 +856,14 @@ def collect_device(
             print(f"[收集进度] 获取 switch detail (堆叠信息)...")
             switch_info = _safe_collect(conn.collect_switch_detail, "show switch detail")
             _advance("show switch detail")
+
+        # C9500 StackWise Virtual 特例：成员运行时间只能从 onboard logging 取
+        # （show version 没有成员段，取不到 Switch Uptime）
+        svl_uptime_raw = ""
+        if _is_svl_device(device_model_hint):
+            print(f"[收集进度] 获取 SVL 成员运行时间 (C9500 特例)...")
+            svl_uptime_raw = _safe_collect(conn.collect_svl_uptime, "svl uptime")
+            _advance("svl uptime")
 
         # 路由器专属：收集路由表
         route_info = ""
@@ -952,6 +994,7 @@ def collect_device(
             platform=device_platform,
             lacp_raw=lacp_raw,
             stp_rows=stp_rows,
+            svl_uptime_raw=svl_uptime_raw,
         )
 
         # 分层保留：配置文本按周保留（更早的按月归档）、DB 配置全文与日志各留最近 2 次。
@@ -1341,6 +1384,7 @@ def _save_data(
     platform: str = "",
     lacp_raw: str = "",
     stp_rows: list | None = None,
+    svl_uptime_raw: str = "",
 ) -> None:
     """保存数据到本地"""
 
@@ -1581,7 +1625,7 @@ def _save_data(
             member_rom_versions=extract_member_rom_versions(
                 vsf_info, version_info, _member_count(serial_number)
             ),
-            member_uptimes=extract_member_uptimes(version_info, vsf_info),
+            member_uptimes=extract_member_uptimes(version_info, vsf_info, svl_uptime_raw),
             system_uptime_seconds=system_uptime_seconds,
             port_details=port_details,
             port_errors=port_errors_dict,

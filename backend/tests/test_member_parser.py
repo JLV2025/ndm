@@ -13,6 +13,7 @@ import pytest
 
 import storage.database as db
 from services.collector_service import (
+    _is_svl_device,
     _parse_uptime_phrase,
     _save_to_sqlite,
     extract_member_ids,
@@ -31,6 +32,7 @@ def read_fixture(name: str) -> str:
 
 CISCO_STACK = "Cisco 2960x stack show version.txt"
 ARUBA_VSF = "Aruba 6300 vsf detail.txt"
+CISCO_SVL = "Cisco 9500 svl uptime.txt"
 
 
 # ============================================================
@@ -154,6 +156,31 @@ def test_单机没有成员运行时间():
     """只有一个值（非堆叠）不返回 —— 单机运行时间由设备级字段负责"""
     assert extract_member_uptimes(version_output="SW1 uptime is 3 days, 4 hours, 5 minutes\n") == ""
     assert extract_member_uptimes() == ""
+
+
+# ============================================================
+# C9500 StackWise Virtual 特例（onboard logging 取成员运行时间）
+# ============================================================
+
+def test_c9500_svl_成员运行时间():
+    """两段 Current uptime：顺序 = active、standby（真机样本 SHAD1SWI01）"""
+    uptimes = [int(v) for v in extract_member_uptimes(svl_output=read_fixture(CISCO_SVL)).split(", ")]
+
+    assert len(uptimes) == 2
+    assert uptimes[0] == 365 * 86400 + 40 * 7 * 86400 + 4 * 86400 + 23 * 3600 + 6 * 60   # active
+    assert uptimes[1] == 365 * 86400 + 40 * 7 * 86400 + 4 * 86400 + 23 * 3600 + 5 * 60   # standby
+
+
+def test_c9500_只有一段时不返回():
+    """单机 C9500 没有 standby 段 → 返回空，由报告侧回退设备级运行时间"""
+    raw = "Current uptime          :  1  years  40  weeks  4  days  23 hours  6  minutes\n"
+    assert extract_member_uptimes(svl_output=raw) == ""
+
+
+def test_c9500特例判定按型号():
+    assert _is_svl_device("C9500-24Y4C, C9500-24Y4C") is True
+    assert _is_svl_device("C9200L-24P-4G") is False
+    assert _is_svl_device("") is False
 
 
 # ============================================================
