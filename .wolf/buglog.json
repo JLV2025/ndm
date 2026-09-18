@@ -2536,6 +2536,38 @@
       ],
       "occurrences": 2,
       "last_seen": "2026-09-18T11:35:00"
+    },
+    {
+      "id": "bug-154",
+      "timestamp": "2026-09-18T03:29:04.133Z",
+      "error_message": "Significant refactor of ",
+      "file": "C:/Users/jingl/.claude/plans/spanning-tree-glowing-gray.md",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 13→17 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T03:29:04.133Z"
+    },
+    {
+      "id": "bug-155",
+      "timestamp": "2026-09-18T03:29:17.953Z",
+      "error_message": "Incorrect value in code",
+      "file": "C:/Users/jingl/.claude/plans/spanning-tree-glowing-gray.md",
+      "root_cause": "Had `config/compliance/vendor_baseline.yaml`",
+      "fix": "Changed to `config/audit/`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T03:29:17.953Z"
     }
   ]
 }

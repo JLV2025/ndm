@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-18T03:23:07.831Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-18T03:29:30.732Z
 > Files: 82 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
@@ -82,7 +82,7 @@
 
 - `cisco-precious-thompson.md` — 端口流量排行：改用累计计数器差值 (~4284 tok)
 - `silly-weaving-hearth.md` — VSF 成员编号透传 + 物理设备档案 + 离线设备视图 实施计划 (~1286 tok)
-- `spanning-tree-glowing-gray.md` — NDM 配置审计（资深专家评审）—— 实施计划 (~2422 tok)
+- `spanning-tree-glowing-gray.md` — NDM 配置审计（资深专家评审）—— 实施计划 (~3302 tok)
 
 ## C:/Users/jingl/AppData/Local/Temp/
 
