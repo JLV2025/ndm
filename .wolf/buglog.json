@@ -2404,6 +2404,86 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-09-18T10:20:00"
+    },
+    {
+      "id": "bug-146",
+      "timestamp": "2026-09-18T02:42:35.619Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_reports_api.py",
+      "root_cause": "12 lines replaced/restructured",
+      "fix": "Rewrote 22→3 lines (12 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T02:42:35.619Z"
+    },
+    {
+      "id": "bug-147",
+      "timestamp": "2026-09-18T02:43:15.486Z",
+      "error_message": "CSS fix: version, last_synced",
+      "file": "frontend/src/pages/Reports.tsx",
+      "root_cause": "version: r => r.software_version, → r => r.version,; last_synced: r => r.collected_at, → r => r.last_synced,",
+      "fix": "Changed version: r => r.software_version, → r => r.version,; last_synced: r => r.collected_at, → r => r.last_synced,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T02:43:15.487Z"
+    },
+    {
+      "id": "bug-148",
+      "timestamp": "2026-09-18T02:43:44.589Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/pages/Reports.tsx",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 14→8 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T02:43:44.589Z"
+    },
+    {
+      "id": "bug-149",
+      "timestamp": "2026-09-18T02:44:25.989Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/Reports.tsx",
+      "root_cause": "Had \"software-versions\"",
+      "fix": "Changed to \"device-status\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-18T02:44:35.257Z"
+    },
+    {
+      "id": "bug-150",
+      "timestamp": "2026-09-18T02:44:55.499Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/services/api.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→3 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T02:44:55.499Z"
     }
   ]
 }
