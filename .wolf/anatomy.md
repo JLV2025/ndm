@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-18T02:07:26.052Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-18T02:46:17.232Z
 > Files: 82 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
@@ -50,7 +50,7 @@
 - `.gitignore` — Git ignore rules (~335 tok)
 - `CLAUDE.md` — OpenWolf (~1885 tok)
 - `NDM用户使用文档.html` — NDM User Guide / 用户使用文档 — Network Device Management (~11324 tok)
-- `README.md` — Project documentation (~2096 tok)
+- `README.md` — Project documentation (~2112 tok)
 - `start.bat` (~981 tok)
 - `VERSION` (~2 tok)
 
@@ -112,7 +112,7 @@
 - `collector.py` — 配置收集 API 路由 (~1741 tok)
 - `data.py` — 数据文件 API 路由 (~3944 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
-- `reports.py` — 自定义报告 API 路由 (~2861 tok)
+- `reports.py` — 自定义报告 API 路由 (~2484 tok)
 - `stats.py` — Dashboard 统计 API — 全量从 SQLite 读取 (~2546 tok)
 - `topology.py` — 拓扑图 API 路由 (~15518 tok)
 
@@ -153,7 +153,7 @@
 - `test_performance_counters.py` — 端口累计计数器与端口详情合并测试（PerformanceAnalyzer 接线） (~2443 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试（21 列 INSERT / NULL 与读数 0 区分 / 大数据精度） (~900 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试 —— 重点：累计计数器列（in_octets / out_octets） (~1043 tok)
-- `test_reports_api.py` — 自定义报告端点测试 —— 临时库直接调端点函数（HTTP 层之下） (~2395 tok)
+- `test_reports_api.py` — 自定义报告端点测试 —— 临时库直接调端点函数（HTTP 层之下） (~2205 tok)
 - `test_retention.py` — 分层保留与归档测试 (~3006 tok)
 - `test_stats_overview.py` — Dashboard 端口统计口径测试 —— Disabled 单独计数 (~784 tok)
 - `test_stats_window.py` — 区间流量 Top10 周锚定测试（16 用例，**核心：周中再采一次结果完全不变**） (~1900 tok)
@@ -213,8 +213,8 @@
 
 ## frontend/src/i18n/
 
-- `en.ts` — Declares en (~5891 tok)
-- `zh.ts` — Declares zh (~4574 tok)
+- `en.ts` — Declares en (~5876 tok)
+- `zh.ts` — Declares zh (~4563 tok)
 
 ## frontend/src/pages/
 
@@ -222,12 +222,12 @@
 - `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~11085 tok)
 - `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5691 tok)
 - `Login.tsx` — Login (~2283 tok)
-- `Reports.tsx` — 三张表的默认排序：型号字母序 / 运行时间升序（刚重启的排最前）/ 吞吐降序 (~5302 tok)
+- `Reports.tsx` — 两张表的默认排序：型号字母序 / 吞吐降序 (~4439 tok)
 - `StpTopology.tsx` — StpTopology (~1434 tok)
 
 ## frontend/src/services/
 
-- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~2018 tok)
+- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~1987 tok)
 
 ## frontend/src/shared/
 
