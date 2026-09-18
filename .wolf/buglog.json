@@ -2383,6 +2383,27 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-18T09:55:00"
+    },
+    {
+      "id": "bug-145",
+      "timestamp": "2026-09-18T10:20:00",
+      "error_message": "SHAD1SWI01（C9500 StackWise Virtual 双成员）在软件版本报告里两个成员的运行时间一直显示「—」",
+      "file": "backend/collectors/base.py, backend/services/collector_service.py",
+      "root_cause": "C9500 SVL 的命令与其它 Cisco 平台都不一样：show version 里没有成员表、成员段也没有 Switch Uptime → extract_member_uptimes 取不到任何成员级值（<2 返回空），报告侧只对单成员设备回退设备级（它是双成员）",
+      "fix": "按用户提供的真机命令加特例：采集 show logging onboard switch active RP active uptime 与 ... standby ...（collect_svl_uptime），两段 Current uptime 按 active、standby 顺序解析进 member_uptimes（与 show version 序列号顺序一致：1 号 = active）；只有 2 段才算数。判定按型号 C9500（platform 是 cisco_ios_xe 区分不开），并在 api/collector.py 给 Device 补 model 字段。样本存 fixtures/Cisco 9500 svl uptime.txt，库副本演练 SHAD1SWI01-1/-2 各 650.0 天（样本 6 分钟 vs 5 分钟差值还原正确）。下次采集生效",
+      "tags": [
+        "cisco",
+        "c9500",
+        "svl",
+        "成员运行时间",
+        "onboard-logging",
+        "特例"
+      ],
+      "related_bugs": [
+        "bug-121"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T10:20:00"
     }
   ]
 }

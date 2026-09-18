@@ -532,3 +532,10 @@
 ## User Preferences
 - [2026-09-18] 报告页**只留页面级滚动条**：表格容器不要再套一层 `maxHeight` 内滚动（三张表的 `TableContainer sx={{ maxHeight: '72vh' }}` 已去掉）。
 - [2026-09-18] 用户日常通过 `start.bat` 启动，期望**打开就是最新版页面**。
+
+## Key Learnings
+- [2026-09-18] **C9500 StackWise Virtual 是独立特例平台**（用户定案：就两台、快退休，将就加特例）。它的命令与其它 Cisco 都不同：`show version` 没有成员表、成员段也没有 Switch Uptime → 成员运行时间只能用 onboard logging 分别取：
+  `show logging onboard switch active RP active uptime` / `show logging onboard switch standby RP active uptime`，
+  两段各有 `Current uptime : 1  years  40  weeks  4  days  23  hours  6  minutes`（注意双空格、`Total uptime` 是累计值不要取）。两段顺序 = active、standby，与 `show version` 序列号顺序一致（1 号 = active）。判定用**型号**（`_is_svl_device`：模型含 C9500）——platform 是 cisco_ios_xe，与 C9200L 共用区分不开。
+- [2026-09-18] **判定设备特例的型号来源**：`api/collector.py` 逐字段构造 Device 对象时**没有带 model**（bug-079 同类陷阱），特例判定要在连接前知道型号就必须补上 `device_obj.model`（来自 devices 表上次入库的值）。首采（型号未知）时特例不生效，第二轮才有 —— 可接受。
+- [2026-09-18] **KORD1SWI02 的成员数据缺失已定性为设备侧**：8 台 Aruba VSF 堆叠里 7 台用 `show vsf detail` 正常拿到 ROM + 成员运行时间；只有它那次采集**每条命令**都被回 `Cannot execute command. Command not allowed.`（配置 1 行、端口 0、邻居 0、版本/序列号/型号全"未知"，boot_history_raw 存的就是那句原话）。它 09-15 采集还是正常的 → 该设备本地的账号/角色配置或 VSF 状态问题，重采即可验证。
