@@ -224,7 +224,7 @@ export default function ReportsPage() {
             </Box>
           </Alert>
         )}
-        <TableContainer component={Paper} sx={{ maxHeight: '72vh' }}>
+        <TableContainer component={Paper}>
           <Table size="small" stickyHeader>
             <TableHead>
               <TableRow>
@@ -279,7 +279,7 @@ export default function ReportsPage() {
     const sorted = sortRows(rows, sort, UPTIME_GETTERS)
 
     return (
-      <TableContainer component={Paper} sx={{ maxHeight: '72vh' }}>
+      <TableContainer component={Paper}>
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
@@ -323,7 +323,7 @@ export default function ReportsPage() {
     const sorted = sortRows(rows, sort, BANDWIDTH_GETTERS)
 
     return (
-      <TableContainer component={Paper} sx={{ maxHeight: '72vh' }}>
+      <TableContainer component={Paper}>
         <Table size="small" stickyHeader>
           <TableHead>
             <TableRow>
