@@ -116,6 +116,35 @@ def test_软件版本_成员ROM版本不一致报警(conn):
     assert pvg["versions"] == ["FL.10.10.1070"]   # 软件版本仍是整堆叠一致
 
 
+def test_软件版本_单机运行时间回退设备级(conn):
+    """单机设备没有成员段 → 用设备级（最新一次采集）运行时间，不能留空"""
+    _add_collection(conn, 1, uptime=100 * 86400)   # PVGD1SWI02 单机
+
+    data = asyncio.run(reports_api.report_software_versions())
+    by_name = {d["name"]: d for d in data["devices"]}
+
+    assert by_name["PVGD1SWI02"]["uptime_days"] == 100.0
+    # 有成员级数据的堆叠不受影响，仍用成员自己的值
+    assert by_name["SZXD1SWI01-1"]["uptime_days"] == round(5723520 / 86400, 1)
+
+
+def test_软件版本_多成员无成员级数据不回退设备级(conn):
+    """设备级运行时间只代表主/活动成员 —— 不能复制给堆叠里的每一台"""
+    conn.execute(
+        "INSERT INTO devices (id, name, ip, type, location, model, version, serial_number) "
+        "VALUES (9, 'SHAD1SWI01', '10.0.0.9', 'cisco_ios', 'SHA', 'C9500-24Y4C, C9500-24Y4C', "
+        "'16.09.03', 'CAT2322L0L4, CAT2319L3WX')"
+    )
+    conn.commit()
+    _add_collection(conn, 9, uptime=56153340)      # 双成员 SVL：无成员级运行时间
+
+    data = asyncio.run(reports_api.report_software_versions(location="SHA"))
+    by_name = {d["name"]: d for d in data["devices"]}
+
+    assert by_name["SHAD1SWI01-1"]["uptime_days"] is None
+    assert by_name["SHAD1SWI01-2"]["uptime_days"] is None
+
+
 def test_软件版本_按位置过滤(conn):
     data = asyncio.run(reports_api.report_software_versions(location="PVG"))
 

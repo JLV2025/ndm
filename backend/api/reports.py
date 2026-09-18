@@ -22,7 +22,10 @@ def _expand_device_members(row) -> tuple[list[dict], dict | None]:
       与仪表盘设备清单同一套规则）
     - 成员版本：classic IOS 堆叠逐成员给出；IOS-XE 堆叠与 Aruba VSF 整堆叠共享
       一个镜像 → 用整机版本填充
-    - 运行时间：成员级（Cisco 的 Switch Uptime / Aruba 的 Uptime）
+    - 运行时间：成员级优先（Cisco 的 Switch Uptime / Aruba 的 Uptime）；
+      **单机设备没有成员段** → 回退到设备级 system_uptime_seconds（就是这台机器自己的
+      运行时间，准确）。多成员设备拿不到成员级数据时保持空 —— 设备级值只代表主/活动
+      成员，填给其它成员是错的。
 
     版本一致性只看**同一台设备内部**的成员（跨设备型号相同但版本不同属正常：
     不同站点、不同升级批次）。返回 (成员行, 不一致信息或 None)。
@@ -33,6 +36,8 @@ def _expand_device_members(row) -> tuple[list[dict], dict | None]:
     versions = _split_list(row["member_versions"])
     roms = _split_list(row["member_rom_versions"])
     uptimes = _split_list(row["member_uptimes"])
+    # 设备级运行时间（SQL 里 LEFT JOIN 最新一次采集带出；直接构造的行没有该键）
+    device_uptime = row["device_uptime_seconds"] if "device_uptime_seconds" in row.keys() else None
     total = len(serials)
     aligned_ids = member_ids if len(member_ids) == total else []
     pad = len(str(total))
@@ -42,6 +47,8 @@ def _expand_device_members(row) -> tuple[list[dict], dict | None]:
         version = versions[i] if len(versions) == total else (row["version"] or "")
         rom = roms[i] if len(roms) == total else ""
         uptime = int(uptimes[i]) if len(uptimes) == total and uptimes[i].isdigit() else None
+        if uptime is None and total == 1 and device_uptime:
+            uptime = int(device_uptime)
         suffix = aligned_ids[i] if aligned_ids else str(i + 1).zfill(pad)
         members.append({
             "name": row["name"] if total == 1 else f'{row["name"]}-{suffix}',
@@ -103,8 +110,13 @@ async def report_software_versions(
     rows = db.execute(
         f"""SELECT d.name, d.type, d.location, d.model, d.version, d.last_synced,
                    d.serial_number, d.member_ids,
-                   d.member_versions, d.member_rom_versions, d.member_uptimes
-            FROM devices d WHERE {where}
+                   d.member_versions, d.member_rom_versions, d.member_uptimes,
+                   c.system_uptime_seconds AS device_uptime_seconds
+            FROM devices d
+            LEFT JOIN collections c ON c.device_id = d.id
+                AND c.id = (SELECT MAX(c2.id) FROM collections c2
+                            WHERE c2.device_id = d.id AND c2.phase = '1')
+            WHERE {where}
             ORDER BY d.model, d.name""",
         params,
     ).fetchall()
