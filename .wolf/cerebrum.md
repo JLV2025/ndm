@@ -528,6 +528,7 @@
 ## Do-Not-Repeat
 - [2026-09-18] **别用 `kill $!` 停 Windows 上后台启动的 `python backend/main.py`**：Git Bash 的 `$!` 不是那个 python 进程（实测杀完端口仍 LISTENING，且后来 `start.bat` 的端口检查会误判）。停服务用 `netstat -ano | findstr ":8002" | findstr LISTENING` 取真实 PID + `taskkill //PID <pid> //F`。
 - [2026-09-18] 用户报「页面数据没显示」时，**先确认浏览器里跑的是哪个 bundle**（`index.html` 引用的 vs. 内存里运行的），再看数据 —— 本次"版本列为空"实为旧页面假象，白查了一轮数据库。
+- [2026-09-18] **heredoc 陷阱第二次咬人：这次是反引号**。用 bash heredoc（即使写成 `<<'PY'` 加引号）追加含行内代码反引号的 Markdown（形如 \`analyze(...) -> dict\`）时，shell 把成对反引号当命令替换解析，碎片被重定向成了 0 字节文件 \`dict\`\`。**铁律：Markdown / JSON / 代码等内容一律用 Write/Edit 工具写，不要走 bash**（bug-094 已记过一次；`git add` 前照旧 `git status --short` 拦截）。
 
 ## User Preferences
 - [2026-09-18] 报告页**只留页面级滚动条**：表格容器不要再套一层 `maxHeight` 内滚动（三张表的 `TableContainer sx={{ maxHeight: '72vh' }}` 已去掉）。
@@ -542,3 +543,14 @@
 
 ## User Preferences
 - [2026-09-18] **自定义报告只保留两张**：**设备运行状态报告**（原「软件版本报告」，按物理成员展开，含每台设备的运行时间）+ **带宽利用率汇总**。「设备在线时间」报告与之重复，用户定案删除 —— 端点 `GET /api/reports/device-uptime`、前端表与 `UPTIME_GETTERS`、`api.deviceUptime` 全部移除。代码标识同步更名：报告类型值 `device-status`、i18n key `reports.deviceStatus`（后端端点路径 `/api/reports/software-versions` 保持不动 —— 数据源语义未变）。
+
+## Decision Log
+- [2026-09-18] **把 allright/netstd 的配置审计能力并进 NDM**（用户自有项目，无知识产权顾虑）。定位不是"跑规则出报告"，而是**模拟资深网络专家评审**：设备上下文分族（平台×角色×站点适用域）→ 组合/配套规则（all_of / requires / conflict + 端口级作用域）→ 横向共识对比 → 按档位给优先级 → 给可执行命令与依据。判定只由确定性引擎做，AI 只负责讲成人话（二期）。计划落盘 `docs/superpowers/plans/2026-09-18-compliance-audit.md`，周日开发。
+- [2026-09-18] 用户定案：**标准 = 页面可视化编辑 + YAML 存盘**（规则文件为唯一权威）；**审计 = 按需 + 全量入库**；一期做「标准页 + 查看器审计」；AI 专家简报二期。
+
+## Key Learnings
+- [2026-09-18] **厂商"配套使用"是审计最值钱的部分**（已查互联网核实）：Cisco L2 安全栈（DHCP snooping 建绑定表 → DAI → IP Source Guard，后两者依赖绑定表；上联口 trust、非信任口 rate limit、绑定表持久化）；SNMPv3 三件套（view + group v3 + **user v3**，缺 user 则整组不可用）；NTP 认证三件套（authentication-key + trusted-key + authenticate）；日志三件套（logging host + logging trap + service timestamps）；AAA 配套（tacacs server + group + 方法列表以 local 结尾 + **本地账号必须存在**，否则可能锁死）；802.1X 三件套；BPDU Guard 与 PortFast 配套且**不应出现在上行/干道口**；CX 侧 dhcpv4-snooping 必须配**上联口 trust**、`ipv4 source-lockdown` 依赖绑定库。
+- [2026-09-18] **AOS-CX 的 BPDU Guard 命令官方拼写是 `spanning-tree bpdu-guard`**（接口上下文，可带 `timeout`）；"bpdus-guard" 是第三方误传 —— 用现网 18 台配置核实：bpdu-guard 9/18、bpdus-guard 0/18。
+- [2026-09-18] **现网实测的配套缺口**（NDM 库 36 台最新配置）：Cisco `snmp-server group v3` 18/18 但 `user v3` **0/18**（有组无用户，SNMPv3 实际不可用）；CX `dhcpv4-snooping` 13/18 但 `dhcpv4-snooping trust` **仅 2/18**（配了一半）；Cisco `ip dhcp snooping` 1/18、DAI 0、IPSG 0。→ 审计首期就该报出这类"配了一半"。
+- [2026-09-18] **netstd 引擎的数据契约**：命中证据 `evidence: [{line, text}]` 已带行号；`analyze(name, text, std) -> dict` 是字符串进/dict 出，NDM 可直接调；但 `dev.site` 只由设备名套命名正则派生 → 移植必须加显式 site/location 入参（否则站点豁免全失效）。规则无法表达组合，需加 1-2 个通用判定器（params 是自由 dict，无需新顶层字段）。
+- [2026-09-18] **NDM 侧可复用**：Viewer 的 Compare 模式已有逐行渲染 + LCS 行级 diff + 左右同步滚动（审计左右对照的现成骨架）；`backend/api/logs.py` 的 GET/PUT `/api/settings/llm` 是"读写 YAML 配置"的模板（Pydantic 校验 + 保留未改字段 + 写回）；`analyzers/role_verifier.py` 的 `audit_location()` 是"审计发现"响应结构的先例；库内配置文本无 CR、无末尾空行，行号口径一致。

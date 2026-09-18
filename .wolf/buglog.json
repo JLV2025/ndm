@@ -2484,6 +2484,58 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-18T02:44:55.499Z"
+    },
+    {
+      "id": "bug-151",
+      "timestamp": "2026-09-18T03:16:58.964Z",
+      "error_message": "Significant refactor of ",
+      "file": "C:/Users/jingl/.claude/plans/spanning-tree-glowing-gray.md",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 15→32 lines (9 removed) | Also: ## 三、待定项（需用户定案，Phase 3 用 AskUserQuestion）; 1. **标准的形态与编辑方式**：YAML 文件为唯一权威 + 页面可视化编辑（表单 or 原始 ",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-18T03:20:43.789Z"
+    },
+    {
+      "id": "bug-152",
+      "timestamp": "2026-09-18T03:22:50.097Z",
+      "error_message": "Incorrect value in code",
+      "file": "C:/Users/jingl/.claude/plans/spanning-tree-glowing-gray.md",
+      "root_cause": "Had `splitlines()`",
+      "fix": "Changed to `running_config_lines == splitlines() == split('",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T03:22:50.097Z"
+    },
+    {
+      "id": "bug-151",
+      "timestamp": "2026-09-18T11:35:00",
+      "error_message": "工作区出现 0 字节垃圾文件 `dict`（文件名里带反引号）—— 与 2026-09-17 记录的 heredoc 陷阱同源",
+      "file": "（由 bash heredoc 追加 .wolf/cerebrum.md 时产生，非代码文件）",
+      "root_cause": "用 bash heredoc 追加含**行内代码反引号**的 Markdown 文本（如 `analyze(name, text, std) -> dict`）时，shell 把成对反引号当成命令替换解析，碎片被重定向成了文件名。上一次同类事故的根因是 heredoc 里 f-string 的花括号（bug-094），这次是反引号 —— 同一类问题：**bash 不是用来写文本内容的**",
+      "fix": "删除垃圾文件（cerebrum 内容本身未被写坏，已核对）。预防：Markdown/JSON 等含反引号、花括号、管道符的内容一律用 Write/Edit 工具写入；`git add` 前照旧 `git status --short` 拦截",
+      "tags": [
+        "heredoc",
+        "反引号",
+        "垃圾文件",
+        "git-bash",
+        "tooling"
+      ],
+      "related_bugs": [
+        "bug-094"
+      ],
+      "occurrences": 2,
+      "last_seen": "2026-09-18T11:35:00"
     }
   ]
 }
