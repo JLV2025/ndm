@@ -6,6 +6,8 @@ const en: Record<string, string> = {
   'app.systemOnline': 'System Online',
   'app.checking': 'Checking...',
   'app.backendOffline': 'Backend unavailable',
+  'app.staleBuild': 'System updated — this page is running an old build',
+  'app.reload': 'Reload',
 
   // Navigation
   'nav.dashboard': 'Dashboard',

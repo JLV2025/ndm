@@ -15,6 +15,7 @@ import {
   ListItemIcon,
   ListItemText,
   Button,
+  Snackbar,
 } from '@mui/material'
 import {
   AccountCircle as AccountIcon,
@@ -57,6 +58,30 @@ function Layout() {
       .then(r => r.json())
       .then(d => setVersion(d.version || ''))
       .catch(() => setVersion(''))
+  }, [])
+
+  // 构建新鲜度检查：标签页长期开着时，后台重建（start.bat 每次启动都会重建）后
+  // 内存里跑的还是旧 JS —— 界面看着是旧版、接口却是新版，数据对不上号。
+  // 取当前 index.html 引用的 bundle 名与正在运行的对不上 → 提示刷新。
+  const [staleBuild, setStaleBuild] = useState(false)
+  useEffect(() => {
+    const running = (import.meta.url.split('?')[0].split('/').pop() || '')
+    if (!running.startsWith('index-')) return  // dev 模式（/src/main.tsx）不检查
+    const check = async () => {
+      try {
+        const res = await fetch('/index.html', { cache: 'no-store' })
+        if (!res.ok) return
+        const match = (await res.text()).match(/assets\/(index-[\w-]+\.js)/)
+        if (match && match[1] !== running) setStaleBuild(true)
+      } catch { /* 离线/网络异常：静默跳过 */ }
+    }
+    check()
+    window.addEventListener('focus', check)
+    const timer = window.setInterval(check, 5 * 60 * 1000)
+    return () => {
+      window.removeEventListener('focus', check)
+      window.clearInterval(timer)
+    }
   }, [])
 
   const navItems = [
@@ -292,6 +317,16 @@ function Layout() {
         <Outlet />
       </Box>
 
+      <Snackbar
+        open={staleBuild}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        message={t('app.staleBuild')}
+        action={
+          <Button color="primary" size="small" onClick={() => window.location.reload()}>
+            {t('app.reload')}
+          </Button>
+        }
+      />
     </Box>
   )
 }

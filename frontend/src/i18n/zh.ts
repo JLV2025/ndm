@@ -6,6 +6,8 @@ const zh: Record<string, string> = {
   'app.systemOnline': '系统运行正常',
   'app.checking': '检测中...',
   'app.backendOffline': '后端服务不可用',
+  'app.staleBuild': '系统已更新，当前页面还是旧版本',
+  'app.reload': '刷新',
 
   // 导航
   'nav.dashboard': '仪表盘',

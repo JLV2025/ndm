@@ -107,21 +107,33 @@ if os.path.exists(FRONTEND_DIST):
     if os.path.exists(assets_dir):
         app.mount("/assets", StaticFiles(directory=assets_dir), name="frontend-assets")
 
+    def _index_response() -> FileResponse:
+        """index.html 一律不缓存
+
+        前端每次构建都会改名 bundle（内容哈希），index.html 是唯一引路文件：
+        它若被浏览器缓存住，页面就会一直引用旧 bundle（看起来是旧版界面）。
+        JS/CSS 本身带内容哈希，可以放心走浏览器缓存。
+        """
+        return FileResponse(
+            os.path.join(FRONTEND_DIST, "index.html"),
+            headers={"Cache-Control": "no-cache, no-store, must-revalidate"},
+        )
+
     # SPA 回退：拦截非 API 路径的 404，返回 index.html
+    # /assets/ 除外 —— 请求已删除的旧 bundle 必须 404（返回 HTML 会让模块解析失败）
     @app.exception_handler(StarletteHTTPException)
     async def spa_fallback(request: Request, exc: StarletteHTTPException):
         if exc.status_code == 404:
             path = request.url.path
-            if not path.startswith("/api/") and not path.startswith("/data/"):
-                index_path = os.path.join(FRONTEND_DIST, "index.html")
-                if os.path.exists(index_path):
-                    return FileResponse(index_path)
+            if not path.startswith(("/api/", "/data/", "/assets/")):
+                if os.path.exists(os.path.join(FRONTEND_DIST, "index.html")):
+                    return _index_response()
         return JSONResponse({"detail": str(exc.detail)}, status_code=exc.status_code)
 
     # 根路径直接返回 index.html
     @app.get("/")
     async def root():
-        return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
+        return _index_response()
 
 if __name__ == "__main__":
     import uvicorn
