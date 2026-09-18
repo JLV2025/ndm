@@ -409,9 +409,8 @@ const zh: Record<string, string> = {
   // 报告
   'reports.title': '自定义报告',
   'reports.description': '选择报告类型查看数据汇总',
-  'reports.softwareVersions': '软件版本报告',
+  'reports.deviceStatus': '设备运行状态报告',
   'reports.reportType': '报告类型',
-  'reports.deviceUptime': '设备在线时间',
   'reports.bandwidthSummary': '带宽利用率汇总',
   'reports.filterByType': '按型号筛选',
   'reports.allTypes': '全部类型',

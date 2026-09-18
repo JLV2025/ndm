@@ -1,6 +1,7 @@
 """自定义报告端点测试 —— 临时库直接调端点函数（HTTP 层之下）
 
-覆盖三张表的共同改造：位置过滤、按物理成员展开、成员级版本一致性、带宽只列有流量的端口。
+覆盖两张表的共同改造：位置过滤、按物理成员展开、成员级版本一致性、带宽只列有流量的端口。
+（「设备在线时间」报告已删除 —— 内容与设备运行状态报告重复，2026-09-18 用户定案）
 """
 import asyncio
 
@@ -150,25 +151,6 @@ def test_软件版本_按位置过滤(conn):
 
     assert sorted(d["name"] for d in data["devices"]) == ["PVGD1SWI01-1", "PVGD1SWI01-2", "PVGD1SWI02"]
     assert [m["device"] for m in data["mismatches"]] == ["PVGD1SWI01"]
-
-
-# ============================================================
-# 设备在线时间
-# ============================================================
-
-def test_在线时间_带位置并按位置过滤(conn):
-    _add_collection(conn, 1, uptime=100 * 86400)
-    _add_collection(conn, 2, uptime=3 * 86400)
-
-    data = asyncio.run(reports_api.report_device_uptime())
-    by_name = {d["name"]: d for d in data["devices"]}
-    assert by_name["PVGD1SWI02"]["uptime_days"] == 100.0
-    assert by_name["PVGD1SWI02"]["location"] == "PVG"
-    # 没有采集记录的设备也要在列表里（运行时间为空）
-    assert by_name["SZXD1SWI01"]["uptime_days"] is None
-
-    kor = asyncio.run(reports_api.report_device_uptime(location="KOR"))
-    assert [d["name"] for d in kor["devices"]] == ["KORD1SWI01"]
 
 
 # ============================================================

@@ -154,8 +154,6 @@ export const alertsApi = {
 export const reportsApi = {
   softwareVersions: (params?: { device_type?: string; location?: string }) =>
     apiJson.get('/reports/software-versions', { params }),
-  deviceUptime: (params?: { location?: string }) =>
-    apiJson.get('/reports/device-uptime', { params }),
   portTrend: (deviceName: string, portName: string, weeks = 8) =>
     apiJson.get('/reports/port-trend', { params: { device_name: deviceName, port_name: portName, weeks } }),
   bandwidthSummary: (params?: { location?: string }) =>

@@ -9,22 +9,21 @@ import { deviceApi, reportsApi } from '../services/api'
 import { useI18n } from '../i18n'
 import LocationFilter from '../components/devices/LocationFilter'
 
-type ReportType = 'software-versions' | 'device-uptime' | 'bandwidth-summary'
+type ReportType = 'device-status' | 'bandwidth-summary'
 type SortDir = 'asc' | 'desc'
 interface SortState { field: string; dir: SortDir }
 type Row = Record<string, any>
 
-/** 三张表的默认排序：型号字母序 / 运行时间升序（刚重启的排最前）/ 吞吐降序 */
+/** 两张表的默认排序：型号字母序 / 吞吐降序 */
 const DEFAULT_SORT: Record<ReportType, SortState> = {
-  'software-versions': { field: 'model', dir: 'asc' },
-  'device-uptime': { field: 'uptime', dir: 'asc' },
+  'device-status': { field: 'model', dir: 'asc' },
   'bandwidth-summary': { field: 'total_mbps', dir: 'desc' },
 }
 
 /** 数值列首次点击用降序（先看最大的），文本列用升序 */
 const DESC_FIRST = new Set(['uptime', 'total_mbps', 'rx_mbps', 'tx_mbps', 'rx_pct', 'tx_pct'])
 
-// 三张表的取值口径（排序与导出共用同一套，避免两处对不上）
+// 两张表的取值口径（排序与导出共用同一套，避免两处对不上）
 const VERSION_GETTERS: Record<string, (r: Row) => any> = {
   name: r => r.name,
   location: r => r.location,
@@ -34,14 +33,6 @@ const VERSION_GETTERS: Record<string, (r: Row) => any> = {
   rom: r => r.rom_version,
   uptime: r => r.uptime_days,
   last_synced: r => r.last_synced,
-}
-const UPTIME_GETTERS: Record<string, (r: Row) => any> = {
-  name: r => r.name,
-  type: r => r.type,
-  location: r => r.location,
-  uptime: r => r.uptime_days,
-  version: r => r.software_version,
-  last_synced: r => r.collected_at,
 }
 const BANDWIDTH_GETTERS: Record<string, (r: Row) => any> = {
   device: r => r.device_name,
@@ -116,10 +107,10 @@ const fmtTime = (v?: string | null) => (v ? new Date(v).toLocaleString('zh-CN') 
 
 export default function ReportsPage() {
   const { t } = useI18n()
-  const [reportType, setReportType] = useState<ReportType>('software-versions')
+  const [reportType, setReportType] = useState<ReportType>('device-status')
   const [location, setLocation] = useState<string | null>(null)
   const [locations, setLocations] = useState<string[]>([])
-  const [sort, setSort] = useState<SortState>(DEFAULT_SORT['software-versions'])
+  const [sort, setSort] = useState<SortState>(DEFAULT_SORT['device-status'])
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<any>(null)
 
@@ -143,8 +134,7 @@ export default function ReportsPage() {
       try {
         const params = location ? { location } : undefined
         let res: any
-        if (reportType === 'software-versions') res = await reportsApi.softwareVersions(params)
-        else if (reportType === 'device-uptime') res = await reportsApi.deviceUptime(params)
+        if (reportType === 'device-status') res = await reportsApi.softwareVersions(params)
         else res = await reportsApi.bandwidthSummary(params)
         if (!cancelled) setData(res?.data ?? null)
       } catch (e) {
@@ -169,19 +159,13 @@ export default function ReportsPage() {
     const loc = location || 'ALL'
     const stamp = new Date().toISOString().slice(0, 10)
 
-    if (reportType === 'software-versions') {
+    if (reportType === 'device-status') {
       const rows = sortRows(data?.devices || [], sort, VERSION_GETTERS)
-      downloadCsv(`${t('reports.softwareVersions')}_${loc}_${stamp}.csv`,
+      downloadCsv(`${t('reports.deviceStatus')}_${loc}_${stamp}.csv`,
         [t('reports.member'), t('reports.location'), t('reports.model'), t('reports.serialNumber'),
          t('reports.version'), t('reports.romVersion'), t('reports.uptimeDaysCol'), t('reports.lastSynced')],
         rows.map(r => [r.name, r.location, r.model, r.serial,
                        r.version, r.rom_version, r.uptime_days ?? '', fmtTime(r.last_synced)]))
-    } else if (reportType === 'device-uptime') {
-      const rows = sortRows(data?.devices || [], sort, UPTIME_GETTERS)
-      downloadCsv(`${t('reports.deviceUptime')}_${loc}_${stamp}.csv`,
-        [t('reports.device'), t('reports.type'), t('reports.location'), t('reports.uptimeDaysCol'),
-         t('reports.version'), t('reports.lastSynced')],
-        rows.map(r => [r.name, r.type, r.location, r.uptime_days ?? '', r.software_version, fmtTime(r.collected_at)]))
     } else {
       const rows = sortRows(data?.ports || [], sort, BANDWIDTH_GETTERS)
       downloadCsv(`${t('reports.bandwidthSummary')}_${loc}_${stamp}.csv`,
@@ -274,50 +258,6 @@ export default function ReportsPage() {
     )
   }
 
-  const renderUptime = () => {
-    const rows: Row[] = data?.devices || []
-    const sorted = sortRows(rows, sort, UPTIME_GETTERS)
-
-    return (
-      <TableContainer component={Paper}>
-        <Table size="small" stickyHeader>
-          <TableHead>
-            <TableRow>
-              <SortHead field="name" label={t('reports.device')} sort={sort} onSort={handleSort} />
-              <SortHead field="type" label={t('reports.type')} sort={sort} onSort={handleSort} />
-              <SortHead field="location" label={t('reports.location')} sort={sort} onSort={handleSort} />
-              <SortHead field="uptime" label={t('reports.uptime')} sort={sort} onSort={handleSort} />
-              <SortHead field="version" label={t('reports.version')} sort={sort} onSort={handleSort} />
-              <SortHead field="last_synced" label={t('reports.lastSynced')} sort={sort} onSort={handleSort} />
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {sorted.map(r => (
-              <TableRow key={r.name} hover>
-                <TableCell>{r.name}</TableCell>
-                <TableCell>{r.type}</TableCell>
-                <TableCell>{r.location || '—'}</TableCell>
-                <TableCell>
-                  {r.uptime_days != null ? (
-                    <Chip
-                      label={t('reports.uptimeDays').replace('{days}', String(r.uptime_days))}
-                      color={r.uptime_days < 1 ? 'error' : r.uptime_days < 7 ? 'warning' : 'success'}
-                      size="small"
-                    />
-                  ) : (
-                    <Typography variant="caption" color="text.disabled">—</Typography>
-                  )}
-                </TableCell>
-                <TableCell>{r.software_version || '—'}</TableCell>
-                <TableCell>{fmtTime(r.collected_at)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    )
-  }
-
   const renderBandwidth = () => {
     const rows: Row[] = data?.ports || []
     const sorted = sortRows(rows, sort, BANDWIDTH_GETTERS)
@@ -395,8 +335,7 @@ export default function ReportsPage() {
               label={t('reports.reportType')}
               onChange={e => setReportType(e.target.value as ReportType)}
             >
-              <MenuItem value="software-versions">{t('reports.softwareVersions')}</MenuItem>
-              <MenuItem value="device-uptime">{t('reports.deviceUptime')}</MenuItem>
+              <MenuItem value="device-status">{t('reports.deviceStatus')}</MenuItem>
               <MenuItem value="bandwidth-summary">{t('reports.bandwidthSummary')}</MenuItem>
             </Select>
           </FormControl>
@@ -421,8 +360,7 @@ export default function ReportsPage() {
         </Typography>
       ) : (
         <>
-          {reportType === 'software-versions' && renderVersions()}
-          {reportType === 'device-uptime' && renderUptime()}
+          {reportType === 'device-status' && renderVersions()}
           {reportType === 'bandwidth-summary' && renderBandwidth()}
         </>
       )}

@@ -389,9 +389,8 @@ const en: Record<string, string> = {
   // Reports
   'reports.title': 'Custom Reports',
   'reports.description': 'Select a report type to view data summaries',
-  'reports.softwareVersions': 'Software Versions',
+  'reports.deviceStatus': 'Device Status',
   'reports.reportType': 'Report Type',
-  'reports.deviceUptime': 'Device Uptime',
   'reports.bandwidthSummary': 'Bandwidth Utilization',
   'reports.filterByType': 'Filter by Type',
   'reports.allTypes': 'All Types',

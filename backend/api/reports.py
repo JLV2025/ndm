@@ -132,48 +132,6 @@ async def report_software_versions(
     return {"devices": devices, "mismatches": mismatches}
 
 
-@router.get("/api/reports/device-uptime")
-async def report_device_uptime(location: Optional[str] = None):
-    """所有设备的最新在线时间报告（含暂无数据的设备）
-
-    查询参数：location（位置，不传则查全部）。
-    """
-    db = _get_db()
-
-    params = []
-    location_filter = ""
-    if location:
-        location_filter = "WHERE d.location = ?"
-        params.append(location)
-
-    rows = db.execute(
-        f"""SELECT d.name, d.type, d.location, c.system_uptime_seconds,
-                   c.collected_at, c.software_version
-           FROM devices d
-           LEFT JOIN collections c ON c.device_id = d.id
-               AND c.id = (SELECT MAX(c2.id) FROM collections c2
-                           WHERE c2.device_id = d.id AND c2.phase = '1')
-           {location_filter}
-           ORDER BY d.name""",
-        params,
-    ).fetchall()
-
-    devices = []
-    for r in rows:
-        secs = r["system_uptime_seconds"]
-        devices.append({
-            "name": r["name"],
-            "type": r["type"],
-            "location": r["location"] or "",
-            "system_uptime_seconds": secs,
-            "uptime_days": round(secs / 86400, 1) if secs else None,
-            "collected_at": r["collected_at"],
-            "software_version": r["software_version"] or "",
-        })
-
-    return {"devices": devices}
-
-
 @router.get("/api/reports/port-trend")
 async def report_port_trend(
     device_name: str = Query(..., description="设备名称"),
