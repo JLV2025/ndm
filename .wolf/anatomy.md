@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-18T01:25:00.288Z
-> Files: 81 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-18T02:07:26.052Z
+> Files: 82 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -87,6 +87,7 @@
 ## C:/Users/jingl/AppData/Local/Temp/
 
 - `ndm_diag_report.py` — 诊断：用真实函数跑「软件版本报告」的展开逻辑，看每一行缺什么 (~297 tok)
+- `ndm_svl_check.py` — C9500 SVL 端到端演练：真机样本 → member_uptimes → 报告成员行（库副本，不碰生产库） (~403 tok)
 
 ## agents/
 
@@ -108,7 +109,7 @@
 ## backend/api/
 
 - `alerts.py` — 告警 API 路由 (~2091 tok)
-- `collector.py` — 配置收集 API 路由 (~1711 tok)
+- `collector.py` — 配置收集 API 路由 (~1741 tok)
 - `data.py` — 数据文件 API 路由 (~3944 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
 - `reports.py` — 自定义报告 API 路由 (~2861 tok)
@@ -117,7 +118,7 @@
 
 ## backend/collectors/
 
-- `base.py` — DeviceConnection: connect, send_command, collect_config, collect_logs + 15 more (~3251 tok)
+- `base.py` — DeviceConnection: connect, send_command, collect_config, collect_logs + 14 more (~3477 tok)
 
 ## backend/models/
 
@@ -128,7 +129,7 @@
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~19985 tok)
+- `collector_service.py` — 配置收集服务 (~20558 tok)
 
 ## backend/storage/
 
@@ -146,7 +147,7 @@
 - `test_collector_service.py` — extract_model/extract_serial_number 测试（重点 VSF 堆叠成员型号，4 用例） (~500 tok)
 - `test_counter_parser.py` — 端口累计计数器解析器测试 (~4010 tok)
 - `test_database_migration.py` — 数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表） (~1673 tok)
-- `test_member_parser.py` — 堆叠成员级解析测试 —— 编号 / 序列号 / 版本 / ROM / 运行时间 (~2776 tok)
+- `test_member_parser.py` — 堆叠成员级解析测试 —— 编号 / 序列号 / 版本 / ROM / 运行时间 (~3084 tok)
 - `test_neighbor_parser.py` — CDP/LLDP 邻居解析器测试 — 重点：Aruba AP 名识别 (~1543 tok)
 - `test_performance_aruba.py` — Aruba show interface brief 解析测试 (~389 tok)
 - `test_performance_counters.py` — 端口累计计数器与端口详情合并测试（PerformanceAnalyzer 接线） (~2443 tok)
