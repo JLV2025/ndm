@@ -174,8 +174,9 @@ def conn(tmp_path):
                                      ("DEZD1SWI01", "DEZ")], start=1):
         c.execute("INSERT INTO devices (id, name, ip, type, location) VALUES (?,?,?,?,?)",
                   (i, name, f"10.0.0.{i}", "aruba_aoscx", loc))
-        c.execute("INSERT INTO collections (id, device_id, week, collected_at, running_config) "
-                  "VALUES (?,?,?,?,?)", (10 + i, i, "2026-38", "2026-09-20T08:00:00", cfg))
+        c.execute("INSERT INTO collections (id, device_id, week, collected_at, running_config, "
+                  "serial_number) VALUES (?,?,?,?,?,?)",
+                  (10 + i, i, "2026-38", "2026-09-20T08:00:00", cfg, f"SERIAL{i:04d}"))
     c.commit()
     yield c
     db.close_connection()
@@ -193,6 +194,24 @@ def test_全量审计把待查折叠成一条(conn):
     assert rows[0][0] == "全网" and rows[0][1] is None      # 网络级条目没有单台设备
     assert "3 台" in rows[0][2]
     assert res["finding_count"] >= 1
+
+
+def test_单台审计端点也带生命周期(conn):
+    """接线检查：envelope 路径（查看器点「审计」）必须把 lifecycle 传给引擎 ——
+    只接全量审计的 runner 会让单台审计永远报"待查"（曾经真的漏了这处）。"""
+    import asyncio
+    from api import audit as audit_api
+    from storage import lifecycle_dal as dal
+
+    dal.upsert_warranty(conn, "BJQD1SWI01", "SERIAL0001", "2025-03-31",
+                        note="已过保", verified_by="张工")
+    conn.commit()
+    env = asyncio.run(audit_api.audit_device("BJQD1SWI01"))
+    ids = [f["rule_id"] for f in env["findings"]]
+    assert "ops_warranty_expired" in ids                     # 过期保修被发现
+    unknown = next(f for f in env["findings"] if f["rule_id"] == "ops_lifecycle_unknown")
+    assert "尚未登记：型号 EoL" in unknown["current"]          # 只缺型号 EoL（保修已登记）
+    assert "保修期" not in unknown["current"].split("。")[0]    # 不再把保修期算作缺项
 
 
 def test_真实规则库加载三条生命周期规则():

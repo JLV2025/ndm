@@ -57,7 +57,8 @@ def _envelope(item: source.AuditInput, std: dict) -> dict:
         return result
     analysis = engine.analyze(snap.name, snap.config, std, site=snap.location,
                               port_context=item.port_context,
-                              startup_config=snap.startup_config)
+                              startup_config=snap.startup_config,
+                              lifecycle=item.lifecycle)
     result.update({
         "findings": analysis["findings"],
         "counts": analysis["counts"],

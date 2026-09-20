@@ -293,6 +293,14 @@ def _lifecycle(dev) -> dict:
     return getattr(dev, "lifecycle", None) or {}
 
 
+def _warranty_rows(life: dict) -> list[dict]:
+    """保修行 = 当前采集到的序列号 + **登记了但当前采集不到的**（extra_rows）。
+
+    后者不能丢：成员换件、采集缺了序列号时，登记过的保修期仍应参与判定。
+    """
+    return list(life.get("serials") or []) + list(life.get("extra_rows") or [])
+
+
 def _fmt_date(value) -> str:
     return str(value or "")[:10]
 
@@ -325,7 +333,7 @@ def check_warranty_expired(dev: Device, rule: dict, std: dict) -> list[dict]:
         warn_days = 90
     today = datetime.date.today()
     parts = []
-    for s in _lifecycle(dev).get("serials") or []:
+    for s in _warranty_rows(_lifecycle(dev)):
         end = s.get("warranty_end")
         if not end:
             continue
@@ -357,7 +365,7 @@ def check_lifecycle_unknown(dev: Device, rule: dict, std: dict) -> list[dict]:
 
     life = _lifecycle(dev)
     eol_rows = life.get("model_eol") or []
-    serials = life.get("serials") or []
+    serials = _warranty_rows(life)
     has_eol = any(e.get("end_of_sale") or e.get("end_of_support") for e in eol_rows)
     has_warranty = any(s.get("warranty_end") for s in serials)
 
