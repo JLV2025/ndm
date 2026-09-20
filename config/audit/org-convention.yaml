@@ -1,0 +1,102 @@
+# NDM 配置审计 —— 组织惯例层（我们自己的使用习惯）
+#
+# 来源：Qorvo 网络团队既有做法与历史规划（命名规范、VLAN 规划、SVI 网段规律等）。
+# 与另两层的区别：这层不是厂商要求、也不是总部下发，而是「我们一直这么做」。
+# severity 一律 convention —— 报告里据此可与总部强制项（shall）区分开。
+#
+# 作用域数据（站点表 / 命名规范 / VLAN 规范）在 _scopes.yaml，本文件不放。
+
+rules:
+
+  # ==== 命名 ====
+  - id: naming_device_format
+    title: 设备名符合命名规范
+    check: device_name_format
+    platforms: [all]
+    level: 风险提示
+    source: 组织规范
+    severity: convention
+    fix: '按 站点码+机房/层级+类型+编号 重命名（改设备名会影响网管与日志归属，需评估）'
+    why: 设备名是排障与网管识别设备的唯一依据；格式不符容易导致连错设备。
+
+  - id: naming_hostname_match
+    title: 配置内 hostname 与设备名一致
+    check: hostname_match
+    platforms: [all]
+    level: 风险提示
+    source: 组织规范
+    severity: convention
+    fix: 'hostname <设备名>（会中断现有管理会话，需窗口）'
+    why: 不一致或重名会让日志与网管无法区分设备，排障时容易连错机器。
+
+  # ==== VLAN ====
+  - id: vlan_name_pure_purpose
+    title: VLAN 名称使用纯用途名
+    check: vlan_name_pure
+    platforms: [all]
+    level: 改进建议
+    source: 组织规范
+    severity: convention
+    fix: |
+      vlan <id>
+          name <纯用途名>
+    why: 用户已确定名称用纯用途名，不含网段、不含站点；名称里写网段是手工规划遗留。
+
+  - id: vlan_id_not_in_standard
+    title: 使用了标准以外的 VLAN ID
+    check: vlan_id_standard
+    platforms: [all]
+    level: 改进建议
+    source: 组织规范
+    severity: convention
+    fix: '把业务迁移到标准 VLAN，再删除非标 VLAN（涉及端口重划与地址变更，需单独排期）'
+    why: 非标 VLAN 会让 VLAN 规划失去唯一性，新同事无法凭编号判断用途。
+
+  - id: vlan_address_third_octet
+    title: SVI 地址第三段等于 VLAN ID
+    check: addr_third_octet
+    platforms: [all]
+    level: 改进建议
+    source: 组织规范
+    severity: convention
+    exempt_sites: [exempt_vlan_address]
+    fix: 'interface vlan <id> / ip address 10.xx.<id>.x/24'
+    why: 组织标准规定网段第三段等于 VLAN ID；不适用 OSAT 站点与 BJD。
+
+  - id: vlan1_in_use
+    title: VLAN 1 是否真正在使用
+    check: vlan1_in_use
+    platforms: [all]
+    level: 改进建议
+    source: 组织规范
+    severity: convention
+    fix: |
+      no interface vlan 1
+      interface <端口>
+          vlan access <标准VLAN>
+    why: 标准注明 VLAN 1 应尽量避免。判定不看「配置里是否出现 vlan 1」（默认就有），只看有无 SVI 或端口在用。
+
+  # ==== 登录与应急访问 ====
+  - id: cx_banner_motd
+    title: 已配 banner motd
+    check: present_regex
+    params: {pattern: '(?mi)^banner motd'}
+    platforms: [cx]
+    level: 改进建议
+    source: 组织规范
+    severity: convention
+    fix: 'banner motd ^ … ^'
+    why: 登录前通告是追责前提。
+
+  # 与其他规则相反：**缺此项才提示**（公司标准要求保留 allow-fail-through）
+  - id: cx_allow_fail_through_present
+    title: 已配 allow-fail-through（公司标准，要求保留）
+    check: present_regex
+    params: {pattern: '(?mi)aaa authentication allow-fail-through'}
+    platforms: [cx]
+    level: 改进建议
+    source: 组织规范
+    severity: convention
+    fix: 'aaa authentication allow-fail-through'
+    why: 用户说明「这是为了确保紧急时刻管理员可以本地登录进设备」，属公司标准。
+    note: 与其他规则相反——**缺此项才提示**。

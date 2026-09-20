@@ -1,0 +1,27 @@
+# NDM 配置审计 —— 公司总部要求层（CFG-Aruba / CFG-CISCO）
+#
+# 来源：总部下发的 Network Infrastructure Standards —— CFG-Aruba.docx / CFG-CISCO.docx。
+# 上游材料（同目录转换版，含中文导读与勘误）：
+#   OneDrive/01-DocWiKi/01_network_configuration/CFG-Aruba.md、CFG-CISCO.md
+# 检查项清单（本层的落地依据，带 ID / 强度 / 判定提示）：
+#   docs/standards/CFG-Aruba-checklist.md、CFG-Cisco-checklist.md
+#
+# severity 语义（本层专有）：
+#   shall  —— 原文用 shall 的强制项（CH4-1、CH5-1、CH6-x、CH7-1、CH8-1/8-2、CH9-1、CH10-1 …）
+#   should —— 原文用 should 的建议项（如 ≥2 台 AAA/NTP/Syslog 服务器、计费、授权）
+#
+# ⚠️ 本文件当前为空（rules: []）—— 引擎移植阶段要先用 netstd 原规则集做「移植等价性」
+#    验证（基线 207 条命中），此时加入新规则会让命中数变化、无法判定移植是否走样。
+#    总部规则在等价性验证通过后单独一步加入。
+#
+# 加入时的注意事项（来自转换与核实过程）：
+#   1. 平台错配：CFG-CISCO 以 Nexus 9000 / NX-OS v7 为主要参考，但现网 18 台 Cisco
+#      全是 IOS / IOS-XE / 路由器 —— IOS 形式才是实际生效的那一套，规则要覆盖两种写法。
+#   2. 两处勘误勿照抄：`ssh server idle-timeout`（CX 用 cli-session timeout）、
+#      `snmpv3 enable`（CX 用 snmp-server vrf / snmp-server snmpv3-only）。
+#   3. 三处配套缺失要补齐：MGMT_ACL 定义后需 apply（CX 绑 control-plane）、
+#      NX-OS 需 clock protocol ntp 且 AAA/NTP/Syslog 走 use-vrf management、
+#      IOS 侧需 ip tacacs/radius source-interface 与 logging source-interface。
+#   4. 判定提示要认现网实际写法（如 Cisco 用命名 radius server 对象 + aaa group server）。
+
+rules: []

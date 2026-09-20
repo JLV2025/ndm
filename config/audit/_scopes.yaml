@@ -1,0 +1,77 @@
+# NDM 配置审计 —— 共用段（唯一一份，所有规则文件共享）
+#
+# 为什么单独一份：站点表、命名规范、VLAN 规范会被多个规则文件引用，
+# 分散在各文件里写会导致漂移（改了 A 忘了 B）。这里只放「作用域与背景数据」，
+# 不放规则本身。规则按来源分三个文件：
+#   company-standard.yaml —— 公司总部要求（CFG-Aruba / CFG-CISCO）
+#   vendor-baseline.yaml  —— 厂商加固建议（Cisco / Aruba 官方加固与 CIS/STIG）
+#   org-convention.yaml   —— 我们自己的使用习惯（命名、VLAN、现网惯例）
+#
+# 本文件被修改时，全部规则的适用域都会随之变化，保存前请确认影响面。
+
+meta:
+  version: 1
+  name: NDM 配置审计标准
+  nature: suggestion
+  note: 每条规则的 level 只影响排序与措辞，不表示「必须整改」。
+
+# ---------------- 站点适用域 ----------------
+# OSAT（外包封测厂）与 BJD 的历史规划与自营站点不同，VLAN/地址类规则对其豁免。
+sites:
+  osat: [KWJ, PEK, UCD, DZN, KR3, KR5]          # 代工厂站点，豁免 VLAN/地址类规则
+  special: [BJD]                                 # Qorvo 自有但历史特殊，同样豁免
+  qorvo_standard: [BJQ, DEZ, ITM, KOR, PVG, SHA, SZX, ZGN]
+  exempt_vlan_address: [KWJ, PEK, UCD, DZN, KR3, KR5, BJD]   # 上面两类合并
+
+# ---------------- 命名规范 ----------------
+naming:
+  pattern: '^([A-Z]{2}[A-Z0-9])([DR][1-9])([A-Z]{3})(\d{2})$'
+  segments:
+    site: 三位站点码（第三位可为数字）
+    dc: 'D1=一号数据中心(接入层) / D2,D3 依次 / R1=核心交换机(三层路由)'
+    type: 'SWI=交换机 / RTW=路由器 / QIS=QI Lab Switch'
+    num: 两位设备编号
+  site_codes: [BJD, BJQ, DEZ, DZN, ITM, KOR, KR3, KR5, KWJ, PEK, PVG, SHA, SZX, UCD, ZGN]
+  type_codes: {SWI: 交换机, RTW: 路由器, QIS: 'QI Lab Switch'}
+  known_name_exceptions:
+    - test_device          # 临时目录，不是真实设备
+  core_dc_codes: [R1]      # 核心层：需 L3/路由类规则
+
+# ---------------- VLAN 与网段规范 ----------------
+vlans:
+  # 标准 VLAN（名称应为纯用途名，不含网段/站点）
+  standard:
+    1: Default LAN
+    2: Servers
+    5: Printers
+    6: vMotion
+    7: VoIP servers
+    8: VoIP clients
+    9: VMware mgmt
+    14: Imaging-PXE
+    16: PC/Data Clients
+    31: 无线控制器与 AP
+    32: Qorvo Wifi
+    33: Qorvo Guest Wifi
+    37: 无线用户端
+    52: Facilities/security
+    196: Lights out mgmt
+    212: Firewall subnet
+    213: MPLS subnet
+    217: Isolated server / NFS
+    252: Remote Access VPN
+    253: DMZ
+    255: LAN Switch
+    998: Int-Rate-Convert / null
+    999: P2P_Local_vlan
+    4091: 上联
+    4092: Internet / ISP 上联
+    4093: Internet / ISP / DIA 上联
+  # 网段规律：第三段 = VLAN ID，仅适用于 Qorvo 标准办公室（见 sites.exempt_vlan_address）
+  address_pattern: '10.xx.<VLAN ID>.0/24'
+  # ⚠️ 以下键自 netstd 沿用，当前**引擎未消费**（保留作规划参考；若启用需同时补判定器）
+  default_present: [1]
+  in_use_requires: {1: '存在 interface vlan 1 或端口 vlan access 1 / switchport access vlan 1'}
+  resource_type: [7, 14, 252]
+  wifi_new_standard: [31, 37]
+  wifi_legacy: [30, 32, 33, 34, 100]

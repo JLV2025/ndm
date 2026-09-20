@@ -1,0 +1,287 @@
+# NDM 配置审计 —— 厂商基线层（厂商加固建议）
+#
+# 来源：厂商官方加固指南 + CIS Benchmark + NSA/CISA 加固指南 + DISA STIG（见文末 adopted_from）。
+# severity 一律 vendor —— 与总部强制项（shall / should）、组织惯例（convention）区分开。
+#
+# ⚠️ 文末 not_adopted 是**书面决策记录**：这些项已讨论并决定**不纳入**，
+#    未经重新评估不得作为新规则上线（否则会推翻既有决策）。
+
+rules:
+
+  # ==== A 类：直接采纳 ====
+  - id: cx_telnet_disabled
+    title: 未启用 Telnet 服务
+    check: absent_regex
+    params: {pattern: '(?mi)^\s*telnet\s+server'}
+    platforms: [cx]
+    level: 风险提示
+    source: 厂商基线
+    severity: vendor
+    fix: 'no telnet server vrf <vrf>'
+    why: Telnet 全程明文，可被嗅探与会话劫持。
+
+  - id: cs_smart_install_disabled
+    title: 未启用 Smart Install（vstack）
+    check: absent_regex
+    params: {pattern: '(?mi)^vstack'}
+    platforms: [cisco]
+    level: 风险提示
+    source: 厂商基线
+    severity: vendor
+    fix: 'no vstack'
+    why: Smart Install 无认证即可读写配置，是被批量植入的主要路径之一。
+
+  - id: cx_snmpv3_user
+    title: 已配 SNMPv3 用户
+    check: present_regex
+    params: {pattern: '(?mi)^snmpv3 user'}
+    platforms: [cx]
+    level: 强烈建议
+    source: 厂商基线
+    severity: vendor
+    fix: 'snmpv3 user <name> auth sha auth-pass <…> priv aes priv-pass <…>'
+    why: SNMPv1/v2c 团体字明文传输；SNMPv3 支持认证与加密。
+
+  # ==== B 类：已确认采纳 ====
+  - id: cs_enable_password_absent
+    title: 未使用 enable password（type 7 可逆）
+    check: absent_regex
+    params: {pattern: '(?mi)^enable password'}
+    platforms: [cisco]
+    level: 强烈建议
+    source: 厂商基线
+    severity: vendor
+    fix: |
+      enable algorithm-type sha256 secret <强口令>
+      no enable password
+    why: type 7 可被公开工具还原成明文，等于特权口令裸奔。BJQD1RTW01 只有 password、无 secret，风险最高。
+
+  - id: cs_enable_secret_type8
+    title: enable secret 使用强散列（type 8/9）
+    check: enable_secret_type
+    # 原 netstd 实现把 `^enable secret 5 ` 硬编码在判定器里，现改为规则参数驱动
+    params: {pattern: '(?m)^enable secret 5 '}
+    platforms: [cisco]
+    level: 改进建议
+    source: 厂商基线
+    severity: vendor
+    fix: 'enable algorithm-type sha256 secret <强口令>'
+    why: type 5（MD5）的离线破解成本远低于 type 8（SHA-256）。
+    note: 不要求逐台不同口令（统一口令是有意为之）。
+
+  - id: cs_http_server_disabled
+    title: 未启用明文 Web 管理（ip http server）
+    check: absent_regex
+    params: {pattern: '(?mi)^ip http server'}
+    platforms: [cisco]
+    level: 强烈建议
+    source: 厂商基线
+    severity: vendor
+    fix: 'no ip http server'
+    why: 明文 HTTP 管理界面，凭据与配置内容裸传；关掉不影响 SSH/SNMP 管理。
+
+  - id: cs_vty_transport_ssh_only
+    title: vty 仅允许 SSH（禁 telnet）
+    check: vty_transport
+    platforms: [cisco]
+    level: 强烈建议
+    source: 厂商基线
+    severity: vendor
+    fix: |
+      line vty 0 4
+       transport input ssh
+       transport output none
+    why: telnet 明文传口令；`transport input all` 与 `transport output telnet` 都属明文通道。
+
+  - id: cs_bpduguard
+    title: 接入端口已配 BPDU Guard
+    check: present_regex
+    params: {pattern: '(?mi)spanning-tree bpduguard'}
+    platforms: [cisco]
+    level: 强烈建议
+    source: 厂商基线
+    severity: vendor
+    fix: |
+      interface range <接入端口>
+       spanning-tree bpduguard enable
+    why: 接入端口收到 BPDU（私接交换机/环路）时可自动 err-disable，防止 STP 拓扑被劫持。
+    note: 不要配到真正参与 STP 的上联口，否则会成片断网。
+
+  - id: cx_rest_read_only
+    title: REST API 为 read-only
+    check: present_regex
+    params: {pattern: '(?mi)rest access-mode read-only'}
+    platforms: [cx]
+    level: 强烈建议
+    source: 厂商基线
+    severity: vendor
+    fix: 'https-server rest access-mode read-only'
+    why: read-write 下拿到 https 凭据即可通过 API 改配置。
+
+  - id: cx_stp_guard
+    title: 已配 BPDU Guard / Root Guard
+    check: present_regex
+    params: {pattern: '(?mi)spanning-tree (bpdu-guard|root-guard)'}
+    platforms: [cx]
+    level: 强烈建议
+    source: 厂商基线
+    severity: vendor
+    fix: |
+      interface <接入端口>
+          spanning-tree bpdu-guard
+      interface <上联端口>
+          spanning-tree root-guard
+    why: 现网靠 admin-edge + loop-protect，但没有 BPDU 防护；私接交换机会影响 STP 拓扑。
+    note: 上联口不要配 bpdu-guard。
+
+  - id: cs_dhcp_snooping
+    title: 已配 DHCP snooping
+    check: present_regex
+    params: {pattern: '(?mi)ip dhcp snooping'}
+    platforms: [cisco]
+    level: 强烈建议
+    source: 厂商基线
+    severity: vendor
+    fix: |
+      ip dhcp snooping
+      ip dhcp snooping vlan <业务VLAN>
+      interface <上联口>
+       ip dhcp snooping trust
+    why: 阻止私接 DHCP 服务器；也是 DAI 的前置数据源。
+    note: 仅上联口设 trust，接入口不得设。
+
+  - id: cx_dhcp_snooping
+    title: 已配 DHCP snooping
+    check: present_regex
+    params: {pattern: '(?mi)^\s*dhcpv4-snooping|^\s*dhcp-snooping'}
+    platforms: [cx]
+    level: 强烈建议
+    source: 厂商基线
+    severity: vendor
+    fix: |
+      dhcpv4-snooping
+      vlan <业务VLAN>
+          dhcpv4-snooping
+      interface <上联口>
+          dhcpv4-snooping trust
+    why: 同上；注意 10.13 前后关键字由 dhcp-snooping 改为 dhcpv4-snooping。
+    note: 仅上联口设 trust。
+
+  - id: cs_no_ip_source_route
+    title: 已关闭 IP 源路由
+    check: present_regex
+    params: {pattern: '(?mi)^no ip source-route'}
+    platforms: [cisco]
+    level: 强烈建议
+    source: 厂商基线
+    severity: vendor
+    fix: 'no ip source-route'
+    why: 源路由可被用于绕过 ACL 与路径欺骗。
+
+  - id: cs_storm_control
+    title: 接入端口已配 storm-control
+    check: present_regex
+    params: {pattern: '(?mi)storm-control'}
+    platforms: [cisco]
+    level: 强烈建议
+    source: 厂商基线
+    severity: vendor
+    fix: |
+      interface range <接入端口>
+       storm-control broadcast level 20
+       storm-control multicast level 20
+    why: 抑制广播/组播洪泛导致的整网抖动。
+
+  - id: cs_port_security
+    title: 接入端口已配 port-security（仅 ZGN 站点要求）
+    check: present_regex
+    params: {pattern: '(?mi)switchport port-security'}
+    platforms: [cisco]
+    only_sites: [ZGN]
+    level: 改进建议
+    source: 厂商基线
+    severity: vendor
+    fix: |
+      interface range <接入端口>
+       switchport port-security
+       switchport port-security maximum 2
+       switchport port-security violation restrict
+    why: 限制端口可学习的 MAC 数，阻止未授权设备接入与 MAC 泛洪。
+    note: >-
+      用户说明：「只有 ZGN 的交换机需要设置 port-security，其他的不需要。」
+      本规则只对 ZGN 站点判定，其他站点不出这条。CX 平台的对应写法是 port-access port-security（见下一条）。
+
+  - id: cx_port_access_security_zgn
+    title: 接入端口已配 port-access port-security（仅 ZGN 站点要求）
+    check: present_regex
+    params: {pattern: '(?mi)port-access port-security'}
+    platforms: [cx]
+    only_sites: [ZGN]
+    level: 改进建议
+    source: 厂商基线
+    severity: vendor
+    fix: |
+      port-access port-security enable
+      interface <接入端口>
+          port-access port-security
+              enable
+              client-limit 2
+    why: 限制端口可接入的客户端数量与 MAC，阻止未授权设备接入。属 ZGN 站点的组织要求。
+    note: ZGN 的 4 台 CX 交换机目前已全部配置；本规则用于防止后续变更时漏配。
+
+  # ==== C 类：与现网集体做法冲突，已单独决策 ====
+  - id: cs_service_password_encryption_removed
+    title: 建议移除 service password-encryption
+    check: present_flag
+    params: {pattern: '(?mi)^service password-encryption'}
+    platforms: [cisco]
+    level: 改进建议
+    source: 厂商基线
+    severity: vendor
+    fix: 'no service password-encryption'
+    why: 该命令只把 type 0 转成可逆的 type 7，会给人「已加密」的错觉。
+    note: 移除前务必确认配置中已无 type 0 明文口令，否则反而更暴露。属方向性冲突项，用户已确认按「建议移除」收录。
+
+  # ==== 可用性风险（档位高于一般风险提示）====
+  - id: cx_vsf_split_detect
+    title: VSF 堆叠已启用脑裂检测（vsf split-detect mgmt）
+    check: vsf_split_detect
+    platforms: [cx]
+    level: 强烈建议
+    source: 厂商基线
+    severity: vendor
+    fix: |
+      vsf split-detect mgmt
+    why: >-
+      VSF 堆叠一旦成员间链路中断，两个片段都会认为自己是 Active，形成脑裂——两边同时持有相同的 IP 与
+      MAC，会造成地址冲突、二层环路与大面积中断，且从外部看设备还是"活着"的，很难定位。
+      启用 mgmt 口脑裂检测后，只有能通过 mgmt 口到达网关的那个片段保持 Active，
+      另一片段的前面板端口会被禁用，从根上避免脑裂。
+    note: >-
+      前置条件：mgmt 口需有可用的默认网关（检测机制就是通过 mgmt 口探测网关可达性），需逐台确认。
+      本规则只对真正的堆叠设备判定（存在 vsf member 2 或 vsf secondary-member 2），单机不适用。
+      现网 8 台堆叠设备中 6 台未启用。
+
+# ---------- 来源 ----------
+meta:
+  adopted_from:
+    - 厂商官方加固指南
+    - CIS Benchmark
+    - NSA/CISA 加固指南
+    - DISA STIG
+
+# ---------- 未采纳（记录在案，避免以后重复讨论）----------
+# ⚠️ 未经重新评估，不得把下列各项作为新规则上线（会推翻既有决策）。
+not_adopted:
+  - id: cs_snmp_community_acl / cs_snmp_community_no_rw
+    reason: 用户决定不收（6 台未绑 ACL、6 台用 RW）
+  - id: cs_remote_syslog
+    reason: 用户决定不收（8 台 Cisco 未配远程 syslog）
+  - id: cs_enable_secret_unique_per_device
+    reason: 用户决定不收——统一口令是有意为之，便于运维
+  - id: cx_https_server_mgmt_vrf_only / cx_ssh_server_mgmt_vrf_only
+    reason: 用户决定保持现状（18/18 都开在 default VRF）
+  - id: D 类全部
+    reason: 暂不纳入标准，挂起待单独评估 —— NTP 认证、password complexity、登录失败锁定、cli-session 超时、控制平面 ACL、DAI、vty access-class、login block-for、CX 远程 syslog
+  - id: 语音网关项 / 管理面 mgmt VRF 强制收敛
+    reason: 平台不适用或误报面大
