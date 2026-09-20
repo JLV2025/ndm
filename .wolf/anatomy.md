@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T05:40:13.354Z
-> Files: 161 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T05:42:14.968Z
+> Files: 163 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -49,6 +49,8 @@
 - `add_buglog2.py` — 追加 bug-199（周格式约定）到 .wolf/buglog.json。 (~258 tok)
 - `add_buglog3.py` — 追加 bug-200（单台审计漏传 lifecycle）到 .wolf/buglog.json。 (~320 tok)
 - `eq_check.py` — 移植等价性回归：同库同配置，逐设备逐规则对比 findings（stderr 输出给 A/B 两侧）。 (~317 tok)
+- `fix_bug151_again.py` — 把「第 5 次怪文件」记到**正确**的 bug-151 条目上，并还原被误改的另一条。 (~364 tok)
+- `upd_bug151.py` — 怪文件现象第 5 次：更新 bug-151 的计数与最近一次样本。 (~240 tok)
 
 ## ./
 
