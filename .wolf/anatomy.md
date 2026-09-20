@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T07:08:35.751Z
-> Files: 172 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T07:13:32.396Z
+> Files: 174 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -44,6 +44,8 @@
 
 ## ../../temp/
 
+- `add_audit_chapters.py` — 向《NDM用户使用文档》补写「配置审计」章节（英文 + 中文各一章）。 (~2790 tok)
+- `add_audit_chapters2.py` — 向《NDM用户使用文档》补写「配置审计」章节（英文 + 中文各一章）。 (~2669 tok)
 - `add_audit_settings.py` — 向本地 config/settings.yaml 追加 audit 段（若还没有）。不打印文件内容。 (~175 tok)
 - `add_buglog.py` — 向 .wolf/buglog.json 追加一条手工记录（避免手改 JSON 出错）。 (~328 tok)
 - `add_buglog2.py` — 追加 bug-199（周格式约定）到 .wolf/buglog.json。 (~258 tok)
@@ -58,7 +60,7 @@
 
 - `.gitignore` — Git ignore rules (~335 tok)
 - `CLAUDE.md` — OpenWolf (~1664 tok)
-- `NDM用户使用文档.html` — NDM User Guide / 用户使用文档 — Network Device Management (~11324 tok)
+- `NDM用户使用文档.html` — NDM User Guide / 用户使用文档 — Network Device Management (~13552 tok)
 - `README.md` — Project documentation (~2759 tok)
 - `start.bat` (~1023 tok)
 - `VERSION` (~2 tok)
