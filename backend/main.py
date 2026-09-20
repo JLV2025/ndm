@@ -30,6 +30,7 @@ from api import devices_router, collector_router, data_router, auth_router, stat
 from api.alerts import router as alerts_router
 from api.reports import router as reports_router
 from api.logs import router as logs_router
+from api.audit import router as audit_router
 
 VERSION_FILE = os.path.join(BASE_DIR, "VERSION")
 
@@ -84,6 +85,7 @@ app.include_router(topology_visio_router, prefix="/api", tags=["topology"])
 app.include_router(alerts_router, tags=["alerts"])
 app.include_router(reports_router, tags=["reports"])
 app.include_router(logs_router, prefix="/api", tags=["logs"])
+app.include_router(audit_router, tags=["audit"])
 
 # ============ 健康检查 ============
 
