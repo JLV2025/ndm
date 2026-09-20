@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 # 当前 Schema 版本（每次 schema 变更递增）
-SCHEMA_VERSION = 14
+SCHEMA_VERSION = 15
 
 # 线程本地存储 —— 每个线程持有自己的连接
 _local = threading.local()
@@ -666,6 +666,30 @@ def _migrate_v14(conn: sqlite3.Connection) -> None:
         pass  # 列已存在
 
 
+def _migrate_v15(conn: sqlite3.Connection) -> None:
+    """Schema v15: 例外登记的落库列。
+
+    - audit_findings.exempt_by：命中豁免时记例外 id（加索引，便于按例外反查影响面）
+    - audit_findings.exempt_json：**当时的快照**（批准人/依据/到期日/状态）——
+      历史审计要能回答"那次审计时它被谁批的豁免"，不能只存 id 再去 YAML 里现查
+      （例外条目后来可能被改过或撤销）
+    - audit_runs.exceptions_hash：那次审计用的例外集指纹 —— 趋势分析要能区分
+      "标准变了"与"豁免变了"（ruleset_hash 不含例外，两者各自有指纹）
+    - audit_runs.exempt_count：豁免条数（省得趋势页每次去 findings 里数）
+    """
+    for ddl in (
+        "ALTER TABLE audit_findings ADD COLUMN exempt_by TEXT",
+        "ALTER TABLE audit_findings ADD COLUMN exempt_json TEXT",
+        "ALTER TABLE audit_runs ADD COLUMN exceptions_hash TEXT",
+        "ALTER TABLE audit_runs ADD COLUMN exempt_count INTEGER DEFAULT 0",
+        "CREATE INDEX IF NOT EXISTS idx_audit_findings_exempt ON audit_findings(exempt_by)",
+    ):
+        try:
+            conn.execute(ddl)
+        except sqlite3.OperationalError:
+            pass  # 列/索引已存在（迁移幂等）
+
+
 # 迁移注册表
 _MIGRATIONS = {
     1: _migrate_v1,
@@ -682,4 +706,5 @@ _MIGRATIONS = {
     12: _migrate_v12,
     13: _migrate_v13,
     14: _migrate_v14,
+    15: _migrate_v15,
 }

@@ -32,6 +32,8 @@ def test_全新库包含计数器列且版本为最新(tmp_path, restore_db_path
     assert {"vlan", "port_name", "role", "state", "is_root", "mode"} <= table_columns(conn, "stp_snapshots")
     assert {"started_at", "trigger", "ruleset_hash", "device_count", "finding_count"} <= table_columns(conn, "audit_runs")
     assert {"run_id", "rule_id", "level", "evidence_json", "config_hash"} <= table_columns(conn, "audit_findings")
+    assert {"exceptions_hash", "exempt_count"} <= table_columns(conn, "audit_runs")        # v15：例外
+    assert {"exempt_by", "exempt_json"} <= table_columns(conn, "audit_findings")           # v15：豁免快照
 
 
 def test_迁移幂等_重复init不报错也不改变结构(tmp_path, restore_db_path):
@@ -230,6 +232,54 @@ def test_v13从零建库后审计表可用():
         "WHERE run_id = ?", (run_id,)).fetchone()
     assert row[0] == "BJQD1SWI01" and row[1] == "hq_cs_snmpv3_user"
     assert row[2] == "shall" and '"line": 3' in row[3]
+
+
+# ---- v15：例外登记的落库列 ----
+
+V14_AUDIT_TABLES = """
+    CREATE TABLE audit_runs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, started_at TEXT NOT NULL, finished_at TEXT,
+        trigger TEXT NOT NULL DEFAULT 'manual', ruleset_hash TEXT, ruleset_version INTEGER,
+        device_count INTEGER DEFAULT 0, finding_count INTEGER DEFAULT 0, status TEXT DEFAULT 'running'
+    );
+    CREATE TABLE audit_findings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, run_id INTEGER NOT NULL, device_id INTEGER,
+        device_name TEXT, collection_id INTEGER, week TEXT, rule_id TEXT NOT NULL, level TEXT,
+        source TEXT, severity TEXT, title TEXT, detail TEXT, current_text TEXT, fix_text TEXT,
+        why_text TEXT, note_text TEXT, evidence_json TEXT, lines_json TEXT, missing_json TEXT,
+        controls_json TEXT, config_hash TEXT, ruleset_hash TEXT, created_at TEXT
+    );
+"""
+
+
+def test_v15可重复执行():
+    """ALTER TABLE 重复加同名列会抛 OperationalError，由 except 吞掉（迁移幂等）"""
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(V14_AUDIT_TABLES)
+
+    db._migrate_v15(conn)
+    db._migrate_v15(conn)  # 不得抛异常
+
+    assert {"exempt_by", "exempt_json"} <= table_columns(conn, "audit_findings")
+    assert {"exceptions_hash", "exempt_count"} <= table_columns(conn, "audit_runs")
+    fin_idx = {row[1] for row in conn.execute("PRAGMA index_list(audit_findings)")}
+    assert "idx_audit_findings_exempt" in fin_idx
+
+
+def test_v14老库升级到v15补列且旧审计数据保留():
+    """升级路径：老库里的审计结果照常保留，新列为 NULL / 默认值，**不回填**。"""
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(V14_AUDIT_TABLES)
+    conn.execute("INSERT INTO audit_runs (started_at, finding_count) VALUES ('2026-09-19', 3)")
+    conn.execute("INSERT INTO audit_findings (run_id, rule_id, level, title) "
+                 "VALUES (1, 'r1', '风险提示', '旧记录')")
+
+    db._migrate_v15(conn)
+
+    assert conn.execute("SELECT finding_count, exceptions_hash, exempt_count "
+                        "FROM audit_runs").fetchone() == (3, None, 0)
+    assert conn.execute("SELECT rule_id, title, exempt_by, exempt_json "
+                        "FROM audit_findings").fetchone() == ("r1", "旧记录", None, None)
 
 
 def test_v12老库升级到v13只加审计表不动既有数据():

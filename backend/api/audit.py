@@ -50,6 +50,7 @@ def _envelope(item: source.AuditInput, std: dict) -> dict:
         "findings": [],
         "counts": {},
         "port_roles": {},
+        "exempt_count": 0,
     }
     if not snap.usable:
         return result
@@ -60,6 +61,7 @@ def _envelope(item: source.AuditInput, std: dict) -> dict:
         "findings": analysis["findings"],
         "counts": analysis["counts"],
         "port_roles": analysis["port_roles"],
+        "exempt_count": analysis["exempt_count"],
         "device_info": analysis["device"],
     })
     return result
@@ -180,15 +182,16 @@ async def run_audit(trigger: str = "manual"):
     db = _get_db()
     started = _now()
     cur = db.execute(
-        "INSERT INTO audit_runs (started_at, trigger, ruleset_hash, ruleset_version, status) "
-        "VALUES (?, ?, ?, ?, 'running')",
-        (started, trigger, loader.ruleset_hash(std), std.get("meta", {}).get("version")))
+        "INSERT INTO audit_runs (started_at, trigger, ruleset_hash, ruleset_version, "
+        "exceptions_hash, status) VALUES (?, ?, ?, ?, ?, 'running')",
+        (started, trigger, loader.ruleset_hash(std), std.get("meta", {}).get("version"),
+         loader.exceptions_hash(std)))
     run_id = cur.lastrowid
 
     t0 = time.time()
     items = source.list_audit_inputs(db)
     usable = [it for it in items if it.snapshot.usable]
-    skipped, findings_total = [], 0
+    skipped, findings_total, exempt_total = [], 0, 0
     for item in items:
         snap = item.snapshot
         if not snap.usable:
@@ -198,12 +201,15 @@ async def run_audit(trigger: str = "manual"):
                                   port_context=item.port_context,
                                   startup_config=snap.startup_config)
         for f in analysis["findings"]:
+            exempt = f.get("exempt") or None
+            if exempt and exempt.get("status") in ("active", "expiring"):
+                exempt_total += 1
             db.execute(
                 "INSERT INTO audit_findings (run_id, device_id, device_name, collection_id, week, "
                 "rule_id, level, source, severity, title, detail, current_text, fix_text, why_text, "
                 "note_text, evidence_json, lines_json, missing_json, controls_json, config_hash, "
-                "ruleset_hash, created_at) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "ruleset_hash, exempt_by, exempt_json, created_at) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (run_id, snap.device_id, snap.name, snap.collection_id, snap.week,
                  f["rule_id"], f["level"], f["source"], f.get("severity", ""), f["title"],
                  f.get("detail", ""), f.get("current", ""), f.get("fix", ""), f.get("why", ""),
@@ -212,19 +218,24 @@ async def run_audit(trigger: str = "manual"):
                  json.dumps(f.get("lines", []), ensure_ascii=False),
                  json.dumps(f.get("missing", []), ensure_ascii=False),
                  json.dumps(f.get("controls", []), ensure_ascii=False),
-                 snap.config_hash, loader.ruleset_hash(std), _now()))
+                 snap.config_hash, loader.ruleset_hash(std),
+                 (exempt or {}).get("exception_id") or None,
+                 json.dumps(exempt, ensure_ascii=False) if exempt else None,
+                 _now()))
             findings_total += 1
 
     db.execute("UPDATE audit_runs SET finished_at = ?, device_count = ?, finding_count = ?, "
-               "status = 'done' WHERE id = ?",
-               (_now(), len(usable), findings_total, run_id))
+               "exempt_count = ?, status = 'done' WHERE id = ?",
+               (_now(), len(usable), findings_total, exempt_total, run_id))
     db.commit()
     return {
         "run_id": run_id,
         "device_count": len(usable),
         "finding_count": findings_total,
+        "exempt_count": exempt_total,
         "duration_ms": int((time.time() - t0) * 1000),
         "ruleset_hash": loader.ruleset_hash(std),
+        "exceptions_hash": loader.exceptions_hash(std),
         "skipped": skipped,
     }
 
@@ -249,7 +260,7 @@ async def get_run(run_id: int, level: str | None = None, device: str | None = No
     if run is None:
         raise HTTPException(status_code=404, detail=f"审计记录不存在：{run_id}")
     sql = ("SELECT device_name, rule_id, level, source, severity, title, detail, lines_json, "
-           "controls_json FROM audit_findings WHERE run_id = ?")
+           "controls_json, exempt_by, exempt_json FROM audit_findings WHERE run_id = ?")
     params: list = [run_id]
     if level:
         sql += " AND level = ?"
@@ -263,6 +274,7 @@ async def get_run(run_id: int, level: str | None = None, device: str | None = No
         d = dict(r)
         d["lines"] = json.loads(d.pop("lines_json") or "[]")
         d["controls"] = json.loads(d.pop("controls_json") or "[]")
+        d["exempt"] = json.loads(d.pop("exempt_json") or "null")
         findings.append(d)
     return {"run": dict(run), "findings": findings}
 
