@@ -213,3 +213,111 @@ def test_loader_reports_all_errors_at_once(tmp_path):
         loader.load_standard(tmp_path, use_cache=False)
     msg = str(ei.value)
     assert "未知判定器" in msg and "不在" in msg
+
+
+# ---------------------------------------------------------------- 组合判定器
+
+CISCO_SNMP = "version 15.2\nhostname SWI\nsnmp-server group GRP-SNMP-V3 v3 priv\n"
+
+
+def test_command_set_all_of_names_the_missing_item():
+    """真机场景：现网 Cisco 18/18 都配了 SNMPv3 group、0 台配 user —— 必须点名缺"用户"。"""
+    r = rule(id="cs_snmpv3", check="command_set", params={
+        "mode": "all_of",
+        "group": "SNMPv3 三件套",
+        "items": [
+            {"label": "服务器组", "pattern": r"(?mi)^snmp-server group"},
+            {"label": "用户", "pattern": r"(?mi)^snmp-server user"},
+        ],
+    })
+    f = engine.analyze("BJQD1SWI01", CISCO_SNMP, make_std([r]))["findings"][0]
+    assert f["check_kind"] == "all_of"
+    assert f["satisfied"] == ["服务器组"]
+    assert f["missing"] == ["用户"]
+    assert "已配 1/2" in f["detail"]
+    assert f["lines"] == [3]          # 指向已配的那条，便于对照
+
+
+def test_command_set_all_of_silent_when_complete():
+    r = rule(id="cs_ok", check="command_set", params={
+        "mode": "all_of", "group": "G",
+        "items": [{"label": "a", "pattern": "hostname"}, {"label": "b", "pattern": "version"}]})
+    assert engine.analyze("BJQD1SWI01", CISCO_SNMP, make_std([r]))["findings"] == []
+
+
+def test_command_set_requires_only_fires_when_trigger_present():
+    r = rule(id="dai", check="command_set", params={
+        "mode": "requires",
+        "trigger": {"label": "动态 ARP 检测", "pattern": r"(?mi)^ip arp inspection"},
+        "required": [{"label": "DHCP snooping", "pattern": r"(?mi)^ip dhcp snooping"}],
+    })
+    std = make_std([r])
+    # 没配 DAI → 不该提示缺 DHCP snooping
+    assert engine.analyze("BJQD1SWI01", CISCO_SNMP, std)["findings"] == []
+    # 配了 DAI 但没配 snooping → 提示
+    text = CISCO_SNMP + "ip arp inspection vlan 16\n"
+    f = engine.analyze("BJQD1SWI01", text, std)["findings"][0]
+    assert f["check_kind"] == "requires" and f["missing"] == ["DHCP snooping"]
+    assert f["lines"] == [4]
+
+
+def test_command_set_requires_satisfied_is_silent():
+    r = rule(id="dai2", check="command_set", params={
+        "mode": "requires",
+        "trigger": {"label": "DAI", "pattern": r"(?mi)^ip arp inspection"},
+        "required": [{"label": "snooping", "pattern": r"(?mi)^ip dhcp snooping"}]})
+    text = CISCO_SNMP + "ip arp inspection vlan 16\nip dhcp snooping\n"
+    assert engine.analyze("BJQD1SWI01", text, make_std([r]))["findings"] == []
+
+
+def test_command_set_conflict_is_scoped_to_one_block():
+    """conflict 默认按接口块判定：同一口上冲突才报，不同口各配各的不报。"""
+    r = rule(id="conf", check="command_set", params={
+        "mode": "conflict", "scope": "block",
+        "trigger": {"label": "BPDU Guard", "pattern": r"spanning-tree bpdu-guard"},
+        "forbidden": [{"label": "root-guard", "pattern": r"spanning-tree root-guard"}],
+    })
+    std = make_std([r])
+    same_block = "hostname x\ninterface 1/1/1\n    spanning-tree bpdu-guard\n    spanning-tree root-guard\n"
+    diff_block = ("hostname x\ninterface 1/1/1\n    spanning-tree bpdu-guard\n"
+                  "interface 1/1/2\n    spanning-tree root-guard\n")
+    assert len(engine.analyze("BJQD1SWI01", same_block, std)["findings"]) == 1
+    assert engine.analyze("BJQD1SWI01", diff_block, std)["findings"] == []
+
+
+def test_command_set_conflict_evidence_includes_block_header():
+    r = rule(id="conf2", check="command_set", params={
+        "mode": "conflict", "scope": "block",
+        "trigger": {"label": "X", "pattern": "aaa"},
+        "forbidden": [{"label": "Y", "pattern": "bbb"}]})
+    text = "hostname x\ninterface 1/1/5\n    aaa\n    bbb\n"
+    f = engine.analyze("BJQD1SWI01", text, make_std([r]))["findings"][0]
+    assert f["evidence"][0]["text"] == "interface 1/1/5"
+    assert f["lines"] == [2, 3, 4]
+
+
+def test_command_set_global_scope_catches_cross_section_conflict():
+    r = rule(id="conf3", check="command_set", params={
+        "mode": "conflict",
+        "trigger": {"label": "A", "pattern": r"(?mi)^aaa new-model"},
+        "forbidden": [{"label": "B", "pattern": r"(?mi)^no aaa new-model"}]})
+    text = "version 15.2\naaa new-model\n!\nno aaa new-model\n"
+    assert len(engine.analyze("BJQD1SWI01", text, make_std([r]))["findings"]) == 1
+
+
+def test_loader_validates_command_set_params(tmp_path):
+    (tmp_path / "_scopes.yaml").write_text(
+        "sites: {}\nnaming: {pattern: 'x', type_codes: {}}\nvlans: {standard: {}}\n", encoding="utf-8")
+    (tmp_path / "org-convention.yaml").write_text(
+        "rules:\n"
+        "  - id: bad_mode\n    title: t\n    check: command_set\n    level: 改进建议\n"
+        "    params: {mode: nope}\n"
+        "  - id: no_items\n    title: t\n    check: command_set\n    level: 改进建议\n"
+        "    params: {mode: all_of}\n"
+        "  - id: no_trigger\n    title: t\n    check: command_set\n    level: 改进建议\n"
+        "    params: {mode: requires, required: [{label: a, pattern: b}]}\n",
+        encoding="utf-8")
+    with pytest.raises(loader.RuleError) as ei:
+        loader.load_standard(tmp_path, use_cache=False)
+    msg = str(ei.value)
+    assert "mode 必须是" in msg and "需要 params.items" in msg and "需要 params.trigger.pattern" in msg

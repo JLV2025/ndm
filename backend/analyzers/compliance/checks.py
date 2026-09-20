@@ -27,16 +27,18 @@ def rule_platform(rule: dict) -> str:
     return "全部" if plats == ["all"] else " / ".join(plats)
 
 
-def make_finding(rule: dict, evidence: list[dict], current: str | None = None) -> dict:
+def make_finding(rule: dict, evidence: list[dict], current: str | None = None,
+                 **extra) -> dict:
     """构造一条审计发现。
 
     lines：证据涉及的配置行号（去重升序，剔除 None）。前端**只按行号标红**——
     实测 35/36 台配置带行尾空格，"拿证据文本回配置里搜"必然错位。
     locatable：是否可定位到行。命名类、全局策略类判定没有具体行，为 False，
     此时前端禁用「定位到行」按钮。
+    extra：组合判定器补充的字段（check_kind / missing / satisfied / detail / expect）。
     """
     lines = sorted({e["line"] for e in evidence if e.get("line")})
-    return {
+    finding = {
         "rule_id": rule["id"],
         "title": rule["title"],
         "level": rule.get("level", "改进建议"),
@@ -52,6 +54,8 @@ def make_finding(rule: dict, evidence: list[dict], current: str | None = None) -
         "why": rule.get("why", ""),
         "note": rule.get("note", ""),
     }
+    finding.update(extra)
+    return finding
 
 
 # ---------------------------------------------------------------- 通用判定器
@@ -228,7 +232,112 @@ def check_vsf_split_detect(dev: Device, rule: dict, std: dict) -> list[dict]:
             | {"detail": "该机是 VSF 堆叠，但未启用 mgmt 口脑裂检测"}]
 
 
+# ---------------------------------------------------------------- 组合判定器
+#
+# 一条规则表达"配套关系"，而不是"某条命令在不在"——这是审计从「逐条查命令」
+# 升级到「查配套」的关键。三种语义共用一个作用域求值：
+#   all_of   命令组必须齐备，缺项点名
+#   requires 配了 A 就必须有 B（如配了 DAI 就必须有 DHCP snooping）
+#   conflict 有 A 就不该在**同一处**出现 B（默认按接口块判定）
+# params.scope = block 时按接口块逐个判定，否则整份配置当一个作用域。
+
+def _eval_scope(dev: Device, params: dict) -> list[dict]:
+    if params.get("scope") == "block":
+        return [{"header": b["header"], "line": b["line"], "items": b["body"]}
+                for b in dev.if_blocks]
+    return [{"header": None, "line": None,
+             "items": [{"text": t, "line": i} for i, t in enumerate(dev.lines, start=1)]}]
+
+
+def _hit(items: list[dict], pattern: str) -> list[dict]:
+    rx = compile_re(pattern)
+    return [it for it in items if rx.search(it["text"])]
+
+
+def _command_set_all_of(dev: Device, rule: dict, p: dict) -> list[dict]:
+    items = p.get("items") or []
+    group = p.get("group", "命令组")
+    out = []
+    for sc in _eval_scope(dev, p):
+        satisfied, missing, ev = [], [], []
+        for it in items:
+            hits = _hit(sc["items"], it["pattern"])
+            if hits:
+                satisfied.append(it.get("label", it["pattern"]))
+                ev.extend(hits[:1])
+            else:
+                missing.append(it.get("label", it["pattern"]))
+        if missing:
+            out.append(make_finding(rule, ev,
+                                    check_kind="all_of", group=group,
+                                    satisfied=satisfied, missing=missing,
+                                    detail=f"{group}：已配 {len(satisfied)}/{len(items)}，"
+                                           f"缺 {'、'.join(missing)}"))
+    return out
+
+
+def _command_set_requires(dev: Device, rule: dict, p: dict) -> list[dict]:
+    trig = p.get("trigger") or {}
+    reqs = p.get("required") or []
+    out = []
+    for sc in _eval_scope(dev, p):
+        tev = _hit(sc["items"], trig["pattern"])
+        if not tev:
+            continue
+        satisfied, missing = [], []
+        for r in reqs:
+            (satisfied if _hit(sc["items"], r["pattern"]) else missing).append(
+                r.get("label", r["pattern"]))
+        if not missing:
+            continue
+        out.append(make_finding(rule, tev[:1],
+                                check_kind="requires",
+                                trigger=trig.get("label", ""),
+                                satisfied=satisfied, missing=missing,
+                                detail=f"配了 {trig.get('label','')}，但缺少配套："
+                                       f"{'、'.join(missing)}"))
+    return out
+
+
+def _command_set_conflict(dev: Device, rule: dict, p: dict) -> list[dict]:
+    trig = p.get("trigger") or {}
+    forb = p.get("forbidden") or []
+    out = []
+    for sc in _eval_scope(dev, p):
+        tev = _hit(sc["items"], trig["pattern"])
+        if not tev:
+            continue
+        bad = []
+        for f in forb:
+            for hit in _hit(sc["items"], f["pattern"]):
+                bad.append((f.get("label", f["pattern"]), hit))
+        if not bad:
+            continue
+        ev = ([{"line": sc["line"], "text": sc["header"]}] if sc["header"] else [])
+        ev += tev[:1] + [h for _, h in bad[:4]]
+        labels = sorted({lbl for lbl, _ in bad})
+        out.append(make_finding(rule, ev,
+                                check_kind="conflict",
+                                trigger=trig.get("label", ""),
+                                conflict=labels,
+                                detail=f"{trig.get('label','')} 与 {'、'.join(labels)} "
+                                       f"不应同时出现"))
+    return out
+
+
+def check_command_set(dev: Device, rule: dict, std: dict) -> list[dict]:
+    mode = (rule.get("params") or {}).get("mode")
+    if mode == "all_of":
+        return _command_set_all_of(dev, rule, rule["params"])
+    if mode == "requires":
+        return _command_set_requires(dev, rule, rule["params"])
+    if mode == "conflict":
+        return _command_set_conflict(dev, rule, rule["params"])
+    return []
+
+
 CHECKS: dict[str, callable] = {
+    "command_set": check_command_set,
     "absent_regex": check_absent_regex,
     "present_flag": check_present_flag,
     "present_regex": check_present_regex,

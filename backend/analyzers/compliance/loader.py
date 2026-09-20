@@ -45,6 +45,38 @@ def _read(path: Path) -> dict:
         return yaml.safe_load(fh) or {}
 
 
+def _validate_command_set(rid: str, p: dict) -> list[str]:
+    """组合判定器的 params 校验 —— 报错要指到具体缺哪个字段，规则编辑页直接展示。"""
+    errs: list[str] = []
+    mode = p.get("mode")
+    if mode not in ("all_of", "requires", "conflict"):
+        return [f"{rid}: command_set 的 mode 必须是 all_of / requires / conflict，当前 {mode!r}"]
+
+    def need_item(item, where: str) -> None:
+        if not isinstance(item, dict) or not item.get("pattern"):
+            errs.append(f"{rid}: {where} 的每一项都需要 pattern（可带 label）")
+
+    if mode == "all_of":
+        items = p.get("items") or []
+        if not items:
+            errs.append(f"{rid}: command_set(all_of) 需要 params.items（至少一项）")
+        for it in items:
+            need_item(it, "params.items")
+    else:
+        if not (p.get("trigger") or {}).get("pattern"):
+            errs.append(f"{rid}: command_set({mode}) 需要 params.trigger.pattern")
+        key = "required" if mode == "requires" else "forbidden"
+        entries = p.get(key) or []
+        if not entries:
+            errs.append(f"{rid}: command_set({mode}) 需要 params.{key}（至少一项）")
+        for it in entries:
+            need_item(it, f"params.{key}")
+
+    if p.get("scope") not in (None, "block", "global"):
+        errs.append(f"{rid}: params.scope 只能是 block 或 global")
+    return errs
+
+
 def _validate(std: dict, rule_files_used: list[str]) -> None:
     errors: list[str] = []
     sites = std.get("sites", {}) or {}
@@ -75,6 +107,8 @@ def _validate(std: dict, rule_files_used: list[str]) -> None:
             errors.append(f"{rid}: 未知判定器 '{check}'（可用：{', '.join(sorted(CHECKS))}）")
         if check in PATTERN_CHECKS and not (rule.get("params") or {}).get("pattern"):
             errors.append(f"{rid}: 判定器 {check} 需要 params.pattern")
+        if check == "command_set":
+            errors.extend(_validate_command_set(rid, rule.get("params") or {}))
         level = rule.get("level")
         if level and level not in LEVEL_ORDER:
             errors.append(f"{rid}: 档位 '{level}' 不在 {LEVEL_ORDER}")
