@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T05:02:54.678Z
-> Files: 150 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T05:40:13.354Z
+> Files: 161 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -47,6 +47,7 @@
 - `add_audit_settings.py` — 向本地 config/settings.yaml 追加 audit 段（若还没有）。不打印文件内容。 (~175 tok)
 - `add_buglog.py` — 向 .wolf/buglog.json 追加一条手工记录（避免手改 JSON 出错）。 (~328 tok)
 - `add_buglog2.py` — 追加 bug-199（周格式约定）到 .wolf/buglog.json。 (~258 tok)
+- `add_buglog3.py` — 追加 bug-200（单台审计漏传 lifecycle）到 .wolf/buglog.json。 (~320 tok)
 - `eq_check.py` — 移植等价性回归：同库同配置，逐设备逐规则对比 findings（stderr 输出给 A/B 两侧）。 (~317 tok)
 
 ## ./
@@ -131,7 +132,7 @@
 ## backend/
 
 - `_verify_version.py` — 临时验证脚本：检查 FastAPI 应用版本号动态读取（验证后删除） (~76 tok)
-- `main.py` — API: 3 endpoints (~1406 tok)
+- `main.py` — API: 3 endpoints (~1438 tok)
 - `tmp_stp_check.py` — 临时诊断：用真实库数据模拟前端层带判定（跑完即删） (~889 tok)
 
 ## backend/analyzers/
@@ -145,21 +146,22 @@
 ## backend/analyzers/compliance/
 
 - `__init__.py` — 配置合规审计模块（移植自 allright/netstd，NDM 版）。 (~144 tok)
-- `checks.py` — 内置判定器 —— 规则通过 `check` 名 + `params` 引用这里面的函数。 (~5236 tok)
-- `engine.py` — 配置审计 —— 判定引擎（对外入口）。 (~2031 tok)
-- `loader.py` — 规则库加载与校验。 (~3753 tok)
+- `checks.py` — 内置判定器 —— 规则通过 `check` 名 + `params` 引用这里面的函数。 (~6434 tok)
+- `engine.py` — 配置审计 —— 判定引擎（对外入口）。 (~2632 tok)
+- `loader.py` — 规则库加载与校验。 (~3810 tok)
 - `parser.py` — 配置文本解析 —— 从 running-config 文本构建判定所需的设备模型。 (~1697 tok)
 - `port_roles.py` — 端口角色推断 —— 让端口级规则真正可达。 (~1798 tok)
-- `runner.py` — 全网审计执行器 —— API 端点与「采集后自动跑」共用同一实现。 (~1061 tok)
-- `source.py` — 审计数据源 —— 从 NDM 库取"这次审计要审什么"。 (~1402 tok)
+- `runner.py` — 全网审计执行器 —— API 端点与「采集后自动跑」共用同一实现。 (~1180 tok)
+- `source.py` — 审计数据源 —— 从 NDM 库取"这次审计要审什么"。 (~1704 tok)
 
 ## backend/api/
 
 - `alerts.py` — 告警 API 路由 (~2091 tok)
-- `audit.py` — 配置审计 API 路由。 (~7996 tok)
+- `audit.py` — 配置审计 API 路由。 (~8012 tok)
 - `collector.py` — 配置收集 API 路由 (~1741 tok)
 - `data.py` — 数据文件 API 路由 (~3944 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
+- `lifecycle.py` — 设备生命周期 API —— EoL 与保修期的登记、批量导入、刷新与概况。 (~1350 tok)
 - `reports.py` — 自定义报告 API 路由 (~2484 tok)
 - `stats.py` — Dashboard 统计 API — 全量从 SQLite 读取 (~2546 tok)
 - `topology.py` — 拓扑图 API 路由 (~15518 tok)
@@ -179,13 +181,15 @@
 
 - `audit_scheduler.py` — 采集后自动审计（去抖）。 (~580 tok)
 - `collector_service.py` — 配置收集服务 (~20590 tok)
+- `eox_client.py` — Cisco EoX 客户端 —— 按型号批量查生命周期（停止销售 / 停止支持）。 (~1502 tok)
 
 ## backend/storage/
 
 - `__init__.py` — 数据存储服务模块 (~162 tok)
-- `database.py` — init_db, get_connection, close_connection (~7014 tok)
+- `database.py` — init_db, get_connection, close_connection (~7536 tok)
 - `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~2296 tok)
 - `file_manager.py` — 存储管理模块 (~2714 tok)
+- `lifecycle_dal.py` — 设备生命周期数据访问 —— EoL 型号缓存 + 逐序列号保修登记。 (~2692 tok)
 
 ## backend/tests/
 
@@ -200,10 +204,14 @@
 - `test_collector_service.py` — extract_model/extract_serial_number 测试（重点 VSF 堆叠成员型号，4 用例） (~500 tok)
 - `test_compliance_engine.py` — 配置审计引擎测试 —— 解析、判定器、站点作用域、行号契约。 (~5955 tok)
 - `test_compliance_exceptions.py` — 例外登记机制测试 —— 登记表校验 + 豁免判定。 (~3137 tok)
-- `test_compliance_source.py` — 审计数据源测试 —— 重点在三条边界： (~1511 tok)
+- `test_compliance_source.py` — 审计数据源测试 —— 重点在三条边界： (~1844 tok)
 - `test_config_diff.py` — running/startup 配置比对测试。 (~1673 tok)
 - `test_counter_parser.py` — 端口累计计数器解析器测试 (~4010 tok)
-- `test_database_migration.py` — 数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表） (~3396 tok)
+- `test_database_migration.py` — 数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表） (~3503 tok)
+- `test_eox_client.py` — Cisco EoX 客户端测试 —— mock HTTP（凭据到位前无法实盘验证，如实标注）。 (~1565 tok)
+- `test_lifecycle_api.py` — 生命周期 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）。 (~1447 tok)
+- `test_lifecycle_checks.py` — 生命周期判定器与「集体性折叠」测试。 (~2561 tok)
+- `test_lifecycle_dal.py` — 设备生命周期数据层测试。 (~1982 tok)
 - `test_member_parser.py` — 堆叠成员级解析测试 —— 编号 / 序列号 / 版本 / ROM / 运行时间 (~3084 tok)
 - `test_neighbor_parser.py` — CDP/LLDP 邻居解析器测试 — 重点：Aruba AP 名识别 (~1543 tok)
 - `test_performance_aruba.py` — Aruba show interface brief 解析测试 (~389 tok)
@@ -238,7 +246,7 @@
 - `_exceptions.yaml` — NDM 配置审计 —— 例外登记表 (~283 tok)
 - `_scopes.yaml` — NDM 配置审计 —— 共用段（唯一一份，所有规则文件共享） (~792 tok)
 - `company-standard.yaml` — NDM 配置审计 —— 公司总部要求层（CFG-Aruba / CFG-CISCO） (~4345 tok)
-- `org-convention.yaml` — NDM 配置审计 —— 组织惯例层（我们自己的使用习惯） (~918 tok)
+- `org-convention.yaml` — NDM 配置审计 —— 组织惯例层（我们自己的使用习惯） (~1348 tok)
 - `vendor-baseline.yaml` — NDM 配置审计 —— 厂商基线层（厂商加固建议） (~3230 tok)
 
 ## data/
@@ -257,6 +265,7 @@
 - `2026-08-04-aruba-ap-recognition.md` — Aruba AP 识别实现计划 (~3717 tok)
 - `2026-09-14-traffic-counter-delta.md` — 端口流量排行：改用「周锚定」累计计数器差值 (~5604 tok)
 - `2026-09-20-audit-trends.md` — 审计趋势与历史（二期）—— 设计与实施计划 (~889 tok)
+- `2026-09-20-device-lifecycle.md` — 设备生命周期（EoL + 保修期）（二期）—— 设计与实施计划 (~1466 tok)
 - `2026-09-20-exceptions-registry.md` — 例外登记机制（二期）—— 设计与实施计划 (~1236 tok)
 
 ## docs/superpowers/specs/
@@ -274,6 +283,7 @@
 ## frontend/src/components/
 
 - `AuditExceptionDialog.tsx` — 登记例外对话框（查看器与标准页共用；到期日默认 +180 天） (~1652 tok)
+- `LifecycleCard.tsx` — 设备生命周期卡片 —— EoL 与保修期。 (~5077 tok)
 
 ## frontend/src/components/devices/
 
@@ -290,8 +300,8 @@
 
 ## frontend/src/i18n/
 
-- `en.ts` — Declares en (~7906 tok)
-- `zh.ts` — Declares zh (~6067 tok)
+- `en.ts` — Declares en (~8630 tok)
+- `zh.ts` — Declares zh (~6586 tok)
 
 ## frontend/src/pages/
 
@@ -299,6 +309,7 @@
 - `ComplianceAudit.tsx` — 与仪表盘一致的图表配色（深色主题） (~6420 tok)
 - `ComplianceStandard.tsx` — 档位 → 配色，与查看器审计模式保持一致（刻意不用红色系：这是建议强度不是违规等级） (~7818 tok)
 - `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~11085 tok)
+- `DeviceDetail.tsx` — DeviceDetail (~6839 tok)
 - `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5691 tok)
 - `Login.tsx` — Login (~2283 tok)
 - `Reports.tsx` — 两张表的默认排序：型号字母序 / 吞吐降序 (~4439 tok)
@@ -307,7 +318,7 @@
 
 ## frontend/src/services/
 
-- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~2833 tok)
+- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~3215 tok)
 
 ## frontend/src/shared/
 
@@ -318,7 +329,7 @@
 
 ## frontend/src/types/
 
-- `index.ts` — 离线物理设备档案（device_members 表） (~2018 tok)
+- `index.ts` — 离线物理设备档案（device_members 表） (~2402 tok)
 - `topology.ts` — 端口物理断开（status_up=0），图上显示红叉警告 (~1043 tok)
 
 ## tests/

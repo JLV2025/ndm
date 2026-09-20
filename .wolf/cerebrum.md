@@ -665,6 +665,16 @@
 - [2026-09-20] **趋势页五项定案（用户）**：① 位置 = **新建独立页「配置审计」**（标准 vs 结果分开）；② 触发 = **采集后自动跑 + 手工触发**；③ 图表粒度 = **每周取该周最后一次运行**（与"配置按周存/流量周锚定"惯例一致），**本周尚无运行则不画该周**（否则周一会把上周数据画成本周）；④ **榜与图同基准**（最新周最后一条 vs 上一周最后一条 —— 避免"榜变了但图没动"）；⑤ 头部显示**最新一次**统计。
 - [2026-09-20] **采集后自动跑用服务端去抖，不在前端批次结束处触发**：采集是前端 worker 队列逐台调单设备端点，服务端没有"批次"概念；去抖（每台成功重置 60 秒定时器，静默后跑一轮）同时覆盖 UI 批量与 CLI 采集，一批只跑一轮且跑的时候数据完整。**失败隔离是硬要求**：调度与执行全程 try/except，审计任何异常都不能拖累采集。开关 `settings.yaml → audit.run_after_collect`（默认开）。
 
+## Decision Log
+- [2026-09-20] **设备生命周期（EoL + 保修）定案（用户）**：① **双轨**——Cisco 走 EoX API（凭据到位前手工兜底），Aruba 手工（**无公开 API**，已核实）；② **保修期按手工编辑设计**（Cisco SN2INFO 仅对 SNTC 客户/PSS 伙伴开放，HPE 无 API —— 手工不是兜底而是主路径）；③ **有信息且有问题 → 风险提示；没信息 → 「待查」算建议**（不让未登记设备静默通过）；④ 「待查」**聚合**（≥3 台折叠成一条，`collapse_collective`）；⑤ 登记超过 365 天未复核重新算「待查」。
+- [2026-09-20] **生命周期数据进 DB（v16 两张表），不进 YAML** —— 与例外机制相反：例外是"决策记录"（谁批的、到期复核，要 git 追溯）；EoL/保修是**设备事实数据**（随 API 刷新、条数多、且要"手工值不被自动刷新覆盖"）。DAL 用 `source=api|manual` + `force` 表达覆盖语义。
+- [2026-09-20] **新增通用机制 `engine.collapse_collective()`**：规则标 `collective: true` 时，全量审计命中 ≥ 阈值（默认 3，`params.collective_threshold` 可调）折叠成**一条网络级条目**（`device_name='全网'`，列出设备名）。同时补上了一期承诺但未实现的「集体性漏配单独成类」。runner 的顺序固定为**先收集 → 折叠 → 落库**（边判边写就没法折叠）。
+
+## Key Learnings
+- [2026-09-20] **Cisco EoX API 事实**（调研确认）：4 个方法 `EOXByProductID`（每次 ≤20 个型号，支持通配符）/`EOXBySerialNumber`/`EOXByDates`/`EOXBySWReleaseString`；OAuth2 凭据来自 `apiconsole.cisco.com`；返回 `EndOfSaleDate`/`LastDateOfSupport`/公告号与链接。**保修是另一套**：`SN2INFO`（`/product/v1.0/coverage/summary/serial_numbers/…` 给 `warranty_end_date`）**仅 PSS 伙伴 / SNTC 客户可用**。Aruba/HPE 两者都只有网页表单。
+- [2026-09-20] **多入口接线是这类功能的典型坑**：同一份新数据往往要接 `runner`（全量）与 `_envelope`（单台）**两条路径** —— 本次只接了 runner，单台审计就一直报"待查"（幸而浏览器复验抓到了，见 bug-200）。改这类"上下文注入"时，**先 grep 这个参数名在哪些调用点出现**，一处不能漏。
+- [2026-09-20] **串行号/型号在库里是逗号拼接的成员串**（`SG30LMQ17K, SG30LMQ108` / `JL659A, JL659A`）—— 11 台堆叠设备各有 2–3 个成员。`lifecycle_dal.split_serials()` 负责拆分；匹配用大写归一化。判定器要把 `extra_rows`（登记过但当前采集不到的序列号）也算上，否则成员换件/采集缺列会丢数据。
+
 ## Key Learnings
 - [2026-09-20] **周格式是 `YYYY-WW`（如 `2026-38`），不是 ISO 的 `2026-W38`** —— 与 `collections.week` 保持一致。`_iso_week()` 用 `isocalendar()` 但输出不带 `W`（写测试时按 ISO 写法踩过一次）。
 - [2026-09-20] **趋势口径与实现**：建议数 = **未豁免** findings（`json_extract(exempt_json,'$.status') IN ('active','expiring')` 的排除掉，SQLite JSON1 可用）；例外数 = 生效中 + 即将到期；站点过滤走 `LEFT JOIN devices ON d.name = af.device_name`（设备改名/删除时退化为"无站点"，不算错）。所有趋势/榜数据**查询侧聚合**，不加表。
@@ -684,4 +694,5 @@
   - 例外：设计+计划 `docs/superpowers/plans/2026-09-20-exceptions-registry.md`；提交链 5f6e425 → 246b7f1 → 3ca81b0 → fa5a0e0 → 1213a2d → 7237d88；浏览器实测通过（登记→计数 7→6 + 灰徽章；撤销→恢复）。
   - 趋势：计划 `docs/superpowers/plans/2026-09-20-audit-trends.md`；提交链 2836c54 → 40ef6a9（提取 runner）→ 02b0369（趋势/对比端点）→ d8cd37e（采集后自动跑）→ 9a2630d（新页面）；浏览器实测通过（触发→toast+新记录；下钻明细 486 条、档位筛选 238/486）；采集后自动跑真实链路验证（run 4, trigger=post_collect, 969 ms）。
   - schema **v15**；测试 **401 项全绿**；等价性回归 486=486；主库现有 4 条运行记录（10:03 用户/12:50 验证/13:01 页面按钮/13:0x post_collect）。
-- 待办（二期剩余）：**EoL 生命周期检查**（按型号查 Cisco EoX，先确认凭据或改用离线映射）、**AI 专家简报**；另有「集体性漏配单独成类」（一期未实现，仍靠规则写得克制）、`port_snapshots.is_uplink` 之类不可用信号的清理、前端 `deviceApi.batchCollect` 指向不存在的 `/collect/batch`（死代码，待清理）。
+- **二期进展（2026-09-20 深夜）**：**设备生命周期（EoL + 保修期）✅** —— 计划 `docs/superpowers/plans/2026-09-20-device-lifecycle.md`；提交链 90fd17e（计划）→ fb7b80c（v16 + DAL）→ 41d5976（EoX 客户端）→ b356c1a（API）→ 37477e4（三规则 + 折叠）→ 825b753（接线修复）→ 0207abc（前端卡片）。schema **v16**；测试 **443 项全绿**；等价性：禁用三条新规则后 **486 且逐设备逐规则与改动前一致**；浏览器实测通过（登记保修 → 审计报「保修已于 2025-03-31 过期（538 天前）」；批量导入回显匹配/未匹配/坏行；刷新未配凭据给可读原因）。
+- 待办（二期剩余）：**AI 专家简报**（最后一项）；另有：Cisco EoX 凭据到位后**实盘验证刷新**（用户正在办 API Console 注册）、问清 SNTC 订阅以决定保修能否自动化、`port_snapshots.is_uplink` 之类不可用信号的清理、前端 `deviceApi.batchCollect` 指向不存在的 `/collect/batch`（死代码，待清理）。

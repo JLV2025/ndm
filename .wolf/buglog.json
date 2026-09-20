@@ -3381,6 +3381,104 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-20T05:05:00.000Z"
+    },
+    {
+      "id": "bug-206",
+      "timestamp": "2026-09-20T05:24:17.471Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_compliance_source.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 11→20 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:24:17.471Z"
+    },
+    {
+      "id": "bug-207",
+      "timestamp": "2026-09-20T05:28:30.209Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_eox_client.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 4→7 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:28:30.209Z"
+    },
+    {
+      "id": "bug-208",
+      "timestamp": "2026-09-20T05:32:18.431Z",
+      "error_message": "Type error",
+      "file": "frontend/src/i18n/en.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:32:18.431Z"
+    },
+    {
+      "id": "bug-209",
+      "timestamp": "2026-09-20T05:32:34.255Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/DeviceDetail.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:32:34.255Z"
+    },
+    {
+      "id": "bug-210",
+      "timestamp": "2026-09-20T05:38:09.261Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/tests/test_lifecycle_checks.py",
+      "root_cause": "Had \"INSERT INTO collections (id, device_id, week, col",
+      "fix": "Changed to \"INSERT INTO collections (id, device_id, week, col",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T05:38:17.513Z"
+    },
+    {
+      "id": "bug-200",
+      "timestamp": "2026-09-20T13:45:00.000Z",
+      "error_message": "浏览器复验：已登记保修期，单台审计仍报「尚未登记：型号 EoL、保修期…当前连型号都没采到」",
+      "file": "backend/api/audit.py",
+      "root_cause": "生命周期上下文接了两条路径，只改了其中一条：runner.run_full_audit 传了 lifecycle=，而 _envelope（查看器单台审计）没传 → analyze 收到 None → dev.lifecycle={} → 永远报「待查」。典型的多入口接线遗漏：同一份数据有 N 个调用点，改一处忘一处。",
+      "fix": "在 _envelope 的 engine.analyze(...) 补 lifecycle=item.lifecycle；并补接线测试 test_单台审计端点也带生命周期（先断言 ops_warranty_expired 出现）。顺带修复判定器：把 extra_rows（登记过但当前采集不到的序列号）也纳入保修判定。",
+      "tags": [
+        "audit",
+        "lifecycle",
+        "wiring",
+        "multi-entrypoint",
+        "envelope"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T13:45:00.000Z"
     }
   ]
 }
