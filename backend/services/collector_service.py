@@ -20,6 +20,7 @@ from analyzers.change_detector import ChangeDetector
 from analyzers.stp_parser import parse_spanning_tree
 from utils.settings_loader import load_settings
 from utils.password import password_manager
+from utils.port_names import normalize_port_name, norm_lag_name
 from storage.file_manager import get_week_dir, run_retention
 from storage.database import get_connection as get_db
 from models.devices import Device
@@ -1435,42 +1436,18 @@ def _save_data(
         lldp_entries = parse_lldp(lldp_neighbors_raw, device_type) if lldp_neighbors_raw else []
         merged = merge_neighbors(cdp_entries, lldp_entries)
 
-        # 端口名规范化: Cisco 长名 → 短名，确保 CDP/LLDP 与 ConfigParser 的去重 key 可比
-        _CISCO_PORT_SHORT = {
-            'GigabitEthernet': 'Gi', 'TenGigabitEthernet': 'Te',
-            'TwentyFiveGigE': 'Twe', 'HundredGigE': 'Hu',
-            'FortyGigE': 'Fo', 'FastEthernet': 'Fa',
-            'Port-channel': 'Po', 'Loopback': 'Lo',
-            # 25G 短名变体: show etherchannel summary 输出 'Tw1/0/2'，
-            # 需与 LLDP 长名归一化结果 'Twe1/0/2' 对齐（'Twe' 幂等，且必须在 'Tw' 之前）
-            'Twe': 'Twe', 'Tw': 'Twe',
-        }
-
-        def _normalize_port_name(port: str) -> str:
-            """将 Cisco 长接口名规范化短名: GigabitEthernet1/1/2 → Gi1/1/2"""
-            for long_pfx, short_pfx in _CISCO_PORT_SHORT.items():
-                if port.startswith(long_pfx):
-                    return short_pfx + port[len(long_pfx):]
-            return port
-
-        def _norm_lag_name(port: str) -> str:
-            """LAG 名归一化: lag14 → lag 14, Lag1 → lag 1"""
-            m = re.match(r'^(lag|po|port-channel)\s*(\d+)$', port, re.IGNORECASE)
-            if m:
-                pfx = m.group(1).lower().replace('port-channel', 'po')
-                return f'{pfx} {m.group(2)}'
-            return port
-
+        # 端口名归一化（Cisco 长名→短名、LAG 名统一）见 utils/port_names.py ——
+        # 采集与配置审计必须共用同一套规则，否则审计看到的上行口与入库的邻居/生成树角色会对不上。
         # 规范化 CDP/LLDP 已有条目的端口名（CDP 输出通常已是短名，LLDP 格式多样）
         for e in merged:
-            e.local_port = _normalize_port_name(e.local_port)
+            e.local_port = normalize_port_name(e.local_port)
 
         # 从 running-config 提取 admin down (shutdown) 端口，过滤不可靠的邻居数据
         shutdown_ports: set = set()
         if running_config and not running_config.startswith('%'):
-            shutdown_ports = _extract_shutdown_ports(running_config, _normalize_port_name)
+            shutdown_ports = _extract_shutdown_ports(running_config, normalize_port_name)
             if shutdown_ports:
-                merged = [e for e in merged if _normalize_port_name(e.local_port) not in shutdown_ports]
+                merged = [e for e in merged if normalize_port_name(e.local_port) not in shutdown_ports]
                 print(f"[邻居] 过滤 admin down 端口: {shutdown_ports}")
 
         # ---- LAG 逻辑端口补充: 从物理成员投票继承邻居信息 ----
@@ -1479,20 +1456,20 @@ def _save_data(
         if lag_map:
             try:
                 seen_ports = set(
-                    (_normalize_port_name(e.local_port), e.neighbor_name)
+                    (normalize_port_name(e.local_port), e.neighbor_name)
                     for e in merged
                 )
                 extra_count = 0
                 for log_port, phys_ports in lag_map.items():
                     if not phys_ports:
                         continue
-                    log_port_norm = _norm_lag_name(log_port)  # lag14 → lag 14
+                    log_port_norm = norm_lag_name(log_port)  # lag14 → lag 14
                     # 统计每个邻居在物理成员端口中出现的次数
                     neighbor_votes: dict[str, int] = {}
                     for pp in phys_ports:
-                        norm_pp = _normalize_port_name(pp)
+                        norm_pp = normalize_port_name(pp)
                         for e in merged:
-                            if _normalize_port_name(e.local_port) == norm_pp:
+                            if normalize_port_name(e.local_port) == norm_pp:
                                 nb = e.neighbor_name
                                 neighbor_votes[nb] = neighbor_votes.get(nb, 0) + 1
                     if neighbor_votes:
@@ -1533,7 +1510,7 @@ def _save_data(
                 cp = ConfigParser(device_type=device_type)
                 config_entries = cp.parse(running_config)
                 seen_ports = set(
-                    (_normalize_port_name(e.local_port), e.neighbor_name)
+                    (normalize_port_name(e.local_port), e.neighbor_name)
                     for e in merged
                 )
                 extra_count = 0
@@ -1543,11 +1520,11 @@ def _save_data(
                     if entry.is_endpoint or not entry.device_type:
                         continue
                     # CDP/LLDP 优先；端口描述中同端口+同邻居名则跳过去重
-                    key = (_normalize_port_name(entry.name), entry.device_name)
+                    key = (normalize_port_name(entry.name), entry.device_name)
                     if key not in seen_ports:
                         seen_ports.add(key)
                         merged.append(NeighborEntry(
-                            local_port=_normalize_port_name(entry.name),
+                            local_port=normalize_port_name(entry.name),
                             neighbor_name=entry.device_name,
                             neighbor_type=entry.device_type,
                             neighbor_platform='',
