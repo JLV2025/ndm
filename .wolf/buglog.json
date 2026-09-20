@@ -3122,6 +3122,152 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-20T02:50:55.105Z"
+    },
+    {
+      "id": "bug-190",
+      "timestamp": "2026-09-20T03:17:53.179Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/audit.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T03:17:53.179Z"
+    },
+    {
+      "id": "bug-191",
+      "timestamp": "2026-09-20T03:21:28.088Z",
+      "error_message": "Type error",
+      "file": "frontend/src/i18n/en.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T03:21:28.088Z"
+    },
+    {
+      "id": "bug-192",
+      "timestamp": "2026-09-20T03:21:57.009Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/pages/ComplianceStandard.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 11→12 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T03:21:57.009Z"
+    },
+    {
+      "id": "bug-193",
+      "timestamp": "2026-09-20T03:22:52.668Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "frontend/src/pages/ComplianceStandard.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T03:22:52.668Z"
+    },
+    {
+      "id": "bug-194",
+      "timestamp": "2026-09-20T03:23:21.393Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {isExempted(f) && (; <Tooltip title={t('audit.exemptHint')}>",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T03:24:19.451Z"
+    },
+    {
+      "id": "bug-195",
+      "timestamp": "2026-09-20T03:24:11.925Z",
+      "error_message": "Wrong reference: levelColor should be findingColor",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Used \"levelColor\" instead of \"findingColor\"",
+      "fix": "Changed levelColor → findingColor",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T03:24:11.925Z"
+    },
+    {
+      "id": "bug-196",
+      "timestamp": "2026-09-20T03:25:13.392Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→9 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T03:25:13.392Z"
+    },
+    {
+      "id": "bug-197",
+      "timestamp": "2026-09-20T03:26:42.588Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/AuditExceptionDialog.tsx",
+      "root_cause": "Had '0.8rem'",
+      "fix": "Changed to 'device'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T03:26:42.588Z"
+    },
+    {
+      "id": "bug-198",
+      "timestamp": "2026-09-20T03:35:00.000Z",
+      "error_message": "例外机制测试 11 条失败：finding() 取不到、counts 断言与预期相反",
+      "file": "backend/tests/test_compliance_exceptions.py",
+      "root_cause": "把判定器 present_regex 当成「命中 pattern 即出建议」，实际语义相反 —— present_regex 是「该配置应该有」（未命中才出建议，current 显示 未配置）；absent_regex / present_flag 才是「命中即报」。规则写反导致 r_community 不出、r_hostname 反向命中，计数断言全错。",
+      "fix": "测试规则改用 absent_regex（不得配置明文团体字）；第二条规则改为被样例配置满足的 present_regex（应有 hostname）。并记入 cerebrum Do-Not-Repeat：写规则/测试前先看 checks.py 判定器的 docstring，别按名字猜。",
+      "tags": [
+        "compliance",
+        "checks",
+        "present-regex",
+        "test",
+        "naming-trap"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T03:35:00.000Z"
     }
   ]
 }

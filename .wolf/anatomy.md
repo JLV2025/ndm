@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T02:53:07.382Z
-> Files: 136 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T03:35:41.867Z
+> Files: 142 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -44,6 +44,8 @@
 
 ## ../../temp/
 
+- `add_buglog.py` — 向 .wolf/buglog.json 追加一条手工记录（避免手改 JSON 出错）。 (~328 tok)
+- `eq_check.py` — 移植等价性回归：同库同配置，逐设备逐规则对比 findings（stderr 输出给 A/B 两侧）。 (~317 tok)
 
 ## ./
 
@@ -142,8 +144,8 @@
 
 - `__init__.py` — 配置合规审计模块（移植自 allright/netstd，NDM 版）。 (~144 tok)
 - `checks.py` — 内置判定器 —— 规则通过 `check` 名 + `params` 引用这里面的函数。 (~5236 tok)
-- `engine.py` — 配置审计 —— 判定引擎（对外入口）。 (~1132 tok)
-- `loader.py` — 规则库加载与校验。 (~2365 tok)
+- `engine.py` — 配置审计 —— 判定引擎（对外入口）。 (~2031 tok)
+- `loader.py` — 规则库加载与校验。 (~3753 tok)
 - `parser.py` — 配置文本解析 —— 从 running-config 文本构建判定所需的设备模型。 (~1697 tok)
 - `port_roles.py` — 端口角色推断 —— 让端口级规则真正可达。 (~1798 tok)
 - `source.py` — 审计数据源 —— 从 NDM 库取"这次审计要审什么"。 (~1402 tok)
@@ -151,7 +153,7 @@
 ## backend/api/
 
 - `alerts.py` — 告警 API 路由 (~2091 tok)
-- `audit.py` — 配置审计 API 路由。 (~4538 tok)
+- `audit.py` — 配置审计 API 路由。 (~7143 tok)
 - `collector.py` — 配置收集 API 路由 (~1741 tok)
 - `data.py` — 数据文件 API 路由 (~3944 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
@@ -177,7 +179,7 @@
 ## backend/storage/
 
 - `__init__.py` — 数据存储服务模块 (~162 tok)
-- `database.py` — init_db, get_connection, close_connection (~6613 tok)
+- `database.py` — init_db, get_connection, close_connection (~7014 tok)
 - `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~2296 tok)
 - `file_manager.py` — 存储管理模块 (~2714 tok)
 
@@ -191,10 +193,11 @@
 - `test_collector_service.py` — collector_service 型号/序列号/成员ID提取测试 — 重点：Aruba CX VSF 堆叠 (~1644 tok)
 - `test_collector_service.py` — extract_model/extract_serial_number 测试（重点 VSF 堆叠成员型号，4 用例） (~500 tok)
 - `test_compliance_engine.py` — 配置审计引擎测试 —— 解析、判定器、站点作用域、行号契约。 (~5955 tok)
+- `test_compliance_exceptions.py` — 例外登记机制测试 —— 登记表校验 + 豁免判定。 (~3137 tok)
 - `test_compliance_source.py` — 审计数据源测试 —— 重点在三条边界： (~1511 tok)
 - `test_config_diff.py` — running/startup 配置比对测试。 (~1673 tok)
 - `test_counter_parser.py` — 端口累计计数器解析器测试 (~4010 tok)
-- `test_database_migration.py` — 数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表） (~2713 tok)
+- `test_database_migration.py` — 数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表） (~3396 tok)
 - `test_member_parser.py` — 堆叠成员级解析测试 —— 编号 / 序列号 / 版本 / ROM / 运行时间 (~3084 tok)
 - `test_neighbor_parser.py` — CDP/LLDP 邻居解析器测试 — 重点：Aruba AP 名识别 (~1543 tok)
 - `test_performance_aruba.py` — Aruba show interface brief 解析测试 (~389 tok)
@@ -226,6 +229,7 @@
 
 ## config/audit/
 
+- `_exceptions.yaml` — NDM 配置审计 —— 例外登记表 (~283 tok)
 - `_scopes.yaml` — NDM 配置审计 —— 共用段（唯一一份，所有规则文件共享） (~792 tok)
 - `company-standard.yaml` — NDM 配置审计 —— 公司总部要求层（CFG-Aruba / CFG-CISCO） (~4345 tok)
 - `org-convention.yaml` — NDM 配置审计 —— 组织惯例层（我们自己的使用习惯） (~918 tok)
@@ -246,6 +250,7 @@
 
 - `2026-08-04-aruba-ap-recognition.md` — Aruba AP 识别实现计划 (~3717 tok)
 - `2026-09-14-traffic-counter-delta.md` — 端口流量排行：改用「周锚定」累计计数器差值 (~5604 tok)
+- `2026-09-20-exceptions-registry.md` — 例外登记机制（二期）—— 设计与实施计划 (~1236 tok)
 
 ## docs/superpowers/specs/
 
@@ -261,6 +266,7 @@
 
 ## frontend/src/components/
 
+- `AuditExceptionDialog.tsx` — 登记例外对话框（查看器与标准页共用；到期日默认 +180 天） (~1652 tok)
 
 ## frontend/src/components/devices/
 
@@ -277,23 +283,23 @@
 
 ## frontend/src/i18n/
 
-- `en.ts` — Declares en (~5876 tok)
-- `zh.ts` — Declares zh (~4563 tok)
+- `en.ts` — Declares en (~7287 tok)
+- `zh.ts` — Declares zh (~5613 tok)
 
 ## frontend/src/pages/
 
 - `Alerts.tsx` — 字段中文标签映射 (~4641 tok)
-- `ComplianceStandard.tsx` — 档位 → 配色，与查看器审计模式保持一致（刻意不用红色系：这是建议强度不是违规等级） (~4465 tok)
+- `ComplianceStandard.tsx` — 档位 → 配色，与查看器审计模式保持一致（刻意不用红色系：这是建议强度不是违规等级） (~7818 tok)
 - `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~11085 tok)
 - `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5691 tok)
 - `Login.tsx` — Login (~2283 tok)
 - `Reports.tsx` — 两张表的默认排序：型号字母序 / 吞吐降序 (~4439 tok)
 - `StpTopology.tsx` — StpTopology (~1434 tok)
-- `Viewer.tsx` — 语义颜色常量 — 对应 MUI OLED Dark 主题 (~11104 tok)
+- `Viewer.tsx` — 语义颜色常量 — 对应 MUI OLED Dark 主题 (~12462 tok)
 
 ## frontend/src/services/
 
-- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~2428 tok)
+- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~2688 tok)
 
 ## frontend/src/shared/
 
@@ -304,7 +310,7 @@
 
 ## frontend/src/types/
 
-- `index.ts` — 离线物理设备档案（device_members 表） (~1164 tok)
+- `index.ts` — 离线物理设备档案（device_members 表） (~1469 tok)
 - `topology.ts` — 端口物理断开（status_up=0），图上显示红叉警告 (~1043 tok)
 
 ## tests/
