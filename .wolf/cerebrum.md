@@ -628,3 +628,12 @@
 - [2026-09-20] **总部的"至少两台"类要求需要新的判定原语**：第 5/9/10 章都要求 ≥2（AAA 服务器 / NTP / syslog 收集器），简单正则表达不了"几条" → 新增 `min_count` 判定器（params: pattern + min + label）。
 - [2026-09-20] **【重要】NDM 的 data_root 是相对路径，跑脚本必须在项目根目录**：`config/settings.yaml` 里 `data_root: ./data`，从 `backend/` 下跑会**新建一个空库** `backend/data/ndm.db`（现象极具误导性：跑了 v1→v12 迁移、查询返回 0 台设备，看起来像"数据全没了"）。主库不受影响。跑 NDM 脚本一律在项目根目录 + `sys.path.insert(0, 'backend')`。已记 buglog。
 - [2026-09-20] **规则库现状（58 条）**：公司总部 29（CX 14 + Cisco 15）+ 厂商基线 21 + 组织惯例 8；severity 分布 shall 17 / should 12 / vendor 21 / convention 8；33 条带 NIST `controls` 标签。全网 36 台 **486 条命中、741 ms（20.6 ms/台）**。**移植等价性回归仍在守**：按 netstd 原有 26 条规则 id 过滤后仍为 207 = 207 —— 规则库继续扩充也不会让这条回归失效。
+
+## Key Learnings
+- [2026-09-20] **ruamel.yaml 往返编辑必须设三个参数，否则会把整个文件重排**（会让 git 历史报废：改一个字段看起来像全文重写）。`YAML()` 之后必须：`indent(mapping=2, sequence=4, offset=2)`（让列表项写成 `  - id:`）、`width=4096`（**禁止按 80 列折行**）、`preserve_quotes=True`。另有一条更隐蔽的：**跨行的"普通标量"回写时会被合并成一行**（如手写的两行 `why:`）——规则文件里跨行的 why/note **必须写成 `>-` 折叠块**。已验证：4 个规则文件在两个修正后均"零改动往返逐字节不变"。两道闸门测试已加：改一个字段只允许 1 行差异；全部规则文件必须往返稳定。
+- [2026-09-20] **FastAPI 端点的 `Query(...)` 默认值在"直接调用端点函数"时会变成 `Query` 对象**（不是默认值），导致 `sqlite3.ProgrammingError: type 'Query' is not supported`。本项目的既有端点都用**普通默认值**（`level: str | None = None`）就是为了测试能直接调用。去掉 `Query(pattern=...)` 后要自己在函数里校验取值。
+- [2026-09-20] **审计 API 的最终形态（7 个端点）**：`GET /api/audit/ruleset`（含已停用规则）、`GET /api/audit/device/{name}`（envelope，含配置原文）、`GET /api/audit/device/{name}/export?format=md|json`、`POST /api/audit/run`（全量入库，36 台 877 ms）、`GET /api/audit/runs`、`GET /api/audit/runs/{id}`、`PUT /api/audit/standards/rule/{id}`。规则写入链：乐观锁 → 备份（`.backups/` 留 10 份，已 gitignore）→ 原子替换（临时文件 + `os.replace`，Windows 占用重试 10 次 × 0.2 s）→ 校验失败回滚 → 清缓存。
+- [2026-09-20] **验证规则编辑往返正确性的最简办法：比对规则集指纹**。编辑前记录 `ruleset_hash`，改一个字段再改回来，指纹若回到原值即证明文件内容逐字节还原（比人眼看 diff 可靠）。
+
+## Decision Log
+- [2026-09-20] **规则文件编辑采用 ruamel.yaml（新增依赖 `ruamel.yaml>=0.19`）**，而非计划里"一期用 PyYAML、接受丢注释"的方案。理由：规则文件里的注释记录着每条规则**为什么存在**（不采纳项的来龙去脉、现网实测依据、勘误说明），是这个库最值钱的部分，丢注释等于丢机构记忆。代价是要处理 ruamel 的重排/折行/合并三个坑（已修并有测试守着）。
