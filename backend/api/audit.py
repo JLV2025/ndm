@@ -10,6 +10,7 @@
 """
 from __future__ import annotations
 
+import asyncio
 import datetime
 import json
 import os
@@ -25,6 +26,7 @@ from pydantic import BaseModel
 router = APIRouter()
 
 from analyzers.compliance import engine, loader, runner, source, trends  # noqa: E402
+from services import audit_briefing as briefing  # noqa: E402
 from storage.database import get_connection as _get_db  # noqa: E402
 
 
@@ -222,6 +224,42 @@ async def audit_trend_diff(from_run: int | None = None, to_run: int | None = Non
     数据不足时返回可读 reason，不造数。
     """
     return trends.trend_diff(_get_db(), from_run, to_run)
+
+
+# ---------------------------------------------------------------- AI 专家简报
+#
+# 判定归引擎、叙事归 AI（prompt 里硬约束"不得新增未列出的问题"）。
+# LLM 调用是阻塞 IO —— 放 to_thread，别堵住事件循环（实测一次几秒）。
+# 不落库：简报随时可重新生成；LLM 不可用时给可读 400，审计本身不受影响。
+
+@router.post("/api/audit/device/{name}/briefing")
+async def device_briefing(name: str):
+    """单台专家简报：把该设备的确定性结论讲成人话。"""
+    std = loader.load_standard()
+    item = source.load_audit_input(_get_db(), name)
+    if item is None:
+        raise HTTPException(status_code=404, detail=f"设备不存在：{name}")
+    env = _envelope(item, std)
+    try:
+        return await asyncio.to_thread(briefing.generate_device_briefing, env)
+    except briefing.BriefingError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/api/audit/briefing")
+async def network_briefing(run_id: int | None = None):
+    """全网简报（管理层视角）；缺省用最新一次完成的运行。
+
+    读库在**主线程**（SQLite 连接不能跨线程），只有阻塞的 LLM 调用进线程池。
+    """
+    try:
+        data = briefing.collect_network_data(_get_db(), run_id)
+    except briefing.BriefingError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    try:
+        return await asyncio.to_thread(briefing.render_network_briefing, data)
+    except briefing.BriefingError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/api/audit/runs/{run_id}")

@@ -207,3 +207,75 @@ def test_没有运行记录时可读错误(tmp_path):
     finally:
         db.close_connection()
         db._db_path = original
+
+
+# ---------------------------------------------------------------- 端点
+
+def _seed_audit_db(tmp_path):
+    db.init_db(str(tmp_path))
+    conn = db.get_connection()
+    conn.execute("INSERT INTO devices (id, name, ip, type, location, model) "
+                 "VALUES (1, 'SHAD1SWI01', '10.0.0.1', 'cisco_ios', 'SHA', 'C9500-24Y4C')")
+    conn.execute("INSERT INTO collections (id, device_id, week, collected_at, running_config, "
+                 "serial_number) VALUES (10, 1, '2026-38', '2026-09-20T08:00:00', ?, 'CAT2322L0L4')",
+                 ("hostname X\n" + "!\n" * 600,))
+    conn.execute("INSERT INTO audit_runs (id, started_at, finished_at, trigger, ruleset_hash, "
+                 "device_count, finding_count, exempt_count, status) "
+                 "VALUES (5, '2026-09-20T13:00:00', '2026-09-20T13:00:01', 'manual', 'R1', 1, 0, 0, 'done')")
+    conn.commit()
+    return conn
+
+
+def test_端点_单台简报(tmp_path, monkeypatch):
+    import asyncio
+    from fastapi import HTTPException
+    from api import audit as audit_api
+
+    original = db._db_path
+    db.close_connection()
+    _seed_audit_db(tmp_path)
+    monkeypatch.setattr(briefing, "_call_llm",
+                        lambda p, max_tokens=1200: ("该设备整体状况良好……", "DeepSeek(x)"))
+    try:
+        res = asyncio.run(audit_api.device_briefing("SHAD1SWI01"))
+        assert res["scope"] == "device" and "整体状况" in res["briefing"]
+        with pytest.raises(HTTPException) as ei:
+            asyncio.run(audit_api.device_briefing("NOSUCH"))
+        assert ei.value.status_code == 404
+    finally:
+        db.close_connection()
+        db._db_path = original
+
+
+def test_端点_全网简报(tmp_path, monkeypatch):
+    import asyncio
+    from api import audit as audit_api
+
+    original = db._db_path
+    db.close_connection()
+    _seed_audit_db(tmp_path)
+    monkeypatch.setattr(briefing, "_call_llm",
+                        lambda p, max_tokens=1200: ("本周整体态势……", "DeepSeek(x)"))
+    try:
+        res = asyncio.run(audit_api.network_briefing())
+        assert res["scope"] == "network" and res["run_id"] == 5
+    finally:
+        db.close_connection()
+        db._db_path = original
+
+
+def test_端点_无运行记录时可读400(tmp_path):
+    import asyncio
+    from fastapi import HTTPException
+    from api import audit as audit_api
+
+    original = db._db_path
+    db.close_connection()
+    db.init_db(str(tmp_path))
+    try:
+        with pytest.raises(HTTPException) as ei:
+            asyncio.run(audit_api.network_briefing())
+        assert ei.value.status_code == 400 and "全网审计" in str(ei.value.detail)
+    finally:
+        db.close_connection()
+        db._db_path = original

@@ -237,10 +237,18 @@ def generate_device_briefing(env: dict) -> dict:
             "generated_at": datetime.datetime.now().isoformat(timespec="seconds")}
 
 
-def generate_network_briefing(db, run_id: int | None = None) -> dict:
-    """全网简报（不落库）。"""
-    data = collect_network_data(db, run_id)
+def render_network_briefing(data: dict) -> dict:
+    """只做 LLM 调用（数据已装配好）。
+
+    **拆出来是为了线程边界**：SQLite 连接不能跨线程用，端点里读库必须在主线程，
+    只有这段阻塞的 HTTP 调用放 `asyncio.to_thread`。
+    """
     text, provider = _call_llm(build_network_prompt(data), max_tokens=1400)
     return {"briefing": text, "provider": provider, "scope": "network",
             "run_id": data["run_id"],
             "generated_at": datetime.datetime.now().isoformat(timespec="seconds")}
+
+
+def generate_network_briefing(db, run_id: int | None = None) -> dict:
+    """全网简报（同步便捷版：读库 + 调用；测试与脚本用）。"""
+    return render_network_briefing(collect_network_data(db, run_id))
