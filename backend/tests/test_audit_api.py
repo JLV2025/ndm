@@ -300,3 +300,106 @@ def test_update_rule_empty_body_400(rules_dir):
     with pytest.raises(HTTPException) as ei:
         call(audit_api.update_rule("cx_telnet_disabled", audit_api.RuleUpdate()))
     assert ei.value.status_code == 400
+
+
+# ---------------------------------------------------------------- 例外登记 API
+
+def make_exception(**kw):
+    base = dict(rule_id="cx_telnet_disabled", scope_type="device", scope_value="BJQD1SWI01",
+                reason="改造窗口前无法关闭 Telnet", compensating_control="已用 ACL 限制管理网段",
+                approved_by="张工")
+    base.update(kw)
+    return audit_api.ExceptionCreate(**base)
+
+
+def test_exception_create_list_update_revoke(rules_dir):
+    """登记 → 列表 → 续期 → 撤销 的完整链路（含状态推导与默认到期日）。"""
+    import datetime
+    f = rules_dir / "_exceptions.yaml"
+    res = call(audit_api.create_exception(make_exception()))
+    e = res["exception"]
+    assert res["ok"] and e["id"] == "exc-001" and e["status"] == "active"
+    assert e["rule_title"]                                # 列表要显示规则标题
+    today = datetime.date.today()
+    assert e["expires_at"] == (today + datetime.timedelta(days=180)).isoformat()
+
+    lst = call(audit_api.list_exceptions())
+    assert [x["id"] for x in lst["exceptions"]] == ["exc-001"]
+    assert lst["counts"]["active"] == 1 and lst["base_hash"]
+
+    # 续期（乐观锁用列表返回的 base_hash）
+    upd = call(audit_api.update_exception("exc-001", audit_api.ExceptionUpdate(
+        expires_at=(today + datetime.timedelta(days=365)).isoformat(),
+        base_hash=lst["base_hash"])))
+    assert upd["changed"] == ["expires_at"] and upd["exception"]["days_left"] == 365
+
+    # 撤销 = 软删除：条目保留，状态为 revoked
+    rev = call(audit_api.revoke_exception("exc-001", audit_api.ExceptionRevoke(
+        by="李工", reason="设备已下线", base_hash=upd["base_hash"])))
+    assert rev["exception"]["status"] == "revoked"
+    assert call(audit_api.list_exceptions(state="active"))["exceptions"] == []
+    assert call(audit_api.list_exceptions(state="revoked"))["counts"]["revoked"] == 1
+
+    text = f.read_text(encoding="utf-8")
+    assert "revoked:" in text and "exc-001" in text
+    assert "# NDM 配置审计 —— 例外登记表" in text          # 文件头注释没被 ruamel 丢掉
+
+
+def test_exception_create_rejects_unknown_rule_and_rolls_back(rules_dir):
+    f = rules_dir / "_exceptions.yaml"
+    before = f.read_text(encoding="utf-8")
+    with pytest.raises(HTTPException) as ei:
+        call(audit_api.create_exception(make_exception(rule_id="no_such_rule")))
+    assert ei.value.status_code == 400 and "不在规则库" in ei.value.detail
+    assert f.read_text(encoding="utf-8") == before         # 校验失败 → 回滚
+
+
+def test_exception_duplicate_scope_rejected(rules_dir):
+    call(audit_api.create_exception(make_exception()))
+    with pytest.raises(HTTPException) as ei:
+        call(audit_api.create_exception(make_exception()))
+    assert ei.value.status_code == 400 and "重复登记" in ei.value.detail
+
+
+def test_exception_revoke_requires_operator_and_reason(rules_dir):
+    call(audit_api.create_exception(make_exception()))
+    with pytest.raises(HTTPException) as ei:
+        call(audit_api.revoke_exception("exc-001", audit_api.ExceptionRevoke(by="", reason="")))
+    assert ei.value.status_code == 400
+    call(audit_api.revoke_exception("exc-001", audit_api.ExceptionRevoke(by="李工", reason="下线")))
+    with pytest.raises(HTTPException) as ei2:
+        call(audit_api.revoke_exception("exc-001", audit_api.ExceptionRevoke(by="李工", reason="再撤")))
+    assert ei2.value.status_code == 400
+
+
+def test_exception_update_optimistic_lock_and_404(rules_dir):
+    call(audit_api.create_exception(make_exception()))
+    with pytest.raises(HTTPException) as ei:
+        call(audit_api.update_exception("exc-001",
+                                        audit_api.ExceptionUpdate(reason="x", base_hash="deadbeef")))
+    assert ei.value.status_code == 409
+    with pytest.raises(HTTPException) as ei2:
+        call(audit_api.update_exception("no_such", audit_api.ExceptionUpdate(reason="x")))
+    assert ei2.value.status_code == 404
+
+
+def test_exempted_finding_in_envelope_and_run(conn, rules_dir):
+    """端到端：登记例外后，单台审计里该条进「已批准例外」，全量审计落库带豁免快照。"""
+    env0 = call(audit_api.audit_device("BJQD1SWI01"))
+    hit = env0["findings"][0]
+    before = env0["counts"][hit["level"]]
+
+    call(audit_api.create_exception(make_exception(rule_id=hit["rule_id"])))
+
+    env = call(audit_api.audit_device("BJQD1SWI01"))
+    f = next(x for x in env["findings"] if x["rule_id"] == hit["rule_id"])
+    assert f["exempt"]["status"] == "active" and f["exempt"]["exception_id"] == "exc-001"
+    assert env["counts"][hit["level"]] == before - 1
+    assert env["exempt_count"] == 1
+
+    run = call(audit_api.run_audit())
+    assert run["exempt_count"] == 1 and run["exceptions_hash"]
+
+    detail = call(audit_api.get_run(run["run_id"]))
+    fr = next(x for x in detail["findings"] if x["rule_id"] == hit["rule_id"])
+    assert fr["exempt_by"] == "exc-001" and fr["exempt"]["status"] == "active"

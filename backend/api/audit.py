@@ -13,6 +13,7 @@ from __future__ import annotations
 import datetime
 import json
 import os
+import re
 import shutil
 import time
 from pathlib import Path
@@ -405,6 +406,213 @@ async def update_rule(rule_id: str, body: RuleUpdate):
         raise HTTPException(status_code=400, detail=f"规则库校验未通过，已回滚：\n{e}")
     return {"ok": True, "rule_id": rule_id, "changed": list(changes),
             "file": rule["source_file"], "backup": backup.name}
+
+
+# ---------------------------------------------------------------- 例外登记
+#
+# 与规则编辑走同一条写入链（乐观锁 → 备份 → 原子替换 → 校验失败回滚 → 清缓存）。
+# 文件里只存**事实**（批准日期、到期日、撤销块），status 一律由 engine.exception_status
+# 推导 —— 存了字段就会和日期打架。
+# 不提供物理删除：撤销即软删除（写 revoked 块），历史审计里的 exempt_by 要能永远查到出处。
+
+DEFAULT_EXPIRY_DAYS = 180
+
+
+class ExceptionCreate(BaseModel):
+    rule_id: str
+    scope_type: str = "device"        # device | site | all
+    scope_value: str = ""
+    reason: str = ""
+    compensating_control: str = ""
+    approved_by: str = ""
+    approved_at: str | None = None    # 缺省 = 今天
+    expires_at: str | None = None     # 缺省 = 批准日 + 180 天
+    base_hash: str | None = None      # 乐观锁
+
+
+class ExceptionUpdate(BaseModel):
+    """可编辑字段限于"同一条例外的属性"。
+
+    改 scope / rule_id 等于换了一条例外，应撤销后重新登记 ——
+    否则历史审计里的 exempt_by 指向的就不是同一件事了。
+    """
+    reason: str | None = None
+    compensating_control: str | None = None
+    approved_by: str | None = None
+    expires_at: str | None = None
+    base_hash: str | None = None
+
+
+class ExceptionRevoke(BaseModel):
+    by: str = ""
+    reason: str = ""
+    base_hash: str | None = None
+
+
+def _exceptions_path(std: dict) -> Path:
+    return Path(std["source_dir"]) / loader.EXCEPTIONS_FILE
+
+
+def _load_exceptions_file(path: Path):
+    """载入例外表（ruamel，保留文件头注释）；文件不存在时返回内存骨架。"""
+    data = {}
+    if path.exists():
+        with open(path, "r", encoding="utf-8") as fh:
+            data = _yaml_rt().load(fh) or {}
+    if not data.get("exceptions"):
+        data["exceptions"] = []
+    return data
+
+
+def _find_exception(data, exc_id: str):
+    for e in data.get("exceptions") or []:
+        if e.get("id") == exc_id:
+            return e
+    return None
+
+
+def _next_exception_id(data) -> str:
+    nums = [int(m.group(1)) for e in data.get("exceptions") or []
+            if (m := re.match(r"^exc-(\d+)$", str(e.get("id") or "")))]
+    return f"exc-{max(nums, default=0) + 1:03d}"
+
+
+def _write_exceptions(path: Path, data) -> None:
+    """备份 → 原子写 → 校验（失败回滚）。新文件先落骨架再备份，保证回滚有原件。"""
+    if not path.exists():
+        _atomic_dump({"exceptions": []}, path)
+    backup = _backup(path)
+    _atomic_dump(data, path)
+    loader.clear_cache()
+    try:
+        loader.load_standard(use_cache=False)
+    except loader.RuleError as e:
+        shutil.copy2(backup, path)
+        loader.clear_cache()
+        raise HTTPException(status_code=400,
+                            detail=f"例外登记表校验未通过，已回滚：\n{e}")
+
+
+def _check_exception_lock(path: Path, base_hash: str | None) -> None:
+    if base_hash and _file_hash(path) != base_hash:
+        raise HTTPException(status_code=409,
+                            detail="例外登记表已被其他人修改，请刷新后重试（乐观锁拦截）")
+
+
+def _exception_view(e: dict, titles: dict, today=None) -> dict:
+    """登记表条目的对外形态：附加推导状态、规则标题、剩余天数。"""
+    today = today or datetime.date.today()
+    days_left = None
+    try:
+        days_left = (datetime.date.fromisoformat(str(e.get("expires_at"))) - today).days
+    except ValueError:
+        pass
+    return {**e, "status": engine.exception_status(e, today),
+            "rule_title": titles.get(e.get("rule_id"), ""), "days_left": days_left}
+
+
+@router.get("/api/audit/exceptions")
+async def list_exceptions(state: str = "all"):
+    """例外登记表。state：all（默认）/ active / expiring / expired / revoked。"""
+    if state not in ("all", "active", "expiring", "expired", "revoked"):
+        raise HTTPException(status_code=400,
+                            detail="state 只能是 all / active / expiring / expired / revoked")
+    std = loader.load_standard(use_cache=False)
+    path = _exceptions_path(std)
+    titles = {r["id"]: r.get("title", "") for r in std["rules"]}
+    today = datetime.date.today()
+    items = [_exception_view(e, titles, today) for e in std.get("exceptions") or []]
+    counts = {s: sum(1 for i in items if i["status"] == s)
+              for s in ("active", "expiring", "expired", "revoked")}
+    if state != "all":
+        items = [i for i in items if i["status"] == state]
+    return {"exceptions": items, "counts": counts,
+            "base_hash": _file_hash(path) if path.exists() else ""}
+
+
+@router.post("/api/audit/exceptions")
+async def create_exception(body: ExceptionCreate):
+    """登记一条例外。到期日缺省 = 批准日 + 180 天；**不允许永久例外**。"""
+    std = loader.load_standard(use_cache=False)
+    path = _exceptions_path(std)
+    _check_exception_lock(path, body.base_hash)
+    data = _load_exceptions_file(path)
+
+    approved_at = body.approved_at or datetime.date.today().isoformat()
+    expires_at = body.expires_at
+    if not expires_at:
+        try:
+            base = datetime.date.fromisoformat(approved_at)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="approved_at 需为 YYYY-MM-DD 日期")
+        expires_at = (base + datetime.timedelta(days=DEFAULT_EXPIRY_DAYS)).isoformat()
+
+    scope = {"type": body.scope_type}
+    if body.scope_type != "all":
+        scope["value"] = body.scope_value
+    entry = {
+        "id": _next_exception_id(data),
+        "rule_id": body.rule_id,
+        "scope": scope,
+        "reason": body.reason,
+        "compensating_control": body.compensating_control,
+        "approved_by": body.approved_by,
+        "approved_at": approved_at,
+        "expires_at": expires_at,
+    }
+    data["exceptions"].append(entry)
+    _write_exceptions(path, data)
+    titles = {r["id"]: r.get("title", "") for r in std["rules"]}
+    return {"ok": True, "exception": _exception_view(entry, titles),
+            "base_hash": _file_hash(path)}
+
+
+@router.put("/api/audit/exceptions/{exc_id}")
+async def update_exception(exc_id: str, body: ExceptionUpdate):
+    """编辑一条例外（续期 / 改理由 / 换批准人）。"""
+    std = loader.load_standard(use_cache=False)
+    path = _exceptions_path(std)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"例外不存在：{exc_id}")
+    _check_exception_lock(path, body.base_hash)
+    data = _load_exceptions_file(path)
+    target = _find_exception(data, exc_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail=f"例外不存在：{exc_id}")
+
+    changes = body.model_dump(exclude_none=True, exclude={"base_hash"})
+    if not changes:
+        raise HTTPException(status_code=400, detail="没有需要修改的字段")
+    for key, value in changes.items():
+        target[key] = value
+    _write_exceptions(path, data)
+    titles = {r["id"]: r.get("title", "") for r in std["rules"]}
+    return {"ok": True, "exception": _exception_view(dict(target), titles),
+            "changed": list(changes), "base_hash": _file_hash(path)}
+
+
+@router.post("/api/audit/exceptions/{exc_id}/revoke")
+async def revoke_exception(exc_id: str, body: ExceptionRevoke):
+    """撤销一条例外（软删除：写 revoked 块，条目保留供历史审计追溯）。"""
+    std = loader.load_standard(use_cache=False)
+    path = _exceptions_path(std)
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"例外不存在：{exc_id}")
+    _check_exception_lock(path, body.base_hash)
+    data = _load_exceptions_file(path)
+    target = _find_exception(data, exc_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail=f"例外不存在：{exc_id}")
+    if target.get("revoked"):
+        raise HTTPException(status_code=400, detail=f"{exc_id} 已经撤销过了")
+    if not body.by.strip() or not body.reason.strip():
+        raise HTTPException(status_code=400, detail="撤销需要填写 by 与 reason（谁撤的、为什么）")
+    target["revoked"] = {"at": datetime.date.today().isoformat(),
+                         "by": body.by.strip(), "reason": body.reason.strip()}
+    _write_exceptions(path, data)
+    titles = {r["id"]: r.get("title", "") for r in std["rules"]}
+    return {"ok": True, "exception": _exception_view(dict(target), titles),
+            "base_hash": _file_hash(path)}
 
 
 @router.get("/api/audit/device/{name}/export")
