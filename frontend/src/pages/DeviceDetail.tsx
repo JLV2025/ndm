@@ -45,6 +45,7 @@ import {
 import { deviceApi, collectorApi } from '../services/api'
 import { sessionManager } from '../services/auth'
 import FrontPanel from '../components/devices/FrontPanel'
+import LifecycleCard from '../components/LifecycleCard'
 import type { Device, CollectResult, FrontPanelData, PortInfo } from '../types'
 import { useI18n } from '../i18n'
 
@@ -265,6 +266,9 @@ const DeviceDetail: React.FC = () => {
           )}
         </Grid>
       </Paper>
+
+      {/* 生命周期（EoL / 保修期）—— 手工登记为主，Cisco EoX 可自动刷新 */}
+      {device?.name && <LifecycleCard deviceName={device.name} />}
 
       {/* 收集结果 */}
       {collectResult && (

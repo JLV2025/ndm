@@ -249,4 +249,31 @@ export const auditApi = {
     }).then(res => res.data),
 }
 
+// 设备生命周期（EoL / 保修期）—— 手工登记为主，Cisco EoX 可自动刷新
+export const lifecycleApi = {
+  device: (name: string): Promise<import('../types').DeviceLifecycle> =>
+    apiJson.get(`/lifecycle/device/${encodeURIComponent(name)}`).then(res => res.data),
+
+  /** 逐序列号保存保修期（source=manual + 核实人） */
+  saveDevice: (name: string, rows: { serial: string; warranty_end: string; note?: string }[],
+               verifiedBy: string) =>
+    apiJson.put(`/lifecycle/device/${encodeURIComponent(name)}`,
+      { rows, verified_by: verifiedBy }).then(res => res.data),
+
+  /** 批量粘贴导入：每行 `序列号,到期日[,备注]`；未匹配的原样回显 */
+  importText: (text: string, verifiedBy: string): Promise<import('../types').LifecycleImportResult> =>
+    apiJson.post('/lifecycle/import', { text, verified_by: verifiedBy }).then(res => res.data),
+
+  /** 手工登记型号 EoL（覆盖已有记录） */
+  saveModel: (model: string, patch: Record<string, unknown>) =>
+    apiJson.put(`/lifecycle/model/${encodeURIComponent(model)}`, patch).then(res => res.data),
+
+  /** 按型号刷新 Cisco EoX（未配凭据 → 400 + 可读原因） */
+  refresh: (force = false) =>
+    apiJson.post('/lifecycle/refresh', null, { params: { force } }).then(res => res.data),
+
+  overview: (): Promise<{ devices: import('../types').LifecycleOverviewRow[]; refresh: import('../types').LifecycleRefreshStatus }> =>
+    apiJson.get('/lifecycle/overview').then(res => res.data),
+}
+
 export default apiJson

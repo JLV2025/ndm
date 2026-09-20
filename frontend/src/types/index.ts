@@ -238,6 +238,63 @@ export interface AuditRunDetail {
   findings: AuditRunFinding[]
 }
 
+// ---------------------------------------------------------------- 设备生命周期（EoL / 保修）
+
+/** 刷新可用性：未配 Cisco 凭据时 available=false + 可读原因（手工登记不受影响） */
+export interface LifecycleRefreshStatus {
+  available: boolean
+  reason: string
+}
+
+export interface LifecycleModelEol {
+  model: string
+  description?: string
+  end_of_sale?: string
+  end_of_support?: string
+  announcement?: string
+  bulletin?: string
+  bulletin_url?: string
+  source?: string            // api（Cisco EoX）| manual
+  fetched_at?: string
+  updated_by?: string
+  note?: string
+}
+
+export interface LifecycleSerial {
+  serial: string
+  warranty_end?: string     // YYYY-MM-DD（保修，不是服务合同）
+  note?: string
+  source?: string
+  verified_at?: string
+  verified_by?: string
+}
+
+export interface DeviceLifecycle {
+  device_name: string
+  models: string[]
+  model_eol: LifecycleModelEol[]
+  serials: LifecycleSerial[]
+  extra_rows: LifecycleSerial[]
+  refresh: LifecycleRefreshStatus
+}
+
+export interface LifecycleImportResult {
+  matched: { device_name: string; serial: string; warranty_end: string }[]
+  unmatched: string[]
+  ambiguous: { serial: string; devices: string[] }[]
+  invalid: string[]
+}
+
+export interface LifecycleOverviewRow {
+  device_name: string
+  models: string[]
+  serials: string[]
+  registered: number
+  warranty_end: string
+  verified_at: string
+  eol_announced: boolean
+}
+
 /** 单台审计的完整返回体 */
 export interface AuditEnvelope {
   device: string
