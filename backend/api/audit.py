@@ -24,7 +24,7 @@ from pydantic import BaseModel
 
 router = APIRouter()
 
-from analyzers.compliance import engine, loader, source  # noqa: E402
+from analyzers.compliance import engine, loader, runner, source  # noqa: E402
 from storage.database import get_connection as _get_db  # noqa: E402
 
 
@@ -186,66 +186,8 @@ async def run_audit(trigger: str = "manual"):
     if trigger not in ("manual", "scheduled", "post_collect"):
         raise HTTPException(status_code=400,
                             detail="trigger 只能是 manual / scheduled / post_collect")
-    std = loader.load_standard()
-    db = _get_db()
-    started = _now()
-    cur = db.execute(
-        "INSERT INTO audit_runs (started_at, trigger, ruleset_hash, ruleset_version, "
-        "exceptions_hash, status) VALUES (?, ?, ?, ?, ?, 'running')",
-        (started, trigger, loader.ruleset_hash(std), std.get("meta", {}).get("version"),
-         loader.exceptions_hash(std)))
-    run_id = cur.lastrowid
-
-    t0 = time.time()
-    items = source.list_audit_inputs(db)
-    usable = [it for it in items if it.snapshot.usable]
-    skipped, findings_total, exempt_total = [], 0, 0
-    for item in items:
-        snap = item.snapshot
-        if not snap.usable:
-            skipped.append({"device": snap.name, "reason": snap.reason})
-            continue
-        analysis = engine.analyze(snap.name, snap.config, std, site=snap.location,
-                                  port_context=item.port_context,
-                                  startup_config=snap.startup_config)
-        for f in analysis["findings"]:
-            exempt = f.get("exempt") or None
-            if exempt and exempt.get("status") in ("active", "expiring"):
-                exempt_total += 1
-            db.execute(
-                "INSERT INTO audit_findings (run_id, device_id, device_name, collection_id, week, "
-                "rule_id, level, source, severity, title, detail, current_text, fix_text, why_text, "
-                "note_text, evidence_json, lines_json, missing_json, controls_json, config_hash, "
-                "ruleset_hash, exempt_by, exempt_json, created_at) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (run_id, snap.device_id, snap.name, snap.collection_id, snap.week,
-                 f["rule_id"], f["level"], f["source"], f.get("severity", ""), f["title"],
-                 f.get("detail", ""), f.get("current", ""), f.get("fix", ""), f.get("why", ""),
-                 f.get("note", ""),
-                 json.dumps(f.get("evidence", []), ensure_ascii=False),
-                 json.dumps(f.get("lines", []), ensure_ascii=False),
-                 json.dumps(f.get("missing", []), ensure_ascii=False),
-                 json.dumps(f.get("controls", []), ensure_ascii=False),
-                 snap.config_hash, loader.ruleset_hash(std),
-                 (exempt or {}).get("exception_id") or None,
-                 json.dumps(exempt, ensure_ascii=False) if exempt else None,
-                 _now()))
-            findings_total += 1
-
-    db.execute("UPDATE audit_runs SET finished_at = ?, device_count = ?, finding_count = ?, "
-               "exempt_count = ?, status = 'done' WHERE id = ?",
-               (_now(), len(usable), findings_total, exempt_total, run_id))
-    db.commit()
-    return {
-        "run_id": run_id,
-        "device_count": len(usable),
-        "finding_count": findings_total,
-        "exempt_count": exempt_total,
-        "duration_ms": int((time.time() - t0) * 1000),
-        "ruleset_hash": loader.ruleset_hash(std),
-        "exceptions_hash": loader.exceptions_hash(std),
-        "skipped": skipped,
-    }
+    # 实际执行在 analyzers/compliance/runner.py —— 采集后自动跑走同一实现
+    return runner.run_full_audit(_get_db(), loader.load_standard(), trigger)
 
 
 @router.get("/api/audit/runs")
