@@ -43,6 +43,14 @@ def test_radius_tacacs的key被打掉():
     assert "MySharedSecret" not in out and out.startswith("radius-server host 10.1.1.1 key <REDACTED>")
 
 
+def test_修复命令里的凭据也要打掉():
+    """fix 字段常以 no 开头（`no snmp-server community X`）——锚定行首会漏打。"""
+    assert redact_secrets("no snmp-server community QorvoRW") == \
+        "no snmp-server community <REDACTED>"
+    assert redact_secrets("no username admin secret 9 $9$abc") == \
+        "no username admin secret 9 <REDACTED>"
+
+
 def test_普通配置行不被误伤():
     for line in ["interface GigabitEthernet1/0/1", " description Uplink to core",
                  " vlan 16", "    name PC-Data", "ntp server 10.1.1.1",
