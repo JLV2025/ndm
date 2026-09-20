@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import datetime
 import re
+import sqlite3
 
 _IMPORT_LINE_RE = re.compile(
     r"^\s*(\S+?)[,\t\s]+(\d{4}-\d{2}-\d{2})\s*(?:[,\t\s]+(.*))?$")
@@ -62,12 +63,14 @@ def list_device_serials(conn, device_name: str) -> list[str]:
 
 
 def get_model_eol(conn, model: str) -> dict | None:
+    conn.row_factory = sqlite3.Row
     row = conn.execute("SELECT * FROM eol_models WHERE model = ?", (model,)).fetchone()
     return dict(row) if row else None
 
 
 def get_device_lifecycle(conn, device_name: str) -> dict:
     """设备生命周期全景：已知序列号 + 各自保修记录 + 型号 EoL。"""
+    conn.row_factory = sqlite3.Row
     dev = conn.execute("SELECT model FROM devices WHERE name = ?", (device_name,)).fetchone()
     models = split_serials(dev[0] if dev else None)
     serials = list_device_serials(conn, device_name)
@@ -114,7 +117,8 @@ def overview(conn) -> list[dict]:
             "device_name": name,
             "models": models,
             "serials": serials,
-            "registered": len([r for r in rows]),      # 已登记的保修记录数
+            # 只数**填了日期**的行 —— 有行无日期等于没登记，别让"待查"被假的已登记数骗过
+            "registered": len([r for r in rows if r[0]]),
             "warranty_end": ends[0] if ends else "",   # 最早到期（最需要关注的）
             "verified_at": max((r[1] or "" for r in rows), default=""),
             "eol_announced": any(r.get("end_of_sale") or r.get("end_of_support") for r in eol_rows),

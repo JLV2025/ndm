@@ -31,6 +31,7 @@ from api.alerts import router as alerts_router
 from api.reports import router as reports_router
 from api.logs import router as logs_router
 from api.audit import router as audit_router
+from api.lifecycle import router as lifecycle_router
 
 VERSION_FILE = os.path.join(BASE_DIR, "VERSION")
 
@@ -86,6 +87,7 @@ app.include_router(alerts_router, tags=["alerts"])
 app.include_router(reports_router, tags=["reports"])
 app.include_router(logs_router, prefix="/api", tags=["logs"])
 app.include_router(audit_router, tags=["audit"])
+app.include_router(lifecycle_router, tags=["lifecycle"])
 
 # ============ 健康检查 ============
 
