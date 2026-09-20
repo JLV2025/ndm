@@ -197,24 +197,26 @@
   <li><a href="#en-loganalyzer">10. Log Analyzer &amp; AI Diagnosis</a></li>
   <li><a href="#en-nettopo">11. Network Topology</a></li>
   <li><a href="#en-porttopo">12. Port Topology</a></li>
-  <li><a href="#en-audit">13. Configuration Audit</a></li>
-  <li><a href="#en-storage">14. Data Storage</a></li>
-  <li><a href="#en-faq">15. FAQ</a></li>
-  <li><a href="#zh-intro">16. 系统介绍 (中文)</a></li>
-  <li><a href="#zh-quickstart">17. 快速开始</a></li>
-  <li><a href="#zh-login">18. 登录与会话</a></li>
-  <li><a href="#zh-dashboard">19. 仪表盘</a></li>
-  <li><a href="#zh-devices">20. 设备管理</a></li>
-  <li><a href="#zh-detail">21. 设备详情与前面板</a></li>
-  <li><a href="#zh-viewer">22. 数据查看器</a></li>
-  <li><a href="#zh-alerts">23. 告警中心</a></li>
-  <li><a href="#zh-reports">24. 报表</a></li>
-  <li><a href="#zh-loganalyzer">25. 日志分析与 AI 诊断</a></li>
-  <li><a href="#zh-nettopo">26. 网络拓扑图</a></li>
-  <li><a href="#zh-porttopo">27. 端口拓扑图</a></li>
-  <li><a href="#zh-audit">28. 配置审计</a></li>
-  <li><a href="#zh-storage">29. 数据存储</a></li>
-  <li><a href="#zh-faq">30. 常见问题</a></li>
+  <li><a href="#en-stptopo">13. STP Topology</a></li>
+  <li><a href="#en-audit">14. Configuration Audit</a></li>
+  <li><a href="#en-storage">15. Data Storage</a></li>
+  <li><a href="#en-faq">16. FAQ</a></li>
+  <li><a href="#zh-intro">17. 系统介绍 (中文)</a></li>
+  <li><a href="#zh-quickstart">18. 快速开始</a></li>
+  <li><a href="#zh-login">19. 登录与会话</a></li>
+  <li><a href="#zh-dashboard">20. 仪表盘</a></li>
+  <li><a href="#zh-devices">21. 设备管理</a></li>
+  <li><a href="#zh-detail">22. 设备详情与前面板</a></li>
+  <li><a href="#zh-viewer">23. 数据查看器</a></li>
+  <li><a href="#zh-alerts">24. 告警中心</a></li>
+  <li><a href="#zh-reports">25. 报表</a></li>
+  <li><a href="#zh-loganalyzer">26. 日志分析与 AI 诊断</a></li>
+  <li><a href="#zh-nettopo">27. 网络拓扑图</a></li>
+  <li><a href="#zh-porttopo">28. 端口拓扑图</a></li>
+  <li><a href="#zh-stptopo">29. STP 拓扑图</a></li>
+  <li><a href="#zh-audit">30. 配置审计</a></li>
+  <li><a href="#zh-storage">31. 数据存储</a></li>
+  <li><a href="#zh-faq">32. 常见问题</a></li>
 </ol>
 
 <div class="divider-lang"><span>PART I — ENGLISH</span></div>
@@ -244,6 +246,7 @@
     <li><strong>Front panel</strong> — switch port-status panel + router interface tree, stacking support, 10Gb red badges</li>
     <li><strong>Port topology</strong> — CDP/LLDP + ConfigParser merged, React Flow canvas, 4-layer auto layout, stacking, LAG aggregation</li>
     <li><strong>Network topology</strong> — CDP + LLDP auto discovery, 3-layer layout (WAN → Core → Access), PNG / Visio export</li>
+    <li><strong>STP topology</strong> — per-site spanning tree: root bridge highlighted, per-VLAN pseudo-ports (★ root / ✕ blocked), VLAN legend to isolate one tree, mode-mismatch warning, PNG export</li>
     <li><strong>SQLite storage</strong> — running-config dual-track (file + DB), logs de-duplicated by timestamp</li>
     <li><strong>Bilingual UI</strong> — Chinese / English switch at one click</li>
   </ul>
@@ -503,24 +506,55 @@
   <li><strong>AP detection</strong> — CDP/LLDP-discovered APs marked as endpoint aggregates</li>
 </ul>
 
-<!-- ======================= 13. Configuration Audit ======================= -->
-<h2 id="en-audit">13. Configuration Audit</h2>
+<!-- ======================= 13. STP Topology ======================= -->
+<h2 id="en-stptopo">13. STP Topology</h2>
+<p>Per-site spanning-tree view: how the switches tie together through STP, which bridge is the root, and
+which links forward or block — drawn for every VLAN.</p>
+
+<h3>13.1 Reading the Canvas</h3>
+<ul>
+  <li>Pick a <strong>location</strong>; the header shows the device / link / VLAN counts</li>
+  <li>Switches are layered by <strong>STP depth</strong> — the root bridge sits on top, highlighted in gold;
+      multiple roots are placed side by side</li>
+  <li>Every VLAN is a <strong>colored pseudo-port</strong> row inside the switch node: ★ = root port,
+      ✕ = blocked; hover a port for role, priority and root MAC</li>
+  <li>Links are colored by VLAN and <strong>drawn as solid when forwarding, dashed when blocked</strong>;
+      straight when both ends align, routed as a pipe otherwise</li>
+  <li><strong>VLAN legend</strong> (left): click a VLAN to highlight just that spanning tree; click again
+      (or <em>All</em>) to clear</li>
+  <li><strong>Export PNG</strong> (top right) saves the current canvas</li>
+</ul>
+
+<h3>13.2 Data &amp; Warnings</h3>
+<ul>
+  <li>Source: <code>show spanning-tree</code>, parsed for both <strong>AOS-CX RPVST</strong> and
+      <strong>Cisco Rapid-PVST</strong>; root MACs are normalized across vendors so the root is recognized
+      regardless of platform</li>
+  <li>⚠ <strong>Inconsistent STP mode at a site</strong> (e.g. RPVST mixed with Rapid-PVST) is flagged at the
+      top — same-family names count as equal</li>
+  <li><strong>Root outside the site</strong>: if the root MAC matches none of the site's devices, that is
+      called out together with the MAC</li>
+  <li>A switch without collected STP data shows <em>no STP data</em> — re-collect the device to populate it</li>
+</ul>
+
+<!-- ======================= 14. Configuration Audit ======================= -->
+<h2 id="en-audit">14. Configuration Audit</h2>
 <p>Review configurations the way a senior network engineer would — against <strong>company standards</strong>,
 <strong>vendor hardening guides</strong> and <strong>site conventions</strong>. Every verdict comes from a
 <strong>deterministic rule engine</strong>; AI is only used to phrase the result in plain language.</p>
 
-<h3>13.1 Single-Device Audit</h3>
+<h3>14.1 Single-Device Audit</h3>
 <ol>
   <li>Open <strong>Viewer</strong>, switch to <strong>Audit</strong> mode, pick a device, click <strong>Audit</strong></li>
   <li>Flagged config lines (left) and suggestion cards (right) are linked <strong>both ways</strong> — click a card to jump to its line, click a line to jump to its card</li>
   <li>Each card shows the <strong>level</strong> (advisory strength), the exact commands, and the rationale</li>
-  <li><strong>Register exception</strong> accepts a deviation formally (13.3); <strong>Generate briefing</strong> asks the AI to summarise the findings (13.5)</li>
+  <li><strong>Register exception</strong> accepts a deviation formally (14.3); <strong>Generate briefing</strong> asks the AI to summarise the findings (14.5)</li>
   <li><strong>Export</strong> as Markdown or JSON</li>
 </ol>
 <p class="note">The five levels (Strongly advised / Risk / Improvement / Optional / Manual review) express
 <strong>advisory strength, not pass-fail</strong> — the audit is a review, not a compliance score.</p>
 
-<h3>13.2 Fleet Audit &amp; Trends</h3>
+<h3>14.2 Fleet Audit &amp; Trends</h3>
 <ul>
   <li><strong>Configuration Audit</strong> page → <strong>Audit all devices</strong> (about 1 s for the whole fleet);
       a run is also triggered automatically about 60 s after a collection batch finishes</li>
@@ -532,7 +566,7 @@
       so a jump is not misread as the network getting worse</li>
 </ul>
 
-<h3>13.3 Standards &amp; Exceptions</h3>
+<h3>14.3 Standards &amp; Exceptions</h3>
 <ul>
   <li><strong>Audit Standards</strong> page: rules grouped by source (HQ &gt; vendor &gt; convention) with
       enable/disable and field editing. Rules live in <code>config/audit/*.yaml</code> — the files stay the
@@ -543,7 +577,7 @@
       counted separately; expired ones return to the normal counts; revoking keeps the record for audit history</li>
 </ul>
 
-<h3>13.4 Device Lifecycle (EoL &amp; Warranty)</h3>
+<h3>14.4 Device Lifecycle (EoL &amp; Warranty)</h3>
 <ul>
   <li>Device detail → <strong>Lifecycle</strong> card: model EoL dates and per-serial warranty expiry</li>
   <li><strong>Cisco</strong>: with <code>CISCO_API_CLIENT_ID</code> / <code>CISCO_API_CLIENT_SECRET</code> set,
@@ -554,7 +588,7 @@
       <strong>Manual review</strong> ("to verify"), collapsed into one network-wide entry so it does not drown real findings</li>
 </ul>
 
-<h3>13.5 AI Expert Briefing</h3>
+<h3>14.5 AI Expert Briefing</h3>
 <ul>
   <li>Available for a single device (Viewer) and for the whole fleet (Configuration Audit page)</li>
   <li>It only <strong>re-phrases the engine's findings</strong> — the prompt forbids inventing problems,
@@ -563,7 +597,7 @@
 </ul>
 
 <!-- ======================= 14. Data Storage ======================= -->
-<h2 id="en-storage">14. Data Storage</h2>
+<h2 id="en-storage">15. Data Storage</h2>
 <p>All collected data is stored in SQLite (<code>data/ndm.db</code>); only running-config keeps a file copy for emergency recovery.</p>
 <pre class="card" style="font-size:0.8rem;line-height:1.7;overflow-x:auto;">
 data/
@@ -580,7 +614,7 @@ data/
 </ul>
 
 <!-- ======================= 14. FAQ ======================= -->
-<h2 id="en-faq">15. FAQ</h2>
+<h2 id="en-faq">16. FAQ</h2>
 <div class="card">
   <h4>Q: The login page shows "Backend service unavailable"</h4>
   <p>Make sure the backend is running (<code>python backend/main.py</code>) and port 8002 is reachable.</p>
@@ -605,7 +639,7 @@ data/
 <div class="divider-lang"><span>PART II — 中文</span></div>
 
 <!-- ======================= 15. 系统介绍 ======================= -->
-<h2 id="zh-intro">16. 系统介绍</h2>
+<h2 id="zh-intro">17. 系统介绍</h2>
 <p>
   NDM（网络设备配置管理系统）是一套<strong>网络设备配置采集与分析系统</strong>，通过 SSH 登录
   <strong>Cisco IOS / IOS XE / 路由器</strong>和 <strong>Aruba OS / CX 交换机</strong>，
@@ -629,6 +663,7 @@ data/
     <li><strong>前面板可视化</strong> — 交换机端口状态面板 + 路由器接口层级树，支持堆叠、10Gb 红色数字标识</li>
     <li><strong>端口拓扑图</strong> — CDP/LLDP + ConfigParser 双数据源，React Flow 画布，四层自动布局，堆叠展开，LAG 聚合</li>
     <li><strong>网络拓扑图</strong> — CDP + LLDP 邻居自动发现，三层分层布局（WAN → 核心 → 接入），PNG / Visio 导出</li>
+    <li><strong>STP 拓扑图</strong> — 按站点看生成树：根桥高亮、每 VLAN 伪端口（★ 根 / ✕ 阻塞）、VLAN 图例单棵高亮、模式混用告警、PNG 导出</li>
     <li><strong>SQLite 全量存储</strong> — running-config 双轨（文件 + 库），日志按时间戳去重</li>
     <li><strong>双语文案</strong> — 中文 / 英文一键切换</li>
   </ul>
@@ -645,7 +680,7 @@ data/
 </table>
 
 <!-- ======================= 16. 快速开始 ======================= -->
-<h2 id="zh-quickstart">17. 快速开始</h2>
+<h2 id="zh-quickstart">18. 快速开始</h2>
 <h3>16.1 环境要求</h3>
 <ul>
   <li>Python 3.9+</li>
@@ -690,7 +725,7 @@ data/
 </table>
 
 <!-- ======================= 17. 登录与会话 ======================= -->
-<h2 id="zh-login">18. 登录与会话</h2>
+<h2 id="zh-login">19. 登录与会话</h2>
 <p>
   登录页面用于管理采集设备所用的 <strong>SSH 凭据</strong>，同时会执行一次<strong>后端健康检查</strong>。
 </p>
@@ -709,7 +744,7 @@ data/
 </div>
 
 <!-- ======================= 18. 仪表盘 ======================= -->
-<h2 id="zh-dashboard">19. 仪表盘</h2>
+<h2 id="zh-dashboard">20. 仪表盘</h2>
 <p>Dashboard 提供全部受管设备的实时总览。</p>
 <h3>18.1 统计卡片</h3>
 <ul>
@@ -732,7 +767,7 @@ data/
 </ul>
 
 <!-- ======================= 19. 设备管理 ======================= -->
-<h2 id="zh-devices">20. 设备管理</h2>
+<h2 id="zh-devices">21. 设备管理</h2>
 <p>核心页面，提供设备的<strong>筛选、采集、管理、批量操作</strong>等功能。</p>
 
 <h3>19.1 按 Location 筛选</h3>
@@ -768,7 +803,7 @@ data/
 <p>在设备列表中打开导入对话框，上传 CSV 文件（可先下载系统提供的模板），后端批量校验并导入设备。</p>
 
 <!-- ======================= 20. 设备详情与前面板 ======================= -->
-<h2 id="zh-detail">21. 设备详情与前面板</h2>
+<h2 id="zh-detail">22. 设备详情与前面板</h2>
 <p>设备详情页展示单台设备的采集数据，并包含可交互的前面板。</p>
 
 <h3>20.1 交换机前面板</h3>
@@ -790,7 +825,7 @@ data/
 </ul>
 
 <!-- ======================= 21. 数据查看器 ======================= -->
-<h2 id="zh-viewer">22. 数据查看器</h2>
+<h2 id="zh-viewer">23. 数据查看器</h2>
 
 <h3>21.1 单版本查看（Single 模式）</h3>
 <ol>
@@ -808,7 +843,7 @@ data/
 </ol>
 
 <!-- ======================= 22. 告警中心 ======================= -->
-<h2 id="zh-alerts">23. 告警中心</h2>
+<h2 id="zh-alerts">24. 告警中心</h2>
 <p>告警页面列出每次采集后检测到的异常，每条告警包含类型、级别、标题、详情和自动生成的修复建议。</p>
 <table class="tbl">
   <tr><th>告警类型</th><th>含义</th></tr>
@@ -827,7 +862,7 @@ data/
 </ul>
 
 <!-- ======================= 23. 报表 ======================= -->
-<h2 id="zh-reports">24. 报表</h2>
+<h2 id="zh-reports">25. 报表</h2>
 <table class="tbl">
   <tr><th>报表</th><th>说明</th></tr>
   <tr><td><strong>软件版本</strong></td><td>跨设备固件版本矩阵（可按类型筛选），高亮版本不一致</td></tr>
@@ -837,7 +872,7 @@ data/
 </table>
 
 <!-- ======================= 24. 日志分析与 AI ======================= -->
-<h2 id="zh-loganalyzer">25. 日志分析与 AI 诊断</h2>
+<h2 id="zh-loganalyzer">26. 日志分析与 AI 诊断</h2>
 <p>按周和严重级别浏览设备日志，并支持对选中的日志条目执行 <strong>AI 分析</strong>。</p>
 
 <h3>24.1 浏览日志</h3>
@@ -866,7 +901,7 @@ data/
 </div>
 
 <!-- ======================= 25. 网络拓扑图 ======================= -->
-<h2 id="zh-nettopo">26. 网络拓扑图</h2>
+<h2 id="zh-nettopo">27. 网络拓扑图</h2>
 <p>按位置展示多设备拓扑，数据来自 <strong>CDP + LLDP 邻居自动发现</strong> 与 <strong>ConfigParser 端口描述</strong>。</p>
 <ul>
   <li><strong>三层分层布局</strong> — WAN → 核心 → 接入，智能连线最短路由</li>
@@ -876,7 +911,7 @@ data/
 </ul>
 
 <!-- ======================= 26. 端口拓扑图 ======================= -->
-<h2 id="zh-porttopo">27. 端口拓扑图</h2>
+<h2 id="zh-porttopo">28. 端口拓扑图</h2>
 <p>单台设备的端口连接图，合并 <strong>CDP/LLDP 邻居</strong>与 <strong>ConfigParser</strong>（端口描述）双数据源。</p>
 <ul>
   <li><strong>四层自动布局</strong> — WAN → 核心 → 接入 → 端点</li>
@@ -888,23 +923,48 @@ data/
   <li><strong>AP 识别</strong> — CDP/LLDP 发现的 AP 标记为端点聚合</li>
 </ul>
 
-<!-- ======================= 28. 配置审计 ======================= -->
-<h2 id="zh-audit">28. 配置审计</h2>
+<!-- ======================= 28. STP 拓扑图 ======================= -->
+<h2 id="zh-stptopo">29. STP 拓扑图</h2>
+<p>按站点查看交换机之间的生成树关系：谁是根桥、哪些链路转发、哪些被阻塞 —— 每个 VLAN 各画一棵树。</p>
+
+<h3>29.1 看图</h3>
+<ul>
+  <li>选择<strong>站点</strong>；页头显示设备数 / 链路数 / VLAN 数</li>
+  <li>交换机按 <strong>STP 深度</strong>分层：根桥在最上层并<strong>金色高亮</strong>；多根桥并排顶层</li>
+  <li>每个 VLAN 是交换机节点里的一个<strong>彩色伪端口</strong>：★ = 根端口，✕ = 阻塞；
+      悬停可看端口角色、优先级与根 MAC</li>
+  <li>链路按 VLAN 着色，<strong>转发画实线、阻塞画虚线</strong>；两端对齐时走直线，其他形态自动走管道折线</li>
+  <li>左侧 <strong>VLAN 图例</strong>：点某个 VLAN 只高亮那棵生成树，再点一次（或点「全部」）恢复</li>
+  <li>右上角<strong>导出 PNG</strong> 保存当前画布</li>
+</ul>
+
+<h3>29.2 数据来源与告警</h3>
+<ul>
+  <li>数据来自 <code>show spanning-tree</code>：<strong>AOS-CX 的 RPVST</strong> 与
+      <strong>Cisco 的 Rapid-PVST</strong> 双平台解析，跨厂商 MAC 归一化认根</li>
+  <li>⚠ <strong>站点 STP 模式不一致</strong>（例如 RPVST 与 Rapid-PVST 混用）会在顶部告警 ——
+      同族名称（RPVST ≡ Rapid-PVST）视为一致，不误报</li>
+  <li><strong>根桥在站点外</strong>：根 MAC 与本站点设备都对不上时给出提示并列出该 MAC</li>
+  <li>没采到生成树数据的设备显示「无 STP 数据」—— 重新采集该设备即可出现</li>
+</ul>
+
+<!-- ======================= 29. 配置审计 ======================= -->
+<h2 id="zh-audit">30. 配置审计</h2>
 <p>像资深网络工程师那样评审配置：对照<strong>公司总部要求</strong>、<strong>厂商加固建议</strong>与
 <strong>现网惯例</strong>三层标准。所有判定都来自<strong>确定性规则引擎</strong>，AI 只负责把结论讲成人话。</p>
 
-<h3>28.1 单台审计</h3>
+<h3>30.1 单台审计</h3>
 <ol>
   <li>进入<strong>配置查看器</strong> → 切到<strong>「审计」</strong>模式 → 选设备 → 点「审计」</li>
   <li>左侧标红的配置行与右侧建议卡片<strong>双向定位</strong>：点卡片跳到对应行，点行跳到对应卡片</li>
   <li>每张卡片给出<strong>档位</strong>（建议强度）、可复制的修复命令与依据</li>
-  <li>「<strong>登记例外</strong>」把某条偏离正式登记（见 28.3）；「<strong>生成专家简报</strong>」让 AI 汇总讲评（见 28.5）</li>
+  <li>「<strong>登记例外</strong>」把某条偏离正式登记（见 30.3）；「<strong>生成专家简报</strong>」让 AI 汇总讲评（见 30.5）</li>
   <li>可<strong>导出</strong> Markdown / JSON</li>
 </ol>
 <p class="note">五档（强烈建议 / 风险提示 / 改进建议 / 可选优化 / 需人工判断）表示<strong>建议强度，不是违规等级</strong>——
 本页是评审意见，不是合规打分。</p>
 
-<h3>28.2 全网审计与趋势</h3>
+<h3>30.2 全网审计与趋势</h3>
 <ul>
   <li><strong>「配置审计」</strong>页 → 点「全网审计」（36 台约 1 秒）；<strong>采集批次结束后约 60 秒会自动跑一轮</strong></li>
   <li><strong>趋势</strong>：每周一个点（取该周最后一次运行），建议数与已批准例外数分开画；可切总数 / 按档位 / 按来源，可按站点筛选</li>
@@ -913,7 +973,7 @@ data/
   <li>指纹徽章标出<strong>标准</strong>或<strong>豁免</strong>是否变过 —— 避免把"口径变了"误读成"设备变差了"</li>
 </ul>
 
-<h3>28.3 标准与例外</h3>
+<h3>30.3 标准与例外</h3>
 <ul>
   <li><strong>「审计标准」</strong>页：规则按来源分组（总部 &gt; 厂商 &gt; 惯例），可启停、可编辑字段。
       规则存在 <code>config/audit/*.yaml</code>，<strong>文件始终是唯一权威</strong> —— 每次保存都会校验、失败自动回滚，注释与 git 历史完整保留</li>
@@ -922,7 +982,7 @@ data/
       命中的条目会标注<em>已批准例外</em>并<strong>单列</strong>；到期自动失效回到普通统计；撤销保留记录可追溯</li>
 </ul>
 
-<h3>28.4 设备生命周期（EoL 与保修期）</h3>
+<h3>30.4 设备生命周期（EoL 与保修期）</h3>
 <ul>
   <li>设备详情页 →「<strong>生命周期</strong>」卡片：型号 EoL 日期与逐序列号保修到期日</li>
   <li><strong>Cisco</strong>：配好 <code>CISCO_API_CLIENT_ID</code> / <code>CISCO_API_CLIENT_SECRET</code> 后点「刷新 EoL」，
@@ -933,7 +993,7 @@ data/
       （「待查」，多台自动<strong>折叠成一条</strong>，不淹没真问题）</li>
 </ul>
 
-<h3>28.5 AI 专家简报</h3>
+<h3>30.5 AI 专家简报</h3>
 <ul>
   <li>单台（查看器）与全网（配置审计页）两处都能生成</li>
   <li>它只<strong>把引擎的结论讲成人话</strong> —— 提示词里硬性约束不得新增输入中没有的问题、命令或日期</li>
@@ -941,7 +1001,7 @@ data/
 </ul>
 
 <!-- ======================= 29. 数据存储 ======================= -->
-<h2 id="zh-storage">29. 数据存储</h2>
+<h2 id="zh-storage">31. 数据存储</h2>
 <p>所有采集数据统一存入 SQLite（<code>data/ndm.db</code>），仅 running-config 保留文件副本供紧急恢复。</p>
 <pre class="card" style="font-size:0.8rem;line-height:1.7;overflow-x:auto;">
 data/
@@ -958,7 +1018,7 @@ data/
 </ul>
 
 <!-- ======================= 28. 常见问题 ======================= -->
-<h2 id="zh-faq">30. 常见问题</h2>
+<h2 id="zh-faq">32. 常见问题</h2>
 <div class="card">
   <h4>问：登录页显示“后端服务不可用”</h4>
   <p>请确认后端已启动（<code>python backend/main.py</code>）且端口 8002 可访问。</p>
