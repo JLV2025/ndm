@@ -137,6 +137,8 @@ def _render_md(env: dict) -> str:
     counts = {k: v for k, v in (env.get("counts") or {}).items() if v}
     lines += ["## 建议统计", ""]
     lines += [f"- {k}：{v} 条" for k, v in counts.items()] or ["- 未发现可改进项"]
+    if env.get("exempt_count"):
+        lines.append(f"- 已批准例外：{env['exempt_count']} 条（单列，不计入上方统计）")
     lines.append("")
 
     for level in engine.LEVEL_ORDER:
@@ -149,6 +151,11 @@ def _render_md(env: dict) -> str:
             lines.append("")
             lines.append(f"- 规则：`{f['rule_id']}`　来源：{f['source']}　"
                          f"适用：{f['platform']}")
+            if f.get("exempt"):
+                ex = f["exempt"]
+                tag = "例外已过期" if ex.get("status") == "expired" else "已批准例外"
+                lines.append(f"- **{tag}**：`{ex.get('exception_id', '')}`　"
+                             f"批准人：{ex.get('approved_by', '')}　到期：{ex.get('expires_at', '')}")
             if f.get("controls"):
                 lines.append(f"- 对应控制项：{', '.join(f['controls'])}")
             if f.get("detail"):
