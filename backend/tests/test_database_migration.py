@@ -34,6 +34,10 @@ def test_全新库包含计数器列且版本为最新(tmp_path, restore_db_path
     assert {"run_id", "rule_id", "level", "evidence_json", "config_hash"} <= table_columns(conn, "audit_findings")
     assert {"exceptions_hash", "exempt_count"} <= table_columns(conn, "audit_runs")        # v15：例外
     assert {"exempt_by", "exempt_json"} <= table_columns(conn, "audit_findings")           # v15：豁免快照
+    assert {"model", "end_of_sale", "end_of_support", "bulletin_url", "source"} \
+        <= table_columns(conn, "eol_models")                                               # v16：EoL 型号缓存
+    assert {"device_name", "serial", "warranty_end", "source", "verified_at"} \
+        <= table_columns(conn, "device_lifecycle")                                         # v16：逐序列号保修
 
 
 def test_迁移幂等_重复init不报错也不改变结构(tmp_path, restore_db_path):
@@ -296,3 +300,47 @@ def test_v12老库升级到v13只加审计表不动既有数据():
     tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {"audit_runs", "audit_findings"} <= tables
     assert conn.execute("SELECT name FROM devices WHERE id = 1").fetchone()[0] == "BJQD1SWI01"
+
+
+# ---- v16：设备生命周期两张表 ----
+
+def test_v16可重复执行():
+    """CREATE TABLE IF NOT EXISTS / CREATE INDEX IF NOT EXISTS —— 重复执行不抛异常。"""
+    conn = sqlite3.connect(":memory:")
+
+    db._migrate_v16(conn)
+    db._migrate_v16(conn)
+
+    assert {"model", "description", "end_of_sale", "end_of_support", "announcement",
+            "bulletin", "bulletin_url", "source", "fetched_at", "updated_by", "note"} \
+        <= table_columns(conn, "eol_models")
+    assert {"device_name", "serial", "model", "warranty_end", "note", "source",
+            "verified_at", "verified_by", "updated_at"} <= table_columns(conn, "device_lifecycle")
+    idx = {row[1] for row in conn.execute("PRAGMA index_list(device_lifecycle)")}
+    assert "idx_device_lifecycle_device" in idx and "idx_device_lifecycle_serial" in idx
+
+
+def test_v16同设备同序列号唯一():
+    """(device_name, serial) 唯一约束 —— upsert 语义靠它（堆叠逐成员一行）。"""
+    conn = sqlite3.connect(":memory:")
+    db._migrate_v16(conn)
+    conn.execute("INSERT INTO device_lifecycle (device_name, serial, warranty_end) "
+                 "VALUES ('BJQD1SWI01', 'SG30LMQ17K', '2028-05-01')")
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute("INSERT INTO device_lifecycle (device_name, serial) "
+                     "VALUES ('BJQD1SWI01', 'SG30LMQ17K')")
+    # 不同序列号（堆叠另一成员）可以共存
+    conn.execute("INSERT INTO device_lifecycle (device_name, serial) "
+                 "VALUES ('BJQD1SWI01', 'SG30LMQ108')")
+    assert conn.execute("SELECT COUNT(*) FROM device_lifecycle").fetchone()[0] == 2
+
+
+def test_v15老库升级到v16只加表不动既有数据():
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE audit_runs (id INTEGER PRIMARY KEY, started_at TEXT)")
+    conn.execute("INSERT INTO audit_runs VALUES (1, '2026-09-20T10:00:00')")
+
+    db._migrate_v16(conn)
+
+    assert conn.execute("SELECT started_at FROM audit_runs").fetchone()[0] == "2026-09-20T10:00:00"
+    assert table_columns(conn, "device_lifecycle")

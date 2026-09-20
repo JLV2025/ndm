@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 # 当前 Schema 版本（每次 schema 变更递增）
-SCHEMA_VERSION = 15
+SCHEMA_VERSION = 16
 
 # 线程本地存储 —— 每个线程持有自己的连接
 _local = threading.local()
@@ -690,6 +690,49 @@ def _migrate_v15(conn: sqlite3.Connection) -> None:
             pass  # 列/索引已存在（迁移幂等）
 
 
+def _migrate_v16(conn: sqlite3.Connection) -> None:
+    """Schema v16: 设备生命周期两张表（EoL 型号缓存 + 逐序列号保修登记）。
+
+    **为什么进库而不是 YAML**（与例外机制相反）：例外是"决策记录"（谁批的、到期复核），
+    需要 git 追溯；EoL / 保修是**设备事实数据** —— 随 API 刷新而变、条数多（全网友 ≈50 个序列号）、
+    且需要"手工值不被自动刷新覆盖"的语义，所以进库 + 页面编辑。
+
+    device_name 冗余存名字（而不是只存 device_id）：设备改名/删除后记录仍可追溯 ——
+    与 audit_findings 的做法一致。
+    """
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS eol_models (
+            model          TEXT PRIMARY KEY,   -- 型号（Cisco PID / Aruba 型号号）
+            description    TEXT,
+            end_of_sale    TEXT,               -- YYYY-MM-DD
+            end_of_support TEXT,               -- LastDateOfSupport
+            announcement   TEXT,
+            bulletin       TEXT,
+            bulletin_url   TEXT,
+            source         TEXT,               -- api（Cisco EoX）| manual
+            fetched_at     TEXT,
+            updated_by     TEXT,
+            note           TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS device_lifecycle (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_name  TEXT NOT NULL,
+            serial       TEXT NOT NULL DEFAULT '',   -- 堆叠设备逐成员一行
+            model        TEXT,
+            warranty_end TEXT,                       -- YYYY-MM-DD（保修，不是服务合同）
+            note         TEXT,
+            source       TEXT,                       -- manual | api
+            verified_at  TEXT,                       -- 何时核实的（陈旧判定用）
+            verified_by  TEXT,
+            updated_at   TEXT,
+            UNIQUE(device_name, serial)
+        );
+        CREATE INDEX IF NOT EXISTS idx_device_lifecycle_device ON device_lifecycle(device_name);
+        CREATE INDEX IF NOT EXISTS idx_device_lifecycle_serial ON device_lifecycle(serial);
+    """)
+
+
 # 迁移注册表
 _MIGRATIONS = {
     1: _migrate_v1,
@@ -707,4 +750,5 @@ _MIGRATIONS = {
     13: _migrate_v13,
     14: _migrate_v14,
     15: _migrate_v15,
+    16: _migrate_v16,
 }
