@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T02:21:32.803Z
-> Files: 131 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T02:22:14.576Z
+> Files: 132 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -279,6 +279,7 @@
 ## frontend/src/pages/
 
 - `Alerts.tsx` — 字段中文标签映射 (~4641 tok)
+- `ComplianceStandard.tsx` — 档位 → 配色，与查看器审计模式保持一致（刻意不用红色系：这是建议强度不是违规等级） (~4465 tok)
 - `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~11085 tok)
 - `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5691 tok)
 - `Login.tsx` — Login (~2283 tok)

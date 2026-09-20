@@ -27,6 +27,7 @@ import {
   Warning as AlertIcon,
   Assessment as ReportsIcon,
   BugReport as BugIcon,
+  FactCheck as AuditIcon,
 } from '@mui/icons-material'
 import Login from './pages/Login'
 import DeviceList from './pages/DeviceList'
@@ -39,6 +40,7 @@ import StpTopology from './pages/StpTopology'
 import Alerts from './pages/Alerts'
 import Reports from './pages/Reports'
 import LogAnalyzer from './pages/LogAnalyzer'
+import ComplianceStandard from './pages/ComplianceStandard'
 import MatrixRain from './components/MatrixRain'
 import { sessionManager } from './services/auth'
 import { useI18n } from './i18n'
@@ -94,6 +96,7 @@ function Layout() {
     { label: t('alerts.title'), icon: <AlertIcon />, path: '/alerts' },
     { label: t('reports.title'), icon: <ReportsIcon />, path: '/reports' },
     { label: t('logs.title'), icon: <BugIcon />, path: '/log-analyzer' },
+    { label: t('auditRules.title'), icon: <AuditIcon />, path: '/compliance-standard' },
   ]
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen)
@@ -357,6 +360,7 @@ const App: React.FC = () => {
           <Route path="alerts" element={<Alerts />} />
           <Route path="reports" element={<Reports />} />
           <Route path="log-analyzer" element={<LogAnalyzer />} />
+          <Route path="compliance-standard" element={<ComplianceStandard />} />
         </Route>
       </Routes>
       </ErrorBoundary>
