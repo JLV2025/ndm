@@ -7,3 +7,6 @@ aiofiles>=23.2.1
 cryptography>=41.0.7
 pydantic-settings>=2.1.0
 requests>=2.31.0
+
+# 规则文件的往返编辑（保留注释）—— 规则库写回用
+ruamel.yaml>=0.19

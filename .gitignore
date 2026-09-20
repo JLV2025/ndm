@@ -91,3 +91,6 @@ security-review-report.md
 
 # Test fixtures with real IPs
 c:/tmp/switch.txt
+
+# 规则文件编辑备份（本地回滚用，不进 git）
+config/audit/.backups/

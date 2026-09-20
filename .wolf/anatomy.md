@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T00:57:36.424Z
-> Files: 102 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T02:06:40.709Z
+> Files: 128 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -87,22 +87,30 @@
 ## C:/Users/jingl/AppData/Local/Temp/
 
 - `add_bug.py` — 追加一条 bug 记录到 .wolf/buglog.json (~436 tok)
+- `add_bug2.py` (~430 tok)
+- `add_bug3.py` (~406 tok)
+- `baseline205.py` — 复现移植等价性基线：用 netstd 原版引擎跑 NDM 库里 36 台设备的最新配置 (~411 tok)
 - `bump151.py` — 修正 bug-151：累计第 3 次出现，并如实记录「成因未定 + 已排除项」 (~288 tok)
 - `cerebrum_append.md` — Key Learnings (~844 tok)
 - `cerebrum_append2.md` — Key Learnings (~812 tok)
 - `cerebrum_append3.md` — Decision Log (~418 tok)
+- `cerebrum_audit.md` — Decision Log (~554 tok)
 - `dec1.md` — ## 定案 1（2026-09-20）：运维就绪度检查**纳入一期**，含 startup 一致性 (~184 tok)
 - `dec2.md` — ## 定案 2（2026-09-20）：厂商安全公告与生命周期 —— **二期做，先只做 EoL** (~123 tok)
 - `dec3.md` — ## 定案 3（2026-09-20）：规则增加 NIST 控制族标签 (~225 tok)
 - `dec4.md` — 十二、开工前讨论总结（2026-09-20） (~298 tok)
 - `dump_aruba.py` — 临时脚本：列出 Aruba 设备与最新采集的配置概况，并按需导出指定设备的配置 (~547 tok)
+- `equiv_check.py` — 移植等价性验证：netstd 原版引擎 vs NDM 移植版引擎 (~788 tok)
 - `extract_docx.py` — 临时脚本：按文档顺序提取 docx 的段落与表格（含样式名，用于判断标题层级） (~423 tok)
 - `ndm_diag_report.py` — 诊断：用真实函数跑「软件版本报告」的展开逻辑，看每一行缺什么 (~297 tok)
 - `ndm_svl_check.py` — C9500 SVL 端到端演练：真机样本 → member_uptimes → 报告成员行（库副本，不碰生产库） (~403 tok)
 - `plan_addendum.md` — 九、补充：总部《AUTOMATION-Cisco》对审计输出的约束（2026-09-18 晚，评估后新增） (~399 tok)
 - `plan_addendum2.md` — 十、定案：审计导出的 `status` 语义（2026-09-20） (~567 tok)
+- `plan_addendum3.md` — 十三、实施进度（2026-09-20 当日） (~468 tok)
 - `repair151.py` — 修复：① 还原被误改的自动条目（数组下标 150）② 正确更新真正的 bug-151 (~504 tok)
+- `role_demo.py` — 真机演练：端口角色 + 两条样板规则（不落库、不改规则文件） (~1176 tok)
 - `sunday_todo.md` — 周日开工前（2026-09-20）必读：待确认与待办 (~306 tok)
+- `undef_check.py` — 轻量未定义名检查：找出「作为全局/自由变量被读取，但既未定义也未导入」的名字。 (~840 tok)
 
 ## C:/Users/jingl/OneDrive - Qorvo/01-DocWiKi/01_network_configuration/
 
@@ -116,7 +124,7 @@
 ## backend/
 
 - `_verify_version.py` — 临时验证脚本：检查 FastAPI 应用版本号动态读取（验证后删除） (~76 tok)
-- `main.py` — API: 3 endpoints (~1379 tok)
+- `main.py` — API: 3 endpoints (~1406 tok)
 - `tmp_stp_check.py` — 临时诊断：用真实库数据模拟前端层带判定（跑完即删） (~889 tok)
 
 ## backend/analyzers/
@@ -127,9 +135,20 @@
 - `performance.py` — PerformanceAnalyzer: analyze (~7668 tok)
 - `stp_parser.py` — 生成树（STP）输出解析器 (~2662 tok)
 
+## backend/analyzers/compliance/
+
+- `__init__.py` — 配置合规审计模块（移植自 allright/netstd，NDM 版）。 (~144 tok)
+- `checks.py` — 内置判定器 —— 规则通过 `check` 名 + `params` 引用这里面的函数。 (~4928 tok)
+- `engine.py` — 配置审计 —— 判定引擎（对外入口）。 (~1112 tok)
+- `loader.py` — 规则库加载与校验。 (~2365 tok)
+- `parser.py` — 配置文本解析 —— 从 running-config 文本构建判定所需的设备模型。 (~1671 tok)
+- `port_roles.py` — 端口角色推断 —— 让端口级规则真正可达。 (~1798 tok)
+- `source.py` — 审计数据源 —— 从 NDM 库取"这次审计要审什么"。 (~1402 tok)
+
 ## backend/api/
 
 - `alerts.py` — 告警 API 路由 (~2091 tok)
+- `audit.py` — 配置审计 API 路由。 (~4538 tok)
 - `collector.py` — 配置收集 API 路由 (~1741 tok)
 - `data.py` — 数据文件 API 路由 (~3944 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
@@ -150,12 +169,12 @@
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~20558 tok)
+- `collector_service.py` — 配置收集服务 (~20266 tok)
 
 ## backend/storage/
 
 - `__init__.py` — 数据存储服务模块 (~162 tok)
-- `database.py` — init_db, get_connection, close_connection (~5793 tok)
+- `database.py` — init_db, get_connection, close_connection (~6450 tok)
 - `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~2296 tok)
 - `file_manager.py` — 存储管理模块 (~2595 tok)
 
@@ -164,14 +183,19 @@
 - `conftest.py` — test_password_manager (~78 tok)
 - `test_alerts_resolve_all.py` — 「全部清除」端点测试 —— 批量把未处理告警标记为已处理 (~812 tok)
 - `test_anomaly_version_mismatch.py` — 异常检测：堆叠成员版本不一致告警 (~693 tok)
+- `test_audit_api.py` — 审计 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）。 (~3397 tok)
 - `test_collector_service.py` — collector_service 型号/序列号/成员ID提取测试 — 重点：Aruba CX VSF 堆叠 (~1644 tok)
 - `test_collector_service.py` — extract_model/extract_serial_number 测试（重点 VSF 堆叠成员型号，4 用例） (~500 tok)
+- `test_compliance_engine.py` — 配置审计引擎测试 —— 解析、判定器、站点作用域、行号契约。 (~5389 tok)
+- `test_compliance_source.py` — 审计数据源测试 —— 重点在三条边界： (~1511 tok)
 - `test_counter_parser.py` — 端口累计计数器解析器测试 (~4010 tok)
-- `test_database_migration.py` — 数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表） (~1673 tok)
+- `test_database_migration.py` — 数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表） (~2659 tok)
 - `test_member_parser.py` — 堆叠成员级解析测试 —— 编号 / 序列号 / 版本 / ROM / 运行时间 (~3084 tok)
 - `test_neighbor_parser.py` — CDP/LLDP 邻居解析器测试 — 重点：Aruba AP 名识别 (~1543 tok)
 - `test_performance_aruba.py` — Aruba show interface brief 解析测试 (~389 tok)
 - `test_performance_counters.py` — 端口累计计数器与端口详情合并测试（PerformanceAnalyzer 接线） (~2443 tok)
+- `test_port_names.py` — 端口名归一化测试。 (~660 tok)
+- `test_port_roles.py` — 端口角色推断测试 —— 让「BPDU Guard 不该配在上行口」这类端口级规则可信。 (~3120 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试（21 列 INSERT / NULL 与读数 0 区分 / 大数据精度） (~900 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试 —— 重点：累计计数器列（in_octets / out_octets） (~1043 tok)
 - `test_reports_api.py` — 自定义报告端点测试 —— 临时库直接调端点函数（HTTP 层之下） (~2205 tok)
@@ -187,11 +211,19 @@
 
 ## backend/utils/
 
+- `port_names.py` — 端口名归一化 —— CDP/LLDP/STP/配置文本之间的端口名对齐。 (~414 tok)
 
 ## config/
 
 - `settings.example.yaml` — NDM 全局配置模板 (~238 tok)
 - `settings.yaml` (~197 tok)
+
+## config/audit/
+
+- `_scopes.yaml` — NDM 配置审计 —— 共用段（唯一一份，所有规则文件共享） (~792 tok)
+- `company-standard.yaml` — NDM 配置审计 —— 公司总部要求层（CFG-Aruba / CFG-CISCO） (~4345 tok)
+- `org-convention.yaml` — NDM 配置审计 —— 组织惯例层（我们自己的使用习惯） (~753 tok)
+- `vendor-baseline.yaml` — NDM 配置审计 —— 厂商基线层（厂商加固建议） (~3230 tok)
 
 ## data/
 

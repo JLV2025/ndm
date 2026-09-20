@@ -289,7 +289,8 @@ rules:
        no spanning-tree bpdu-guard     ! Cisco
       interface <上联口>
           no spanning-tree bpdu-guard ! Aruba CX
-    why: 上联口对端是交换机，会周期性发送 BPDU；配了 bpdu-guard 后该口会在收到
+    why: >-
+      上联口对端是交换机，会周期性发送 BPDU；配了 bpdu-guard 后该口会在收到
       BPDU 时被判为"下挂了交换机"而 err-disable，直接造成链路中断。
     note: 生成树根端口也算"对端是交换机"（根端口的定义就是朝根桥方向）。
 
@@ -307,9 +308,11 @@ rules:
     source: 厂商基线
     severity: vendor
     fix: 'interface <端口> / no spanning-tree bpdu-guard'
-    why: 对端是路由器 / SD-WAN / 防火墙，不发 BPDU，bpdu-guard 不会误触发——
+    why: >-
+      对端是路由器 / SD-WAN / 防火墙，不发 BPDU，bpdu-guard 不会误触发——
       但也起不到任何防护作用，属无意义配置。
-    note: 之所以仍列出：对端设备一旦换成交换机就会立刻变成真风险，且清掉它能
+    note: >-
+      之所以仍列出：对端设备一旦换成交换机就会立刻变成真风险，且清掉它能
       让"这口是不是上联口"一目了然。现网 21 处命中全部落在这一档。
 
   - id: cx_snooping_requires_trust
@@ -326,7 +329,8 @@ rules:
     fix: |
       interface <上联口>
           dhcpv4-snooping trust
-    why: 启用 snooping 却没有任何 trust 端口时，从上行方向回来的 DHCP 服务器
+    why: >-
+      启用 snooping 却没有任何 trust 端口时，从上行方向回来的 DHCP 服务器
       应答会被当作"非信任来源"丢弃，终端拿不到地址——配了一半比不配更危险：
       现象是"部分终端随机拿不到 IP"，很难往这条命令上想。
     note: >-

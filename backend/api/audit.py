@@ -12,9 +12,14 @@ from __future__ import annotations
 
 import datetime
 import json
+import os
+import shutil
+import time
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import PlainTextResponse
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -99,7 +104,7 @@ async def get_ruleset():
 
 
 @router.get("/api/audit/device/{name}")
-async def audit_device(name: str, include_config: bool = Query(True)):
+async def audit_device(name: str, include_config: bool = True):
     """单台设备的即时审计（不落库）。"""
     std = loader.load_standard()
     item = source.load_audit_input(_get_db(), name)
@@ -157,9 +162,242 @@ def _render_md(env: dict) -> str:
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------- 全量审计入库
+
+@router.post("/api/audit/run")
+async def run_audit(trigger: str = "manual"):
+    """全网审计并入库。
+
+    实测 36 台约 0.7 秒，**同步返回即可**，不需要后台任务与进度条。
+    不可用的设备（采集失败/全文已清理）照样计入 device_count，但单独列出原因 ——
+    静默跳过会让人以为"这些都审过了、没问题"。
+    """
+    if trigger not in ("manual", "scheduled", "post_collect"):
+        raise HTTPException(status_code=400,
+                            detail="trigger 只能是 manual / scheduled / post_collect")
+    std = loader.load_standard()
+    db = _get_db()
+    started = _now()
+    cur = db.execute(
+        "INSERT INTO audit_runs (started_at, trigger, ruleset_hash, ruleset_version, status) "
+        "VALUES (?, ?, ?, ?, 'running')",
+        (started, trigger, loader.ruleset_hash(std), std.get("meta", {}).get("version")))
+    run_id = cur.lastrowid
+
+    t0 = time.time()
+    items = source.list_audit_inputs(db)
+    usable = [it for it in items if it.snapshot.usable]
+    skipped, findings_total = [], 0
+    for item in items:
+        snap = item.snapshot
+        if not snap.usable:
+            skipped.append({"device": snap.name, "reason": snap.reason})
+            continue
+        analysis = engine.analyze(snap.name, snap.config, std,
+                                  site=snap.location, port_context=item.port_context)
+        for f in analysis["findings"]:
+            db.execute(
+                "INSERT INTO audit_findings (run_id, device_id, device_name, collection_id, week, "
+                "rule_id, level, source, severity, title, detail, current_text, fix_text, why_text, "
+                "note_text, evidence_json, lines_json, missing_json, controls_json, config_hash, "
+                "ruleset_hash, created_at) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                (run_id, snap.device_id, snap.name, snap.collection_id, snap.week,
+                 f["rule_id"], f["level"], f["source"], f.get("severity", ""), f["title"],
+                 f.get("detail", ""), f.get("current", ""), f.get("fix", ""), f.get("why", ""),
+                 f.get("note", ""),
+                 json.dumps(f.get("evidence", []), ensure_ascii=False),
+                 json.dumps(f.get("lines", []), ensure_ascii=False),
+                 json.dumps(f.get("missing", []), ensure_ascii=False),
+                 json.dumps(f.get("controls", []), ensure_ascii=False),
+                 snap.config_hash, loader.ruleset_hash(std), _now()))
+            findings_total += 1
+
+    db.execute("UPDATE audit_runs SET finished_at = ?, device_count = ?, finding_count = ?, "
+               "status = 'done' WHERE id = ?",
+               (_now(), len(usable), findings_total, run_id))
+    db.commit()
+    return {
+        "run_id": run_id,
+        "device_count": len(usable),
+        "finding_count": findings_total,
+        "duration_ms": int((time.time() - t0) * 1000),
+        "ruleset_hash": loader.ruleset_hash(std),
+        "skipped": skipped,
+    }
+
+
+@router.get("/api/audit/runs")
+async def list_runs(limit: int = 20):
+    """审计历史（趋势的基座）。"""
+    db = _get_db()
+    db.row_factory = __import__("sqlite3").Row
+    rows = db.execute(
+        "SELECT id, started_at, finished_at, trigger, ruleset_hash, device_count, "
+        "finding_count, status FROM audit_runs ORDER BY id DESC LIMIT ?", (limit,)).fetchall()
+    return {"runs": [dict(r) for r in rows]}
+
+
+@router.get("/api/audit/runs/{run_id}")
+async def get_run(run_id: int, level: str | None = None, device: str | None = None):
+    """某次审计的明细，可按档位 / 设备过滤。"""
+    db = _get_db()
+    db.row_factory = __import__("sqlite3").Row
+    run = db.execute("SELECT * FROM audit_runs WHERE id = ?", (run_id,)).fetchone()
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"审计记录不存在：{run_id}")
+    sql = ("SELECT device_name, rule_id, level, source, severity, title, detail, lines_json, "
+           "controls_json FROM audit_findings WHERE run_id = ?")
+    params: list = [run_id]
+    if level:
+        sql += " AND level = ?"
+        params.append(level)
+    if device:
+        sql += " AND device_name = ?"
+        params.append(device)
+    sql += " ORDER BY device_name, level, rule_id"
+    findings = []
+    for r in db.execute(sql, params):
+        d = dict(r)
+        d["lines"] = json.loads(d.pop("lines_json") or "[]")
+        d["controls"] = json.loads(d.pop("controls_json") or "[]")
+        findings.append(d)
+    return {"run": dict(run), "findings": findings}
+
+
+# ---------------------------------------------------------------- 规则编辑
+#
+# 写入必须：乐观锁 → 备份 → 原子替换（临时文件 + os.replace）→ 校验失败回滚 → 清缓存。
+# 用 ruamel.yaml 做往返编辑（**保留注释**）——规则文件里的注释记录着每条规则"为什么存在"，
+# 那是这个库最值钱的部分，不能用 PyYAML 回写丢掉。
+
+BACKUP_DIRNAME = ".backups"
+BACKUP_KEEP = 10
+
+
+class RuleUpdate(BaseModel):
+    """规则可编辑字段。只开放这几个 —— check / params 改动风险高，走文件编辑+评审。"""
+    enabled: bool | None = None
+    level: str | None = None
+    title: str | None = None
+    fix: str | None = None
+    why: str | None = None
+    note: str | None = None
+    superseded_by: str | None = None
+    disabled_reason: str | None = None
+    base_hash: str | None = None      # 乐观锁：前端带上打开时的文件指纹
+
+
+def _file_hash(path: Path) -> str:
+    import hashlib
+    return hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+
+
+def _find_rule_in_file(path: Path, rule_id: str):
+    """用 ruamel 载入（保留注释），返回 (data, rule_dict)。"""
+    with open(path, "r", encoding="utf-8") as fh:
+        data = _yaml_rt().load(fh)
+    for r in data.get("rules") or []:
+        if r.get("id") == rule_id:
+            return data, r
+    return None, None
+
+
+def _yaml_rt():
+    """规则文件的往返读写器（保留注释）。
+
+    ⚠️ 三个参数必须设，否则 ruamel 会**把整个文件重新排版**——
+    改一个字段看起来像全文重写，git 历史直接报废：
+      · indent(sequence=4, offset=2)：让列表项写成 ``  - id:``（与现有文件一致）
+      · width 调大：**禁止折行**，否则长 why/note 行会被拆成多行
+      · preserve_quotes：保留 '...' 引号写法
+    """
+    from ruamel.yaml import YAML
+    y = YAML()
+    y.preserve_quotes = True
+    y.width = 4096
+    y.indent(mapping=2, sequence=4, offset=2)
+    return y
+
+
+def _atomic_dump(data, path: Path) -> None:
+    """原子写入：同目录临时文件 + os.replace。Windows 上目标被占用会 PermissionError，需重试。"""
+    tmp = path.with_name(path.name + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as fh:
+        _yaml_rt().dump(data, fh)
+    last_err = None
+    for _ in range(10):
+        try:
+            os.replace(tmp, path)
+            return
+        except PermissionError as e:      # 杀毒/编辑器/OneDrive 短暂占用
+            last_err = e
+            time.sleep(0.2)
+    tmp.unlink(missing_ok=True)
+    raise HTTPException(status_code=503, detail=f"文件被占用，写入失败：{last_err}")
+
+
+def _backup(path: Path) -> Path:
+    bdir = path.parent / BACKUP_DIRNAME
+    bdir.mkdir(exist_ok=True)
+    stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    dest = bdir / f"{path.name}.{stamp}"
+    shutil.copy2(path, dest)
+    old = sorted(bdir.glob(f"{path.name}.*"))
+    for f in old[:-BACKUP_KEEP]:          # 只留最近几份，避免堆积
+        f.unlink(missing_ok=True)
+    return dest
+
+
+@router.put("/api/audit/standards/rule/{rule_id}")
+async def update_rule(rule_id: str, body: RuleUpdate):
+    """编辑一条规则并写回它的来源文件。"""
+    std = loader.load_standard(use_cache=False)
+    rule = next((r for r in std["rules"] if r["id"] == rule_id), None)
+    if rule is None:
+        raise HTTPException(status_code=404, detail=f"规则不存在：{rule_id}")
+    path = Path(std["source_dir"]) / rule["source_file"]
+    if not path.exists():
+        raise HTTPException(status_code=500, detail=f"来源文件不存在：{path}")
+
+    if body.base_hash and _file_hash(path) != body.base_hash:
+        raise HTTPException(status_code=409,
+                            detail="规则文件已被其他人修改，请刷新后重试（乐观锁拦截）")
+
+    data, target = _find_rule_in_file(path, rule_id)
+    if target is None:
+        raise HTTPException(status_code=500, detail=f"在 {path.name} 中找不到规则 {rule_id}")
+
+    changes = body.model_dump(exclude_none=True, exclude={"base_hash"})
+    if not changes:
+        raise HTTPException(status_code=400, detail="没有需要修改的字段")
+    for key, value in changes.items():
+        target[key] = value
+    # 停用必须留原因（loader 也会校验，这里提前给出可读错误）
+    if target.get("enabled") is False and not (target.get("superseded_by")
+                                               or target.get("disabled_reason")):
+        raise HTTPException(status_code=400,
+                            detail="停用规则必须填写 superseded_by（被哪条高层规则取代）"
+                                   "或 disabled_reason，否则以后没人知道为什么关掉它")
+
+    backup = _backup(path)
+    _atomic_dump(data, path)
+    loader.clear_cache()
+    try:
+        loader.load_standard(use_cache=False)
+    except loader.RuleError as e:         # 校验失败 → 回滚
+        shutil.copy2(backup, path)
+        loader.clear_cache()
+        raise HTTPException(status_code=400, detail=f"规则库校验未通过，已回滚：\n{e}")
+    return {"ok": True, "rule_id": rule_id, "changed": list(changes),
+            "file": rule["source_file"], "backup": backup.name}
+
+
 @router.get("/api/audit/device/{name}/export")
-async def export_audit(name: str, format: str = Query("md", pattern="^(md|json)$")):
+async def export_audit(name: str, format: str = "md"):
     """导出审计结果。md 便于贴进工单/邮件，json 便于二次处理。"""
+    if format not in ("md", "json"):
+        raise HTTPException(status_code=400, detail="format 只能是 md 或 json")
     std = loader.load_standard()
     item = source.load_audit_input(_get_db(), name)
     if item is None:

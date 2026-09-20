@@ -22,12 +22,16 @@
 #   `ssh server idle-timeout`  → CX 正确写法是 `cli-session` 下的 `timeout`
 #   `snmpv3 enable`            → CX 正确写法是 `snmp-server vrf` / `snmp-server snmpv3-only`
 #
-# ── ⚠️ 待用户定案的一处冲突 ───────────────────────────────────
-#   本文件 hq_cs_no_snmp_community（禁 SNMPv1/v2c）与厂商基线层的 not_adopted 冲突：
-#   not_adopted 记录"用户决定不收起 SNMP 团体字相关项"，而总部基线第 8 章明确
-#   "SNMPv1 and SNMPv2c shall not be configured"。两层要求相反，需用户拍板：
-#   以总部 shall 为准（则 not_adopted 该条作废），还是总部项也暂不启用。
-#   当前**已加入本文件**（按"总部 shall 优先"处理），若定案相反请停用该规则。
+# ── 已定案的一处冲突（2026-09-20）─────────────────────────────
+#   本文件 hq_cs_no_snmp_community（禁 SNMPv1/v2c）曾与厂商基线层的 not_adopted
+#   （"用户决定不收 SNMP 团体字相关项"）冲突。按用户定案的**层优先级**
+#   「总部要求 > 厂商推荐 > 配置惯例」→ **以总部 shall 为准**，本规则保留；
+#   vendor-baseline 的 not_adopted 对应条目已标注"已被总部要求覆盖"。
+#
+# ── 文件编辑注意事项 ──────────────────────────────────────────
+#   规则可通过界面编辑（PUT /api/audit/standards/rule/{id}），用 ruamel 往返写回。
+#   **跨行的 why / note 必须写成 `>-` 折叠块**：普通跨行标量在回写时会被合并成
+#   一行，导致"改一个字段看起来像全文重写"。tests/test_audit_api.py 里有闸门测试。
 
 rules:
 
@@ -59,7 +63,8 @@ rules:
     severity: shall
     controls: [AC-2, AC-3, IA-2, IA-5]
     fix: 'aaa authentication login default group <集中式组名> local'
-    why: 总部第 5 章：管理认证须走集中式 AAA，本地认证**仅作兜底**。
+    why: >-
+      总部第 5 章：管理认证须走集中式 AAA，本地认证**仅作兜底**。
       `group local qorvo-tacacs` 的顺序会让本地账号被优先尝试，使集中式认证形同虚设
       —— 现网两种顺序都存在，是真实的偏离。
     note: 本规则的正则要求"组名在前、local 在后"，正是为了抓这个顺序问题。
@@ -89,7 +94,8 @@ rules:
     severity: shall
     controls: [AC-2, IA-2]
     fix: 'user <应急账号> group administrators password ciphertext <…>'
-    why: 总部第 5 章：必须存在本地 break-glass 账号，供集中式 AAA 故障时应急登录。
+    why: >-
+      总部第 5 章：必须存在本地 break-glass 账号，供集中式 AAA 故障时应急登录。
       没有它，AAA 服务器全挂时无人能登设备。用后须立即改密。
 
   - id: hq_cx_accounting
@@ -119,7 +125,8 @@ rules:
       cli-session
           timeout 15        ! 分钟；加固指南对非敏感网络推荐 15，默认 30
           max-per-user 1
-    why: 总部第 7 章要求"SSH 空闲超时按企业策略配置"。
+    why: >-
+      总部第 7 章要求"SSH 空闲超时按企业策略配置"。
       注意总部文档示例写的 `ssh server idle-timeout 15` **不是 AOS-CX 命令**（照抄会报错），
       正确入口是 cli-session 上下文。这也解释了现网 18 台为何一台都没配上。
     note: 本规则只判 `cli-session` 是否存在；更高版本可进一步要求其下必须有 timeout。
@@ -134,7 +141,8 @@ rules:
     severity: shall
     controls: [SC-12, SC-13, AC-17]
     fix: 'no snmp-server community <团体字>  ／  snmp-server snmpv3-only'
-    why: 总部第 8 章：SNMPv1 与 SNMPv2c **不得**配置。团体字是明文凭据，
+    why: >-
+      总部第 8 章：SNMPv1 与 SNMPv2c **不得**配置。团体字是明文凭据，
       拿到即可读取（RW 团体字还能改写）设备配置。
 
   - id: hq_cx_snmpv3_only
@@ -161,7 +169,8 @@ rules:
     severity: shall
     controls: [AU-8, SC-45, CM-6]
     fix: 'no ntp server <公网地址>  ／ 改用企业内部 NTP'
-    why: 总部第 9 章要求**使用企业内部 NTP 服务器**。公网 NTP 既违反要求，
+    why: >-
+      总部第 9 章要求**使用企业内部 NTP 服务器**。公网 NTP 既违反要求，
       也带来可达性风险（出口受限时时间同步中断）与欺骗风险。
     note: 现网 7 台混配了 pool.ntp.org，属真实偏离。
 
@@ -190,7 +199,8 @@ rules:
     severity: should
     controls: [AU-8, CM-6]
     fix: 'ntp enable'
-    why: AOS-CX 中仅定义 ntp server 不会生效，必须显式 `ntp enable`
+    why: >-
+      AOS-CX 中仅定义 ntp server 不会生效，必须显式 `ntp enable`
       —— 否则时间静默不同步，日志时间戳失真。
 
   - id: hq_cx_syslog
@@ -203,7 +213,8 @@ rules:
     severity: shall
     controls: [AU-2, AU-3, AU-12]
     fix: 'logging <SYSLOG_SERVER_1> severity info vrf default'
-    why: 总部第 10 章要求使用集中式 syslog 收集器。
+    why: >-
+      总部第 10 章要求使用集中式 syslog 收集器。
       没有集中日志 = 安全事件无法溯源，设备本地缓冲重启即丢。
     note: 现网 18 台 Aruba CX **全部未配置**，是与基线差距最大的一项。
 
@@ -240,7 +251,8 @@ rules:
       !
       apply access-list ip MGMT_ACL control-plane vrf mgmt
       apply access-list ip MGMT_ACL control-plane vrf default
-    why: 总部第 4、6 章要求用 MGMT_ACL 限制管理面来源，且**逐协议放行**
+    why: >-
+      总部第 4、6 章要求用 MGMT_ACL 限制管理面来源，且**逐协议放行**
       （禁止 permit ip <网段> any 这类整段放行）。
     note: >-
       两处必须注意：① ACL 定义完**必须 apply** 才生效（总部文档未写这条）；
@@ -278,7 +290,8 @@ rules:
     severity: shall
     controls: [SC-12, SC-13, AC-17]
     fix: 'no snmp-server community <团体字>'
-    why: 总部第 8 章：SNMPv1 与 SNMPv2c 不得配置。团体字是明文凭据；
+    why: >-
+      总部第 8 章：SNMPv1 与 SNMPv2c 不得配置。团体字是明文凭据；
       RW 团体字等于把配置改写权限挂在网上。
     note: >-
       ⚠️ 本规则与 vendor-baseline.yaml 的 not_adopted（"用户决定不收起 SNMP 团体字相关项"）
@@ -386,7 +399,8 @@ rules:
     fix: |
       line vty 0 15
        exec-timeout 15 0
-    why: 总部第 7 章要求空闲超时按企业策略配置。IOS 的实现位置是 line vty 下的
+    why: >-
+      总部第 7 章要求空闲超时按企业策略配置。IOS 的实现位置是 line vty 下的
       exec-timeout（与 NX-OS 的全局 ssh 上下文不同）。
     note: 现网 18 台统一为 exec-timeout 15 0，已达标 —— 本规则用于防止后续变更漏配。
 
@@ -441,7 +455,8 @@ rules:
     severity: should
     controls: [AU-2, AU-12]
     fix: 'logging trap informational'
-    why: 总部第 10 章：日志级别须按企业策略。IOS 用 logging trap 指定送往
+    why: >-
+      总部第 10 章：日志级别须按企业策略。IOS 用 logging trap 指定送往
       syslog 服务器的最高级别，缺这条则依赖设备默认值。
 
   - id: hq_cs_logging_source
@@ -469,6 +484,7 @@ rules:
     fix: |
       ip tacacs source-interface Vlan<管理VLAN>
       ip radius source-interface Vlan<管理VLAN>
-    why: 不固定源接口时，设备访问 AAA/NTP 的源地址不稳定，服务器侧无法按
+    why: >-
+      不固定源接口时，设备访问 AAA/NTP 的源地址不稳定，服务器侧无法按
       固定来源放行或归集，故障排查也困难。
     note: IOS 侧的等价做法；NX-OS 对应的是 use-vrf management。现网覆盖不均。
