@@ -305,6 +305,68 @@ def test_command_set_global_scope_catches_cross_section_conflict():
     assert len(engine.analyze("BJQD1SWI01", text, make_std([r]))["findings"]) == 1
 
 
+def test_min_count_flags_below_threshold():
+    """「至少两台 XXX」——总部第 5/9/10 章都要求 ≥2（AAA 服务器/NTP/收集器）。"""
+    r = rule(id="two_ntp", check="min_count", level="改进建议",
+             params={"pattern": r"(?mi)^ntp server \S+", "min": 2, "label": "至少两台"})
+    std = make_std([r])
+    one = engine.analyze("BJQD1SWI01", "hostname x\nntp server 10.1.1.1\n", std)["findings"]
+    assert len(one) == 1 and "实际 1 条" in one[0]["detail"] and "至少 2 条" in one[0]["detail"]
+    assert one[0]["lines"] == [2]
+    two = engine.analyze("BJQD1SWI01", "hostname x\nntp server 10.1.1.1\nntp server 10.1.1.2\n", std)
+    assert two["findings"] == []
+    none = engine.analyze("BJQD1SWI01", "hostname x\n", std)["findings"]
+    assert len(none) == 1 and none[0]["current"] == "(未配置)"
+
+
+def test_loader_validates_controls_field(tmp_path):
+    (tmp_path / "_scopes.yaml").write_text(
+        "sites: {}\nnaming: {pattern: 'x', type_codes: {}}\nvlans: {standard: {}}\n", encoding="utf-8")
+    (tmp_path / "org-convention.yaml").write_text(
+        "rules:\n"
+        "  - id: r1\n    title: t\n    check: present_regex\n    level: 改进建议\n"
+        "    params: {pattern: x}\n    controls: AC-17\n",
+        encoding="utf-8")
+    with pytest.raises(loader.RuleError) as ei:
+        loader.load_standard(tmp_path, use_cache=False)
+    assert "controls 必须是字符串列表" in str(ei.value)
+
+
+# ---------------------------------------------------------------- 总部规则层（真实规则库）
+
+def test_company_standard_rules_load_with_severity_and_controls():
+    std = loader.load_standard(use_cache=False)
+    hq = [r for r in std["rules"] if r["source"] == "公司总部"]
+    assert len(hq) >= 25
+    assert {r["severity"] for r in hq} == {"shall", "should"}
+    assert all(r.get("controls") for r in hq), "总部规则都应带 NIST 控制标签"
+    # 总部规则必须能区分平台——现网 Cisco 全是 IOS，没有 Nexus
+    assert {p for r in hq for p in r["platforms"]} == {"cx", "cisco"}
+
+
+def test_hq_aaa_rule_catches_local_before_central():
+    """真机偏离：`aaa authentication login default group local qorvo-tacacs` 是
+    "先本地、后集中"，与总部第 5 章"本地仅作兜底"相反。现网两种顺序都存在。"""
+    std = loader.load_standard(use_cache=False)
+    rule = next(r for r in std["rules"] if r["id"] == "hq_cx_aaa_central")
+    std1 = dict(std, rules=[rule])
+
+    wrong = "ArubaOS-CX\nhostname x\naaa authentication login default group local qorvo-tacacs\n"
+    right = "ArubaOS-CX\nhostname x\naaa authentication login default group qorvo-tacacs local\n"
+    assert len(engine.analyze("BJQD1SWI01", wrong, std1)["findings"]) == 1
+    assert engine.analyze("BJQD1SWI01", right, std1)["findings"] == []
+
+
+def test_hq_cisco_snmpv3_user_rule_catches_group_without_user():
+    """本次审计最该报出的一条：现网 18 台 Cisco 全部只有 group、没有 user，
+    SNMPv3 没有用户就无法认证，等于整组不可用。"""
+    std = loader.load_standard(use_cache=False)
+    rule = next(r for r in std["rules"] if r["id"] == "hq_cs_snmpv3_user")
+    cfg = "version 15.2\nhostname SWI\nsnmp-server group GRP-SNMP-V3 v3 priv\n"
+    f = engine.analyze("BJQD1SWI01", cfg, dict(std, rules=[rule]))["findings"][0]
+    assert f["level"] == "强烈建议" and f["controls"] == ["SC-12", "SC-13", "AC-17", "AU-2"]
+
+
 def test_loader_validates_command_set_params(tmp_path):
     (tmp_path / "_scopes.yaml").write_text(
         "sites: {}\nnaming: {pattern: 'x', type_codes: {}}\nvlans: {standard: {}}\n", encoding="utf-8")

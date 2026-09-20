@@ -1,27 +1,474 @@
 # NDM 配置审计 —— 公司总部要求层（CFG-Aruba / CFG-CISCO）
 #
-# 来源：总部下发的 Network Infrastructure Standards —— CFG-Aruba.docx / CFG-CISCO.docx。
-# 上游材料（同目录转换版，含中文导读与勘误）：
-#   OneDrive/01-DocWiKi/01_network_configuration/CFG-Aruba.md、CFG-CISCO.md
-# 检查项清单（本层的落地依据，带 ID / 强度 / 判定提示）：
-#   docs/standards/CFG-Aruba-checklist.md、CFG-Cisco-checklist.md
+# 来源：总部下发的 Network Infrastructure Standards（CFG-Aruba.docx / CFG-CISCO.docx）。
+# 上游材料：
+#   完整转换版（含中文导读与勘误）OneDrive/01-DocWiKi/01_network_configuration/CFG-Aruba.md、CFG-CISCO.md
+#   检查项清单（本层的落地依据）docs/standards/CFG-Aruba-checklist.md、CFG-Cisco-checklist.md
 #
-# severity 语义（本层专有）：
-#   shall  —— 原文用 shall 的强制项（CH4-1、CH5-1、CH6-x、CH7-1、CH8-1/8-2、CH9-1、CH10-1 …）
-#   should —— 原文用 should 的建议项（如 ≥2 台 AAA/NTP/Syslog 服务器、计费、授权）
+# severity：shall（原文 shall 的强制项）/ should（原文 should 的建议项）
 #
-# ⚠️ 本文件当前为空（rules: []）—— 引擎移植阶段要先用 netstd 原规则集做「移植等价性」
-#    验证（基线 207 条命中），此时加入新规则会让命中数变化、无法判定移植是否走样。
-#    总部规则在等价性验证通过后单独一步加入。
+# ── 去重原则（重要）─────────────────────────────────────────────
+# 总部要求与厂商基线**大面积重叠**（SNMPv3、SSH、DHCP snooping、BPDU Guard 等两边都要求）。
+# 若各写一条规则，同一件事会在报告里出现两次。处理办法：
+#   重叠项 → 在**已有规则**上加 `controls:` 字段做溯源，不新建规则；
+#   仅"总部要求、现有规则未覆盖"的项 → 才在本文件新建规则。
+# 因此本文件的规则数远少于检查项总数，这是刻意的。
 #
-# 加入时的注意事项（来自转换与核实过程）：
-#   1. 平台错配：CFG-CISCO 以 Nexus 9000 / NX-OS v7 为主要参考，但现网 18 台 Cisco
-#      全是 IOS / IOS-XE / 路由器 —— IOS 形式才是实际生效的那一套，规则要覆盖两种写法。
-#   2. 两处勘误勿照抄：`ssh server idle-timeout`（CX 用 cli-session timeout）、
-#      `snmpv3 enable`（CX 用 snmp-server vrf / snmp-server snmpv3-only）。
-#   3. 三处配套缺失要补齐：MGMT_ACL 定义后需 apply（CX 绑 control-plane）、
-#      NX-OS 需 clock protocol ntp 且 AAA/NTP/Syslog 走 use-vrf management、
-#      IOS 侧需 ip tacacs/radius source-interface 与 logging source-interface。
-#   4. 判定提示要认现网实际写法（如 Cisco 用命名 radius server 对象 + aaa group server）。
+# ── 平台命名 ──────────────────────────────────────────────────
+# platforms 用 cx / cisco（引擎按**配置文本**判定）；现网 Cisco 全是 IOS/IOS-XE，
+# 没有任何 Nexus —— 基线里 NX-OS 的写法在本层不出现，只写 IOS 形式。
+#
+# ── 两处勘误勿照抄（总部文档原文有误）──────────────────────────
+#   `ssh server idle-timeout`  → CX 正确写法是 `cli-session` 下的 `timeout`
+#   `snmpv3 enable`            → CX 正确写法是 `snmp-server vrf` / `snmp-server snmpv3-only`
+#
+# ── ⚠️ 待用户定案的一处冲突 ───────────────────────────────────
+#   本文件 hq_cs_no_snmp_community（禁 SNMPv1/v2c）与厂商基线层的 not_adopted 冲突：
+#   not_adopted 记录"用户决定不收起 SNMP 团体字相关项"，而总部基线第 8 章明确
+#   "SNMPv1 and SNMPv2c shall not be configured"。两层要求相反，需用户拍板：
+#   以总部 shall 为准（则 not_adopted 该条作废），还是总部项也暂不启用。
+#   当前**已加入本文件**（按"总部 shall 优先"处理），若定案相反请停用该规则。
 
-rules: []
+rules:
+
+  # ================= Aruba CX（CFG-Aruba）=================
+
+  - id: hq_cx_ssh_server
+    title: 【总部】未启用 SSH 管理（Ch4/Ch7）
+    check: present_regex
+    params: {pattern: '(?mi)^ssh server vrf'}
+    platforms: [cx]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [AC-17, SC-8, IA-2]
+    fix: 'ssh server vrf mgmt （带外）/ ssh server vrf default （带内）'
+    why: 总部基线第 4、7 章要求 SSH 为交互式管理的唯一协议。
+
+  - id: hq_cx_aaa_central
+    title: 【总部】管理认证未按要求使用集中式 AAA（Ch5）
+    check: present_regex
+    params:
+      # 关键：要求方法列表里 **local 排在集中式服务器组之后**。
+      # 写成 `group local qorvo-tacacs` 是"先本地、后集中"，与总部
+      # 第 5 章"本地认证仅在集中式 AAA 不可用时使用"相反。
+      pattern: '(?mi)^aaa authentication login default group \S+ local'
+    platforms: [cx]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [AC-2, AC-3, IA-2, IA-5]
+    fix: 'aaa authentication login default group <集中式组名> local'
+    why: 总部第 5 章：管理认证须走集中式 AAA，本地认证**仅作兜底**。
+      `group local qorvo-tacacs` 的顺序会让本地账号被优先尝试，使集中式认证形同虚设
+      —— 现网两种顺序都存在，是真实的偏离。
+    note: 本规则的正则要求"组名在前、local 在后"，正是为了抓这个顺序问题。
+
+  - id: hq_cx_aaa_servers_two
+    title: 【总部】AAA 服务器少于两台（Ch5）
+    check: min_count
+    params:
+      pattern: '(?mi)^\s*(tacacs-server host|radius-server host)'
+      min: 2
+      label: 总部要求至少两台 AAA 服务器，且尽量分布在不同站点/地域
+    platforms: [cx]
+    level: 改进建议
+    source: 公司总部
+    severity: should
+    controls: [AC-2, IA-2]
+    fix: 'tacacs-server host <服务器2> key ciphertext <KEY>'
+    why: 总部第 5 章：至少两台 AAA 服务器，跨站点分布以提高冗余。
+
+  - id: hq_cx_local_account
+    title: 【总部】缺少本地应急账号（break-glass）（Ch5）
+    check: present_regex
+    params: {pattern: '(?mi)^user \S+ group administrators'}
+    platforms: [cx]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [AC-2, IA-2]
+    fix: 'user <应急账号> group administrators password ciphertext <…>'
+    why: 总部第 5 章：必须存在本地 break-glass 账号，供集中式 AAA 故障时应急登录。
+      没有它，AAA 服务器全挂时无人能登设备。用后须立即改密。
+
+  - id: hq_cx_accounting
+    title: 【总部】未启用操作计费（Ch5）
+    check: present_regex
+    params: {pattern: '(?mi)^aaa accounting'}
+    platforms: [cx]
+    level: 改进建议
+    source: 公司总部
+    severity: should
+    controls: [AU-2, AU-12]
+    fix: |
+      aaa accounting all-mgmt default start-stop group <组名>
+      aaa accounting all-mgmt https-server start-stop group <组名>
+    why: 总部第 5 章：集中式 AAA 应提供认证、授权、计费。缺计费就没有操作审计留痕。
+
+  - id: hq_cx_cli_timeout
+    title: 【总部】未配置 CLI 空闲超时（Ch7）
+    check: present_regex
+    params: {pattern: '(?mi)^cli-session'}
+    platforms: [cx]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [SC-8, AC-17]
+    fix: |
+      cli-session
+          timeout 15        ! 分钟；加固指南对非敏感网络推荐 15，默认 30
+          max-per-user 1
+    why: 总部第 7 章要求"SSH 空闲超时按企业策略配置"。
+      注意总部文档示例写的 `ssh server idle-timeout 15` **不是 AOS-CX 命令**（照抄会报错），
+      正确入口是 cli-session 上下文。这也解释了现网 18 台为何一台都没配上。
+    note: 本规则只判 `cli-session` 是否存在；更高版本可进一步要求其下必须有 timeout。
+
+  - id: hq_cx_no_snmp_community
+    title: 【总部】存在 SNMPv1/v2c 团体字（Ch8）
+    check: absent_regex
+    params: {pattern: '(?mi)^snmp-server community'}
+    platforms: [cx]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [SC-12, SC-13, AC-17]
+    fix: 'no snmp-server community <团体字>  ／  snmp-server snmpv3-only'
+    why: 总部第 8 章：SNMPv1 与 SNMPv2c **不得**配置。团体字是明文凭据，
+      拿到即可读取（RW 团体字还能改写）设备配置。
+
+  - id: hq_cx_snmpv3_only
+    title: 【总部】未强制 SNMPv3（Ch8）
+    check: present_regex
+    params: {pattern: '(?mi)^snmp-server snmpv3-only'}
+    platforms: [cx]
+    level: 改进建议
+    source: 公司总部
+    severity: should
+    controls: [SC-12, SC-13]
+    fix: 'snmp-server snmpv3-only'
+    why: 客观落实第 8 章"禁 v1/v2c"——比逐条删除团体字更可靠，能防止后续变更时又加回来。
+
+  - id: hq_cx_ntp_internal_only
+    title: 【总部】NTP 使用了公网源（Ch9）
+    check: absent_regex
+    params:
+      # 匹配所有非 10.x 开头的 NTP 服务器 —— 抓公网源（如 pool.ntp.org）
+      pattern: '(?mi)^ntp server (?!10\.)\S+'
+    platforms: [cx]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [AU-8, SC-45, CM-6]
+    fix: 'no ntp server <公网地址>  ／ 改用企业内部 NTP'
+    why: 总部第 9 章要求**使用企业内部 NTP 服务器**。公网 NTP 既违反要求，
+      也带来可达性风险（出口受限时时间同步中断）与欺骗风险。
+    note: 现网 7 台混配了 pool.ntp.org，属真实偏离。
+
+  - id: hq_cx_ntp_two
+    title: 【总部】NTP 服务器少于两台（Ch9）
+    check: min_count
+    params:
+      pattern: '(?mi)^ntp server \S+'
+      min: 2
+      label: 总部要求至少两台 NTP 服务器，单台失联即失去时间同步
+    platforms: [cx]
+    level: 改进建议
+    source: 公司总部
+    severity: should
+    controls: [AU-8, CM-6]
+    fix: 'ntp server <NTP_SERVER_2>'
+    why: 总部第 9 章：至少配置两台 NTP 服务器。
+
+  - id: hq_cx_ntp_enable
+    title: 【总部】NTP 未显式启用（Ch9）
+    check: present_regex
+    params: {pattern: '(?mi)^ntp enable'}
+    platforms: [cx]
+    level: 改进建议
+    source: 公司总部
+    severity: should
+    controls: [AU-8, CM-6]
+    fix: 'ntp enable'
+    why: AOS-CX 中仅定义 ntp server 不会生效，必须显式 `ntp enable`
+      —— 否则时间静默不同步，日志时间戳失真。
+
+  - id: hq_cx_syslog
+    title: 【总部】未配置集中式 syslog（Ch10）
+    check: present_regex
+    params: {pattern: '(?mi)^logging \S+'}
+    platforms: [cx]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [AU-2, AU-3, AU-12]
+    fix: 'logging <SYSLOG_SERVER_1> severity info vrf default'
+    why: 总部第 10 章要求使用集中式 syslog 收集器。
+      没有集中日志 = 安全事件无法溯源，设备本地缓冲重启即丢。
+    note: 现网 18 台 Aruba CX **全部未配置**，是与基线差距最大的一项。
+
+  - id: hq_cx_syslog_two
+    title: 【总部】syslog 收集器少于两台（Ch10）
+    check: min_count
+    params:
+      pattern: '(?mi)^logging \S+'
+      min: 2
+      label: 总部要求两台收集器
+    platforms: [cx]
+    level: 改进建议
+    source: 公司总部
+    severity: should
+    controls: [AU-2, AU-12]
+    fix: 'logging <SYSLOG_SERVER_2> severity info vrf default'
+    why: 总部第 10 章：配置两台收集器（尽可能）。
+
+  - id: hq_cx_mgmt_acl
+    title: 【总部】缺少 MGMT_ACL 管理面访问控制（Ch6）
+    check: present_regex
+    params: {pattern: '(?mi)^access-list ip MGMT_ACL'}
+    platforms: [cx]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [AC-4, AC-17, SC-7, CM-6]
+    fix: |
+      access-list ip MGMT_ACL
+       10 permit tcp <APPROVED_SUBNET> any eq 22
+       30 permit udp <APPROVED_SUBNET> any eq 161
+      110 permit icmp any any
+      999 deny ip any any log
+      !
+      apply access-list ip MGMT_ACL control-plane vrf mgmt
+      apply access-list ip MGMT_ACL control-plane vrf default
+    why: 总部第 4、6 章要求用 MGMT_ACL 限制管理面来源，且**逐协议放行**
+      （禁止 permit ip <网段> any 这类整段放行）。
+    note: >-
+      两处必须注意：① ACL 定义完**必须 apply** 才生效（总部文档未写这条）；
+      ② control-plane ACL 会过滤该 VRF 下设备**所有本机地址**的流量 ——
+      跑 OSPF/BGP 的设备必须为路由协议预留 permit，否则断邻居；
+      上线要先在带外 mgmt VRF 验证再配 default VRF，避免自我锁死。
+      现网 18 台 Aruba CX 全部没有任何 ACL，本规则会全部命中。
+
+  # ================= Cisco IOS（CFG-CISCO）=================
+  # 注：基线以 Nexus/NX-OS 为主要参考，但现网 Cisco 全是 IOS/IOS-XE —— 以下只判 IOS 形式。
+
+  - id: hq_cs_snmpv3_user
+    title: 【总部】未配置 SNMPv3 用户（Ch8）
+    check: present_regex
+    params: {pattern: '(?mi)^snmp-server user'}
+    platforms: [cisco]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [SC-12, SC-13, AC-17, AU-2]
+    fix: 'snmp-server group <组名> v3 priv ／ snmp-server user <用户> <组名> v3 auth sha256 <…> priv aes256 <…>'
+    why: 总部第 8 章要求 SNMPv3 AuthPriv。
+    note: >-
+      ⚠️ 现网 18 台 Cisco **全部配了 `snmp-server group ... v3 priv`、却一台都没配 user**
+      —— SNMPv3 没有用户就无法认证，等于整组不可用。这是"配了一半"的典型，
+      也是本次审计最该报出来的一条。
+
+  - id: hq_cs_no_snmp_community
+    title: 【总部】存在 SNMPv1/v2c 团体字（Ch8）
+    check: absent_regex
+    params: {pattern: '(?mi)^snmp-server community'}
+    platforms: [cisco]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [SC-12, SC-13, AC-17]
+    fix: 'no snmp-server community <团体字>'
+    why: 总部第 8 章：SNMPv1 与 SNMPv2c 不得配置。团体字是明文凭据；
+      RW 团体字等于把配置改写权限挂在网上。
+    note: >-
+      ⚠️ 本规则与 vendor-baseline.yaml 的 not_adopted（"用户决定不收起 SNMP 团体字相关项"）
+      冲突 —— 待用户定案：以总部 shall 为准（则该 not_adopted 作废），还是本规则暂不启用。
+
+  - id: hq_cs_mgmt_acl
+    title: 【总部】缺少 MGMT_ACL 管理面访问控制（Ch6）
+    check: present_regex
+    params: {pattern: '(?mi)^ip access-list (extended )?MGMT_ACL'}
+    platforms: [cisco]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [AC-4, AC-17, SC-7, CM-6]
+    fix: |
+      ip access-list extended MGMT_ACL
+       permit tcp <APPROVED_SUBNET> any eq 22
+       permit udp <APPROVED_SUBNET> any eq 161
+       permit icmp any any
+       deny   ip any any log
+      !
+      line vty 0 15
+       access-class MGMT_ACL in
+       transport input ssh
+    why: 总部第 4、6 章要求用 MGMT_ACL 限制管理面来源，逐协议放行。
+    note: >-
+      现网 18 台 Cisco 中无一台使用 MGMT_ACL 命名（现存 ACL 是 ACL-NMS-SNMPv3、
+      CISCO-CWA-URL-REDIRECT-ACL 等）——专用 ACL 不能替代命名要求。
+
+  - id: hq_cs_aaa_central
+    title: 【总部】管理认证未按要求使用集中式 AAA（Ch5）
+    check: present_regex
+    params: {pattern: '(?mi)^aaa authentication login default group \S+ local'}
+    platforms: [cisco]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [AC-2, AC-3, IA-2, IA-5]
+    fix: 'aaa authentication login default group <集中式组名> local'
+    why: 同 CX：本地认证只能作兜底，方法列表里 local 必须排在集中式组之后。
+
+  - id: hq_cs_aaa_servers_two
+    title: 【总部】AAA 服务器少于两台（Ch5）
+    check: min_count
+    params:
+      pattern: '(?mi)^(tacacs server|radius server) \S+'
+      min: 2
+      label: 总部要求至少两台 AAA 服务器，且尽量跨站点分布
+    platforms: [cisco]
+    level: 改进建议
+    source: 公司总部
+    severity: should
+    controls: [AC-2, IA-2]
+    fix: 'tacacs server <服务器2> / address ipv4 <IP> / key 7 <KEY>'
+    why: 总部第 5 章：至少两台 AAA 服务器以提供冗余。
+
+  - id: hq_cs_local_account
+    title: 【总部】缺少本地应急账号（break-glass）（Ch5）
+    check: present_regex
+    params: {pattern: '(?mi)^username \S+ privilege 15'}
+    platforms: [cisco]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [AC-2, IA-2]
+    fix: 'username <应急账号> privilege 15 secret <强口令>'
+    why: 总部第 5 章：必须存在本地 break-glass 账号。用后须立即改密。
+
+  - id: hq_cs_accounting
+    title: 【总部】未启用操作计费（Ch5）
+    check: present_regex
+    params: {pattern: '(?mi)^aaa accounting'}
+    platforms: [cisco]
+    level: 改进建议
+    source: 公司总部
+    severity: should
+    controls: [AU-2, AU-12]
+    fix: |
+      aaa accounting commands 15 default start-stop group <组名>
+      aaa accounting exec default start-stop group <组名>
+    why: 总部第 5 章：集中式 AAA 应提供计费；缺计费就没有操作审计留痕。
+
+  - id: hq_cs_ssh_version2
+    title: 【总部】未强制 SSHv2（Ch7）
+    check: present_regex
+    params: {pattern: '(?mi)^ip ssh version 2'}
+    platforms: [cisco]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [SC-8, AC-17]
+    fix: 'ip ssh version 2'
+    why: 总部第 7 章：SSH 加密算法须符合企业安全标准。SSHv1 已被证明不安全。
+    note: 现网 15/18 台已配，缺 3 台。
+
+  - id: hq_cs_ssh_idle_timeout
+    title: 【总部】未配置 SSH 空闲超时（Ch7）
+    check: present_regex
+    params: {pattern: '(?mi)^\s*exec-timeout [1-9]'}
+    platforms: [cisco]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [SC-8, AC-17]
+    fix: |
+      line vty 0 15
+       exec-timeout 15 0
+    why: 总部第 7 章要求空闲超时按企业策略配置。IOS 的实现位置是 line vty 下的
+      exec-timeout（与 NX-OS 的全局 ssh 上下文不同）。
+    note: 现网 18 台统一为 exec-timeout 15 0，已达标 —— 本规则用于防止后续变更漏配。
+
+  - id: hq_cs_ntp_internal_only
+    title: 【总部】NTP 使用了公网源（Ch9）
+    check: absent_regex
+    params: {pattern: '(?mi)^ntp server (?!10\.)\S+'}
+    platforms: [cisco]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [AU-8, SC-45, CM-6]
+    fix: 'no ntp server <公网地址>'
+    why: 总部第 9 章：使用企业内部 NTP 服务器。
+
+  - id: hq_cs_ntp_two
+    title: 【总部】NTP 服务器少于两台（Ch9）
+    check: min_count
+    params:
+      pattern: '(?mi)^ntp server \S+'
+      min: 2
+      label: 总部要求至少两台
+    platforms: [cisco]
+    level: 改进建议
+    source: 公司总部
+    severity: should
+    controls: [AU-8, CM-6]
+    fix: 'ntp server <NTP_SERVER_2>'
+    why: 总部第 9 章：至少两台 NTP 服务器。
+    note: 现网 Cisco 侧只配了一台（10.8.26.10），未达要求。
+
+  - id: hq_cs_syslog
+    title: 【总部】未配置集中式 syslog（Ch10）
+    check: present_regex
+    params: {pattern: '(?mi)^logging (host|\d)'}
+    platforms: [cisco]
+    level: 强烈建议
+    source: 公司总部
+    severity: shall
+    controls: [AU-2, AU-3, AU-12]
+    fix: 'logging host <SYSLOG_SERVER>'
+    why: 总部第 10 章：使用集中式 syslog 收集器。
+    note: 现网 Cisco 侧 logging host 覆盖 10/18。
+
+  - id: hq_cs_logging_trap
+    title: 【总部】未设置日志级别（Ch10）
+    check: present_regex
+    params: {pattern: '(?mi)^logging trap'}
+    platforms: [cisco]
+    level: 改进建议
+    source: 公司总部
+    severity: should
+    controls: [AU-2, AU-12]
+    fix: 'logging trap informational'
+    why: 总部第 10 章：日志级别须按企业策略。IOS 用 logging trap 指定送往
+      syslog 服务器的最高级别，缺这条则依赖设备默认值。
+
+  - id: hq_cs_logging_source
+    title: 【总部】未固定日志源接口（Ch10）
+    check: present_regex
+    params: {pattern: '(?mi)^logging source-interface'}
+    platforms: [cisco]
+    level: 改进建议
+    source: 公司总部
+    severity: should
+    controls: [AU-2, CM-6]
+    fix: 'logging source-interface Vlan<管理VLAN>'
+    why: 不固定源接口时，日志源地址随出接口变化，收集器侧难以按设备归集。
+    note: 现网 Cisco 侧仅 1/18 配置了该命令。
+
+  - id: hq_cs_source_interface
+    title: 【总部】未固定 AAA/NTP 源接口（Ch5/Ch9）
+    check: present_regex
+    params: {pattern: '(?mi)^ip (tacacs|radius) source-interface'}
+    platforms: [cisco]
+    level: 改进建议
+    source: 公司总部
+    severity: should
+    controls: [AC-2, AU-8, CM-6]
+    fix: |
+      ip tacacs source-interface Vlan<管理VLAN>
+      ip radius source-interface Vlan<管理VLAN>
+    why: 不固定源接口时，设备访问 AAA/NTP 的源地址不稳定，服务器侧无法按
+      固定来源放行或归集，故障排查也困难。
+    note: IOS 侧的等价做法；NX-OS 对应的是 use-vrf management。现网覆盖不均。

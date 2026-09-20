@@ -27,7 +27,8 @@ SEVERITIES = {"shall", "should", "vendor", "convention"}
 DEFAULT_DIR = Path(__file__).resolve().parents[3] / "config" / "audit"
 
 # 需要 params.pattern 的判定器
-PATTERN_CHECKS = {"absent_regex", "present_flag", "present_regex", "enable_secret_type"}
+PATTERN_CHECKS = {"absent_regex", "present_flag", "present_regex", "enable_secret_type",
+                  "min_count"}
 
 _cache: dict[str, dict] = {}
 
@@ -129,6 +130,10 @@ def _validate(std: dict, rule_files_used: list[str]) -> None:
         sev = rule.get("severity")
         if sev and sev not in SEVERITIES:
             errors.append(f"{rid}: severity '{sev}' 不在 {sorted(SEVERITIES)}")
+        ctrls = rule.get("controls")
+        if ctrls is not None and (not isinstance(ctrls, list)
+                                  or not all(isinstance(x, str) for x in ctrls)):
+            errors.append(f"{rid}: controls 必须是字符串列表（NIST 控制编号，如 [AC-17, IA-2]）")
         for p in rule.get("platforms", ["all"]):
             if p not in PLATFORMS:
                 errors.append(f"{rid}: 平台 '{p}' 不在 {sorted(PLATFORMS)}")

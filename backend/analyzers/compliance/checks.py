@@ -44,6 +44,7 @@ def make_finding(rule: dict, evidence: list[dict], current: str | None = None,
         "level": rule.get("level", "改进建议"),
         "source": rule.get("source", ""),
         "severity": rule.get("severity", ""),
+        "controls": rule.get("controls", []),
         "platform": rule_platform(rule),
         "hit": True,
         "evidence": evidence,
@@ -78,6 +79,22 @@ def check_present_regex(dev: Device, rule: dict, std: dict) -> list[dict]:
     if ev:
         return []
     return [make_finding(rule, [], "(未配置)")]
+
+
+def check_min_count(dev: Device, rule: dict, std: dict) -> list[dict]:
+    """命中条数少于阈值即出建议。
+
+    用于"至少两台 XXX"这类要求（总部基线第 5/9/10 章都要求 ≥2：AAA 服务器、
+    NTP 服务器、syslog 收集器）——简单正则表达不了"几条"。
+    """
+    p = rule.get("params", {})
+    ev = matches(dev, p["pattern"])
+    want = int(p.get("min", 2))
+    if len(ev) >= want:
+        return []
+    return [make_finding(rule, ev, "(未配置)" if not ev else None,
+                         detail=f"实际 {len(ev)} 条，要求至少 {want} 条"
+                                + (f"：{p['label']}" if p.get("label") else ""))]
 
 
 def check_enable_secret_type(dev: Device, rule: dict, std: dict) -> list[dict]:
@@ -405,6 +422,7 @@ CHECKS: dict[str, callable] = {
     "present_flag": check_present_flag,
     "present_regex": check_present_regex,
     "enable_secret_type": check_enable_secret_type,
+    "min_count": check_min_count,
     "vty_transport": check_vty_transport,
     "vlan_name_pure": check_vlan_name_pure,
     "vlan_id_standard": check_vlan_id_standard,

@@ -17,6 +17,7 @@ rules:
     level: 风险提示
     source: 厂商基线
     severity: vendor
+    controls: [SC-8, AC-17]        # 同时满足总部 Ch7「SSH 为唯一交互式管理协议」
     fix: 'no telnet server vrf <vrf>'
     why: Telnet 全程明文，可被嗅探与会话劫持。
 
@@ -39,6 +40,7 @@ rules:
     level: 强烈建议
     source: 厂商基线
     severity: vendor
+    controls: [SC-12, SC-13, AC-17, AU-2]   # 同时满足总部 Ch4/Ch8「SNMPv3 监控」
     fix: 'snmpv3 user <name> auth sha auth-pass <…> priv aes priv-pass <…>'
     why: SNMPv1/v2c 团体字明文传输；SNMPv3 支持认证与加密。
 
@@ -77,6 +79,7 @@ rules:
     level: 强烈建议
     source: 厂商基线
     severity: vendor
+    controls: [AC-17, CM-6]        # 同时满足总部 Ch4「可选管理协议须经批准」的具体落地
     fix: 'no ip http server'
     why: 明文 HTTP 管理界面，凭据与配置内容裸传；关掉不影响 SSH/SNMP 管理。
 
@@ -87,6 +90,7 @@ rules:
     level: 强烈建议
     source: 厂商基线
     severity: vendor
+    controls: [SC-8, IA-2, AC-17]  # 同时满足总部 Ch7「SSH 为唯一交互式管理协议」
     fix: |
       line vty 0 4
        transport input ssh
