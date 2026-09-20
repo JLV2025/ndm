@@ -616,3 +616,15 @@
 ## Key Learnings
 - [2026-09-20] **NDM 当前采集链路已不含 startup-config**：`backend/collectors/base.py` 与 `collector_service.py` 中**没有任何 startup 相关代码**，`collections` 表也没有 startup 列（列为 id/device_id/week/phase/collected_at/software_version/serial_number/model/system_uptime_seconds/running_config/running_config_lines/boot_history_raw/lag_membership）。但磁盘上**仍有 2026-24~27 周的历史 `startup-config.raw`**——说明以前采过、后来被移除。→ **"running 与 startup 是否一致"这类运维就绪度检查，前置条件是先把 `show startup-config` 重新纳入采集**；不要误以为现成数据可用（CLAUDE.md 里仍写着采集项含 `show startup-config`，与实际代码不符）。
 - [2026-09-20] **现网 25/36 台设备的登录横幅自称可能承载 CUI**（`Controlled Unclassified Information`；aruba_aoscx 10 台 / cisco_ios 12 台 / cisco_ios_router 2 台 / cisco_ios_xe 1 台，其余用较早的 LEGAL NOTICE 文案）。这条横幅是「Qorvo Acceptable Use Policy」版本文案的一部分。→ 若确实涉及 CUI，则 **NIST SP 800-171 / CMMC** 可能是硬要求，中国站点还可能要面对**等保 2.0**；已作为待确认问题提给用户。**这是判断"要不要加合规框架"的关键线索，别丢掉。**
+
+## Decision Log
+- [2026-09-20] **规则库层优先级定案（用户定案）：总部要求 > 厂商推荐 > 配置惯例**。三层规则**重复或冲突时一律以高层为准**。落地方式：① **重复**（同一件事多层都要求）→ 只在高层写规则，低层不重复写；若低层已有规则，则给高层规则挂 `controls` 溯源，避免同一问题报两遍（已用此法处理 SNMPv3 / SSH / HTTP / BPDU 等 4 处重叠）；② **冲突**（高层要求做、低层要求不做）→ 高层规则照常判定，低层规则显式置 `enabled: false` 并写明 `superseded_by`，**不删除**（删掉会丢掉"讨论过、因冲突而让位"的记录）。引擎侧 `LAYER_PRIORITY` 用于同档位下的报告排序。原则已写入 `config/audit/_scopes.yaml` 文件头作为全局约定。
+- [2026-09-20] **SNMP 团体字冲突的处置**：总部 CFG-CISCO 第 8 章要求"SNMPv1/v2c 不得配置"（shall），而 vendor-baseline 的 `not_adopted` 记录着"用户决定不收 SNMP 团体字相关项"。按层优先级，**保留总部规则 `hq_cs_no_snmp_community`**；`not_adopted` 对应条目改为记录"已被总部要求覆盖"，不删除。现网实况：4 台 Cisco 仍有明文团体字，其中 1 个是 **RW 读写**。
+
+## Key Learnings
+- [2026-09-20] **AOS-CX 的 AAA 方法列表顺序有讲究**：`aaa authentication login default group local qorvo-tacacs` 是"**先本地、后集中**"，与总部第 5 章"本地认证仅作集中式 AAA 不可用时使用"相反；正确写法是 `group qorvo-tacacs local`。**现网两种顺序并存**，是真实偏离。规则用正则 `^aaa authentication login default group \S+ local` 专抓这个顺序。
+- [2026-09-20] **现网 Cisco 侧 SNMPv3 有组无用户（18/18）**：全部配了 `snmp-server group ... v3 priv`，却**一台都没配 `snmp-server user`** —— SNMPv3 没有用户就无法认证，整组不可用，而监控侧看起来"配了 SNMPv3"。这是本次审计最该报出的一条，也是"配了一半"的典型。
+- [2026-09-20] **端口角色推断必须按信号优先级分层，不能做"信号投票"**（真机教训）：① `vlan trunk allowed <列举>` **不是**上行信号 —— 现网 214 处其实是**电话口**（`vlan trunk native 16 / allowed 8,16`），只有 `allowed all`（50 处）才是干道；② 弱信号不能推翻强证据 —— BJDD1SWI01 多个口对端 CDP 报出的是 SD-WAN 路由器（硬证据），但配置是 `vlan access`（SD-WAN 的 LAN 口本就落在 access VLAN 上），用形态提示降级硬证据会把真实上行口变成"拿不准"；③ **完全判断不出的端口不进"拿不准"清单**，否则电话口会淹掉真问题。分层结果：high 176 / medium 1624 / low 21。
+- [2026-09-20] **总部的"至少两台"类要求需要新的判定原语**：第 5/9/10 章都要求 ≥2（AAA 服务器 / NTP / syslog 收集器），简单正则表达不了"几条" → 新增 `min_count` 判定器（params: pattern + min + label）。
+- [2026-09-20] **【重要】NDM 的 data_root 是相对路径，跑脚本必须在项目根目录**：`config/settings.yaml` 里 `data_root: ./data`，从 `backend/` 下跑会**新建一个空库** `backend/data/ndm.db`（现象极具误导性：跑了 v1→v12 迁移、查询返回 0 台设备，看起来像"数据全没了"）。主库不受影响。跑 NDM 脚本一律在项目根目录 + `sys.path.insert(0, 'backend')`。已记 buglog。
+- [2026-09-20] **规则库现状（58 条）**：公司总部 29（CX 14 + Cisco 15）+ 厂商基线 21 + 组织惯例 8；severity 分布 shall 17 / should 12 / vendor 21 / convention 8；33 条带 NIST `controls` 标签。全网 36 台 **486 条命中、741 ms（20.6 ms/台）**。**移植等价性回归仍在守**：按 netstd 原有 26 条规则 id 过滤后仍为 207 = 207 —— 规则库继续扩充也不会让这条回归失效。
