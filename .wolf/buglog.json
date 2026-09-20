@@ -2522,7 +2522,7 @@
       "timestamp": "2026-09-18T11:35:00",
       "error_message": "工作区出现 0 字节垃圾文件 `dict`（文件名里带反引号）—— 与 2026-09-17 记录的 heredoc 陷阱同源",
       "file": "（由 bash heredoc 追加 .wolf/cerebrum.md 时产生，非代码文件）",
-      "root_cause": "用 bash heredoc 追加含**行内代码反引号**的 Markdown 文本（如 `analyze(name, text, std) -> dict`）时，shell 把成对反引号当成命令替换解析，碎片被重定向成了文件名。上一次同类事故的根因是 heredoc 里 f-string 的花括号（bug-094），这次是反引号 —— 同一类问题：**bash 不是用来写文本内容的** ｜ 2026-09-18 第 3 次出现，成因仍未确认：本次会话未使用任何含反引号的 bash heredoc；对照实验（for 循环 + 引号 heredoc + dict(...)）无法复现；已排除 .wolf/hooks/*.js（无 shell 插值，仅 env-check/post-edit/pre-commit 用 execSync 且不含内容插值）；该文件只在项目根出现，其他目录无副本。",
+      "root_cause": "用 bash heredoc 追加含**行内代码反引号**的 Markdown 文本（如 `analyze(name, text, std) -> dict`）时，shell 把成对反引号当成命令替换解析，碎片被重定向成了文件名。上一次同类事故的根因是 heredoc 里 f-string 的花括号（bug-094），这次是反引号 —— 同一类问题：**bash 不是用来写文本内容的** ｜ 2026-09-18 第 3 次出现，成因仍未确认：本次会话未使用任何含反引号的 bash heredoc；对照实验（for 循环 + 引号 heredoc + dict(...)）无法复现；已排除 .wolf/hooks/*.js（无 shell 插值，仅 env-check/post-edit/pre-commit 用 execSync 且不含内容插值）；该文件只在项目根出现，其他目录无副本。 ｜ 2026-09-20 第 4 次出现（frontend/src/convention 加撇号，0 字节），新证据：\n   ① 查 git 历史发现**本项目历史上发生过同样的事**：d7d8317 误把 backend/ 加撇号、backend/{e[target]} 两个怪文件一起提交，后来 140697c 才删掉，提交信息写的是「命令输出残留」。\n   ② 已排除 OpenWolf hooks：grep .wolf/hooks/*.js 的全部 writeFileSync/appendFileSync，写入路径都是固定值（memory.md / anatomy.md / buglog.json），没有任何「用内容拼文件名」的写法；post-edit.js 只对 .py 跑 py_compile。\n   ③ 文件名特征：**一个词 + 撇号或反引号**（dict、convention、backend、{e[target]}），是典型的 shell **引号不配对**后，重定向把后续文本当成文件名的产物。\n   ④ 本次触发点在编辑 frontend/src/types/index.ts 之后、出现在同目录，说明产生时机与**被编辑文件的内容**有关。\n   → 处置：删除 + **提交前一律逐个看 git status --short，不要用 git add -A**（它会把这类垃圾一并 stage，历史上正是这么栽的）。",
       "fix": "删除垃圾文件（cerebrum 内容本身未被写坏，已核对）。预防：Markdown/JSON 等含反引号、花括号、管道符的内容一律用 Write/Edit 工具写入；`git add` 前照旧 `git status --short` 拦截 ｜ 提交前先看 git status，发现怪名 0 字节文件直接 rm -f 删除，不要提交。",
       "tags": [
         "heredoc",
@@ -2534,8 +2534,8 @@
       "related_bugs": [
         "bug-094"
       ],
-      "occurrences": 3,
-      "last_seen": "2026-09-18"
+      "occurrences": 4,
+      "last_seen": "2026-09-20"
     },
     {
       "id": "bug-154",
@@ -2930,6 +2930,86 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-20T02:06:32.552Z"
+    },
+    {
+      "id": "bug-178",
+      "timestamp": "2026-09-20T02:10:36.306Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/services/api.ts",
+      "root_cause": "No early return/throw for edge case: !res.ok",
+      "fix": "Added guard clause: if (!res.ok)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:10:36.306Z"
+    },
+    {
+      "id": "bug-179",
+      "timestamp": "2026-09-20T02:10:45.488Z",
+      "error_message": "Type error",
+      "file": "frontend/src/types/index.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:10:45.488Z"
+    },
+    {
+      "id": "bug-180",
+      "timestamp": "2026-09-20T02:11:39.540Z",
+      "error_message": "Type error",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:11:39.540Z"
+    },
+    {
+      "id": "bug-181",
+      "timestamp": "2026-09-20T02:12:09.056Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:12:09.056Z"
+    },
+    {
+      "id": "bug-182",
+      "timestamp": "2026-09-20T02:13:42.975Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:13:42.975Z"
     }
   ]
 }
