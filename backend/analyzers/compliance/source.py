@@ -55,6 +55,7 @@ class AuditInput:
     """交给引擎的全部输入。"""
     snapshot: Snapshot
     port_context: PortContext = field(default_factory=PortContext)
+    lifecycle: dict = field(default_factory=dict)   # 型号 EoL + 逐序列号保修（可能为空 = 未登记）
 
 
 def _clean_config(text: str) -> tuple[str, str]:
@@ -135,12 +136,30 @@ def load_port_context(conn: sqlite3.Connection, snapshot: Snapshot) -> PortConte
     return ctx
 
 
+def load_lifecycle(conn: sqlite3.Connection, name: str) -> dict:
+    """设备的生命周期上下文（型号 EoL + 逐序列号保修）。
+
+    **总是返回 dict**（字段可能为空）—— 判定器靠"有没有数据"区分
+    "登记了没问题" 与 "没登记（待查）"，所以不能返回 None 让两者混淆。
+
+    表不存在（库比代码旧、迁移没跑）时降级为空上下文并打日志：
+    生命周期只是审计的一个维度，不该因为它让整轮审计崩掉。
+    """
+    try:
+        from storage import lifecycle_dal
+        return lifecycle_dal.get_device_lifecycle(conn, name)
+    except sqlite3.OperationalError as e:
+        print(f"[审计] 生命周期数据不可用（降级为未登记）：{e}")
+        return {}
+
+
 def load_audit_input(conn: sqlite3.Connection, name: str) -> AuditInput | None:
     """按设备名装配一次审计的全部输入。设备不存在返回 None。"""
     snap = load_snapshot(conn, name)
     if snap is None:
         return None
-    return AuditInput(snapshot=snap, port_context=load_port_context(conn, snap))
+    return AuditInput(snapshot=snap, port_context=load_port_context(conn, snap),
+                      lifecycle=load_lifecycle(conn, name))
 
 
 def list_audit_inputs(conn: sqlite3.Connection) -> list[AuditInput]:

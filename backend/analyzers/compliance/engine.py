@@ -131,18 +131,75 @@ def find_exception(rule_id: str, dev: Device, exceptions: list[dict],
     return best_valid or best_expired
 
 
+def collapse_collective(pairs: list[tuple[str, dict]], std: dict,
+                        threshold: int | None = None) -> list[tuple[str, dict]]:
+    """把「集体性」规则的逐台命中折叠成**一条网络级条目**（全量审计时用）。
+
+    规则标 `collective: true`（如"生命周期信息待查"）时，若命中设备数 ≥ 阈值
+    （规则 params.collective_threshold，默认 3），逐台条目替换为一条汇总 ——
+    否则 20 台"待查"会把真问题淹掉（本项目一贯的噪声纪律；也补上了一期
+    "集体性漏配单独成类"承诺但未实现的缺口）。
+
+    入参/出参都是 [(设备名, finding)]；折叠条目的设备名记为 `全网`。
+    单台审计不调用本函数 —— 一台就是一台的事。
+    """
+    rules = {r.get("id"): r for r in std.get("rules", [])}
+
+    def is_collective(f: dict) -> bool:
+        r = rules.get(f.get("rule_id")) or {}
+        return r.get("collective") is True
+
+    out: list[tuple[str, dict]] = []
+    groups: dict[str, list[tuple[str, dict]]] = {}
+    for name, f in pairs:
+        if is_collective(f):
+            groups.setdefault(f["rule_id"], []).append((name, f))
+        else:
+            out.append((name, f))
+
+    for rid, items in groups.items():
+        rule = rules.get(rid) or {}
+        params = rule.get("params") or {}
+        try:
+            thr = int(threshold if threshold is not None
+                      else params.get("collective_threshold", 3))
+        except (TypeError, ValueError):
+            thr = 3
+        if len(items) < max(2, thr):
+            out.extend(items)                    # 不到阈值：逐台保留（两台就是两台的事）
+            continue
+        names = [n for n, _ in items]
+        base = items[0][1]
+        agg = dict(base)
+        agg["title"] = f"{rule.get('title', base.get('title', ''))}（{len(names)} 台）"
+        agg["detail"] = ("、".join(names[:30]) + ("…" if len(names) > 30 else "")
+                         + f"（共 {len(names)} 台）")
+        agg["evidence"] = []
+        agg["lines"] = []
+        agg["locatable"] = False
+        agg["current"] = ""
+        agg["collective"] = True
+        agg["device_count"] = len(names)
+        agg["devices"] = names
+        out.append(("全网", agg))
+    return out
+
+
 def analyze(name: str, text: str, std: dict, site: str | None = None,
-            port_context=None, startup_config: str = "") -> dict:
+            port_context=None, startup_config: str = "", lifecycle: dict | None = None) -> dict:
     """对一台设备的配置文本执行全部适用规则。
 
     site：显式站点（NDM 传 devices.location）。为空时回退到设备名解析——
     netstd 只能从设备名派生站点，命名不规范的设备会让站点豁免悄悄失效。
     port_context：端口角色所需的辅助数据（邻居/生成树/LAG/上行口清单）。
     不传也能跑，只是端口级规则的置信度上不去，会降级为「需人工判断」。
+    lifecycle：设备生命周期上下文（型号 EoL + 逐序列号保修，来自 device_lifecycle/eol_models）。
+    不传 = 未登记 —— `lifecycle_unknown` 会据此报「待查」。
     """
     dev = parse_device(name, text, std["naming"], site=site)
     dev.port_roles = build_port_roles(dev, port_context)
     dev.startup_config = startup_config or ""
+    dev.lifecycle = lifecycle or {}
     findings: list[dict] = []
     for rule in std["rules"]:
         if rule.get("enabled") is False:      # 停用：与更高优先层冲突、或用户手动关掉

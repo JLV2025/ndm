@@ -221,6 +221,9 @@ def _validate(std: dict, rule_files_used: list[str]) -> None:
             errors.append(f"{rid}: severity '{sev}' 不在 {sorted(SEVERITIES)}")
         if "enabled" in rule and not isinstance(rule["enabled"], bool):
             errors.append(f"{rid}: enabled 必须是 true / false")
+        if "collective" in rule and not isinstance(rule["collective"], bool):
+            errors.append(f"{rid}: collective 必须是 true / false"
+                          f"（标记后：全量审计命中多台时折叠成一条网络级条目）")
         if rule.get("enabled") is False and not rule.get("superseded_by") \
                 and not rule.get("disabled_reason"):
             errors.append(f"{rid}: 停用的规则要写明 superseded_by（被哪条高层规则取代）"

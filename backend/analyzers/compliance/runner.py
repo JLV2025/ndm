@@ -36,38 +36,52 @@ def run_full_audit(db, std: dict, trigger: str = "manual") -> dict:
     t0 = time.time()
     items = source.list_audit_inputs(db)
     usable = [it for it in items if it.snapshot.usable]
-    skipped, findings_total, exempt_total = [], 0, 0
+    skipped: list[dict] = []
+
+    # 先收集全部命中，再折叠集体性规则，最后落库 ——
+    # 折叠需要跨设备的视野，边判边写就没法折叠了（改起来也不难，但留个明确的顺序更清楚）。
+    collected: list[tuple[str, object, dict]] = []
     for item in items:
-        snap = item.snapshot
-        if not snap.usable:
-            skipped.append({"device": snap.name, "reason": snap.reason})
+        s = item.snapshot
+        if not s.usable:
+            skipped.append({"device": s.name, "reason": s.reason})
             continue
-        analysis = engine.analyze(snap.name, snap.config, std, site=snap.location,
+        analysis = engine.analyze(s.name, s.config, std, site=s.location,
                                   port_context=item.port_context,
-                                  startup_config=snap.startup_config)
+                                  startup_config=s.startup_config,
+                                  lifecycle=item.lifecycle)
         for f in analysis["findings"]:
-            exempt = f.get("exempt") or None
-            if exempt and exempt.get("status") in ("active", "expiring"):
-                exempt_total += 1
-            db.execute(
-                "INSERT INTO audit_findings (run_id, device_id, device_name, collection_id, week, "
-                "rule_id, level, source, severity, title, detail, current_text, fix_text, why_text, "
-                "note_text, evidence_json, lines_json, missing_json, controls_json, config_hash, "
-                "ruleset_hash, exempt_by, exempt_json, created_at) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (run_id, snap.device_id, snap.name, snap.collection_id, snap.week,
-                 f["rule_id"], f["level"], f["source"], f.get("severity", ""), f["title"],
-                 f.get("detail", ""), f.get("current", ""), f.get("fix", ""), f.get("why", ""),
-                 f.get("note", ""),
-                 json.dumps(f.get("evidence", []), ensure_ascii=False),
-                 json.dumps(f.get("lines", []), ensure_ascii=False),
-                 json.dumps(f.get("missing", []), ensure_ascii=False),
-                 json.dumps(f.get("controls", []), ensure_ascii=False),
-                 snap.config_hash, loader.ruleset_hash(std),
-                 (exempt or {}).get("exception_id") or None,
-                 json.dumps(exempt, ensure_ascii=False) if exempt else None,
-                 _now()))
-            findings_total += 1
+            collected.append((s.name, s, f))
+
+    collapsed = engine.collapse_collective([(n, f) for n, _, f in collected], std)
+    snaps = {n: s for n, s, _ in collected}
+
+    findings_total = exempt_total = 0
+    for name, f in collapsed:
+        s = snaps.get(name)                  # 折叠条目（"全网"）没有单台快照
+        exempt = f.get("exempt") or None
+        if exempt and exempt.get("status") in ("active", "expiring"):
+            exempt_total += 1
+        db.execute(
+            "INSERT INTO audit_findings (run_id, device_id, device_name, collection_id, week, "
+            "rule_id, level, source, severity, title, detail, current_text, fix_text, why_text, "
+            "note_text, evidence_json, lines_json, missing_json, controls_json, config_hash, "
+            "ruleset_hash, exempt_by, exempt_json, created_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (run_id, s.device_id if s else None, name,
+             s.collection_id if s else None, s.week if s else "",
+             f["rule_id"], f["level"], f["source"], f.get("severity", ""), f["title"],
+             f.get("detail", ""), f.get("current", ""), f.get("fix", ""), f.get("why", ""),
+             f.get("note", ""),
+             json.dumps(f.get("evidence", []), ensure_ascii=False),
+             json.dumps(f.get("lines", []), ensure_ascii=False),
+             json.dumps(f.get("missing", []), ensure_ascii=False),
+             json.dumps(f.get("controls", []), ensure_ascii=False),
+             s.config_hash if s else "", loader.ruleset_hash(std),
+             (exempt or {}).get("exception_id") or None,
+             json.dumps(exempt, ensure_ascii=False) if exempt else None,
+             _now()))
+        findings_total += 1
 
     db.execute("UPDATE audit_runs SET finished_at = ?, device_count = ?, finding_count = ?, "
                "exempt_count = ?, status = 'done' WHERE id = ?",

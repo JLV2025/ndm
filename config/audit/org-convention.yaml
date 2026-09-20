@@ -120,3 +120,51 @@ rules:
     fix: 'aaa authentication allow-fail-through'
     why: 用户说明「这是为了确保紧急时刻管理员可以本地登录进设备」，属公司标准。
     note: 与其他规则相反——**缺此项才提示**。
+
+  # ==== 生命周期（EoL / 保修）====
+  # 数据来源：eol_models / device_lifecycle 两张表。Cisco 可配 API 凭据自动刷新
+  # （EoX，按型号或序列号），Aruba 无公开 API 只能手工登记；保修期一律手工
+  # （Cisco SN2INFO 仅对 SNTC 客户开放、HPE 无 API）。详见
+  # docs/superpowers/plans/2026-09-20-device-lifecycle.md。
+
+  - id: ops_eol_announced
+    title: 型号已公布停止销售 / 停止支持
+    check: eol_announced
+    platforms: [all]
+    level: 风险提示
+    source: 组织规范
+    severity: convention
+    fix: '规划替换：查厂商迁移建议，在停止支持日期（LastDateOfSupport）之前完成替换'
+    why: >-
+      停止支持之后不再有安全补丁与硬件更换渠道 —— 这是**时效风险**，不是配置错误。
+      现网那台 C9500 正属此类：设备越旧，故障后拿不到同型号替代的时间越长。
+    note: 数据显示的是厂商公告日期，不代表设备当前状态；换型决策要结合预算与实际负载。
+
+  - id: ops_warranty_expired
+    title: 保修已过期或临近到期
+    check: warranty_expired
+    params: {warn_days: 90}
+    platforms: [all]
+    level: 风险提示
+    source: 组织规范
+    severity: convention
+    fix: '评估续保（或列入更换计划）；过保设备故障后需按 T&M 付费维修'
+    why: 保修到期后硬件故障的维修与备件要走付费流程，修复时间也会变长。
+    note: >-
+      注意区分「保修（hardware warranty）」与「服务合同（Smart Net 等）」：
+      这里登记的是保修到期日，合同到期日请在备注里写明（两者口径不同）。
+
+  - id: ops_lifecycle_unknown
+    title: 生命周期信息待查（型号 EoL 与保修期）
+    check: lifecycle_unknown
+    params: {stale_days: 365, collective_threshold: 3}
+    collective: true        # 命中多台时折叠成一条网络级条目（阈值见 collective_threshold）
+    platforms: [all]
+    level: 需人工判断
+    source: 组织规范
+    severity: convention
+    fix: '在设备详情页「生命周期」登记型号 EoL 与各序列号保修到期日（支持批量粘贴导入）'
+    why: >-
+      没有登记就没有判断依据 —— 与其静默通过，不如明确标成"待查"去核实。
+      信息登记超过 stale_days 天未复核的，同样回到"待查"（两年前抄来的日期不能一直冒充已确认）。
+    note: 命中设备数达到阈值时折叠为一条（避免几十条"待查"淹掉真问题）。

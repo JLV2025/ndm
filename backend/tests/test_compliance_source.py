@@ -20,14 +20,23 @@ from analyzers.compliance import source  # noqa: E402
 
 SCHEMA = """
 CREATE TABLE devices (id INTEGER PRIMARY KEY, name TEXT, location TEXT, platform TEXT,
-                      model TEXT, uplink_ports TEXT);
+                      model TEXT, uplink_ports TEXT, serial_number TEXT);
 CREATE TABLE collections (id INTEGER PRIMARY KEY, device_id INTEGER, week TEXT,
                           collected_at TEXT, running_config TEXT, lag_membership TEXT,
-                          startup_config TEXT);
+                          startup_config TEXT, serial_number TEXT);
 CREATE TABLE neighbors (id INTEGER PRIMARY KEY, collection_id INTEGER, local_port TEXT,
                         neighbor_type TEXT);
 CREATE TABLE stp_snapshots (id INTEGER PRIMARY KEY, collection_id INTEGER, vlan INTEGER,
                             port_name TEXT, role TEXT);
+CREATE TABLE eol_models (model TEXT PRIMARY KEY, description TEXT, end_of_sale TEXT,
+                         end_of_support TEXT, announcement TEXT, bulletin TEXT,
+                         bulletin_url TEXT, source TEXT, fetched_at TEXT, updated_by TEXT,
+                         note TEXT);
+CREATE TABLE device_lifecycle (id INTEGER PRIMARY KEY, device_name TEXT NOT NULL,
+                               serial TEXT NOT NULL DEFAULT '', model TEXT,
+                               warranty_end TEXT, note TEXT, source TEXT, verified_at TEXT,
+                               verified_by TEXT, updated_at TEXT,
+                               UNIQUE(device_name, serial));
 """
 
 GOOD_CONFIG = "ArubaOS-CX\nhostname BJQD1SWI01\n" + "!\n" * 600   # 需超过 MIN_CONFIG_LEN
@@ -37,15 +46,18 @@ GOOD_CONFIG = "ArubaOS-CX\nhostname BJQD1SWI01\n" + "!\n" * 600   # 需超过 MI
 def db():
     conn = sqlite3.connect(":memory:")
     conn.executescript(SCHEMA)
-    conn.execute("INSERT INTO devices VALUES (1,'BJQD1SWI01','BJQ','aruba_aoscx','JL659A','[\"1/1/49\"]')")
-    conn.execute("INSERT INTO devices VALUES (2,'DEZD1SWI01','DEZ','aruba_aoscx','JL727B',NULL)")
+    conn.execute("INSERT INTO devices (id, name, location, platform, model, uplink_ports) "
+                 "VALUES (1,'BJQD1SWI01','BJQ','aruba_aoscx','JL659A','[\"1/1/49\"]')")
+    conn.execute("INSERT INTO devices (id, name, location, platform, model) "
+                 "VALUES (2,'DEZD1SWI01','DEZ','aruba_aoscx','JL727B')")
     conn.commit()
     yield conn
     conn.close()
 
 
 def add_collection(conn, cid, device_id, config, lag=None, week="2026-38", startup=None):
-    conn.execute("INSERT INTO collections VALUES (?,?,?,?,?,?,?)",
+    conn.execute("INSERT INTO collections (id, device_id, week, collected_at, running_config, "
+                 "lag_membership, startup_config) VALUES (?,?,?,?,?,?,?)",
                  (cid, device_id, week, "2026-09-18T08:00:00", config, lag, startup))
     conn.commit()
 

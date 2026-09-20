@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import datetime
 import re
 
 from .parser import Device, compile_re
@@ -281,6 +282,109 @@ def check_config_drift(dev: Device, rule: dict, std: dict) -> list[dict]:
     })]
 
 
+# ---------------------------------------------------------------- 生命周期判定器
+#
+# 数据来自 eol_models / device_lifecycle 两张表（source.load_lifecycle 装到 dev.lifecycle）。
+# 这是**资产事实**而不是配置文本，所以判定器不出配置行号（locatable=False）。
+# 档位语义：已公告 EoL / 保修过期或临近 → 风险提示（时效风险，不是配置错误）；
+# 信息未登记或登记陈旧 → 需人工判断（"待查"，由 runner 折叠成一条网络级条目）。
+
+def _lifecycle(dev) -> dict:
+    return getattr(dev, "lifecycle", None) or {}
+
+
+def _fmt_date(value) -> str:
+    return str(value or "")[:10]
+
+
+def check_eol_announced(dev: Device, rule: dict, std: dict) -> list[dict]:
+    """型号已公布停止销售 / 停止支持。"""
+    hits = [e for e in _lifecycle(dev).get("model_eol") or []
+            if e.get("end_of_sale") or e.get("end_of_support")]
+    if not hits:
+        return []
+    parts = []
+    for e in hits:
+        seg = f"型号 {e.get('model', '')}"
+        if e.get("end_of_sale"):
+            seg += f"：停止销售 {_fmt_date(e['end_of_sale'])}"
+        if e.get("end_of_support"):
+            seg += f"，停止支持 {_fmt_date(e['end_of_support'])}"
+        if e.get("bulletin"):
+            seg += f"（公告 {e['bulletin']}）"
+        parts.append(seg)
+    return [make_finding(rule, [], "\n".join(parts))]
+
+
+def check_warranty_expired(dev: Device, rule: dict, std: dict) -> list[dict]:
+    """保修已过期，或 warn_days 天内到期（该续保 / 该报预算了）。"""
+    params = rule.get("params") or {}
+    try:
+        warn_days = int(params.get("warn_days", 90))
+    except (TypeError, ValueError):
+        warn_days = 90
+    today = datetime.date.today()
+    parts = []
+    for s in _lifecycle(dev).get("serials") or []:
+        end = s.get("warranty_end")
+        if not end:
+            continue
+        try:
+            d = datetime.date.fromisoformat(str(end)[:10])
+        except ValueError:
+            continue                     # 坏日期由 DAL 挡住，这里再兜一层
+        left = (d - today).days
+        if left < 0:
+            parts.append(f"{s.get('serial', '')}：保修已于 {_fmt_date(end)} 过期（{-left} 天前）")
+        elif left <= warn_days:
+            parts.append(f"{s.get('serial', '')}：保修将于 {_fmt_date(end)} 到期（剩余 {left} 天）")
+    return [make_finding(rule, [], "\n".join(parts))] if parts else []
+
+
+def check_lifecycle_unknown(dev: Device, rule: dict, std: dict) -> list[dict]:
+    """生命周期信息未登记 / 登记已陈旧 —— "待查"，需人工去核实。
+
+    判定看的是"有没有**可用**的核实信息"，而不是"有几条记录"：
+      · 型号 EoL 与保修期都缺 → 待查（这台的时效风险完全未知）
+      · 只缺一项 → 待查（列出缺的那项）
+      · 都有但最近核实时间超过 stale_days → 待查（两年前抄的日期不能一直冒充"已确认"）
+    """
+    params = rule.get("params") or {}
+    try:
+        stale_days = int(params.get("stale_days", 365))
+    except (TypeError, ValueError):
+        stale_days = 365
+
+    life = _lifecycle(dev)
+    eol_rows = life.get("model_eol") or []
+    serials = life.get("serials") or []
+    has_eol = any(e.get("end_of_sale") or e.get("end_of_support") for e in eol_rows)
+    has_warranty = any(s.get("warranty_end") for s in serials)
+
+    missing = [name for name, ok in (("型号 EoL", has_eol), ("保修期", has_warranty)) if not ok]
+    if missing:
+        detail = ("尚未登记：" + "、".join(missing)
+                  + "。请在设备详情页「生命周期」中登记（Aruba 手工；Cisco 配好 API 凭据后可自动刷新）")
+        if not life.get("models"):
+            detail += "；当前连型号都没采到"
+        return [make_finding(rule, [], detail)]
+
+    # 信息齐全 → 只在陈旧时提示复核
+    stamps = [s.get("verified_at") for s in serials if s.get("verified_at")]
+    stamps += [e.get("fetched_at") for e in eol_rows if e.get("fetched_at")]
+    newest = max((_fmt_date(x) for x in stamps), default="")
+    if not newest:
+        return [make_finding(rule, [], "生命周期信息没有核实时间，无法判断是否过期，请复核后重新登记")]
+    try:
+        age = (datetime.date.today() - datetime.date.fromisoformat(newest)).days
+    except ValueError:
+        age = stale_days + 1
+    if age > stale_days:
+        return [make_finding(rule, [], f"生命周期信息最近核实于 {newest}（{age} 天前），"
+                                       f"已超过 {stale_days} 天 —— 请复核保修与 EoL 状态")]
+    return []
+
+
 # ---------------------------------------------------------------- 组合判定器
 #
 # 一条规则表达"配套关系"，而不是"某条命令在不在"——这是审计从「逐条查命令」
@@ -464,4 +568,7 @@ CHECKS: dict[str, callable] = {
     "hostname_match": check_hostname_match,
     "vsf_split_detect": check_vsf_split_detect,
     "config_drift": check_config_drift,
+    "eol_announced": check_eol_announced,
+    "warranty_expired": check_warranty_expired,
+    "lifecycle_unknown": check_lifecycle_unknown,
 }
