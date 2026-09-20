@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from .checks import CHECKS, LEVEL_ORDER
 from .parser import Device, parse_device
+from .port_roles import build_port_roles
 
 
 def resolve_sites(tokens, std: dict) -> set[str]:
@@ -48,13 +49,17 @@ def rule_applies(rule: dict, dev: Device, std: dict) -> bool:
     return True
 
 
-def analyze(name: str, text: str, std: dict, site: str | None = None) -> dict:
+def analyze(name: str, text: str, std: dict, site: str | None = None,
+            port_context=None) -> dict:
     """对一台设备的配置文本执行全部适用规则。
 
     site：显式站点（NDM 传 devices.location）。为空时回退到设备名解析——
     netstd 只能从设备名派生站点，命名不规范的设备会让站点豁免悄悄失效。
+    port_context：端口角色所需的辅助数据（邻居/生成树/LAG/上行口清单）。
+    不传也能跑，只是端口级规则的置信度上不去，会降级为「需人工判断」。
     """
     dev = parse_device(name, text, std["naming"], site=site)
+    dev.port_roles = build_port_roles(dev, port_context)
     findings: list[dict] = []
     for rule in std["rules"]:
         if not rule_applies(rule, dev, std):
@@ -67,7 +72,11 @@ def analyze(name: str, text: str, std: dict, site: str | None = None) -> dict:
         LEVEL_ORDER.index(f["level"]) if f["level"] in LEVEL_ORDER else 9, f["rule_id"]))
 
     sites = std.get("sites", {}) or {}
+    # 只回传判定出角色的端口（unknown 的省略），避免 48 口交换机把响应撑大
+    port_roles = {p: {"role": r.role, "confidence": r.confidence, "reasons": r.reasons}
+                  for p, r in dev.port_roles.items() if r.role != "unknown"}
     return {
+        "port_roles": port_roles,
         "device": {
             "name": dev.name,
             "platform": dev.platform,

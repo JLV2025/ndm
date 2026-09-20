@@ -299,14 +299,56 @@ def _command_set_requires(dev: Device, rule: dict, p: dict) -> list[dict]:
     return out
 
 
+def _scope_port(sc: dict) -> str:
+    """从接口块表头取出归一化端口名；全局作用域返回空串。"""
+    m = re.match(r"^interface\s+(\S+)$", sc.get("header") or "")
+    if not m:
+        return ""
+    from utils.port_names import normalize_port_name
+    return normalize_port_name(m.group(1))
+
+
 def _command_set_conflict(dev: Device, rule: dict, p: dict) -> list[dict]:
     trig = p.get("trigger") or {}
     forb = p.get("forbidden") or []
-    out = []
+    when_role = p.get("when_role")
+    out: list[dict] = []
+    undetermined: list[str] = []
+
     for sc in _eval_scope(dev, p):
         tev = _hit(sc["items"], trig["pattern"])
         if not tev:
             continue
+
+        # 按端口角色判定：角色来自生成树/邻居/LAG/描述/配置形态，
+        # **只在 high 置信时下结论**——低置信宁可说"拿不准"，也不瞎报警。
+        if when_role:
+            port = _scope_port(sc)
+            pr = dev.port_roles.get(port) if port else None
+            # 判断不出角色、或已明确是另一种角色 → 不提示。
+            # 完全判断不出的端口不列进"拿不准"：没有任何线索指向上行口，
+            # 把它们泼进报告只会让电话口淹掉真问题。
+            if pr is None or pr.role != when_role:
+                continue
+            if not pr.is_confident:
+                undetermined.append(f"{port}（疑似上行，置信 {pr.confidence}）")
+                continue
+            out.append(make_finding(rule, tev[:1],
+                                    check_kind="conflict",
+                                    trigger=trig.get("label", ""),
+                                    conflict=[when_role],
+                                    detail=f"{port} 是上行口（{'；'.join(pr.reasons)}），"
+                                           f"{trig.get('label','')} 不应配在这里"))
+            continue
+            out.append(make_finding(rule, tev[:1],
+                                    check_kind="conflict",
+                                    trigger=trig.get("label", ""),
+                                    conflict=[when_role],
+                                    detail=f"{port} 是上行口（{'；'.join(pr.reasons)}），"
+                                           f"{trig.get('label','')} 不应配在这里"))
+            continue
+
+        # 模式二：同处不应同时出现 A 与 B
         bad = []
         for f in forb:
             for hit in _hit(sc["items"], f["pattern"]):
@@ -322,6 +364,22 @@ def _command_set_conflict(dev: Device, rule: dict, p: dict) -> list[dict]:
                                 conflict=labels,
                                 detail=f"{trig.get('label','')} 与 {'、'.join(labels)} "
                                        f"不应同时出现"))
+
+    # 有端口配了命令、但角色判断不出高置信结论 → 聚合成一条「需人工判断」，
+    # 而不是每个端口报一条。宁可讲清"我拿不准哪些口"，也不制造噪声。
+    if undetermined and not out:
+        out.append(make_finding(rule, [],
+                                level="需人工判断",
+                                check_kind="conflict",
+                                trigger=trig.get("label", ""),
+                                undetermined=undetermined,
+                                current=f"（{len(undetermined)} 个端口配了 "
+                                        f"{trig.get('label','')}，但端口角色无法确定）",
+                                detail=f"以下端口配了 {trig.get('label','')}，"
+                                       "但缺少生成树/邻居佐证、判断不出是否为上行口，"
+                                       "需人工确认："
+                                       + "、".join(undetermined[:10])
+                                       + ("…" if len(undetermined) > 10 else "")))
     return out
 
 

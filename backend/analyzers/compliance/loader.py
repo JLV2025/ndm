@@ -65,12 +65,22 @@ def _validate_command_set(rid: str, p: dict) -> list[str]:
     else:
         if not (p.get("trigger") or {}).get("pattern"):
             errs.append(f"{rid}: command_set({mode}) 需要 params.trigger.pattern")
-        key = "required" if mode == "requires" else "forbidden"
-        entries = p.get(key) or []
-        if not entries:
-            errs.append(f"{rid}: command_set({mode}) 需要 params.{key}（至少一项）")
-        for it in entries:
-            need_item(it, f"params.{key}")
+        if mode == "requires":
+            entries = p.get("required") or []
+            if not entries:
+                errs.append(f"{rid}: command_set(requires) 需要 params.required（至少一项）")
+            for it in entries:
+                need_item(it, "params.required")
+        else:  # conflict：要么给 forbidden（同处不该共存），要么给 when_role（不该出现在该角色的端口上）
+            entries = p.get("forbidden") or []
+            when_role = p.get("when_role")
+            if not entries and not when_role:
+                errs.append(f"{rid}: command_set(conflict) 需要 params.forbidden "
+                            f"或 params.when_role 之一")
+            for it in entries:
+                need_item(it, "params.forbidden")
+            if when_role and when_role not in ("uplink", "access", "unknown"):
+                errs.append(f"{rid}: params.when_role 只能是 uplink / access / unknown")
 
     if p.get("scope") not in (None, "block", "global"):
         errs.append(f"{rid}: params.scope 只能是 block 或 global")

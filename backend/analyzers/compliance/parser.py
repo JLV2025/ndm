@@ -40,6 +40,7 @@ class Device:
     svi_blocks: list[dict] = field(default_factory=list)   # 所有 interface vlan N 块
     vty_blocks: list[dict] = field(default_factory=list)   # {header, line, body[], end}
     if_blocks: list[dict] = field(default_factory=list)    # {header, line, body[], end}
+    port_roles: dict = field(default_factory=dict)         # 端口名 -> PortRole（analyze 时注入）
 
 
 def _detect_platform(text: str) -> str:
