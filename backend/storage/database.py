@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 # 当前 Schema 版本（每次 schema 变更递增）
-SCHEMA_VERSION = 12
+SCHEMA_VERSION = 13
 
 # 线程本地存储 —— 每个线程持有自己的连接
 _local = threading.local()
@@ -576,6 +576,70 @@ def _migrate_v12(conn: sqlite3.Connection) -> None:
             pass  # 列已存在（新建库已由 _migrate_v1 建好）
 
 
+def _migrate_v13(conn: sqlite3.Connection) -> None:
+    """Schema v13: 配置审计结果两张表。
+
+    - audit_runs：一次审计（单台按需审计不落库；全量审计落一行），趋势分析的基座
+    - audit_findings：该次审计的每条发现
+
+    **为什么证据要自包含**（evidence_json / current_text / 各 *_text 都存全文）：
+    collections.running_config 按保留策略**只留最近 2 次**采集的全文，
+    若发现只存 collection_id 引用，过两周配置被清理后证据就成了空指针——
+    而审计记录是要长期留档给审计用的。
+
+    **为什么不建"规则状态表"**：规则的启停直接写回 YAML 的 enabled 字段，
+    YAML 保持唯一权威（与用户定案一致）。
+
+    device_name / ruleset_hash 为冗余列：设备可能改名或删除，审计证据要能独立还原当时的情形。
+    """
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS audit_runs (
+            id              INTEGER PRIMARY KEY AUTOINCREMENT,
+            started_at      TEXT NOT NULL,
+            finished_at     TEXT,
+            trigger         TEXT NOT NULL DEFAULT 'manual',
+            ruleset_hash    TEXT,
+            ruleset_version INTEGER,
+            device_count    INTEGER DEFAULT 0,
+            finding_count   INTEGER DEFAULT 0,
+            status          TEXT DEFAULT 'running'
+        );
+
+        CREATE TABLE IF NOT EXISTS audit_findings (
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            run_id        INTEGER NOT NULL,
+            device_id     INTEGER,
+            device_name   TEXT,
+            collection_id INTEGER,
+            week          TEXT,
+            rule_id       TEXT NOT NULL,
+            level         TEXT,
+            source        TEXT,
+            severity      TEXT,
+            title         TEXT,
+            detail        TEXT,
+            current_text  TEXT,
+            fix_text      TEXT,
+            why_text      TEXT,
+            note_text     TEXT,
+            evidence_json TEXT,
+            lines_json    TEXT,
+            missing_json  TEXT,
+            controls_json TEXT,
+            config_hash   TEXT,
+            ruleset_hash  TEXT,
+            created_at    TEXT
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_audit_findings_run_level
+            ON audit_findings(run_id, level);
+        CREATE INDEX IF NOT EXISTS idx_audit_findings_device_rule
+            ON audit_findings(device_id, rule_id);
+    """)
+    # trigger 取值约定：manual（手动全量）/ scheduled（计划任务）/ post_collect（采集后自动跑）
+    # status 取值约定：running / done / failed
+
+
 # 迁移注册表
 _MIGRATIONS = {
     1: _migrate_v1,
@@ -590,4 +654,5 @@ _MIGRATIONS = {
     10: _migrate_v10,
     11: _migrate_v11,
     12: _migrate_v12,
+    13: _migrate_v13,
 }
