@@ -338,3 +338,53 @@ NDM 从库里取名字 + 配置文本直接调即可，**不用**它的 HTTP 服
 - **新增**：恢复 startup-config 采集 + 保存（v13 迁移加 `collections.startup_config` 列，纳入 `CONFIG_KEEP = 2` 保留策略）+ 一致性检查规则（OPS 类，`severity = convention`）。比对前需归一化行尾与空行，避免假阳性。
 - **新增**：规则 YAML 的 `controls` 字段（NIST 控制族）。
 - **不变**：其余按 §三 第一期 A→E 执行，步骤顺序 A 引擎移植 → B v13 迁移 → C `api/audit.py` → D 前端 → E 测试；每步单独提交；回归基准 238 项测试全绿、移植等价性 205 条命中一致。
+
+### 定案 5（2026-09-20）：规则库层优先级 —— **总部要求 > 厂商推荐 > 配置惯例**
+
+用户定案。三层规则**重复或冲突时一律以高层为准**。落地方式：
+
+| 情形 | 处理 |
+|---|---|
+| **重复**（同一件事多层都要求） | 只在高层写规则；若低层已有规则，则给高层规则挂 `controls` 溯源，**不重复建规则**（否则同一问题报两遍）。已按此法处理 SNMPv3 / SSH / HTTP / BPDU 等 4 处重叠。 |
+| **冲突**（高层要求做、低层要求不做） | 高层规则照常判定；低层规则显式置 `enabled: false` 并写明 `superseded_by`，**不删除**（删掉会丢掉"讨论过、因冲突而让位"的记录）。 |
+
+引擎侧 `LAYER_PRIORITY`（engine.py）用于同档位下的报告排序，总部条目排前面；
+`loader` 强制要求：**停用的规则必须写明 `superseded_by` 或 `disabled_reason`**。
+原则已写入 `config/audit/_scopes.yaml` 文件头，作为规则库的全局约定。
+
+**本次冲突实例**：总部 CFG-CISCO 第 8 章「SNMPv1/v2c shall not be configured」
+vs vendor 层 `not_adopted`「用户决定不收 SNMP 团体字相关项」。
+处置：保留总部规则 `hq_cs_no_snmp_community`；`not_adopted` 条目改为记录"已被总部要求覆盖"。
+现网实况：4 台 Cisco 仍有明文团体字，其中 1 个是 **RW 读写**。
+
+---
+
+## 十三、实施进度（2026-09-20 当日）
+
+**计划 §三 第一期 A（引擎 + 规则库）已完成**：
+
+| 提交 | 内容 |
+|---|---|
+| `e572268` | 引擎移植（parser / checks / loader / engine 四模块）+ 规则库三层拆分；等价性 207 = 207 逐设备逐规则零差异 |
+| `67d1405` | 组合判定器 `command_set`（all_of / requires / conflict） |
+| `c90a59f` | 端口名归一化抽到 `utils/port_names.py`（采集与审计共用；改造点 #18） |
+| `957ea31` | 端口角色推断（分层信号）+ 按角色判定 |
+| `4b41c2b` | BPDU Guard 分两档（对端交换机 / 三层设备）+ CX snooping 配套规则 |
+| `09d4f61` | 数据源 `source.py`（配置 + 端口上下文装配） |
+| `3b28a9e` | 总部要求层 29 条规则 + `min_count` 判定器 |
+| `ff23e0b` | 层优先级 + 规则启停（`enabled` / `superseded_by`） |
+
+**当前状态**：规则库 58 条（总部 29 / 厂商 21 / 惯例 8），全网 36 台 486 条命中、741 ms；
+测试 310 项全绿；移植等价性 207 = 207。
+
+**真机验证出的三条有分量的发现**：
+1. **Cisco SNMPv3 有组无用户** —— 18/18 台有 `snmp-server group ... v3 priv`、0 台有 `user`，SNMPv3 实际不可用
+2. **CX 的 AAA 方法列表顺序** —— `group local qoraco-tacacs`（先本地后集中）与正确顺序并存，与总部第 5 章相反
+3. **集体性缺失** —— CX 无任何 ACL（18/18）、CX 无 syslog（18/18）、未配 CLI 空闲超时（18/18）
+
+**尚未开始**（计划 §三 第一期剩余）：
+- B. v13 迁移（`audit_runs` / `audit_findings` 两张表）
+- C. `backend/api/audit.py`（envelope + 全量审计 + 标准读写 + 导出）
+- D. 前端（查看器审计模式 + 标准页）
+- E. 端到端测试
+- 另有定案 1 的 **startup-config 采集恢复**（含一致性检查规则）
