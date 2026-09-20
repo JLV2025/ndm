@@ -1019,6 +1019,12 @@ def collect_device(
         import time
         time.sleep(0.5)
         _clear_progress(device_name)
+        # 采集成功 → 安排"采集后自动审计"（去抖：整批只跑一轮；任何失败都不影响采集）
+        try:
+            from services.audit_scheduler import schedule_post_collect_audit
+            schedule_post_collect_audit()
+        except Exception as e:              # noqa: BLE001 —— 审计不能拖累采集
+            print(f"[审计] 安排采集后自动审计失败（不影响采集）：{e}")
         return {
             "name": device_name,
             "ip": device_ip,

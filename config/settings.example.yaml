@@ -19,6 +19,10 @@ analysis:
   enable_performance_analysis: true
   enable_change_detection: true
   change_detection_lookback: 4
+audit:
+  # 采集后自动跑一轮全网审计（去抖：一整批采集静默 delay 秒后跑一次，实测 <1 秒）
+  run_after_collect: true
+  post_collect_delay: 60
 llm:
   timeout: 30
   providers:
