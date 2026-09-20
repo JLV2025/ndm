@@ -2488,18 +2488,18 @@
     {
       "id": "bug-151",
       "timestamp": "2026-09-18T03:16:58.964Z",
-      "error_message": "Significant refactor of ",
+      "error_message": "Significant refactor of ；第 5 次样本：2026-09-20 13:21 出现 0 字节 `backend/AuditInput`",
       "file": "C:/Users/jingl/.claude/plans/spanning-tree-glowing-gray.md",
       "root_cause": "9 lines replaced/restructured",
-      "fix": "Auto-detected change summary; see .wolf/memory.md for the session line.",
+      "fix": "Auto-detected change summary; see .wolf/memory.md for the session line.；处置同前：删除 + 提交前逐个看 git status（不用 git add -A）。本次样本名是 Python 类名（AuditInput），仍指向 heredoc/工具输出残留这一类成因",
       "tags": [
         "auto-detected",
         "refactor",
         "md"
       ],
       "related_bugs": [],
-      "occurrences": 1,
-      "last_seen": "2026-09-18"
+      "occurrences": 2,
+      "last_seen": "2026-09-20T13:21:00.000Z"
     },
     {
       "id": "bug-152",
