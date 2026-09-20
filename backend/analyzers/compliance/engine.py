@@ -12,6 +12,8 @@
 """
 from __future__ import annotations
 
+from datetime import date
+
 from .checks import CHECKS, LEVEL_ORDER
 from .parser import Device, parse_device
 from .port_roles import build_port_roles
@@ -65,6 +67,70 @@ def rule_applies(rule: dict, dev: Device, std: dict) -> bool:
     return True
 
 
+# ---------------------------------------------------------------- 例外豁免
+
+EXPIRING_DAYS = 30        # 距到期不足这个天数 → 「即将到期」（仍豁免，页面提醒复核）
+# 命中例外的具体度：设备级 > 站点级 > 全网
+_SCOPE_SPECIFICITY = {"device": 0, "site": 1, "all": 2}
+
+
+def exception_status(exc: dict, today: date | None = None) -> str:
+    """例外状态（推导，不存字段）：revoked / expired / expiring / active。
+
+    到期判断用**审计运行日**而非配置采集日 —— 豁免是"现在"的状态。
+    到期日当天仍算数（days_left == 0 不算过期）。
+    """
+    if exc.get("revoked"):
+        return "revoked"
+    try:
+        expires = date.fromisoformat(str(exc.get("expires_at")))
+    except ValueError:
+        return "active"      # 加载器已保证格式合法；手工构造的字典容忍为"生效中"
+    days_left = (expires - (today or date.today())).days
+    if days_left < 0:
+        return "expired"
+    return "expiring" if days_left <= EXPIRING_DAYS else "active"
+
+
+def find_exception(rule_id: str, dev: Device, exceptions: list[dict],
+                   today: date | None = None) -> tuple[dict, str] | None:
+    """找适用于该设备该规则的最具体例外，返回 (例外条目, 状态)。
+
+    两条容易写错的语义：
+      · **已撤销的条目不参与匹配** —— 设备级撤销后，站点级应重新生效，
+        而不是"这条规则从此没人豁免"。
+      · **生效中的优先于已过期的** —— 设备级例外过期、站点级还有效时，
+        应当用站点级豁免；只有全都没生效时，才拿最具体的过期例外去标注
+        「例外已过期」（提醒复核，但该条仍回到普通统计）。
+    """
+    best_valid: tuple[dict, str] | None = None
+    best_expired: tuple[dict, str] | None = None
+
+    def rank(e: dict) -> int:
+        return _SCOPE_SPECIFICITY.get((e.get("scope") or {}).get("type"), 9)
+
+    for e in exceptions or []:
+        if e.get("rule_id") != rule_id:
+            continue
+        scope = e.get("scope") or {}
+        stype, svalue = scope.get("type"), scope.get("value")
+        if stype == "device" and svalue != dev.name:
+            continue
+        if stype == "site" and (not dev.site or svalue != dev.site):
+            continue
+        if stype not in _SCOPE_SPECIFICITY:
+            continue
+        state = exception_status(e, today)
+        if state == "revoked":
+            continue
+        if state == "expired":
+            if best_expired is None or rank(e) < rank(best_expired[0]):
+                best_expired = (e, state)
+        elif best_valid is None or rank(e) < rank(best_valid[0]):
+            best_valid = (e, state)
+    return best_valid or best_expired
+
+
 def analyze(name: str, text: str, std: dict, site: str | None = None,
             port_context=None, startup_config: str = "") -> dict:
     """对一台设备的配置文本执行全部适用规则。
@@ -87,11 +153,33 @@ def analyze(name: str, text: str, std: dict, site: str | None = None,
         if fn is None:                   # 未知判定器：跳过（loader 已校验，正常不会走到）
             continue
         findings.extend(fn(dev, rule, std))
+
+    # 例外豁免：命中即标注。生效中/即将到期的不计入建议统计（单列一类）；
+    # 已过期的**照常计入**但标注「例外已过期」—— 到期自动失效，提醒复核。
+    exceptions = std.get("exceptions") or []
+    today = date.today()
+    for f in findings:
+        hit = find_exception(f["rule_id"], dev, exceptions, today)
+        if hit:
+            e, state = hit
+            f["exempt"] = {
+                "exception_id": e.get("id", ""),
+                "status": state,
+                "approved_by": e.get("approved_by", ""),
+                "reason": e.get("reason", ""),
+                "compensating_control": e.get("compensating_control", ""),
+                "expires_at": e.get("expires_at", ""),
+            }
+
     # 排序：档位 → 层优先级（总部在前）→ 规则 id
     findings.sort(key=lambda f: (
         LEVEL_ORDER.index(f["level"]) if f["level"] in LEVEL_ORDER else 9,
         LAYER_PRIORITY.get(f.get("source", ""), 9),
         f["rule_id"]))
+
+    def exempted(f: dict) -> bool:
+        """生效中或即将到期 → 不进建议统计（已过期的自动回到普通统计）。"""
+        return f.get("exempt", {}).get("status") in ("active", "expiring")
 
     sites = std.get("sites", {}) or {}
     # 只回传判定出角色的端口（unknown 的省略），避免 48 口交换机把响应撑大
@@ -113,5 +201,7 @@ def analyze(name: str, text: str, std: dict, site: str | None = None,
             "exempt": bool(dev.site and dev.site in (sites.get("exempt_vlan_address") or [])),
         },
         "findings": findings,
-        "counts": {lv: sum(1 for f in findings if f["level"] == lv) for lv in LEVEL_ORDER},
+        "counts": {lv: sum(1 for f in findings if f["level"] == lv and not exempted(f))
+                   for lv in LEVEL_ORDER},
+        "exempt_count": sum(1 for f in findings if exempted(f)),
     }

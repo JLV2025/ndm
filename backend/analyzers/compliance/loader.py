@@ -5,14 +5,21 @@
     company-standard.yaml  公司总部要求（CFG-Aruba / CFG-CISCO）
     vendor-baseline.yaml   厂商加固建议
     org-convention.yaml    组织惯例（我们自己的使用习惯）
+    _exceptions.yaml       例外登记表（已批准的偏离；可选文件）
 
 合并顺序固定（company → vendor → org），每条规则注入 source_file（决定保存时写回哪个文件）。
 校验一次性收集全部问题再抛出——规则编辑页需要一次看到所有错误，而不是改一个报一个。
+
+例外登记表**不参与 ruleset_hash**（登记例外不算"标准变了"，趋势里两者分开判断），
+有独立的 exceptions_hash。例外的校验同样从严：rule_id 拼错、站点码写错都会让豁免
+静默失效（审计照报，没人发现登记没生效），所以必须在加载期拦住。
 """
 from __future__ import annotations
 
+import datetime
 import hashlib
 import json
+import re
 from pathlib import Path
 
 import yaml
@@ -20,9 +27,12 @@ import yaml
 from .checks import CHECKS, LEVEL_ORDER
 
 SCOPES_FILE = "_scopes.yaml"
+EXCEPTIONS_FILE = "_exceptions.yaml"
 RULE_FILES = ["company-standard.yaml", "vendor-baseline.yaml", "org-convention.yaml"]
 PLATFORMS = {"all", "cx", "cisco"}
 SEVERITIES = {"shall", "should", "vendor", "convention"}
+SCOPE_TYPES = {"device", "site", "all"}
+EXC_ID_RE = re.compile(r"^exc-\d{3,}$")
 
 DEFAULT_DIR = Path(__file__).resolve().parents[3] / "config" / "audit"
 
@@ -92,6 +102,85 @@ def _validate_command_set(rid: str, p: dict) -> list[str]:
     return errs
 
 
+def _parse_date(value) -> datetime.date | None:
+    """宽容解析 YYYY-MM-DD；解析不了返回 None（由调用方决定报什么错）。"""
+    if not value:
+        return None
+    try:
+        return datetime.date.fromisoformat(str(value))
+    except ValueError:
+        return None
+
+
+def _validate_exceptions(std: dict, errors: list[str]) -> None:
+    """例外登记表校验（与规则校验合并到同一次报错里）。"""
+    known_rules = {r.get("id") for r in std.get("rules", [])}
+    site_codes = set((std.get("naming") or {}).get("site_codes") or [])
+    seen_ids: set[str] = set()
+    seen_scopes: dict[tuple, str] = {}
+
+    for idx, e in enumerate(std.get("exceptions") or [], start=1):
+        where = f"{EXCEPTIONS_FILE} 第 {idx} 条"
+        eid = str(e.get("id") or "")
+        if not eid:
+            errors.append(f"{where}: 缺少 id")
+        else:
+            where = eid
+            if not EXC_ID_RE.match(eid):
+                errors.append(f"{where}: id 需形如 exc-NNN（如 exc-001）")
+            if eid in seen_ids:
+                errors.append(f"{where}: 例外 id 重复")
+            seen_ids.add(eid)
+
+        rid = str(e.get("rule_id") or "")
+        if not rid:
+            errors.append(f"{where}: 缺少 rule_id")
+        elif rid not in known_rules:
+            errors.append(f"{where}: rule_id '{rid}' 不在规则库中（拼错会让豁免静默失效）")
+
+        scope = e.get("scope") or {}
+        stype, svalue = scope.get("type"), scope.get("value")
+        if stype not in SCOPE_TYPES:
+            errors.append(f"{where}: scope.type 必须是 device / site / all，当前 {stype!r}")
+        elif stype == "all":
+            if svalue:
+                errors.append(f"{where}: scope.type=all 是全网例外，不应填 value")
+        elif not svalue:
+            errors.append(f"{where}: scope.type={stype} 需要 scope.value")
+        elif stype == "site" and svalue not in site_codes:
+            errors.append(f"{where}: scope.value '{svalue}' 不是已知站点码")
+        if rid and stype in SCOPE_TYPES:
+            key = (rid, stype, str(svalue or ""))
+            if key in seen_scopes:
+                errors.append(f"{where}: 与 {seen_scopes[key]} 重复登记同一 (rule_id, scope)："
+                              f"{rid} @ {stype}={svalue or '全网'}")
+            seen_scopes[key] = eid or where
+
+        for field in ("reason", "approved_by"):
+            if not str(e.get(field) or "").strip():
+                errors.append(f"{where}: 缺少 {field}")
+        approved_at = _parse_date(e.get("approved_at"))
+        expires_at = _parse_date(e.get("expires_at"))
+        for field, parsed in (("approved_at", approved_at), ("expires_at", expires_at)):
+            if not e.get(field):
+                errors.append(f"{where}: 缺少 {field}")
+            elif parsed is None:
+                errors.append(f"{where}: {field} 需为 YYYY-MM-DD 日期")
+        if approved_at and expires_at and expires_at <= approved_at:
+            errors.append(f"{where}: expires_at 必须晚于 approved_at（不允许当天就失效）")
+
+        revoked = e.get("revoked")
+        if revoked is not None:
+            if not isinstance(revoked, dict):
+                errors.append(f"{where}: revoked 需为 {{at, by, reason}}")
+            else:
+                for field in ("at", "by", "reason"):
+                    if not revoked.get(field):
+                        errors.append(f"{where}: revoked 缺少 {field}")
+                if revoked.get("at") and _parse_date(revoked["at"]) is None:
+                    errors.append(f"{where}: revoked.at 需为 YYYY-MM-DD 日期")
+
+
 def _validate(std: dict, rule_files_used: list[str]) -> None:
     errors: list[str] = []
     sites = std.get("sites", {}) or {}
@@ -146,6 +235,8 @@ def _validate(std: dict, rule_files_used: list[str]) -> None:
         site_tokens_ok(rule.get("only_sites"), f"{rid}.only_sites")
         site_tokens_ok(rule.get("exempt_sites"), f"{rid}.exempt_sites")
 
+    _validate_exceptions(std, errors)
+
     for f in ("naming", "vlans"):
         if not std.get(f):
             errors.append(f"{SCOPES_FILE}: 缺少 {f} 段")
@@ -173,6 +264,7 @@ def load_standard(base_dir: Path | str | None = None, use_cache: bool = True) ->
         "vlans": scopes.get("vlans", {}),
         "rules": [],
         "not_adopted": [],
+        "exceptions": [],
         "source_dir": str(base),
     }
 
@@ -191,6 +283,14 @@ def load_standard(base_dir: Path | str | None = None, use_cache: bool = True) ->
             item = dict(item)
             item["source_file"] = fname
             std["not_adopted"].append(item)
+
+    # 例外登记表（可选文件）：单独一份，不参与 ruleset_hash
+    exceptions_path = base / EXCEPTIONS_FILE
+    if exceptions_path.exists():
+        for e in _read(exceptions_path).get("exceptions") or []:
+            e = dict(e)
+            e["source_file"] = EXCEPTIONS_FILE
+            std["exceptions"].append(e)
 
     _validate(std, used)
     std["rule_files"] = used
@@ -214,4 +314,23 @@ def ruleset_hash(std: dict) -> str:
         ),
     }
     blob = json.dumps(payload, ensure_ascii=False, sort_keys=True)
+    return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
+
+
+def exceptions_hash(std: dict) -> str:
+    """例外集指纹 —— **独立于 ruleset_hash**。
+
+    为什么必须分开：登记/撤销一条例外不应该让历史审计看起来"标准变过"。
+    两者各自变化时，趋势分析才能说清"是标准变了，还是豁免变了"。
+    与 ruleset_hash 同规格：按 id 排序后取内容（条目顺序不敏感）。
+    """
+    payload = sorted(
+        ({"id": e.get("id"), "rule_id": e.get("rule_id"), "scope": e.get("scope"),
+          "reason": e.get("reason"), "compensating_control": e.get("compensating_control"),
+          "approved_by": e.get("approved_by"), "approved_at": e.get("approved_at"),
+          "expires_at": e.get("expires_at"), "revoked": e.get("revoked")}
+         for e in std.get("exceptions") or []),
+        key=lambda x: x["id"] or "",
+    )
+    blob = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str)
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
