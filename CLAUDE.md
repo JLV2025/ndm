@@ -11,95 +11,81 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-QCNDM is a network switch configuration and log collection tool for Cisco IOS and Aruba OS switches. It SSHs into devices, collects running-config, startup-config, logs, and version info, then saves and analyzes the data locally.
+NDM（QCNDM）：通过 SSH 批量收集 Cisco IOS / IOS-XE / Router 与 Aruba OS / CX 的配置、日志、
+接口状态与计数器、邻居/生成树/聚合等信息，存 SQLite，React 前端可视化；内置**配置审计**
+（确定性规则引擎，"像资深网络工程师评审"）与 AI 辅助（日志诊断、专家简报）。
+（2026-09-20 更正：本文件此前描述的 `cli_main.py` / `lib/collector.py` / `utils/storage.py` /
+根级 `analyzers/` 均已不存在，实际结构见下。）
 
 ## Architecture
 
-The project uses a modular Python architecture:
+- **入口**：`backend/main.py`（FastAPI；同时托管 `frontend/dist` 静态前端，默认 8002）
+- **采集**：`backend/services/collector_service.py::collect_device`（Netmiko；
+  SSH 连接封装在 `backend/collectors/base.py`）。批量采集由**前端 worker 队列**逐台调
+  `POST /api/collect/{device}`（没有服务端批量端点）
+- **存储**：SQLite 为唯一数据源（`backend/storage/database.py` 管迁移与 schema_version，
+  `file_manager.py` 管分层保留）；`data/YYYY-WW/{设备}/` 保留原始文件
+- **分析**：`backend/analyzers/`（performance / config_validator / change_detector /
+  neighbor_parser / stp_parser / counter_parser / anomaly_detector / role_verifier）
+  \- **配置审计**在 `backend/analyzers/compliance/`：`parser`（配置→设备模型）、`checks`（判定器）、
+  `engine`（判定 + 例外豁免 + 集体性折叠）、`loader`（规则库校验）、`port_roles`、
+  `source`（从库装配输入）、`runner`（全量审计落库）、`trends`（趋势/榜查询核心）
+- **审计规则库**：`config/audit/*.yaml`（**标准是数据不是代码**；三层来源 + 例外登记
+  `_exceptions.yaml`；页面可视化编辑写回 YAML）
+- **API**：`backend/api/`（devices / collector / data / auth / stats / topology / alerts /
+  reports / logs / audit / lifecycle）
+- **前端**：`frontend/src`（React 18 + MUI + recharts；页面在 `pages/`；构建产物 `dist/` 入库）
+- **文档**：设计与实施计划在 `docs/superpowers/plans/`；跨会话决策与教训在 `.wolf/cerebrum.md`
 
-**Entry point:** `cli_main.py` - Orchestrates device collection workflow
+**Data flow：**
 
-**Core modules:**
-
-- `lib/collector.py` - Device data collection logic (extracts version/serial from `show version`, saves data)
-- `collectors/base.py` - `DeviceConnection` class using Netmiko for SSH, provides `send_command`, `collect_config`, `collect_logs`, etc.
-- `analyzers/`:
-  - `config_validator.py` - `ConfigValidator` checks completeness (truncation), critical items (VLANs, interfaces, routing, auth), syntax
-  - `performance.py` - `PerformanceAnalyzer` parses interface status (UP/DOWN counts), error stats (err-disabled, discards), bandwidth
-  - `change_detector.py` - `ChangeDetector` uses `difflib` to compare configs, reports added/removed lines
-- `utils/storage.py` - File organization: creates `data/YYYY-WW/{device-name}/` directories, `keep_latest_versions()` removes old weeks
-
-**Data flow:**
-
-1. Load `config/devices.yaml` (device list with name, IP, type, platform)
-2. Interactive CLI prompts for username/password per device
-3. `DeviceConnection.connect()` establishes SSH via Netmiko
-4. Collect: `show running-config`, `show startup-config`, `show log`, `show interface status`, `show version`
-5. Extract software version and serial number from `show version` output
-6. Run validators/analyzer on collected config
-7. Save raw files + JSON analysis to `data/YYYY-WW/`
-8. Generate `summary.txt` with key metrics
-
-**API layer (optional):** `api/` subdirectory provides Flask/FastAPI endpoints for programmatic access to collection and management functions.
+1. 前端「收集」→ `POST /api/collect/{device}`（先 Ping 预检）
+2. 依次采集 running/startup-config、日志、接口状态与累计计数器、路由、版本、CDP/LLDP、STP、LACP
+3. 落库（collections / port_snapshots / neighbors / stp_snapshots …）+ 写设备目录原始文件，按分层策略清理
+4. 异常检测（anomaly_detector）写 alerts；**采集批次静默 60 秒后自动跑一轮全网审计**（可关）
+5. 前端各页面经 API 读库（仪表盘 / 查看器 / 配置审计 / 审计标准 …）
 
 ## Configuration
 
-- `config/devices.yaml` - Device inventory (name, IP, type, platform, location, notes, username)
-- `config/settings.yaml` - Global settings (data_root, SSH timeouts, analyzer flags, LLM providers).
-  Data retention is a tiered rule, not a config key — see `backend/storage/file_manager.py`
+- `config/devices.yaml` / SQLite `devices` 表 —— 设备清单（name/IP/type/platform/location/uplink_ports…）
+- `config/settings.yaml` —— 全局设置（data_root、SSH 超时、分析开关、LLM providers、audit）；
+  **已 gitignore**，API key 用环境变量 `LLM_API_KEY_N` 覆盖
+- 保留策略是分层规则不是配置项 —— 见 `backend/storage/file_manager.py`
 
 ## Common Commands
 
 ```bash
-# Run collection
-python cli_main.py
+# 启动后端（同时托管已构建的前端）—— **必须在项目根目录跑**：data_root 是相对路径，
+# 在 backend/ 下跑会新建一个空库（现象极具误导性，曾踩过）
+python backend/main.py
 
-# Manage device list
+# 后端测试（从 backend 目录跑；项目根目录没有 tests/）
+cd backend && python -m pytest tests/ -q
+
+# 改完前端要重新构建（dist 入库）
+cd frontend && npm run build
+
+# 设备清单管理（交互式菜单）
 python config/manager.py
-
-# Add a new device to the list
-python config/manager.py
-# Then select option 2 to add
-
-# Run a single test
-python -m pytest tests/ -k test_name  # if pytest is configured
-```
-
-## File Structure
-
-```
-.
-├── cli_main.py              # Main entry point
-├── config/
-│   ├── devices.yaml         # Device inventory
-│   └── settings.yaml        # Global settings
-├── lib/
-│   └── collector.py         # Collection logic (version extraction, data saving)
-├── collectors/
-│   └── base.py              # SSH connection via Netmiko
-├── analyzers/
-│   ├── config_validator.py  # Config completeness & syntax checks
-│   ├── performance.py       # Interface status & error analysis
-│   └── change_detector.py   # Config diffing
-└── utils/
-    └── storage.py           # File I/O, weekly organization, cleanup
 ```
 
 ## Key Design Patterns
 
-1. **Context manager pattern** - `DeviceConnection` uses `__enter__`/`__exit__` for automatic disconnect
-2. **Strategy pattern** - Device type (cisco_ios/aruba_osswitch) determines command parsing regex
-3. **Chain of responsibility** - Analysis pipeline: validator → performance analyzer → change detector
-4. **Tiered retention** - Config text kept weekly for 16 weeks, older months collapsed into
-   `archive/{YYYY}-M{MM}/`; DB config full text and device logs each keep the last 2 collections.
-   Triggered at the end of each collection, and runnable via `backend/scripts/retention.py`
+1. **Context manager** —— `DeviceConnection` 用 `__enter__`/`__exit__` 自动断开
+2. **依赖注入的上下文** —— 审计数据源 `source.py` 把端口上下文、生命周期上下文装配好传给引擎
+   （`analyze(..., port_context=, lifecycle=)`），判定器不直接查库
+3. **标准是数据不是代码** —— 新增标准 = 加一条 YAML；新增判定方式 = 加一个 `checks.py` 函数
+4. **指纹贯穿** —— `config_hash` / `ruleset_hash` / `exceptions_hash` 用于判断"配置/标准/豁免变没变"
+5. **分层保留** —— 配置文本按周留 16 周，更早按月归档；DB 配置全文与日志各留最近 2 次；
+   采集结束时执行，也可跑 `backend/scripts/retention.py`
 
 ## Important Notes
 
-- Password input is interactive (not stored in config file)
-- Serial number extracted from `show version` is used as device directory name when available
-- Config validation runs automatically on each collection
-- Retention is tiered (see Key Design Patterns #4), not a single week count
+- 密码交互式输入，不落盘（`config/settings.yaml` 亦 gitignore，绝不提交）
+- **凭据值绝不外发**：发给 LLM 的文本（日志分析、专家简报）必须先过 `backend/utils/redact.py`
+- 设备目录名优先用 `show version` 里的序列号；堆叠按物理成员逐台建档
+- 采集时自动跑配置校验与性能分析；采集后自动跑审计（去抖）
+- 改 schema 要加 `_migrate_vN` 并升 `SCHEMA_VERSION`；服务只在 `init_db()`（启动）时迁移
 
 ## Workflow
 
