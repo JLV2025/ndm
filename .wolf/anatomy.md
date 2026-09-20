@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T06:33:57.316Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T06:35:55.621Z
 > Files: 172 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
@@ -186,7 +186,7 @@
 
 - `audit_briefing.py` — AI 专家简报 —— 让 AI 把**确定性审计结论**讲成人话。 (~3067 tok)
 - `audit_scheduler.py` — 采集后自动审计（去抖）。 (~580 tok)
-- `collector_service.py` — 配置收集服务 (~21187 tok)
+- `collector_service.py` — 配置收集服务 (~21250 tok)
 - `eox_client.py` — Cisco EoX 客户端 —— 按型号批量查生命周期（停止销售 / 停止支持）。 (~1502 tok)
 
 ## backend/storage/

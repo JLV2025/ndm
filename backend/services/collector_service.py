@@ -955,32 +955,11 @@ def collect_device(
 
         if settings.get("analysis", {}).get("enable_performance_analysis", True):
             try:
-                # 上行口推导（STP 根端口 → 上游设备对端 → 描述关键词 → 手工覆盖）——
-                # 写入 port_snapshots.is_uplink，供「流量排行上行口优先」与设备面板高亮使用。
-                # 失败退回手工清单：这只是个标识，不该影响采集。
-                uplink_ports = list(device.uplink_ports or [])
-                try:
-                    from analyzers.compliance.port_roles import derive_uplink_ports
-                    from analyzers.neighbor_parser import parse_cdp, parse_lldp, merge_neighbors
-                    from analyzers.config_parser import ConfigParser
-                    _cdp = parse_cdp(cdp_neighbors_raw, device_type) if cdp_neighbors_raw else []
-                    _lldp = parse_lldp(lldp_neighbors_raw, device_type) if lldp_neighbors_raw else []
-                    _ntypes = {e.local_port: e.neighbor_type
-                               for e in merge_neighbors(_cdp, _lldp) if e.local_port}
-                    _descs = {e.name: e.description
-                              for e in ConfigParser(device_type).parse(running_config)}
-                    _root = {r["port_name"] for r in stp_rows
-                             if (r.get("role") or "").lower() == "root" and r.get("port_name")}
-                    derived = derive_uplink_ports(
-                        stp_root_ports=_root, neighbor_types=_ntypes,
-                        descriptions=_descs, manual=uplink_ports,
-                        lag_members=_parse_lag_members(lacp_raw))
-                    if derived:
-                        print(f"[上行口] {device_name}: " +
-                              "；".join(f"{p}（{why}）" for p, why in sorted(derived.items())))
-                    uplink_ports = sorted(derived.keys())
-                except Exception as e:      # noqa: BLE001
-                    print(f"[上行口] 推导失败，退回手工清单：{e}")
+                # 上行口推导（写入 port_snapshots.is_uplink，供流量排行与设备面板使用）
+                uplink_ports = _derive_uplink_ports_for(
+                    device_name, device_type, running_config,
+                    cdp_neighbors_raw, lldp_neighbors_raw, stp_rows, lacp_raw,
+                    device.uplink_ports)
 
                 perf_analyzer = PerformanceAnalyzer(
                     interface_status, running_config, device_type,
@@ -1108,6 +1087,39 @@ def _parse_lag_members(lacp_raw: str) -> dict:
     except Exception as e:                      # noqa: BLE001 —— 解析失败不影响采集
         print(f"[LAG] 解析失败: {e}")
         return {}
+
+
+def _derive_uplink_ports_for(device_name: str, device_type: str, running_config: str,
+                             cdp_raw: str, lldp_raw: str, stp_rows: list | None,
+                             lacp_raw: str, manual) -> list[str]:
+    """采集侧上行口推导 —— 返回上行口清单；任何失败都退回手工清单。
+
+    抽成函数的理由：这段曾被 try/except **静默吞掉一个字段名错误**（退回手工清单、
+    表面无异常），抽出来配真机形态的测试才钉得住。
+    """
+    manual_list = list(manual or [])
+    try:
+        from analyzers.compliance.port_roles import derive_uplink_ports
+        from analyzers.neighbor_parser import parse_cdp, parse_lldp, merge_neighbors
+        from analyzers.config_parser import ConfigParser
+        cdp = parse_cdp(cdp_raw, device_type) if cdp_raw else []
+        lldp = parse_lldp(lldp_raw, device_type) if lldp_raw else []
+        ntypes = {e.local_port: e.neighbor_type
+                  for e in merge_neighbors(cdp, lldp) if e.local_port}
+        descs = {e.name: e.description
+                 for e in ConfigParser(device_type).parse(running_config or "")}
+        root = {r["port_name"] for r in (stp_rows or [])
+                if (r.get("role") or "").lower() == "root" and r.get("port_name")}
+        derived = derive_uplink_ports(
+            stp_root_ports=root, neighbor_types=ntypes, descriptions=descs,
+            manual=manual_list, lag_members=_parse_lag_members(lacp_raw))
+        if derived:
+            print(f"[上行口] {device_name}: " +
+                  "；".join(f"{p}（{why}）" for p, why in sorted(derived.items())))
+        return sorted(derived.keys())
+    except Exception as e:                      # noqa: BLE001 —— 标识性数据，不影响采集
+        print(f"[上行口] 推导失败，退回手工清单：{e}")
+        return manual_list
 
 
 def _build_stp_rows(result) -> list:

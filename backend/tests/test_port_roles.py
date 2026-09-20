@@ -352,3 +352,40 @@ def test_解析LAG成员_空输入与坏输入不抛():
     from services.collector_service import _parse_lag_members
     assert _parse_lag_members("") == {} and _parse_lag_members(None) == {}
     assert _parse_lag_members("随便一段无关输出\n没有匹配格式") == {}
+
+
+# ---------------------------------------------------------------- 采集侧推导接线（真机形态）
+
+CDP_ARUBA = ("Port        Device ID                Platform                 Capability\n"
+             "1/1/1       BJQD1SDW01.corp.com      cisco C8300-1N1S-4T2X    IRS\n"
+             "1/1/49      BJQD1SWI02.corp.com      cisco C9300-48P           IS\n")
+LACP_ARUBA = "Aggregate name   : lag49\nInterfaces       : 1/1/49 2/1/49\n"
+
+
+def test_采集侧推导_有STP根端口时展开LAG():
+    """多层站点：根端口是 lag49 → 展开成物理成员 1/1/49 / 2/1/49（is_uplink 标在物理口上）。"""
+    from services.collector_service import _derive_uplink_ports_for
+    cfg = "hostname BJQD1SWI01\ninterface 1/1/49\n    vlan trunk allowed all\n"
+    out = _derive_uplink_ports_for("BJQD1SWI01", "aruba_aoscx", cfg, CDP_ARUBA, "",
+                                   [{"port_name": "lag49", "role": "root", "vlan": 1}],
+                                   LACP_ARUBA, [])
+    assert out == ["1/1/49", "2/1/49"]
+
+
+def test_采集侧推导_单机站点按SDWAN对端与描述():
+    """单台站点（没有根端口）：对端是 SD-WAN 的口 + 描述命中关键词的口算上行口。"""
+    from services.collector_service import _derive_uplink_ports_for
+    cdp = ("Port        Device ID                Platform                 Capability\n"
+           "1/1/1       BJQD1SDW01.corp.com      cisco C8300-1N1S-4T2X    IRS\n"
+           "1/1/5       PC-001                   -                        -\n")
+    out = _derive_uplink_ports_for("KR5D1SWI01", "aruba_aoscx", "hostname x\n", cdp, "",
+                                   [], "", [])
+    assert out == ["1/1/1"]
+
+
+def test_采集侧推导_失败退回手工清单不抛():
+    """坏输入（配置解析抛异常等）必须退回手工清单 —— 这只是个标识，不能影响采集。"""
+    from services.collector_service import _derive_uplink_ports_for
+    out = _derive_uplink_ports_for("X", "aruba_aoscx", None, None, None, None, None,
+                                   ["1/1/1", "1/1/2"])
+    assert out == ["1/1/1", "1/1/2"]
