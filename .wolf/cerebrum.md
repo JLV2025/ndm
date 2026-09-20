@@ -661,6 +661,16 @@
 - [2026-09-20] **例外机制的关键实现点**：`analyze()` 读 `std.get("exceptions") or []`（签名不变，大量测试用 `make_std()` 合成字典没有该键）；`counts` 五档只数未豁免的，另有 `exempt_count`；`audit_findings` 增 `exempt_by`/`exempt_json`（**快照**：批准人/依据/到期日——历史审计要能回答"那次审计时它被谁批的"，不能只存 id 再去 YAML 现查），`audit_runs` 增 `exceptions_hash`/`exempt_count`（v15 迁移）。`_exceptions.yaml` 的可选文件语义：不存在 = 空登记表，不是错误。
 - [2026-09-20] **UI 测试可绕过登录门槛**：`sessionStorage['ndm_session']`（`{username, password, deviceIp, expiresAt}`，base64 编码）预置一个假会话即可进入页面——审计端点本身不校验会话，登录只是前端路由门槛。仅用于本地 UI 实测，不要写入任何文档或提交。
 
+## Decision Log
+- [2026-09-20] **趋势页五项定案（用户）**：① 位置 = **新建独立页「配置审计」**（标准 vs 结果分开）；② 触发 = **采集后自动跑 + 手工触发**；③ 图表粒度 = **每周取该周最后一次运行**（与"配置按周存/流量周锚定"惯例一致），**本周尚无运行则不画该周**（否则周一会把上周数据画成本周）；④ **榜与图同基准**（最新周最后一条 vs 上一周最后一条 —— 避免"榜变了但图没动"）；⑤ 头部显示**最新一次**统计。
+- [2026-09-20] **采集后自动跑用服务端去抖，不在前端批次结束处触发**：采集是前端 worker 队列逐台调单设备端点，服务端没有"批次"概念；去抖（每台成功重置 60 秒定时器，静默后跑一轮）同时覆盖 UI 批量与 CLI 采集，一批只跑一轮且跑的时候数据完整。**失败隔离是硬要求**：调度与执行全程 try/except，审计任何异常都不能拖累采集。开关 `settings.yaml → audit.run_after_collect`（默认开）。
+
+## Key Learnings
+- [2026-09-20] **周格式是 `YYYY-WW`（如 `2026-38`），不是 ISO 的 `2026-W38`** —— 与 `collections.week` 保持一致。`_iso_week()` 用 `isocalendar()` 但输出不带 `W`（写测试时按 ISO 写法踩过一次）。
+- [2026-09-20] **趋势口径与实现**：建议数 = **未豁免** findings（`json_extract(exempt_json,'$.status') IN ('active','expiring')` 的排除掉，SQLite JSON1 可用）；例外数 = 生效中 + 即将到期；站点过滤走 `LEFT JOIN devices ON d.name = af.device_name`（设备改名/删除时退化为"无站点"，不算错）。所有趋势/榜数据**查询侧聚合**，不加表。
+- [2026-09-20] **审计结果主页的信息层级**：最近一次（用户最关心"现在"）→ 趋势图 → 收敛/恶化榜 → 历史表（点开下钻）。`audit_runs` 里 v15 之前的老记录 `exceptions_hash` 为 NULL，与后续比较会显示"已变"——属正常，不是 bug。
+- [2026-09-20] `nav.audit` 文案一期就已预留在 i18n 里（'配置审计' / 'Config Audit'），新增页面直接复用；**加 i18n 键前先 grep 一遍**，否则会撞出 TS1117 重复键。
+
 ## Do-Not-Repeat
 - [2026-09-20] **别把 `present_regex` 当"命中即报"**：它的语义是「该配置**应该有**」——**未命中 pattern 才出建议**；`absent_regex` / `present_flag` 才是"命中即报"。写规则或写测试前先看 `checks.py` 里判定器的 docstring，别按名字猜（本次因此 11 条测试失败）。
 - [2026-09-20] **跑依赖新 schema 列的脚本/回归前，先确认主库已迁移**（`init_db('./data')`）：迁移只在 init_db 时执行，服务不重启库就停在旧版本（本次主库停在 v13，`startup_config` 列不存在）。
@@ -670,5 +680,8 @@
 - 规则库 **59 条**（公司总部 29 / 厂商基线 21 / 组织规范 9）；schema **v14**
 - 测试 **355 项全绿**；移植等价性回归（按 netstd 原 26 条规则 id 过滤）仍 **207 = 207**
 - 后端可 `python backend/main.py` 启动（8002），前端已构建进 `frontend/dist`
-- **二期进展（2026-09-20 晚）**：**例外登记机制 ✅ 完成**（设计+计划 `docs/superpowers/plans/2026-09-20-exceptions-registry.md`；提交链 5f6e425 → 246b7f1 → 3ca81b0 → fa5a0e0 → 1213a2d → 7237d88；schema **v15**；测试 **387 项全绿**；等价性回归 486=486；浏览器端到端实测通过——登记→计数 7→6 + 灰色徽章、撤销→恢复普通统计）。**关键顺序依据**：例外的豁免语义先落地，趋势图的统计口径（建议数 vs 已批准例外数）才能一次定稿。
-- 待办（二期剩余）：趋势图表（基座已就绪：`audit_runs.exempt_count` / `exceptions_hash` 已在落库）、EoL 生命周期检查、AI 专家简报、「集体性漏配单独成类」（一期未实现，仍靠规则写得克制）、`port_snapshots.is_uplink` 之类不可用信号的清理
+- **二期进展（2026-09-20 晚）**：**例外登记机制 ✅** + **审计趋势与历史页 ✅** 完成。
+  - 例外：设计+计划 `docs/superpowers/plans/2026-09-20-exceptions-registry.md`；提交链 5f6e425 → 246b7f1 → 3ca81b0 → fa5a0e0 → 1213a2d → 7237d88；浏览器实测通过（登记→计数 7→6 + 灰徽章；撤销→恢复）。
+  - 趋势：计划 `docs/superpowers/plans/2026-09-20-audit-trends.md`；提交链 2836c54 → 40ef6a9（提取 runner）→ 02b0369（趋势/对比端点）→ d8cd37e（采集后自动跑）→ 9a2630d（新页面）；浏览器实测通过（触发→toast+新记录；下钻明细 486 条、档位筛选 238/486）；采集后自动跑真实链路验证（run 4, trigger=post_collect, 969 ms）。
+  - schema **v15**；测试 **401 项全绿**；等价性回归 486=486；主库现有 4 条运行记录（10:03 用户/12:50 验证/13:01 页面按钮/13:0x post_collect）。
+- 待办（二期剩余）：**EoL 生命周期检查**（按型号查 Cisco EoX，先确认凭据或改用离线映射）、**AI 专家简报**；另有「集体性漏配单独成类」（一期未实现，仍靠规则写得克制）、`port_snapshots.is_uplink` 之类不可用信号的清理、前端 `deviceApi.batchCollect` 指向不存在的 `/collect/batch`（死代码，待清理）。

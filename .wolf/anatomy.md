@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T03:35:41.867Z
-> Files: 142 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T05:02:54.678Z
+> Files: 150 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -44,7 +44,9 @@
 
 ## ../../temp/
 
+- `add_audit_settings.py` — 向本地 config/settings.yaml 追加 audit 段（若还没有）。不打印文件内容。 (~175 tok)
 - `add_buglog.py` — 向 .wolf/buglog.json 追加一条手工记录（避免手改 JSON 出错）。 (~328 tok)
+- `add_buglog2.py` — 追加 bug-199（周格式约定）到 .wolf/buglog.json。 (~258 tok)
 - `eq_check.py` — 移植等价性回归：同库同配置，逐设备逐规则对比 findings（stderr 输出给 A/B 两侧）。 (~317 tok)
 
 ## ./
@@ -148,12 +150,13 @@
 - `loader.py` — 规则库加载与校验。 (~3753 tok)
 - `parser.py` — 配置文本解析 —— 从 running-config 文本构建判定所需的设备模型。 (~1697 tok)
 - `port_roles.py` — 端口角色推断 —— 让端口级规则真正可达。 (~1798 tok)
+- `runner.py` — 全网审计执行器 —— API 端点与「采集后自动跑」共用同一实现。 (~1061 tok)
 - `source.py` — 审计数据源 —— 从 NDM 库取"这次审计要审什么"。 (~1402 tok)
 
 ## backend/api/
 
 - `alerts.py` — 告警 API 路由 (~2091 tok)
-- `audit.py` — 配置审计 API 路由。 (~7143 tok)
+- `audit.py` — 配置审计 API 路由。 (~7996 tok)
 - `collector.py` — 配置收集 API 路由 (~1741 tok)
 - `data.py` — 数据文件 API 路由 (~3944 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
@@ -174,7 +177,8 @@
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~20501 tok)
+- `audit_scheduler.py` — 采集后自动审计（去抖）。 (~580 tok)
+- `collector_service.py` — 配置收集服务 (~20590 tok)
 
 ## backend/storage/
 
@@ -190,6 +194,8 @@
 - `test_anomaly_config_drift.py` — 未保存配置告警测试 —— 重点是**状态型告警的去重与自动消除**。 (~1086 tok)
 - `test_anomaly_version_mismatch.py` — 异常检测：堆叠成员版本不一致告警 (~693 tok)
 - `test_audit_api.py` — 审计 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）。 (~3397 tok)
+- `test_audit_scheduler.py` — 采集后自动审计（去抖）测试。 (~793 tok)
+- `test_audit_trends.py` — 审计趋势端点测试 —— 周聚合、统计口径、对比榜。 (~2011 tok)
 - `test_collector_service.py` — collector_service 型号/序列号/成员ID提取测试 — 重点：Aruba CX VSF 堆叠 (~1644 tok)
 - `test_collector_service.py` — extract_model/extract_serial_number 测试（重点 VSF 堆叠成员型号，4 用例） (~500 tok)
 - `test_compliance_engine.py` — 配置审计引擎测试 —— 解析、判定器、站点作用域、行号契约。 (~5955 tok)
@@ -224,7 +230,7 @@
 
 ## config/
 
-- `settings.example.yaml` — NDM 全局配置模板 (~238 tok)
+- `settings.example.yaml` — NDM 全局配置模板 (~268 tok)
 - `settings.yaml` (~197 tok)
 
 ## config/audit/
@@ -250,6 +256,7 @@
 
 - `2026-08-04-aruba-ap-recognition.md` — Aruba AP 识别实现计划 (~3717 tok)
 - `2026-09-14-traffic-counter-delta.md` — 端口流量排行：改用「周锚定」累计计数器差值 (~5604 tok)
+- `2026-09-20-audit-trends.md` — 审计趋势与历史（二期）—— 设计与实施计划 (~889 tok)
 - `2026-09-20-exceptions-registry.md` — 例外登记机制（二期）—— 设计与实施计划 (~1236 tok)
 
 ## docs/superpowers/specs/
@@ -262,7 +269,7 @@
 
 ## frontend/src/
 
-- `App.tsx` — DRAWER_WIDTH — renders modal (~3452 tok)
+- `App.tsx` — DRAWER_WIDTH — renders modal (~3586 tok)
 
 ## frontend/src/components/
 
@@ -283,12 +290,13 @@
 
 ## frontend/src/i18n/
 
-- `en.ts` — Declares en (~7287 tok)
-- `zh.ts` — Declares zh (~5613 tok)
+- `en.ts` — Declares en (~7906 tok)
+- `zh.ts` — Declares zh (~6067 tok)
 
 ## frontend/src/pages/
 
 - `Alerts.tsx` — 字段中文标签映射 (~4641 tok)
+- `ComplianceAudit.tsx` — 与仪表盘一致的图表配色（深色主题） (~6420 tok)
 - `ComplianceStandard.tsx` — 档位 → 配色，与查看器审计模式保持一致（刻意不用红色系：这是建议强度不是违规等级） (~7818 tok)
 - `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~11085 tok)
 - `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5691 tok)
@@ -299,7 +307,7 @@
 
 ## frontend/src/services/
 
-- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~2688 tok)
+- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~2833 tok)
 
 ## frontend/src/shared/
 
@@ -310,7 +318,7 @@
 
 ## frontend/src/types/
 
-- `index.ts` — 离线物理设备档案（device_members 表） (~1469 tok)
+- `index.ts` — 离线物理设备档案（device_members 表） (~2018 tok)
 - `topology.ts` — 端口物理断开（status_up=0），图上显示红叉警告 (~1043 tok)
 
 ## tests/

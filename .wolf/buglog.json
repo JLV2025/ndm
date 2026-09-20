@@ -3268,6 +3268,119 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-20T03:35:00.000Z"
+    },
+    {
+      "id": "bug-199",
+      "timestamp": "2026-09-20T04:50:03.925Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/audit.py",
+      "root_cause": "58 lines replaced/restructured",
+      "fix": "Rewrote 63→5 lines (58 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T04:50:03.926Z"
+    },
+    {
+      "id": "bug-200",
+      "timestamp": "2026-09-20T04:51:28.897Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/audit.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T04:51:28.897Z"
+    },
+    {
+      "id": "bug-201",
+      "timestamp": "2026-09-20T04:56:54.060Z",
+      "error_message": "Type error",
+      "file": "frontend/src/i18n/en.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T04:56:54.060Z"
+    },
+    {
+      "id": "bug-202",
+      "timestamp": "2026-09-20T04:57:44.167Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "Had 'auditRules.title'",
+      "fix": "Changed to 'nav.audit'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T04:57:44.167Z"
+    },
+    {
+      "id": "bug-203",
+      "timestamp": "2026-09-20T04:58:57.102Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/i18n/zh.ts",
+      "root_cause": "Had 'nav.audit'",
+      "fix": "Changed to 'auditPage.title'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T04:58:57.102Z"
+    },
+    {
+      "id": "bug-204",
+      "timestamp": "2026-09-20T04:59:02.426Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/i18n/en.ts",
+      "root_cause": "Had 'nav.audit'",
+      "fix": "Changed to 'auditPage.title'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T04:59:02.426Z"
+    },
+    {
+      "id": "bug-199",
+      "timestamp": "2026-09-20T05:05:00.000Z",
+      "error_message": "趋势测试 3 条失败：assert '2026-38' == '2026-W38'",
+      "file": "backend/tests/test_audit_trends.py",
+      "root_cause": "项目里的周格式是 collections.week 的 YYYY-WW（如 2026-38），不带 ISO 的 W 前缀；测试里按 ISO 写法（2026-W38）写了期望值。实现是对的，测试期望写错了。",
+      "fix": "测试期望改为 2026-38/2026-37/2026-39；并把「周格式 YYYY-WW」记入 cerebrum Key Learnings。",
+      "tags": [
+        "audit",
+        "trends",
+        "week-format",
+        "test"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:05:00.000Z"
     }
   ]
 }
