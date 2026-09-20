@@ -59,10 +59,26 @@ class PortRole:
     role: str              # uplink / access / unknown
     confidence: str        # high / medium / low
     reasons: list[str] = field(default_factory=list)
+    neighbor_type: str = ""    # 原始对端类型（switch/server/sdwan/...），供规则按对端过滤
+    stp_role: str = ""         # 原始生成树角色（root/designated）
 
     @property
     def is_confident(self) -> bool:
         return self.confidence == "high"
+
+    @property
+    def peer_class(self) -> str:
+        """对端类型，用于规则过滤。
+
+        生成树根端口**视为 switch** —— 根端口的定义就是"朝根桥方向"，
+        而根桥必然是一台交换机。没有这一条，只有 STP 数据、没有 CDP 数据的设备
+        （现网 19/36 台）就永远命中不了"对端是交换机"类规则。
+        """
+        if self.neighbor_type:
+            return self.neighbor_type.lower()
+        if self.stp_role == "root":
+            return "switch"
+        return ""
 
 
 def _config_hint(block: dict) -> str:
@@ -98,17 +114,21 @@ def infer_port_role(port: str, *, stp_role: str = "", neighbor_type: str = "",
     nt = (neighbor_type or "").lower()
     reasons: list[str] = []
 
+    def mk(role: str, confidence: str, rs: list[str]) -> PortRole:
+        return PortRole(port, role, confidence, rs,
+                        neighbor_type=nt, stp_role=stp_role)
+
     # 第一层：生成树根端口 / 对端是基础设施 —— 硬证据
     if stp_role == "root":
         reasons.append("生成树根端口（朝向上游）")
     if nt in UPLINK_NEIGHBORS:
         reasons.append(f"对端是 {nt}（基础设施）")
     if reasons:
-        return PortRole(port, "uplink", "high", reasons)
+        return mk("uplink", "high", reasons)
 
     # 第二层：对端是终端
     if nt in ACCESS_NEIGHBORS:
-        return PortRole(port, "access", "medium", [f"对端是 {nt}（终端）"])
+        return mk("access", "medium", [f"对端是 {nt}（终端）"])
 
     # 第三层：LAG 成员 / 设备档案的上行口清单 / 配置形态
     if in_lag:
@@ -116,19 +136,19 @@ def infer_port_role(port: str, *, stp_role: str = "", neighbor_type: str = "",
     if in_uplink_list:
         reasons.append("在设备档案的上行口清单里")
     if reasons:
-        return PortRole(port, "uplink", "medium", reasons)
+        return mk("uplink", "medium", reasons)
     if config_hint == "access":
-        return PortRole(port, "access", "medium", ["配置为接入口（vlan access）"])
+        return mk("access", "medium", ["配置为接入口（vlan access）"])
     if config_hint == "trunk":
-        return PortRole(port, "uplink", "medium", ["配置为干道（vlan trunk allowed all）"])
+        return mk("uplink", "medium", ["配置为干道（vlan trunk allowed all）"])
 
     # 第四层：描述关键词 —— 只作佐证，置信度最低
     if description and UPLINK_DESC.search(description):
-        return PortRole(port, "uplink", "low", [f"描述含上行关键词（{description}）"])
+        return mk("uplink", "low", [f"描述含上行关键词（{description}）"])
     if description and ACCESS_DESC.search(description):
-        return PortRole(port, "access", "low", [f"描述含终端关键词（{description}）"])
+        return mk("access", "low", [f"描述含终端关键词（{description}）"])
 
-    return PortRole(port, "unknown", "low", [])
+    return mk("unknown", "low", [])
 
 
 def build_port_roles(dev: Device, ctx: PortContext | None = None) -> dict[str, PortRole]:

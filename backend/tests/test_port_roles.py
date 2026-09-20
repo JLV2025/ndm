@@ -192,6 +192,52 @@ def test_port_roles_returned_in_result():
     assert res["port_roles"]["1/1/49"]["confidence"] == "high"
 
 
+def test_when_neighbor_separates_switch_peer_from_three_layer_peer():
+    """分两档：对端是交换机（发 BPDU，真风险）vs 三层设备（不发 BPDU，无害）。
+    真机实测：现网 21 处命中全部落在三层设备那一档，交换机档 0 处。"""
+    switch_rule = dict(BPDU_RULE, id="on_switch",
+                       params=dict(BPDU_RULE["params"], when_neighbor=["switch"]))
+    infra_rule = dict(BPDU_RULE, id="on_infra", level="可选优化",
+                      params=dict(BPDU_RULE["params"], when_neighbor=["sdwan", "router", "firewall"]))
+    text = "ArubaOS-CX\nhostname x\ninterface 1/1/49\n    spanning-tree bpdu-guard\n"
+
+    std = std_with(switch_rule)
+    assert len(engine.analyze("BJQD1SWI01", text, std,
+                              port_context=PortContext(neighbor_types={"1/1/49": "switch"}))["findings"]) == 1
+    assert engine.analyze("BJQD1SWI01", text, std,
+                          port_context=PortContext(neighbor_types={"1/1/49": "sdwan"}))["findings"] == []
+
+    std2 = std_with(infra_rule)
+    assert len(engine.analyze("BJQD1SWI01", text, std2,
+                              port_context=PortContext(neighbor_types={"1/1/49": "sdwan"}))["findings"]) == 1
+    assert engine.analyze("BJQD1SWI01", text, std2,
+                          port_context=PortContext(neighbor_types={"1/1/49": "switch"}))["findings"] == []
+
+
+def test_stp_root_counts_as_switch_peer():
+    """只有 STP 数据、没有 CDP 数据的设备（现网 19/36 台）也必须能命中
+    「对端是交换机」类规则 —— 根端口的定义就是朝根桥方向，根桥必然是交换机。"""
+    rule = dict(BPDU_RULE, params=dict(BPDU_RULE["params"], when_neighbor=["switch"]))
+    text = "ArubaOS-CX\nhostname x\ninterface 1/1/49\n    spanning-tree bpdu-guard\n"
+    res = engine.analyze("BJQD1SWI01", text, std_with(rule),
+                         port_context=PortContext(stp_roles={"1/1/49": "root"}))
+    assert len(res["findings"]) == 1
+
+
+def test_loader_rejects_bad_when_neighbor(tmp_path):
+    (tmp_path / "_scopes.yaml").write_text(
+        "sites: {}\nnaming: {pattern: 'x', type_codes: {}}\nvlans: {standard: {}}\n", encoding="utf-8")
+    (tmp_path / "org-convention.yaml").write_text(
+        "rules:\n"
+        "  - id: r1\n    title: t\n    check: command_set\n    level: 改进建议\n"
+        "    params: {mode: conflict, when_role: uplink, when_neighbor: switch,\n"
+        "             trigger: {label: X, pattern: y}}\n",
+        encoding="utf-8")
+    with pytest.raises(loader.RuleError) as ei:
+        loader.load_standard(tmp_path, use_cache=False)
+    assert "when_neighbor 必须是字符串列表" in str(ei.value)
+
+
 def test_loader_validates_when_role_value(tmp_path):
     (tmp_path / "_scopes.yaml").write_text(
         "sites: {}\nnaming: {pattern: 'x', type_codes: {}}\nvlans: {standard: {}}\n", encoding="utf-8")

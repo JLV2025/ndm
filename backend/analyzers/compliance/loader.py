@@ -81,6 +81,10 @@ def _validate_command_set(rid: str, p: dict) -> list[str]:
                 need_item(it, "params.forbidden")
             if when_role and when_role not in ("uplink", "access", "unknown"):
                 errs.append(f"{rid}: params.when_role 只能是 uplink / access / unknown")
+            wn = p.get("when_neighbor")
+            if wn is not None and (not isinstance(wn, list) or not all(isinstance(x, str) for x in wn)):
+                errs.append(f"{rid}: params.when_neighbor 必须是字符串列表"
+                            f"（如 [switch] 或 [sdwan, router, firewall]）")
 
     if p.get("scope") not in (None, "block", "global"):
         errs.append(f"{rid}: params.scope 只能是 block 或 global")

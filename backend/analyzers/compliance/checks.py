@@ -312,6 +312,7 @@ def _command_set_conflict(dev: Device, rule: dict, p: dict) -> list[dict]:
     trig = p.get("trigger") or {}
     forb = p.get("forbidden") or []
     when_role = p.get("when_role")
+    when_neighbor = [x.lower() for x in (p.get("when_neighbor") or [])]
     out: list[dict] = []
     undetermined: list[str] = []
 
@@ -329,6 +330,10 @@ def _command_set_conflict(dev: Device, rule: dict, p: dict) -> list[dict]:
             # 完全判断不出的端口不列进"拿不准"：没有任何线索指向上行口，
             # 把它们泼进报告只会让电话口淹掉真问题。
             if pr is None or pr.role != when_role:
+                continue
+            # 按对端类型过滤：区分「对端是交换机」（会发 BPDU，真风险）
+            # 与「对端是三层设备」（不发 BPDU，无害但无意义）——两者档位不同
+            if when_neighbor and pr.peer_class not in when_neighbor:
                 continue
             if not pr.is_confident:
                 undetermined.append(f"{port}（疑似上行，置信 {pr.confidence}）")

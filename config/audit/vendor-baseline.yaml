@@ -262,6 +262,74 @@ rules:
       本规则只对真正的堆叠设备判定（存在 vsf member 2 或 vsf secondary-member 2），单机不适用。
       现网 8 台堆叠设备中 6 台未启用。
 
+  # ==== 配套组合类：一期验证 all_of / requires / conflict 三种语义的样板 ====
+  # BPDU Guard 为什么分两档（现网实测：21 处命中全部是对端为 SD-WAN/路由器的口，
+  # 对端为交换机的 0 处）：对端是**交换机**时会发 BPDU，bpdu-guard 会立刻把端口
+  # err-disable，成片断网——这是真风险；对端是三层设备（SD-WAN/路由器/防火墙）
+  # 不发 BPDU，配了无害但也没意义，故降一档。
+  - id: cs_bpduguard_on_switch_port
+    title: 上联口（对端为交换机）配了 BPDU Guard
+    check: command_set
+    params:
+      mode: conflict
+      scope: block
+      when_role: uplink
+      when_neighbor: [switch]
+      trigger: {label: BPDU Guard, pattern: '(?mi)spanning-tree bpdu-guard'}
+    platforms: [cisco, cx]
+    level: 强烈建议
+    source: 厂商基线
+    severity: vendor
+    fix: |
+      interface <上联口>
+       no spanning-tree bpdu-guard     ! Cisco
+      interface <上联口>
+          no spanning-tree bpdu-guard ! Aruba CX
+    why: 上联口对端是交换机，会周期性发送 BPDU；配了 bpdu-guard 后该口会在收到
+      BPDU 时被判为"下挂了交换机"而 err-disable，直接造成链路中断。
+    note: 生成树根端口也算"对端是交换机"（根端口的定义就是朝根桥方向）。
+
+  - id: cs_bpduguard_on_infra_port
+    title: 基础设施口（三层设备对端）配了 BPDU Guard
+    check: command_set
+    params:
+      mode: conflict
+      scope: block
+      when_role: uplink
+      when_neighbor: [sdwan, router, firewall]
+      trigger: {label: BPDU Guard, pattern: '(?mi)spanning-tree bpdu-guard'}
+    platforms: [cisco, cx]
+    level: 可选优化
+    source: 厂商基线
+    severity: vendor
+    fix: 'interface <端口> / no spanning-tree bpdu-guard'
+    why: 对端是路由器 / SD-WAN / 防火墙，不发 BPDU，bpdu-guard 不会误触发——
+      但也起不到任何防护作用，属无意义配置。
+    note: 之所以仍列出：对端设备一旦换成交换机就会立刻变成真风险，且清掉它能
+      让"这口是不是上联口"一目了然。现网 21 处命中全部落在这一档。
+
+  - id: cx_snooping_requires_trust
+    title: DHCP snooping 配置不完整（缺上联口 trust）
+    check: command_set
+    params:
+      mode: requires
+      trigger: {label: DHCP snooping, pattern: '(?mi)^dhcpv4-snooping'}
+      required: [{label: 上联口 trust, pattern: '(?mi)dhcpv4-snooping trust'}]
+    platforms: [cx]
+    level: 强烈建议
+    source: 厂商基线
+    severity: vendor
+    fix: |
+      interface <上联口>
+          dhcpv4-snooping trust
+    why: 启用 snooping 却没有任何 trust 端口时，从上行方向回来的 DHCP 服务器
+      应答会被当作"非信任来源"丢弃，终端拿不到地址——配了一半比不配更危险：
+      现象是"部分终端随机拿不到 IP"，很难往这条命令上想。
+    note: >-
+      用全局作用域判定（"全机有没有 trust"）。更精确的做法是按端口角色判断
+      trust 是否落在上联口上，需要 when_role 与 requires 组合，留待后续。
+      现网实测：13 台启用了 snooping，其中 11 台全机无任何 trust。
+
 # ---------- 来源 ----------
 meta:
   adopted_from:
