@@ -3,17 +3,18 @@ import {
   Box, Container, Paper, Typography, Grid, Chip, Alert,
   Select, MenuItem, CircularProgress,
   ToggleButton, ToggleButtonGroup,
-  IconButton, Snackbar,
+  IconButton, Snackbar, Button, Tooltip,
 } from '@mui/material'
 import {
-  Visibility, Compare, Storage, ContentCopy,
+  Visibility, Compare, Storage, ContentCopy, FactCheck, FileDownload, MyLocation,
 } from '@mui/icons-material'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import type { AxiosResponse } from 'axios'
 import { dataApi, deviceApi } from '../services/api'
 import { sessionManager } from '../services/auth'
 
-import type { Device } from '../types'
+import type { Device, AuditEnvelope } from '../types'
+import { auditApi } from '../services/api'
 import LocationFilter from '../components/devices/LocationFilter'
 import { useI18n } from '../i18n'
 
@@ -24,6 +25,17 @@ const DIFF_COLORS = {
   same: { text: '#94A3B8' },
   info: { text: '#F8FAFC' },
 } as const
+
+/** 审计：档位 → 配色。**刻意不用红色系**——这是"建议强度"不是"违规等级"，
+ *  用红会让人读成合规清单，与"本页为建议，非强制"的定位冲突。 */
+const LEVEL_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  '强烈建议': { bg: 'rgba(245,158,11,0.14)', text: '#FBBF24', border: '#F59E0B' },
+  '风险提示': { bg: 'rgba(168,85,247,0.14)', text: '#C084FC', border: '#A855F7' },
+  '改进建议': { bg: 'rgba(59,130,246,0.12)', text: '#60A5FA', border: '#3B82F6' },
+  '可选优化': { bg: 'rgba(148,163,184,0.12)', text: '#94A3B8', border: '#64748B' },
+  '需人工判断': { bg: 'rgba(45,212,110,0.10)', text: '#5CE68C', border: '#2DD46E' },
+}
+const levelColor = (lv: string) => LEVEL_COLORS[lv] || LEVEL_COLORS['改进建议']
 
 function computeLCS(oldLines: string[], newLines: string[]): { type: 'same' | 'added' | 'removed'; text: string }[] {
   const m = oldLines.length
@@ -75,12 +87,22 @@ const Viewer: React.FC = () => {
   const [content, setContent] = useState('')
   const [copySnackOpen, setCopySnackOpen] = useState(false)
 
-  const [compareMode, setCompareMode] = useState(false)
+  const [viewMode, setViewMode] = useState<'single' | 'compare' | 'audit'>('single')
+  const compareMode = viewMode === 'compare'
+  const auditMode = viewMode === 'audit'
   const [compareWeek1, setCompareWeek1] = useState('')
   const [compareWeek2, setCompareWeek2] = useState('')
   const [compareFile, setCompareFile] = useState('')
   const [compareContent1, setCompareContent1] = useState('')
   const [compareContent2, setCompareContent2] = useState('')
+
+  // 审计模式
+  const [auditResult, setAuditResult] = useState<AuditEnvelope | null>(null)
+  const [auditLoading, setAuditLoading] = useState(false)
+  const [auditError, setAuditError] = useState('')
+  const [auditLevel, setAuditLevel] = useState<string>('')     // '' = 全部档位
+  const [auditSource, setAuditSource] = useState<string>('')   // '' = 全部来源
+  const [auditActive, setAuditActive] = useState<string>('')   // 高亮的 rule_id
 
   const [loading, setLoading] = useState(false)
   const [loadingContent, setLoadingContent] = useState(false)
@@ -103,7 +125,7 @@ const Viewer: React.FC = () => {
 
   // 选完周 → 拉取采集元信息和可用数据类型
   useEffect(() => {
-    if (compareMode || !selectedDevice || !selectedWeek) return
+    if (viewMode !== 'single' || !selectedDevice || !selectedWeek) return
     setSelectedDataType('')
     setContent('')
     setError('')
@@ -118,17 +140,17 @@ const Viewer: React.FC = () => {
         setSelectedDataType(types[0])
       }
     }).catch(() => setError(t('common.loadFileFailed'))).finally(() => setLoadingContent(false))
-  }, [compareMode, selectedDevice, selectedWeek])
+  }, [viewMode, selectedDevice, selectedWeek])
 
   // 选完数据类型 → 拉取原始数据
   useEffect(() => {
-    if (compareMode || !selectedDevice || !selectedWeek || !selectedDataType) return
+    if (viewMode !== 'single' || !selectedDevice || !selectedWeek || !selectedDataType) return
     setLoadingContent(true)
     setError('')
     dataApi.getRawData(selectedDevice, selectedWeek, selectedDataType).then((res: AxiosResponse<{ content: string }>) => {
       setContent(res.data?.content || '')
     }).catch(() => setError(t('common.loadFileFailed'))).finally(() => setLoadingContent(false))
-  }, [compareMode, selectedDevice, selectedWeek, selectedDataType])
+  }, [viewMode, selectedDevice, selectedWeek, selectedDataType])
 
   useEffect(() => {
     if (!compareMode || !selectedDevice || !compareWeek1 || !compareWeek2 || !compareFile) return
@@ -201,6 +223,78 @@ const Viewer: React.FC = () => {
     requestAnimationFrame(() => { syncingRight.current = false })
   }, [])
 
+  // ---------------------------------------------------------------- 审计模式
+  //
+  // 面板渲染的是**审计接口返回的 config**，不是 dataApi.getRawData 读的磁盘文件：
+  // 磁盘上 running-config.raw 是 CRLF、库里全文是 LF，行号对不上；
+  // 标红也只认 finding.lines 查表，**禁止拿证据文本回配置里搜**
+  // （实测 35/36 台配置带行尾空格，文本匹配必然错位）。
+
+  const runAudit = useCallback(() => {
+    if (!selectedDevice) return
+    setAuditLoading(true); setAuditError(''); setAuditActive('')
+    auditApi.device(selectedDevice)
+      .then(setAuditResult)
+      .catch(() => setAuditError(t('audit.loadFailed')))
+      .finally(() => setAuditLoading(false))
+  }, [selectedDevice, t])
+
+  const auditLines = useMemo(() => (auditResult?.config || '').split('\n'), [auditResult])
+
+  const auditFindings = useMemo(
+    () => (auditResult?.findings || []).map((f, i) => ({ ...f, key: `${f.rule_id}#${i}` })),
+    [auditResult])
+
+  const shownFindings = useMemo(
+    () => auditFindings.filter((f) => (!auditLevel || f.level === auditLevel)
+      && (!auditSource || f.source === auditSource)),
+    [auditFindings, auditLevel, auditSource])
+
+  /** 行号 → 该行上的发现。标红**只走这张表**。 */
+  const lineFindings = useMemo(() => {
+    const m = new Map<number, typeof auditFindings>()
+    for (const f of shownFindings) {
+      for (const ln of f.lines) {
+        const arr = m.get(ln)
+        if (arr) arr.push(f); else m.set(ln, [f])
+      }
+    }
+    return m
+  }, [shownFindings])
+
+  const auditLineRefs = useRef<Map<number, HTMLElement>>(new Map())
+  const auditCardRefs = useRef<Map<string, HTMLElement>>(new Map())
+  const auditRightRef = useRef<HTMLDivElement>(null)
+
+  // 用 scrollIntoView 而不是"行高 × 行号"：pre-wrap 下长行会视觉折行，
+  // 逻辑行号与像素位置不是线性关系。
+  const scrollToLine = useCallback((ln: number) => {
+    auditLineRefs.current.get(ln)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [])
+
+  const scrollToCard = useCallback((key: string) => {
+    setAuditActive(key)
+    auditCardRefs.current.get(key)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+  }, [])
+
+  const handleExport = useCallback(async (format: 'md' | 'json') => {
+    if (!selectedDevice) return
+    try {
+      const blob = await auditApi.exportReport(selectedDevice, format)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `audit-${selectedDevice}.${format}`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      setAuditError(t('audit.loadFailed'))
+    }
+  }, [selectedDevice, t])
+
+  const sourceOptions = useMemo(
+    () => [...new Set(auditFindings.map((f) => f.source))], [auditFindings])
+
   const toggleGroupSx = {
     '& .MuiToggleButton-root': {
       color: 'text.secondary',
@@ -246,11 +340,12 @@ const Viewer: React.FC = () => {
             </Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
-            <ToggleButtonGroup value={compareMode ? 'compare' : 'single'} exclusive size="small"
-              onChange={(_, v) => { if (v) { setCompareMode(v === 'compare'); setError(''); } }}
+            <ToggleButtonGroup value={viewMode} exclusive size="small"
+              onChange={(_, v) => { if (v) { setViewMode(v); setError(''); setAuditError('') } }}
               sx={toggleGroupSx}>
               <ToggleButton value="single"><Visibility sx={{ fontSize: 16, mr: 0.5 }} />Single</ToggleButton>
               <ToggleButton value="compare"><Compare sx={{ fontSize: 16, mr: 0.5 }} />Compare</ToggleButton>
+              <ToggleButton value="audit"><FactCheck sx={{ fontSize: 16, mr: 0.5 }} />{t('audit.mode')}</ToggleButton>
             </ToggleButtonGroup>
           </Box>
         </Box>
@@ -285,7 +380,7 @@ const Viewer: React.FC = () => {
         </Paper>
       )}
 
-      {selectedDevice && !loading && !compareMode && (
+      {selectedDevice && !loading && viewMode === 'single' && (
         <Paper sx={{ p: 2, mb: 3 }}>
           <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem' }}>
             {t('viewer.configHistory')} ({selectedDevice})
@@ -452,6 +547,203 @@ const Viewer: React.FC = () => {
                 </Paper>
               </Grid>
             </Grid>
+          )}
+        </Paper>
+      )}
+      {/* 审计模式 —— 左侧配置标红、右侧建议卡片，双向定位 */}
+      {selectedDevice && !loading && auditMode && (
+        <Paper sx={{ p: 2, mb: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+            <Box>
+              <Typography variant="subtitle2" color="text.secondary" sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.7rem' }}>
+                {t('audit.title')} ({selectedDevice})
+              </Typography>
+              {auditResult?.usable && (
+                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mt: 0.5 }}>
+                  <Chip size="small" label={`${t('audit.configHash')}: ${auditResult.config_hash}`}
+                    sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'rgba(59,130,246,0.1)', color: 'info.main' }} />
+                  <Chip size="small" label={`${t('audit.rulesetHash')}: ${auditResult.ruleset_hash}`}
+                    sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'rgba(148,163,184,0.1)', color: 'text.secondary' }} />
+                  <Chip size="small" label={t('audit.lineCount').replace('{n}', String(auditLines.length))}
+                    sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'rgba(148,163,184,0.1)', color: 'text.secondary' }} />
+                  {auditResult.collected_at && (
+                    <Chip size="small" label={`${auditResult.week} · ${auditResult.collected_at.slice(0, 16)}`}
+                      sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'rgba(148,163,184,0.1)', color: 'text.secondary' }} />
+                  )}
+                </Box>
+              )}
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Chip size="small" label={t('audit.notice')}
+                sx={{ height: 20, fontSize: '0.62rem', bgcolor: 'rgba(45,212,110,0.1)', color: 'primary.main' }} />
+              <Button size="small" variant="outlined" startIcon={<FactCheck sx={{ fontSize: 16 }} />}
+                onClick={runAudit} disabled={auditLoading}>
+                {auditLoading ? t('audit.running') : t('audit.run')}
+              </Button>
+              {auditResult?.usable && (
+                <>
+                  <Button size="small" startIcon={<FileDownload sx={{ fontSize: 16 }} />}
+                    onClick={() => handleExport('md')}>{t('audit.exportMd')}</Button>
+                  <Button size="small" onClick={() => handleExport('json')}>JSON</Button>
+                </>
+              )}
+            </Box>
+          </Box>
+
+          {auditError && <Alert severity="warning" sx={{ mb: 2 }}>{auditError}</Alert>}
+          {auditLoading && <Box sx={{ textAlign: 'center', py: 4 }}><CircularProgress /></Box>}
+
+          {!auditResult && !auditLoading && (
+            <Box sx={{ textAlign: 'center', py: 5 }}>
+              <FactCheck sx={{ fontSize: 48, color: 'text.disabled', mb: 2 }} />
+              <Typography color="text.secondary">{t('audit.selectHint')}</Typography>
+            </Box>
+          )}
+
+          {/* 配置不可用（采集失败/全文已清理/从未采集）——不是错误，要把原因说清楚 */}
+          {auditResult && !auditResult.usable && (
+            <Alert severity="info" sx={{ mt: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>{t('audit.notUsable')}</Typography>
+              <Typography variant="caption">{auditResult.reason}</Typography>
+            </Alert>
+          )}
+
+          {auditResult?.usable && (
+            <>
+              {/* 档位统计（可点击筛选）+ 来源筛选 */}
+              <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center', mb: 1.5, flexWrap: 'wrap' }}>
+                {Object.entries(auditResult.counts).filter(([, v]) => v > 0).map(([lv, v]) => {
+                  const c = levelColor(lv)
+                  const on = auditLevel === lv
+                  return (
+                    <Chip key={lv} size="small" clickable
+                      onClick={() => setAuditLevel(on ? '' : lv)}
+                      label={`${lv} ${v}`}
+                      sx={{ height: 22, fontSize: '0.65rem', bgcolor: c.bg, color: c.text,
+                            border: on ? `1px solid ${c.border}` : '1px solid transparent' }} />
+                  )
+                })}
+                {auditLevel && (
+                  <Button size="small" sx={{ fontSize: '0.65rem', minWidth: 0 }}
+                    onClick={() => setAuditLevel('')}>{t('audit.all')}</Button>
+                )}
+                <Box sx={{ flex: 1 }} />
+                <Select value={auditSource} onChange={(e) => setAuditSource(e.target.value)} size="small"
+                  displayEmpty sx={{ minWidth: 150, '& .MuiSelect-select': { py: 0.5, fontSize: '0.72rem' } }}>
+                  <MenuItem value="" sx={{ fontSize: '0.72rem' }}>{t('audit.filterSource')}：{t('audit.all')}</MenuItem>
+                  {sourceOptions.map((s) => <MenuItem key={s} value={s} sx={{ fontSize: '0.72rem' }}>{s}</MenuItem>)}
+                </Select>
+              </Box>
+
+              <Grid container spacing={2}>
+                {/* 左：配置原文（渲染审计接口返回的这一份），问题行按行号标红 */}
+                <Grid item xs={12} md={7}>
+                  <Paper sx={{ height: '72vh', overflow: 'auto', bgcolor: 'background.default',
+                               border: '1px solid', borderColor: 'divider', p: 1 }}>
+                    <Box sx={{ fontFamily: '"JetBrains Mono",monospace', fontSize: '0.72rem', lineHeight: 1.6 }}>
+                      {auditLines.map((line, i) => {
+                        const ln = i + 1
+                        const fs = lineFindings.get(ln)
+                        const c = fs ? levelColor(fs[0].level) : null
+                        return (
+                          <div key={ln} data-line={ln}
+                            ref={(el) => { if (el) auditLineRefs.current.set(ln, el); else auditLineRefs.current.delete(ln) }}
+                            onClick={() => { if (fs) scrollToCard(fs[0].key) }}
+                            title={fs ? fs.map((f) => f.title).join('\n') : undefined}
+                            style={{
+                              display: 'flex', gap: 8, minHeight: '1.6em',
+                              background: c?.bg,
+                              borderLeft: c ? `3px solid ${c.border}` : '3px solid transparent',
+                              cursor: fs ? 'pointer' : 'default',
+                            }}>
+                            <span style={{ flex: '0 0 46px', textAlign: 'right', color: '#475569', userSelect: 'none' }}>{ln}</span>
+                            <span style={{ flex: 1, whiteSpace: 'pre-wrap', wordBreak: 'break-all',
+                                           color: c ? c.text : '#94A3B8' }}>{line}</span>
+                          </div>
+                        )
+                      })}
+                    </Box>
+                  </Paper>
+                </Grid>
+
+                {/* 右：建议卡片 */}
+                <Grid item xs={12} md={5}>
+                  <Paper ref={auditRightRef} sx={{ height: '72vh', overflow: 'auto', p: 1 }}>
+                    {shownFindings.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary" sx={{ p: 3, textAlign: 'center' }}>
+                        {t('audit.noFindings')}
+                      </Typography>
+                    ) : shownFindings.map((f) => {
+                      const c = levelColor(f.level)
+                      return (
+                        <Box key={f.key}
+                          ref={(el) => { const n = el as HTMLElement | null; if (n) auditCardRefs.current.set(f.key, n); else auditCardRefs.current.delete(f.key) }}
+                          onClick={() => { if (f.locatable) scrollToLine(f.lines[0]) }}
+                          sx={{ p: 1.5, mb: 1, borderRadius: 1,
+                                bgcolor: auditActive === f.key ? 'rgba(45,212,110,0.07)' : 'rgba(148,163,184,0.04)',
+                                borderLeft: `3px solid ${c.border}`,
+                                cursor: f.locatable ? 'pointer' : 'default' }}>
+                          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 0.5, flexWrap: 'wrap' }}>
+                            <Chip size="small" label={f.level}
+                              sx={{ height: 18, fontSize: '0.6rem', bgcolor: c.bg, color: c.text }} />
+                            <Chip size="small" label={f.source} variant="outlined"
+                              sx={{ height: 18, fontSize: '0.6rem', color: 'text.secondary', borderColor: 'divider' }} />
+                            <Typography variant="caption" sx={{ color: 'text.disabled', fontFamily: 'monospace', fontSize: '0.6rem' }}>
+                              {f.rule_id}
+                            </Typography>
+                            {f.locatable ? (
+                              <Tooltip title={t('audit.locateHint')}>
+                                <MyLocation sx={{ fontSize: 13, color: 'text.disabled', ml: 'auto' }} />
+                              </Tooltip>
+                            ) : (
+                              <Tooltip title={t('audit.noLine')}>
+                                <Typography variant="caption" sx={{ color: 'text.disabled', ml: 'auto', fontSize: '0.58rem' }}>
+                                  —
+                                </Typography>
+                              </Tooltip>
+                            )}
+                          </Box>
+
+                          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.78rem', mb: 0.5 }}>
+                            {f.title}
+                          </Typography>
+                          {f.detail && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                              {f.detail}
+                            </Typography>
+                          )}
+                          {f.current && (
+                            <pre style={{ margin: '4px 0', padding: 6, borderRadius: 4, background: 'rgba(2,6,23,0.6)',
+                                          fontFamily: '"JetBrains Mono",monospace', fontSize: '0.66rem',
+                                          whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: '#94A3B8' }}>{f.current}</pre>
+                          )}
+                          {f.fix && (
+                            <pre style={{ margin: '4px 0', padding: 6, borderRadius: 4, background: 'rgba(45,212,110,0.06)',
+                                          fontFamily: '"JetBrains Mono",monospace', fontSize: '0.66rem',
+                                          whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: '#5CE68C' }}>{f.fix.trimEnd()}</pre>
+                          )}
+                          {f.why && (
+                            <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.5 }}>
+                              <b style={{ color: '#94A3B8' }}>{t('audit.why')}：</b>{f.why}
+                            </Typography>
+                          )}
+                          {f.note && (
+                            <Typography variant="caption" sx={{ display: 'block', color: 'warning.main', mt: 0.5 }}>
+                              <b>{t('audit.note')}：</b>{f.note}
+                            </Typography>
+                          )}
+                          {f.controls && f.controls.length > 0 && (
+                            <Typography variant="caption" sx={{ display: 'block', color: 'text.disabled', mt: 0.5, fontSize: '0.6rem' }}>
+                              {t('audit.controls')}：{f.controls.join(', ')}
+                            </Typography>
+                          )}
+                        </Box>
+                      )
+                    })}
+                  </Paper>
+                </Grid>
+              </Grid>
+            </>
           )}
         </Paper>
       )}

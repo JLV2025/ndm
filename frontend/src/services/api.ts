@@ -180,4 +180,43 @@ export const llmApi = {
     apiJson.put('/settings/llm', data),
 }
 
+// 配置审计（规则库 / 单台审计 / 全量入库 / 规则编辑）
+export const auditApi = {
+  /** 规则库概览（含已停用规则——标准页要能重新启用） */
+  ruleset: (): Promise<import('../types').AuditRuleset> =>
+    apiJson.get('/audit/ruleset').then(res => res.data),
+
+  /**
+   * 单台设备的即时审计（不落库）。
+   * 返回体里带**配置原文**——面板必须渲染这一份：标红只认行号，
+   * 而行号只对同一份文本有意义（磁盘上的 .raw 是 CRLF，与库里全文行号对不上）。
+   */
+  device: (name: string): Promise<import('../types').AuditEnvelope> =>
+    apiJson.get(`/audit/device/${encodeURIComponent(name)}`).then(res => res.data),
+
+  /** 导出报告（服务端渲染，前端不拼） */
+  exportReport: async (name: string, format: 'md' | 'json' = 'md'): Promise<Blob> => {
+    const res = await fetch(
+      apiUrl(`/audit/device/${encodeURIComponent(name)}/export?format=${format}`),
+      { credentials: 'include' })
+    if (!res.ok) throw new Error(`导出失败 (${res.status})`)
+    return res.blob()
+  },
+
+  /** 全网审计并入库（实测 36 台约 0.9 秒，同步返回） */
+  run: (trigger: 'manual' | 'scheduled' | 'post_collect' = 'manual') =>
+    apiJson.post('/audit/run', null, { params: { trigger } }).then(res => res.data),
+
+  runs: (limit = 20) => apiJson.get('/audit/runs', { params: { limit } }).then(res => res.data),
+  runDetail: (id: number, params?: { level?: string; device?: string }) =>
+    apiJson.get(`/audit/runs/${id}`, { params }).then(res => res.data),
+
+  /**
+   * 编辑一条规则并写回来源文件（保留注释）。
+   * 传 base_hash 做乐观锁；停用规则必须带 superseded_by 或 disabled_reason。
+   */
+  updateRule: (ruleId: string, patch: Record<string, unknown>) =>
+    apiJson.put(`/audit/standards/rule/${encodeURIComponent(ruleId)}`, patch).then(res => res.data),
+}
+
 export default apiJson
