@@ -329,3 +329,26 @@ def test_上行口推导_没有成员数据时保留聚合口本身():
     """拿不到成员关系时不要把标记丢掉 —— 总比什么都不标好（前端只渲染物理口，聚合名无害）。"""
     from analyzers.compliance.port_roles import derive_uplink_ports
     assert derive_uplink_ports(stp_root_ports={"Po9"}, lag_members={}) == {"Po9": "STP 根端口（朝根桥）"}
+
+
+# ---------------------------------------------------------------- LAG 成员解析（采集侧共用）
+
+def test_解析LAG成员_aruba格式():
+    from services.collector_service import _parse_lag_members
+    raw = "Aggregate name   : lag49\nInterfaces       : 1/1/49 2/1/49\n\n" \
+          "Aggregate name   : lag1\nInterfaces       : 1/1/5 2/1/5\n"
+    assert _parse_lag_members(raw) == {"lag 49": ["1/1/49", "2/1/49"], "lag 1": ["1/1/5", "2/1/5"]}
+
+
+def test_解析LAG成员_cisco格式键名归一():
+    from services.collector_service import _parse_lag_members
+    raw = "Group  Port-channel  Protocol    Ports\n" \
+          "1      Po1(SD)        LACP        Gi1/1/1(P)  Gi1/1/2(P)\n"
+    out = _parse_lag_members(raw)
+    assert "po 1" in out and out["po 1"] == ["Gi1/1/1", "Gi1/1/2"]
+
+
+def test_解析LAG成员_空输入与坏输入不抛():
+    from services.collector_service import _parse_lag_members
+    assert _parse_lag_members("") == {} and _parse_lag_members(None) == {}
+    assert _parse_lag_members("随便一段无关输出\n没有匹配格式") == {}
