@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T06:01:20.464Z
-> Files: 171 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T06:33:57.316Z
+> Files: 172 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -51,12 +51,13 @@
 - `add_buglog4.py` — 追加 bug-201（heredoc 写错目录：根目录有同名旧 tests/）到 .wolf/buglog.json。 (~349 tok)
 - `eq_check.py` — 移植等价性回归：同库同配置，逐设备逐规则对比 findings（stderr 输出给 A/B 两侧）。 (~317 tok)
 - `fix_bug151_again.py` — 把「第 5 次怪文件」记到**正确**的 bug-151 条目上，并还原被误改的另一条。 (~364 tok)
+- `fix_bug201.py` — 修正 bug-201：还原被误改的自动条目、删掉重复条目、把"第 2 次"记到真条目上。 (~545 tok)
 - `upd_bug151.py` — 怪文件现象第 5 次：更新 bug-151 的计数与最近一次样本。 (~240 tok)
 
 ## ./
 
 - `.gitignore` — Git ignore rules (~335 tok)
-- `CLAUDE.md` — OpenWolf (~1885 tok)
+- `CLAUDE.md` — OpenWolf (~1664 tok)
 - `NDM用户使用文档.html` — NDM User Guide / 用户使用文档 — Network Device Management (~11324 tok)
 - `README.md` — Project documentation (~2112 tok)
 - `start.bat` (~981 tok)
@@ -153,7 +154,7 @@
 - `engine.py` — 配置审计 —— 判定引擎（对外入口）。 (~2632 tok)
 - `loader.py` — 规则库加载与校验。 (~3810 tok)
 - `parser.py` — 配置文本解析 —— 从 running-config 文本构建判定所需的设备模型。 (~1697 tok)
-- `port_roles.py` — 端口角色推断 —— 让端口级规则真正可达。 (~1798 tok)
+- `port_roles.py` — 端口角色推断 —— 让端口级规则真正可达。 (~2561 tok)
 - `runner.py` — 全网审计执行器 —— API 端点与「采集后自动跑」共用同一实现。 (~1180 tok)
 - `source.py` — 审计数据源 —— 从 NDM 库取"这次审计要审什么"。 (~1704 tok)
 - `trends.py` — 审计趋势的查询核心 —— 从 api/audit.py 抽出（API 与 AI 简报共用）。 (~1612 tok)
@@ -185,7 +186,7 @@
 
 - `audit_briefing.py` — AI 专家简报 —— 让 AI 把**确定性审计结论**讲成人话。 (~3067 tok)
 - `audit_scheduler.py` — 采集后自动审计（去抖）。 (~580 tok)
-- `collector_service.py` — 配置收集服务 (~20590 tok)
+- `collector_service.py` — 配置收集服务 (~21187 tok)
 - `eox_client.py` — Cisco EoX 客户端 —— 按型号批量查生命周期（停止销售 / 停止支持）。 (~1502 tok)
 
 ## backend/storage/
@@ -223,7 +224,7 @@
 - `test_performance_aruba.py` — Aruba show interface brief 解析测试 (~389 tok)
 - `test_performance_counters.py` — 端口累计计数器与端口详情合并测试（PerformanceAnalyzer 接线） (~2443 tok)
 - `test_port_names.py` — 端口名归一化测试。 (~660 tok)
-- `test_port_roles.py` — 端口角色推断测试 —— 让「BPDU Guard 不该配在上行口」这类端口级规则可信。 (~3120 tok)
+- `test_port_roles.py` — 端口角色推断测试 —— 让「BPDU Guard 不该配在上行口」这类端口级规则可信。 (~3983 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试（21 列 INSERT / NULL 与读数 0 区分 / 大数据精度） (~900 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试 —— 重点：累计计数器列（in_octets / out_octets） (~1043 tok)
 - `test_redact.py` — 凭据打码测试 —— 纪律项：发给 LLM 的文本里绝不带凭据值。 (~865 tok)

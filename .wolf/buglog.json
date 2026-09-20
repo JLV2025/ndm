@@ -3579,10 +3579,10 @@
     {
       "id": "bug-201",
       "timestamp": "2026-09-20T14:05:00.000Z",
-      "error_message": "pytest 报 ModuleNotFoundError: No module named 'api'（跑 tests/test_audit_briefing.py 时）",
+      "error_message": "pytest 报 ModuleNotFoundError: No module named 'api' / 'analyzers'（两次：2026-09-20 14:05、14:28 —— 追加测试代码时 cwd 漂移到项目根，被根目录遗留 tests/ 捕获）",
       "file": "—（文件写错了目录）",
       "root_cause": "用 cat >> 追加测试代码时 cwd 是**项目根目录**（不是 backend/），而仓库根目录恰好也有一个旧的 tests/ 目录 —— 内容被追加到了 F:/projects/ndm/tests/test_audit_briefing.py（散落文件），backend/tests/ 下的真文件没变；随后从根目录跑 pytest 收集到的是那份散落文件，因此在根目录下 'api' 包不存在 → ModuleNotFoundError。",
-      "fix": "确认 cwd 后用 Edit 工具把测试写到 backend/tests/test_audit_briefing.py，删除散落文件。教训：① 追加/写入文件一律用 Write/Edit（带绝对路径），别用 cat >> 靠 cwd；② 仓库根目录的旧 tests/ 是历史遗留，容易被相对路径误中。",
+      "fix": "① 确认 cwd；② 写文件一律 Write/Edit + 绝对路径（不要 cat >>）；③ 根因已移除：仓库根目录遗留的 tests/（首次提交的规划稿）已删除，相对路径不再有歧义。",
       "tags": [
         "cwd",
         "heredoc",
@@ -3591,8 +3591,56 @@
         "tooling"
       ],
       "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T14:30:00.000Z"
+    },
+    {
+      "id": "bug-219",
+      "timestamp": "2026-09-20T06:26:14.763Z",
+      "error_message": "Wrong reference: interface should be name",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "Used \"interface\" instead of \"name\"",
+      "fix": "Changed interface → name",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
       "occurrences": 1,
-      "last_seen": "2026-09-20T14:05:00.000Z"
+      "last_seen": "2026-09-20T06:26:14.763Z"
+    },
+    {
+      "id": "bug-220",
+      "timestamp": "2026-09-20T06:28:00.134Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/analyzers/compliance/port_roles.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 34→50 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T06:28:00.134Z"
+    },
+    {
+      "id": "bug-221",
+      "timestamp": "2026-09-20T06:28:26.913Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "23 lines replaced/restructured",
+      "fix": "Rewrote 25→5 lines (23 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T06:28:26.914Z"
     }
   ]
 }
