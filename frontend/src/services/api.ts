@@ -235,6 +235,18 @@ export const auditApi = {
   /** 撤销（软删除：写 revoked 块，历史审计可追溯） */
   revokeException: (id: string, body: { by: string; reason: string; base_hash?: string }) =>
     apiJson.post(`/audit/exceptions/${encodeURIComponent(id)}/revoke`, body).then(res => res.data),
+
+  // ---- 趋势与历史 ----
+
+  /** 趋势序列：每周取该周最后一次运行（本周无运行则该周不出现） */
+  trends: (weeks = 26, site?: string): Promise<import('../types').AuditTrends> =>
+    apiJson.get('/audit/trends', { params: { weeks, site: site || undefined } }).then(res => res.data),
+
+  /** 收敛/恶化榜：缺省对比最新周与上一周（数据不足时返回 reason） */
+  trendDiff: (fromRun?: number, toRun?: number): Promise<import('../types').AuditTrendDiff> =>
+    apiJson.get('/audit/trends/diff', {
+      params: { from_run: fromRun, to_run: toRun },
+    }).then(res => res.data),
 }
 
 export default apiJson

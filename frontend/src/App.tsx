@@ -41,6 +41,7 @@ import Alerts from './pages/Alerts'
 import Reports from './pages/Reports'
 import LogAnalyzer from './pages/LogAnalyzer'
 import ComplianceStandard from './pages/ComplianceStandard'
+import ComplianceAudit from './pages/ComplianceAudit'
 import MatrixRain from './components/MatrixRain'
 import { sessionManager } from './services/auth'
 import { useI18n } from './i18n'
@@ -96,6 +97,7 @@ function Layout() {
     { label: t('alerts.title'), icon: <AlertIcon />, path: '/alerts' },
     { label: t('reports.title'), icon: <ReportsIcon />, path: '/reports' },
     { label: t('logs.title'), icon: <BugIcon />, path: '/log-analyzer' },
+    { label: t('nav.audit'), icon: <AuditIcon />, path: '/compliance-audit' },
     { label: t('auditRules.title'), icon: <AuditIcon />, path: '/compliance-standard' },
   ]
 
@@ -361,6 +363,7 @@ const App: React.FC = () => {
           <Route path="reports" element={<Reports />} />
           <Route path="log-analyzer" element={<LogAnalyzer />} />
           <Route path="compliance-standard" element={<ComplianceStandard />} />
+          <Route path="compliance-audit" element={<ComplianceAudit />} />
         </Route>
       </Routes>
       </ErrorBoundary>

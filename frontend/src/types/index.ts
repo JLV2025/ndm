@@ -162,6 +162,82 @@ export interface AuditExceptionsResponse {
   base_hash: string
 }
 
+// ---------------------------------------------------------------- 审计趋势与历史
+
+export interface AuditRun {
+  id: number
+  started_at: string
+  finished_at: string | null
+  trigger: 'manual' | 'scheduled' | 'post_collect' | string
+  ruleset_hash: string
+  exceptions_hash: string | null
+  device_count: number
+  finding_count: number
+  exempt_count: number
+  status: string
+}
+
+/** 趋势图上的一个点 = 某一周的**最后一次**运行（本周无运行则该周不出现） */
+export interface AuditTrendPoint {
+  week: string                  // YYYY-WW（与配置目录的周格式一致）
+  run_id: number
+  started_at: string
+  trigger: string
+  device_count: number
+  total: number                 // 建议数（未豁免）
+  exempt: number                // 已批准例外数（生效中 + 即将到期）
+  counts: Record<string, number>      // 未豁免，按档位
+  by_source: Record<string, number>   // 未豁免，按来源
+  devices: number               // 命中设备数（站点过滤后为过滤范围内）
+  ruleset_changed: boolean      // 与前一个点相比，标准变过
+  exceptions_changed: boolean   // 与前一个点相比，豁免变过
+}
+
+export interface AuditTrends {
+  points: AuditTrendPoint[]
+  site: string
+  weeks: number
+}
+
+export interface AuditTrendDiffRule {
+  rule_id: string
+  title: string
+  level: string
+  from_count: number
+  to_count: number
+  delta: number                 // 负 = 收敛，正 = 恶化
+  exempt_count: number
+}
+
+export interface AuditTrendDiff {
+  from: { run_id: number; week: string; started_at: string; trigger: string } | null
+  to: { run_id: number; week: string; started_at: string; trigger: string } | null
+  rules: AuditTrendDiffRule[]
+  converged: number
+  worsened: number
+  reason?: string               // 数据不足时的可读原因（不造数）
+}
+
+/** 单次运行的明细（下钻） */
+export interface AuditRunFinding {
+  device_name: string
+  rule_id: string
+  level: string
+  source: string
+  severity: string
+  title: string
+  detail: string
+  lines: number[]
+  controls: string[]
+  exempt_by: string | null
+  exempt: AuditExemption | null
+}
+
+export interface AuditRunDetail {
+  run: AuditRun
+  findings: AuditRunFinding[]
+}
+
 /** 单台审计的完整返回体 */
 export interface AuditEnvelope {
   device: string
