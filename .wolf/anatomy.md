@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T07:13:32.396Z
-> Files: 174 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T07:17:08.334Z
+> Files: 176 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -51,9 +51,11 @@
 - `add_buglog2.py` — 追加 bug-199（周格式约定）到 .wolf/buglog.json。 (~258 tok)
 - `add_buglog3.py` — 追加 bug-200（单台审计漏传 lifecycle）到 .wolf/buglog.json。 (~320 tok)
 - `add_buglog4.py` — 追加 bug-201（heredoc 写错目录：根目录有同名旧 tests/）到 .wolf/buglog.json。 (~349 tok)
+- `add_stp_chapter.py` — 向《NDM用户使用文档》补写「STP 拓扑图」章节（中英各一章）。 (~1725 tok)
 - `eq_check.py` — 移植等价性回归：同库同配置，逐设备逐规则对比 findings（stderr 输出给 A/B 两侧）。 (~317 tok)
 - `fix_bug151_again.py` — 把「第 5 次怪文件」记到**正确**的 bug-151 条目上，并还原被误改的另一条。 (~364 tok)
 - `fix_bug201.py` — 修正 bug-201：还原被误改的自动条目、删掉重复条目、把"第 2 次"记到真条目上。 (~545 tok)
+- `fix_zh_numbering.py` — 修正中文条目编号：整条中文尾巴 +1（英文插入一章后，连续编号要全段顺延）。 (~582 tok)
 - `upd_bug151.py` — 怪文件现象第 5 次：更新 bug-151 的计数与最近一次样本。 (~240 tok)
 
 ## ./
