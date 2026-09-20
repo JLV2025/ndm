@@ -130,6 +130,12 @@ def _validate(std: dict, rule_files_used: list[str]) -> None:
         sev = rule.get("severity")
         if sev and sev not in SEVERITIES:
             errors.append(f"{rid}: severity '{sev}' 不在 {sorted(SEVERITIES)}")
+        if "enabled" in rule and not isinstance(rule["enabled"], bool):
+            errors.append(f"{rid}: enabled 必须是 true / false")
+        if rule.get("enabled") is False and not rule.get("superseded_by") \
+                and not rule.get("disabled_reason"):
+            errors.append(f"{rid}: 停用的规则要写明 superseded_by（被哪条高层规则取代）"
+                          f"或 disabled_reason —— 否则以后没人知道为什么关掉它")
         ctrls = rule.get("controls")
         if ctrls is not None and (not isinstance(ctrls, list)
                                   or not all(isinstance(x, str) for x in ctrls)):

@@ -319,6 +319,46 @@ def test_min_count_flags_below_threshold():
     assert len(none) == 1 and none[0]["current"] == "(未配置)"
 
 
+def test_disabled_rule_is_skipped_but_still_visible():
+    """停用的规则不参与判定，但仍在 std["rules"] 里——规则管理页要能看到并重新启用。"""
+    on = rule(id="on", check="present_regex", params={"pattern": "never"})
+    off = rule(id="off", check="present_regex", params={"pattern": "never"},
+               enabled=False, superseded_by="hq_xxx")
+    std = make_std([on, off])
+    res = engine.analyze("BJQD1SWI01", "hostname x", std)
+    assert [f["rule_id"] for f in res["findings"]] == ["on"]
+    assert len(std["rules"]) == 2
+    assert [r["id"] for r in engine.active_rules(std)] == ["on"]
+
+
+def test_findings_sorted_by_layer_priority_within_same_level():
+    """同档位下按层优先级排：总部要求 > 厂商推荐 > 配置惯例。"""
+    rules = [
+        rule(id="zzz_convention", source="组织规范", level="强烈建议",
+             check="present_regex", params={"pattern": "never"}),
+        rule(id="aaa_vendor", source="厂商基线", level="强烈建议",
+             check="present_regex", params={"pattern": "never"}),
+        rule(id="mmm_hq", source="公司总部", level="强烈建议",
+             check="present_regex", params={"pattern": "never"}),
+    ]
+    res = engine.analyze("BJQD1SWI01", "hostname x", make_std(rules))
+    assert [f["rule_id"] for f in res["findings"]] == ["mmm_hq", "aaa_vendor", "zzz_convention"]
+
+
+def test_loader_requires_reason_for_disabled_rule(tmp_path):
+    """停用一条规则必须写明为什么——否则以后没人知道它为何被关掉。"""
+    (tmp_path / "_scopes.yaml").write_text(
+        "sites: {}\nnaming: {pattern: 'x', type_codes: {}}\nvlans: {standard: {}}\n", encoding="utf-8")
+    (tmp_path / "org-convention.yaml").write_text(
+        "rules:\n"
+        "  - id: r1\n    title: t\n    check: present_regex\n    level: 改进建议\n"
+        "    params: {pattern: x}\n    enabled: false\n",
+        encoding="utf-8")
+    with pytest.raises(loader.RuleError) as ei:
+        loader.load_standard(tmp_path, use_cache=False)
+    assert "superseded_by" in str(ei.value) and "disabled_reason" in str(ei.value)
+
+
 def test_loader_validates_controls_field(tmp_path):
     (tmp_path / "_scopes.yaml").write_text(
         "sites: {}\nnaming: {pattern: 'x', type_codes: {}}\nvlans: {standard: {}}\n", encoding="utf-8")

@@ -347,6 +347,11 @@ meta:
 not_adopted:
   - id: cs_snmp_community_acl / cs_snmp_community_no_rw
     reason: 用户决定不收（6 台未绑 ACL、6 台用 RW）
+    superseded: >-
+      2026-09-20 —— **已被总部要求覆盖**：CFG-CISCO 第 8 章明确
+      "SNMPv1 and SNMPv2c shall not be configured"（shall 强制项）。
+      按「总部要求 > 厂商推荐 > 配置惯例」的层优先级，本项不再适用，
+      改由 company-standard.yaml 的 hq_cs_no_snmp_community 判定。
   - id: cs_remote_syslog
     reason: 用户决定不收（8 台 Cisco 未配远程 syslog）
   - id: cs_enable_secret_unique_per_device

@@ -33,6 +33,22 @@ def resolve_sites(tokens, std: dict) -> set[str]:
     return out
 
 
+# 层优先级：总部要求 > 厂商推荐 > 配置惯例。
+# 重复或冲突时以高层为准 —— 高层规则照常判定，低层规则应显式置 enabled: false
+# 并写明 superseded_by，而不是删掉（删掉会丢掉"讨论过、因冲突而让位"的记录）。
+LAYER_PRIORITY = {"公司总部": 0, "厂商基线": 1, "组织规范": 2}
+
+
+def layer_rank(rule: dict) -> int:
+    """数值越小优先级越高；未知来源排在最后。"""
+    return LAYER_PRIORITY.get(rule.get("source", ""), 9)
+
+
+def active_rules(std: dict) -> list[dict]:
+    """当前启用的规则（规则管理页需要看到全部，判定只用启用的）。"""
+    return [r for r in std.get("rules", []) if r.get("enabled") is not False]
+
+
 def rule_applies(rule: dict, dev: Device, std: dict) -> bool:
     """规则是否适用于本设备：平台 + 站点作用域。"""
     plats = rule.get("platforms", ["all"])
@@ -62,14 +78,19 @@ def analyze(name: str, text: str, std: dict, site: str | None = None,
     dev.port_roles = build_port_roles(dev, port_context)
     findings: list[dict] = []
     for rule in std["rules"]:
+        if rule.get("enabled") is False:      # 停用：与更高优先层冲突、或用户手动关掉
+            continue
         if not rule_applies(rule, dev, std):
             continue
         fn = CHECKS.get(rule["check"])
         if fn is None:                   # 未知判定器：跳过（loader 已校验，正常不会走到）
             continue
         findings.extend(fn(dev, rule, std))
+    # 排序：档位 → 层优先级（总部在前）→ 规则 id
     findings.sort(key=lambda f: (
-        LEVEL_ORDER.index(f["level"]) if f["level"] in LEVEL_ORDER else 9, f["rule_id"]))
+        LEVEL_ORDER.index(f["level"]) if f["level"] in LEVEL_ORDER else 9,
+        LAYER_PRIORITY.get(f.get("source", ""), 9),
+        f["rule_id"]))
 
     sites = std.get("sites", {}) or {}
     # 只回传判定出角色的端口（unknown 的省略），避免 48 口交换机把响应撑大
