@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T07:17:08.334Z
-> Files: 176 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T07:21:34.130Z
+> Files: 177 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -49,6 +49,7 @@
 - `add_audit_settings.py` — 向本地 config/settings.yaml 追加 audit 段（若还没有）。不打印文件内容。 (~175 tok)
 - `add_buglog.py` — 向 .wolf/buglog.json 追加一条手工记录（避免手改 JSON 出错）。 (~328 tok)
 - `add_buglog2.py` — 追加 bug-199（周格式约定）到 .wolf/buglog.json。 (~258 tok)
+- `add_buglog202.py` — 追加 bug-202（ConfigParser 字段名写错被 try/except 静默吞掉）到 .wolf/buglog.json。 (~312 tok)
 - `add_buglog3.py` — 追加 bug-200（单台审计漏传 lifecycle）到 .wolf/buglog.json。 (~320 tok)
 - `add_buglog4.py` — 追加 bug-201（heredoc 写错目录：根目录有同名旧 tests/）到 .wolf/buglog.json。 (~349 tok)
 - `add_stp_chapter.py` — 向《NDM用户使用文档》补写「STP 拓扑图」章节（中英各一章）。 (~1725 tok)
