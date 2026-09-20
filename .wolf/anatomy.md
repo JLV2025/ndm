@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-18T03:29:30.732Z
-> Files: 82 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T00:57:36.424Z
+> Files: 102 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -86,8 +86,29 @@
 
 ## C:/Users/jingl/AppData/Local/Temp/
 
+- `add_bug.py` — 追加一条 bug 记录到 .wolf/buglog.json (~436 tok)
+- `bump151.py` — 修正 bug-151：累计第 3 次出现，并如实记录「成因未定 + 已排除项」 (~288 tok)
+- `cerebrum_append.md` — Key Learnings (~844 tok)
+- `cerebrum_append2.md` — Key Learnings (~812 tok)
+- `cerebrum_append3.md` — Decision Log (~418 tok)
+- `dec1.md` — ## 定案 1（2026-09-20）：运维就绪度检查**纳入一期**，含 startup 一致性 (~184 tok)
+- `dec2.md` — ## 定案 2（2026-09-20）：厂商安全公告与生命周期 —— **二期做，先只做 EoL** (~123 tok)
+- `dec3.md` — ## 定案 3（2026-09-20）：规则增加 NIST 控制族标签 (~225 tok)
+- `dec4.md` — 十二、开工前讨论总结（2026-09-20） (~298 tok)
+- `dump_aruba.py` — 临时脚本：列出 Aruba 设备与最新采集的配置概况，并按需导出指定设备的配置 (~547 tok)
+- `extract_docx.py` — 临时脚本：按文档顺序提取 docx 的段落与表格（含样式名，用于判断标题层级） (~423 tok)
 - `ndm_diag_report.py` — 诊断：用真实函数跑「软件版本报告」的展开逻辑，看每一行缺什么 (~297 tok)
 - `ndm_svl_check.py` — C9500 SVL 端到端演练：真机样本 → member_uptimes → 报告成员行（库副本，不碰生产库） (~403 tok)
+- `plan_addendum.md` — 九、补充：总部《AUTOMATION-Cisco》对审计输出的约束（2026-09-18 晚，评估后新增） (~399 tok)
+- `plan_addendum2.md` — 十、定案：审计导出的 `status` 语义（2026-09-20） (~567 tok)
+- `repair151.py` — 修复：① 还原被误改的自动条目（数组下标 150）② 正确更新真正的 bug-151 (~504 tok)
+- `sunday_todo.md` — 周日开工前（2026-09-20）必读：待确认与待办 (~306 tok)
+
+## C:/Users/jingl/OneDrive - Qorvo/01-DocWiKi/01_network_configuration/
+
+- `CFG-Aruba-Example.md` — Aruba CX 交换机配置范例（Qorvo · BJQ 现网提炼） (~6014 tok)
+- `CFG-Aruba.md` — CFG-Aruba — Qorvo Aruba Configuration Baseline (~5085 tok)
+- `CFG-CISCO.md` — CFG-CISCO — Qorvo Cisco Configuration Baseline (~7721 tok)
 
 ## agents/
 
@@ -177,6 +198,11 @@
 
 ## docker/
 
+
+## docs/standards/
+
+- `CFG-Aruba-checklist.md` — CFG-Aruba 合规检查项（公司标准简化版） (~1512 tok)
+- `CFG-Cisco-checklist.md` — CFG-CISCO 合规检查项（公司标准简化版） (~2086 tok)
 
 ## docs/superpowers/plans/
 

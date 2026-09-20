@@ -554,3 +554,65 @@
 - [2026-09-18] **现网实测的配套缺口**（NDM 库 36 台最新配置）：Cisco `snmp-server group v3` 18/18 但 `user v3` **0/18**（有组无用户，SNMPv3 实际不可用）；CX `dhcpv4-snooping` 13/18 但 `dhcpv4-snooping trust` **仅 2/18**（配了一半）；Cisco `ip dhcp snooping` 1/18、DAI 0、IPSG 0。→ 审计首期就该报出这类"配了一半"。
 - [2026-09-18] **netstd 引擎的数据契约**：命中证据 `evidence: [{line, text}]` 已带行号；`analyze(name, text, std) -> dict` 是字符串进/dict 出，NDM 可直接调；但 `dev.site` 只由设备名套命名正则派生 → 移植必须加显式 site/location 入参（否则站点豁免全失效）。规则无法表达组合，需加 1-2 个通用判定器（params 是自由 dict，无需新顶层字段）。
 - [2026-09-18] **NDM 侧可复用**：Viewer 的 Compare 模式已有逐行渲染 + LCS 行级 diff + 左右同步滚动（审计左右对照的现成骨架）；`backend/api/logs.py` 的 GET/PUT `/api/settings/llm` 是"读写 YAML 配置"的模板（Pydantic 校验 + 保留未改字段 + 写回）；`analyzers/role_verifier.py` 的 `audit_location()` 是"审计发现"响应结构的先例；库内配置文本无 CR、无末尾空行，行号口径一致。
+
+## Key Learnings
+- [2026-09-18] **AOS-CX 命令勘误（总部 CFG-Aruba 文档第 7、8 章示例有误，已核实）**：`ssh server idle-timeout` **不是 AOS-CX 命令** —— CLI 空闲超时在 `cli-session` 上下文（`timeout <分钟>`，默认 30、范围 0–4320、0 为不超时；加固指南非敏感网络推荐 15，敏感网络 5–10；配套建议 `max-per-user`）。`snmpv3 enable` **也不是** AOS-CX 命令 —— 启用 SNMP 代理用 `snmp-server vrf <VRF>`，禁 v1/v2c 用 **`snmp-server snmpv3-only`**。佐证：现网 18 台 Aruba CX 中这两条命令命中均为 0，而 `cli-session` 也命中 0 → 空闲超时全网实际未生效（很可能就是照抄了不存在的命令）。
+- [2026-09-18] **AOS-CX 管理 ACL 的正确应用方式**（总部文档只给了 ACL 定义、没写怎么应用）：ACL 定义完**必须显式绑定**才生效，管理面绑到 control plane —— `apply access-list ip MGMT_ACL control-plane vrf mgmt`（带外）与 `... vrf default`（带内 SVI）。两个要点：① AOS-CX 的 ACL **末尾自带隐式 deny**，示例里的 `999 deny ip any any log` 作用只是**记日志**；② control-plane ACL 会过滤**该 VRF 下设备所有本机地址**的流量 → 跑 OSPF/BGP 的设备**必须为路由协议预留 permit**，否则中断邻居；上线要**先在带外 mgmt VRF 验证再配 default VRF**，避免自我锁死。
+- [2026-09-18] **AOS-CX 其余命令事实**：syslog 用 `logging <IP> [severity info] [vrf <VRF>]`（级别默认 info，info 及以上；支持 udp/tcp/tls、filter、rate-limit）。SNMPv3 算法 `auth md5|sha|sha224|sha256|sha384|sha512`、`priv aes|aes192|aes256|des`；**修改已有用户的算法时必须同时指定 `access-level ro`，否则读写级别会被重置为只读**。RADIUS 用主机名配置时必须有 `ip dns host <主机名> <IP>` 静态解析（不依赖 DNS 可用性）。`ip source-interface {radius|tacacs|ntp|syslog}` 决定设备访问这些服务时的源地址，配 AAA/NTP/Syslog 时必须一起配。
+- [2026-09-18] **现网 18 台 Aruba CX 管理面实测缺口（2026-09 最新采集）**：Syslog **0/18**、任何 ACL **0/18**、`cli-session` **0/18**、`https-server rest access-mode read-only` 13/18、`ip source-interface` tacacs 14 / ntp 12 / radius 10（覆盖不均）、**7 台混配 `pool.ntp.org` 公网 NTP**（违反"仅用内部 NTP"）、**1 台仍有 `snmp-server community`（v2c 团体字）**、`snmpv3 user` 17/18、`aaa accounting` 14/18、`dhcpv4-snooping` 13/18 但 **trust 仅 2/18**。→ Syslog 与 MGMT_ACL 属**全网集体性缺失**，审计结果应单独成类，避免产生 18 条重复条目。
+- [2026-09-18] **Qorvo Aruba 现网的组织形态（BJQ 三台提炼，写配置范例用）**：设备名 → `BJQD1SWI01`（核心 VSF 双成员 JL659A）/ `BJQD1SWI02`、`BJQD2QIS01`（接入单成员 R8Q70A）。AAA 是 **TACACS+ 三台（10.137.2.204 / 10.39.2.205 / 10.205.2.189，组名 `qorvo-tacacs`）+ ClearPass RADIUS 三台（`pvg0clrpasssub1` / `sin0clrpasssub1` / `ede0clrpasssub2`，组名 `qorvo-radius`，用户名 `cppm-arubaos-dur`）**双轨并存；`aaa authentication allow-fail-through` 保留；接入端口标配 **802.1X(dot1x)+MAC 认证双轨 + `critical-role` 降级 + device-fingerprint 指纹识别**（ClearPass 联动）；上行口用 LAG + `lacp rate fast` + `spanning-tree loop-guard`（**绝不配 bpdu-guard / admin-edge**），接入口才配 `bpdu-guard + admin-edge + loop-protect`；`spanning-tree bpdu-guard timeout 300` 为全局；VLAN 名称跨站点统一（`Qorvo-Data` / `Qorvo-Voice` / `Qorvo-Mgmt` 等）而 **VLAN ID 按站点规划**（BJQ 与 KORD、ZGN 各不相同）→ AOS-CX 支持按名称引用（`vlan access name Qorvo-Data`），端口模板因此可不含具体 ID。
+
+## User Preferences
+- [2026-09-18] **两类文档的存放分工**：总部下发标准的 **MD 转换版（英文原文保真 + 中文导读）** 与 **配置范例** 放 **OneDrive 文档库**（`01-DocWiKi/01_network_configuration/`，与 docx 同目录）；**NDM 项目内只放简化版**（`docs/standards/CFG-Aruba-checklist.md`，中文检查项清单，供合规审计功能做规则来源）。不要把完整标准或配置范例放进项目仓库。
+- [2026-09-18] **配置范例的取材与脱敏规则**：只用**用户指定站点**的现网配置（本次为 BJQ）提炼，不要混其他站点；**共性内容写实际值**（AAA 服务器地址/主机名、NTP 地址、VLAN 名称），**站点相关内容留空**（具体 VLAN ID、本地网段/SVI 地址、网关）—— 因为配新设备时共性部分可复制粘贴、IP 必然要重写。密钥一律 `<CIPHERTEXT>` 占位，**绝不写明文口令**。
+
+## Do-Not-Repeat
+- [2026-09-18] **读 OneDrive 下的 docx/文件时，Python 可能直接 `PermissionError`**（Files On-Demand 占位文件 + 云筛选器驱动），而 `os.path.isfile()` 返回 True、bash 的 `head` 却能读 —— 表现为 `docx` 库报 `PackageNotFoundError: Package not found`（其内部 `is_zipfile()` 读不到文件尾）。**绕法：先用 bash `cp` 把文件复制到本地临时目录，再用 Python 处理副本**（`cp` 能触发下载）。不要因为 `isfile()` 为 True 就断定是路径写错了。
+
+## Key Learnings
+- [2026-09-18] **CFG-CISCO 基线存在"平台错配"**：总部写的 Cisco 基线**主要参考实现是 Nexus 9000 / NX-OS v7**，IOS 只作"可选参考示例"；但 **Qorvo 现网 18 台 Cisco 全是 IOS / IOS-XE / IOS 路由器（cisco_ios 14 + cisco_ios_router 3 + cisco_ios_xe 1），零 Nexus**。→ 合规检查必须**同时认两种命令形式**，且 IOS 形式才是当前实际生效的那一套。另外该文档第 7–10 章**只给了 NX-OS 示例**，IOS 侧命令要自己补（exec-timeout / logging host+trap / ip tacacs source-interface 等）。与 Aruba 版不同，Cisco 版**没有"命令不存在"级别的硬错误**。
+- [2026-09-18] **NX-OS 关键命令事实（已核实）**：`ssh key rsa <bits>` 范围 **768–2048、默认仅 1024**（所以 `ssh key rsa 2048 force` 是提权到上限，正确）；SSH 最大登录尝试**默认 3、范围 1–10**（`ssh login-attempts`）；**`clock protocol ntp` 必须显式选择**，否则 NTP 不生效（IOS 无此步骤）；`key 7 <KEY>` 中的 7 表示密钥已加密存储；NX-OS ACL 同样自带隐式 deny，末尾 `deny ... log` 的作用是**记日志**；NX-OS 上 AAA/NTP/Syslog 都需 `use-vrf management` 指定管理 VRF（IOS 对应做法是 `ip tacacs|radius source-interface` + `logging source-interface`）。**待核实**：文档第 7 章的 `ssh timeout 600` 未能从公开文档确认，较新 NX-OS 记为 `ssh idle-timeout <秒>`（**默认 0 = 不限空闲**）——无论哪条，NX-OS 默认不限空闲，必须显式配置。
+- [2026-09-18] **现网 Cisco 管理面实测缺口（18 台，2026-09 最新采集）**：**`snmp-server group ... v3 priv` 18/18 但 `snmp-server user` 0/18**（有组无用户 → **SNMPv3 实际不可用**，头号必报项）；**4 台仍有明文 `snmp-server community`，其中 1 个是 RW 读写团体字**（既是凭据暴露也违反 Ch8-1，**注意：这是凭据，写进任何文档/证据前必须脱敏**）；**`MGMT_ACL` 0/18**（现存 ACL 名为 `ACL-NMS-SNMPv3`、`CISCO-CWA-URL-REDIRECT-ACL`、`clearpass-redirect`、`default-port-acl`、`102`，**不能替代命名要求**）；`logging host` 10/18、`logging trap` 9/18、`logging source-interface` 仅 1/18；**明文 HTTP 未关闭约 11/18**（IOS 的 `ip http server` 默认开启，只有 7 台显式 `no ip http server`）；`transport input ssh` 16/18；`ip ssh version 2` 15/18；NTP 全用内部 `10.8.26.10`（**无公网源，优于 Aruba 侧**）但**只配了 1 台**；空闲超时用 `line vty` 的 `exec-timeout 15 0` 实现且 **18/18 达标**（IOS 位置与 NX-OS 不同）；AAA 覆盖良好（`aaa new-model` 18/18 + 命名 `radius server` 对象 + `aaa accounting commands 1|15`）。
+- [2026-09-18] **《AUTOMATION-Cisco》实为审计功能的"输出契约"**：该指南用 Ansible 描述 Deploy → Validate → **Audit** → **Report** → **Dashboard** 五段生命周期，**NDM 的配置审计正是其中 Audit/Report/Dashboard 三段的自研实现**。可复用的硬约束：① **CSV 表头**采用其第 10 章版 `hostname,section,status,observed_value,remediation_note`（是第 8 章版的超集），且**列名必须稳定**否则仪表盘导入会断；② **证据文件不得包含可复用密钥/口令**（第 9 章）→ 导出前必须过滤现网配置里的 ciphertext、TACACS 密钥、v2c 团体字；③ Validate/Audit **一律只读**，Dashboard 层**只消费证据、不得回写设备配置或改写证据**；④ **已批准的站点特有例外不得判为不合规**（第 6 章工程注记）→ 规则模型必须支持例外豁免；⑤ 每行证据需含主机名/段/状态/修复建议，文本证据含观测值。
+
+## Decision Log
+- [2026-09-18] **AUTOMATION-Cisco 的处置结论：采纳其输出契约，不采纳其实现方式**。理由：其 Ansible playbook 方案与 NDM 已具备的能力高度重叠（SSH 采集、配置存储、报告导出），且 NDM 已有 Web UI、SQLite 与规则引擎，再引入 Ansible 是重复建设；但该指南是**总部对"审计证据长什么样"的正式约定**，NDM 的导出应对齐，以便结果能喂给总部设想的报告层。已把该约束写进 `docs/superpowers/plans/2026-09-18-compliance-audit.md` 的「九、补充」章节。
+- [2026-09-18] **⚠️ 待用户定案的张力**：AUTOMATION-Cisco 用 **PASS/FAIL** 作为证据状态（`status` 列），而审计功能已定调「建议非强制、界面不出现违规/合规分/pass-fail 字样」。计划里给了三个调和方案（A：`status` 承载五档建议强度 + 另加 `severity` 列区分 shall/should；B：shall 项给 PASS/FAIL、should 项给建议档位；C：完全按总部 PASS/FAIL，不推荐），**周日动手前需确认**。
+
+## User Preferences
+- [2026-09-18] **总部标准文档的处理惯例（已成套）**：每份 `CFG-*.docx` → ① **OneDrive 同目录**放**完整转换版**（英文原文保真 + 每章中文导读 + 编者注/勘误）；② **项目 `docs/standards/`** 放**简化版检查项**（中文、带 ID/强度/判定提示，供合规审计做规则来源）。**配置文件只放在 OneDrive**，项目仓库不放。
+- [2026-09-18] **脱敏红线**：写进项目文档的内容不得包含任何凭据——现网配置里的 SNMP v2c 团体字、ciphertext 口令、TACACS/RADIUS 密钥都属凭据，**只能描述"存在/不存在"与所在设备，不得抄录值**。
+
+## 周日开工前（2026-09-20）必读：待确认与待办
+
+**【第一件事 · 必须先问用户】审计导出的 `status` 列语义**——总部《AUTOMATION-Cisco》要求 PASS/FAIL，而本项目已定调"建议非强制、界面不出现违规/合规分/pass-fail"。三个候选：
+- **A（推荐）**：CSV 的 `status` 列承载**五档建议强度**，另加 `severity` 列区分 `shall` / `should`；界面保持建议语义。
+- **B**：`shall` 类给 PASS/FAIL，`should` 类给建议档位。
+- **C**：完全按 PASS/FAIL 输出（与已批准决策冲突，不推荐）。
+> 用户尚未选。周日动手写 `backend/api/audit.py` 的导出之前必须先确认，否则导出契约要返工。
+> 详见 `docs/superpowers/plans/2026-09-18-compliance-audit.md` §九 与 §三 第一期 A→E。
+
+**【已完成 · 无需重做】** 三份公司基线文档已产出（2026-09-18）：
+- 完整转换版（英文原文保真 + 中文导读）→ OneDrive `01-DocWiKi/01_network_configuration/`：`CFG-Aruba.md`、`CFG-CISCO.md`、`CFG-Aruba-Example.md`（配置范例，仅此一份在 OneDrive）。
+- 检查项简化版（合规审计的规则来源）→ 项目 `docs/standards/`：`CFG-Aruba-checklist.md`、`CFG-Cisco-checklist.md`。**两份都带 ID / 强度 / 判定提示，可直接映射成 `config/audit/*.yaml` 规则草稿。**
+
+**【待提交 · 用户未发话】** `git status --short` 当前：
+```
+ M .wolf/anatomy.md
+ M .wolf/buglog.json
+ M .wolf/cerebrum.md
+ M docs/superpowers/plans/2026-09-18-compliance-audit.md
+?? docs/standards/
+```
+**周末不要自行提交**——项目约定是"仅在用户要求时提交/推送"。
+
+**【周日开工顺序（按已批准计划 §三 第一期）】** A 引擎移植与改造 → B v13 迁移 → C `api/audit.py` → D 前端（Viewer 审计模式 + 标准页）→ E 测试。先跑通"标准页 + 单台审计"，再补全量入库；每步单独提交。
+**回归基准**：现有 238 项测试全绿；移植等价性基线 = 库里 36 台真机配置跑出**总命中 205 条**，前后必须一致。
+
+## Decision Log
+- [2026-09-20] **审计导出 `status` 语义定案：采用方案 A**（关闭周四遗留的待定案项）。导出 CSV 列 = `hostname,section,status,severity,observed_value,remediation_note`（在总部《AUTOMATION-Cisco》第 10 章版基础上**增加 `severity` 列**）。**`status` 承载五档建议强度**（强烈建议/风险提示/改进建议/可选优化/需人工判断），**不输出 PASS/FAIL**，界面与导出统一"建议非强制"语义；**`severity` 承载强度来源**：`shall`（公司基线强制）/ `should`（公司基线建议）/ `vendor`（厂商加固）/ `convention`（现网惯例）——总部若要按 PASS/FAIL 消费，自行用 `severity = shall` 过滤即可。已写入计划 §十。
+- [2026-09-20] **标准来源的边界定案：一期不扩标准源**。开工前讨论确认：判定仍只用三层——**公司总部要求**（CFG-Aruba / CFG-CISCO）+ **厂商加固建议** + **现网惯例**。理由是三层都是"配置该长什么样"的静态标准，而扩范围会挤掉"标准页 + 单台审计"最小闭环。新增来源分三类处理（计划 §十一）：**一期顺手做**运维就绪度；**记入二期**厂商安全公告与生命周期（EoL/CVE）、流程合规（变更单比对）、例外登记机制；**只做标签不新增判定**的是合规框架映射（NIST 800-53）；**RFC/IEEE 协议标准不作为标准来源**，而作为规则的**技术依据**写进 `why` 字段——这是"资深专家评审"与"规则引擎跑分"的区别。
+
+## Key Learnings
+- [2026-09-20] **NDM 当前采集链路已不含 startup-config**：`backend/collectors/base.py` 与 `collector_service.py` 中**没有任何 startup 相关代码**，`collections` 表也没有 startup 列（列为 id/device_id/week/phase/collected_at/software_version/serial_number/model/system_uptime_seconds/running_config/running_config_lines/boot_history_raw/lag_membership）。但磁盘上**仍有 2026-24~27 周的历史 `startup-config.raw`**——说明以前采过、后来被移除。→ **"running 与 startup 是否一致"这类运维就绪度检查，前置条件是先把 `show startup-config` 重新纳入采集**；不要误以为现成数据可用（CLAUDE.md 里仍写着采集项含 `show startup-config`，与实际代码不符）。
+- [2026-09-20] **现网 25/36 台设备的登录横幅自称可能承载 CUI**（`Controlled Unclassified Information`；aruba_aoscx 10 台 / cisco_ios 12 台 / cisco_ios_router 2 台 / cisco_ios_xe 1 台，其余用较早的 LEGAL NOTICE 文案）。这条横幅是「Qorvo Acceptable Use Policy」版本文案的一部分。→ 若确实涉及 CUI，则 **NIST SP 800-171 / CMMC** 可能是硬要求，中国站点还可能要面对**等保 2.0**；已作为待确认问题提给用户。**这是判断"要不要加合规框架"的关键线索，别丢掉。**
