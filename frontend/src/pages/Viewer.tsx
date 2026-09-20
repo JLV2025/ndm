@@ -6,7 +6,7 @@ import {
   IconButton, Snackbar, Button, Tooltip,
 } from '@mui/material'
 import {
-  Visibility, Compare, Storage, ContentCopy, FactCheck, FileDownload, MyLocation,
+  Visibility, Compare, Storage, ContentCopy, FactCheck, FileDownload, MyLocation, VerifiedUser,
 } from '@mui/icons-material'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import type { AxiosResponse } from 'axios'
@@ -16,6 +16,7 @@ import { sessionManager } from '../services/auth'
 import type { Device, AuditEnvelope } from '../types'
 import { auditApi } from '../services/api'
 import LocationFilter from '../components/devices/LocationFilter'
+import AuditExceptionDialog from '../components/AuditExceptionDialog'
 import { useI18n } from '../i18n'
 
 /** 语义颜色常量 — 对应 MUI OLED Dark 主题 */
@@ -36,6 +37,14 @@ const LEVEL_COLORS: Record<string, { bg: string; text: string; border: string }>
   '需人工判断': { bg: 'rgba(45,212,110,0.10)', text: '#5CE68C', border: '#2DD46E' },
 }
 const levelColor = (lv: string) => LEVEL_COLORS[lv] || LEVEL_COLORS['改进建议']
+
+/** 审计：命中「已批准例外」的条目 → 中性灰（它已不属待办，但仍要可见可追溯）。
+ *  已过期的例外**不用这个色**：它已回到普通统计，只加一个橙色戳记提醒复核。 */
+const EXEMPT_COLOR = { bg: 'rgba(148,163,184,0.10)', text: '#94A3B8', border: '#64748B' }
+const isExempted = (f: { exempt?: { status: string } }) =>
+  f.exempt?.status === 'active' || f.exempt?.status === 'expiring'
+const findingColor = (f: { level: string; exempt?: { status: string } }) =>
+  isExempted(f) ? EXEMPT_COLOR : levelColor(f.level)
 
 function computeLCS(oldLines: string[], newLines: string[]): { type: 'same' | 'added' | 'removed'; text: string }[] {
   const m = oldLines.length
@@ -103,6 +112,9 @@ const Viewer: React.FC = () => {
   const [auditLevel, setAuditLevel] = useState<string>('')     // '' = 全部档位
   const [auditSource, setAuditSource] = useState<string>('')   // '' = 全部来源
   const [auditActive, setAuditActive] = useState<string>('')   // 高亮的 rule_id
+  const [auditOnlyExempt, setAuditOnlyExempt] = useState(false) // 只看已批准例外
+  const [exceptionRuleId, setExceptionRuleId] = useState<string>('')  // 非空 = 打开登记例外对话框
+  const [auditSnack, setAuditSnack] = useState('')
 
   const [loading, setLoading] = useState(false)
   const [loadingContent, setLoadingContent] = useState(false)
@@ -247,8 +259,9 @@ const Viewer: React.FC = () => {
 
   const shownFindings = useMemo(
     () => auditFindings.filter((f) => (!auditLevel || f.level === auditLevel)
-      && (!auditSource || f.source === auditSource)),
-    [auditFindings, auditLevel, auditSource])
+      && (!auditSource || f.source === auditSource)
+      && (!auditOnlyExempt || isExempted(f))),
+    [auditFindings, auditLevel, auditSource, auditOnlyExempt])
 
   /** 行号 → 该行上的发现。标红**只走这张表**。 */
   const lineFindings = useMemo(() => {
@@ -627,6 +640,15 @@ const Viewer: React.FC = () => {
                   <Button size="small" sx={{ fontSize: '0.65rem', minWidth: 0 }}
                     onClick={() => setAuditLevel('')}>{t('audit.all')}</Button>
                 )}
+                {(auditResult.exempt_count > 0 || auditOnlyExempt) && (
+                  <Tooltip title={t('audit.onlyExempt')}>
+                    <Chip size="small" clickable
+                      onClick={() => setAuditOnlyExempt(!auditOnlyExempt)}
+                      label={t('audit.exemptCount').replace('{n}', String(auditResult.exempt_count))}
+                      sx={{ height: 22, fontSize: '0.65rem', bgcolor: EXEMPT_COLOR.bg, color: EXEMPT_COLOR.text,
+                            border: auditOnlyExempt ? `1px solid ${EXEMPT_COLOR.border}` : '1px solid transparent' }} />
+                  </Tooltip>
+                )}
                 <Box sx={{ flex: 1 }} />
                 <Select value={auditSource} onChange={(e) => setAuditSource(e.target.value)} size="small"
                   displayEmpty sx={{ minWidth: 150, '& .MuiSelect-select': { py: 0.5, fontSize: '0.72rem' } }}>
@@ -644,7 +666,7 @@ const Viewer: React.FC = () => {
                       {auditLines.map((line, i) => {
                         const ln = i + 1
                         const fs = lineFindings.get(ln)
-                        const c = fs ? levelColor(fs[0].level) : null
+                        const c = fs ? findingColor(fs[0]) : null
                         return (
                           <div key={ln} data-line={ln}
                             ref={(el) => { if (el) auditLineRefs.current.set(ln, el); else auditLineRefs.current.delete(ln) }}
@@ -674,7 +696,7 @@ const Viewer: React.FC = () => {
                         {t('audit.noFindings')}
                       </Typography>
                     ) : shownFindings.map((f) => {
-                      const c = levelColor(f.level)
+                      const c = findingColor(f)
                       return (
                         <Box key={f.key}
                           ref={(el) => { const n = el as HTMLElement | null; if (n) auditCardRefs.current.set(f.key, n); else auditCardRefs.current.delete(f.key) }}
@@ -686,6 +708,18 @@ const Viewer: React.FC = () => {
                           <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', mb: 0.5, flexWrap: 'wrap' }}>
                             <Chip size="small" label={f.level}
                               sx={{ height: 18, fontSize: '0.6rem', bgcolor: c.bg, color: c.text }} />
+                            {isExempted(f) && (
+                              <Tooltip title={t('audit.exemptHint')}>
+                                <Chip size="small" label={t('audit.exempt')}
+                                  sx={{ height: 18, fontSize: '0.6rem', bgcolor: EXEMPT_COLOR.bg, color: EXEMPT_COLOR.text }} />
+                              </Tooltip>
+                            )}
+                            {f.exempt?.status === 'expired' && (
+                              <Tooltip title={t('audit.exemptExpiredHint')}>
+                                <Chip size="small" label={t('audit.exemptExpired')}
+                                  sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'rgba(245,158,11,0.28)', color: '#FB923C' }} />
+                              </Tooltip>
+                            )}
                             <Chip size="small" label={f.source} variant="outlined"
                               sx={{ height: 18, fontSize: '0.6rem', color: 'text.secondary', borderColor: 'divider' }} />
                             <Typography variant="caption" sx={{ color: 'text.disabled', fontFamily: 'monospace', fontSize: '0.6rem' }}>
@@ -707,6 +741,24 @@ const Viewer: React.FC = () => {
                           <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.78rem', mb: 0.5 }}>
                             {f.title}
                           </Typography>
+                          {f.exempt && (
+                            <Box sx={{ mt: 0.5, mb: 0.5, p: 0.75, borderRadius: 1,
+                                       bgcolor: EXEMPT_COLOR.bg, border: '1px solid', borderColor: 'divider' }}>
+                              <Typography variant="caption"
+                                sx={{ display: 'block', color: EXEMPT_COLOR.text, fontSize: '0.62rem' }}>
+                                <b>{f.exempt.exception_id}</b> · {f.exempt.approved_by}
+                                {` · ${t('exceptions.expiresAt')} ${f.exempt.expires_at}`}
+                              </Typography>
+                              <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', fontSize: '0.62rem' }}>
+                                {f.exempt.reason}
+                              </Typography>
+                              {f.exempt.compensating_control && (
+                                <Typography variant="caption" sx={{ display: 'block', color: 'text.disabled', fontSize: '0.6rem' }}>
+                                  {t('exceptions.compensating')}：{f.exempt.compensating_control}
+                                </Typography>
+                              )}
+                            </Box>
+                          )}
                           {f.detail && (
                             <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                               {f.detail}
@@ -737,12 +789,33 @@ const Viewer: React.FC = () => {
                               {t('audit.controls')}：{f.controls.join(', ')}
                             </Typography>
                           )}
+                          {!f.exempt && (
+                            <Button size="small" startIcon={<VerifiedUser sx={{ fontSize: 13 }} />}
+                              onClick={(ev) => { ev.stopPropagation(); setExceptionRuleId(f.rule_id) }}
+                              sx={{ fontSize: '0.6rem', minWidth: 0, mt: 0.5, color: 'text.secondary' }}>
+                              {t('audit.registerException')}
+                            </Button>
+                          )}
                         </Box>
                       )
                     })}
                   </Paper>
                 </Grid>
               </Grid>
+
+              {/* 登记例外：从某条建议出发，预填规则 + 本设备 */}
+              <AuditExceptionDialog open={!!exceptionRuleId}
+                onClose={() => setExceptionRuleId('')}
+                defaultRuleId={exceptionRuleId}
+                defaultScopeType="device"
+                defaultScopeValue={selectedDevice}
+                onSaved={(created) => {
+                  setExceptionRuleId('')
+                  setAuditSnack(t('exceptions.created').replace('{id}', created.id))
+                  runAudit()          // 重新审计：该条立即转入「已批准例外」
+                }} />
+              <Snackbar open={!!auditSnack} autoHideDuration={3000} onClose={() => setAuditSnack('')}
+                message={auditSnack} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} />
             </>
           )}
         </Paper>

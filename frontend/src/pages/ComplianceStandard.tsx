@@ -2,14 +2,15 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import {
   Box, Container, Paper, Typography, Chip, TextField, MenuItem, Select,
   CircularProgress, Alert, Switch, IconButton, Button, Tooltip,
-  Dialog, DialogTitle, DialogContent, DialogActions, Snackbar,
+  Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Tabs, Tab,
 } from '@mui/material'
-import { Edit, Refresh, Rule, Save } from '@mui/icons-material'
+import { Add, Autorenew, Block, Edit, Refresh, Rule, Save } from '@mui/icons-material'
 import { useNavigate } from 'react-router-dom'
 import { auditApi } from '../services/api'
 import { sessionManager } from '../services/auth'
-import type { AuditRule, AuditRuleset } from '../types'
+import type { AuditException, AuditExceptionsResponse, AuditRule, AuditRuleset } from '../types'
 import { useI18n } from '../i18n'
+import AuditExceptionDialog, { httpDetail } from '../components/AuditExceptionDialog'
 
 /** 档位 → 配色，与查看器审计模式保持一致（刻意不用红色系：这是建议强度不是违规等级） */
 const LEVEL_COLORS: Record<string, { bg: string; text: string }> = {
@@ -33,6 +34,7 @@ const ComplianceStandard: React.FC = () => {
   const navigate = useNavigate()
 
   const [ruleset, setRuleset] = useState<AuditRuleset | null>(null)
+  const [tab, setTab] = useState<'rules' | 'exceptions'>('rules')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filterSource, setFilterSource] = useState('')
@@ -131,6 +133,15 @@ const ComplianceStandard: React.FC = () => {
         </Box>
       </Paper>
 
+      <Paper sx={{ px: 2, mb: 2 }}>
+        <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ minHeight: 40 }}>
+          <Tab value="rules" label={`${t('exceptions.tabRules')}（${counts.total}）`}
+            sx={{ minHeight: 40, fontSize: '0.78rem' }} />
+          <Tab value="exceptions" label={t('exceptions.tab')} sx={{ minHeight: 40, fontSize: '0.78rem' }} />
+        </Tabs>
+      </Paper>
+
+      {tab === 'rules' && (<>
       <Paper sx={{ p: 2, mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
         <TextField size="small" placeholder={t('auditRules.fieldTitle')} value={keyword}
           onChange={(e) => setKeyword(e.target.value)} sx={{ minWidth: 220 }} />
@@ -226,6 +237,9 @@ const ComplianceStandard: React.FC = () => {
           <Typography color="text.secondary">{t('audit.noFindings')}</Typography>
         </Paper>
       )}
+      </>)}
+
+      {tab === 'exceptions' && <ExceptionsPanel />}
 
       {editing && (
         <RuleEditDialog rule={editing} levels={ruleset?.levels || []} t={t}
@@ -319,6 +333,256 @@ const RuleEditDialog: React.FC<{
           disabled={touched && needReason}>
           {t('auditRules.save')}
         </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
+/** 例外状态 → 配色。延续"审计不用红色系"的纪律：已过期用橙色（是提醒，不是违规） */
+const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  active: { bg: 'rgba(45,212,110,0.12)', text: '#5CE68C' },
+  expiring: { bg: 'rgba(245,158,11,0.16)', text: '#FBBF24' },
+  expired: { bg: 'rgba(245,158,11,0.28)', text: '#FB923C' },
+  revoked: { bg: 'rgba(148,163,184,0.15)', text: '#94A3B8' },
+}
+
+/**
+ * 例外登记面板 —— 列表 + 新增/续期/撤销。
+ *
+ * 默认只显示「生效中（含即将到期）」：这页是给复核用的，
+ * 已过期/已撤销属于历史，切筛选才看（但它们不会消失，历史审计要能追溯）。
+ */
+const ExceptionsPanel: React.FC = () => {
+  const { t } = useI18n()
+  const [data, setData] = useState<AuditExceptionsResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [filter, setFilter] = useState('open')
+  const [creating, setCreating] = useState(false)
+  const [renewing, setRenewing] = useState<AuditException | null>(null)
+  const [revoking, setRevoking] = useState<AuditException | null>(null)
+  const [snack, setSnack] = useState('')
+
+  const load = useCallback(() => {
+    setLoading(true); setError('')
+    auditApi.exceptions()
+      .then(setData)
+      .catch(() => setError(t('exceptions.loadFailed')))
+      .finally(() => setLoading(false))
+  }, [t])
+
+  useEffect(() => { load() }, [load])
+
+  const all = data?.exceptions || []
+  const shown = all.filter((e) => {
+    if (filter === 'all') return true
+    if (filter === 'open') return e.status === 'active' || e.status === 'expiring'
+    return e.status === filter
+  })
+
+  const statusLabel = (s: string) => t(`exceptions.status.${s}`)
+  const expiryText = (e: AuditException) => {
+    if (e.days_left === null || e.status === 'revoked') return ''
+    return e.days_left < 0
+      ? t('exceptions.expiredAgo').replace('{n}', String(-e.days_left))
+      : t('exceptions.daysLeft').replace('{n}', String(e.days_left))
+  }
+
+  return (
+    <>
+      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
+        <Button size="small" variant="contained" startIcon={<Add sx={{ fontSize: 16 }} />}
+          onClick={() => setCreating(true)} sx={{ fontSize: '0.72rem' }}>
+          {t('exceptions.add')}
+        </Button>
+        <Select size="small" value={filter} onChange={(e) => setFilter(e.target.value)}
+          sx={{ minWidth: 190, '& .MuiSelect-select': { py: 0.5, fontSize: '0.72rem' } }}>
+          <MenuItem value="open" sx={{ fontSize: '0.72rem' }}>{t('exceptions.filter.open')}</MenuItem>
+          <MenuItem value="all" sx={{ fontSize: '0.72rem' }}>{t('exceptions.filter.all')}</MenuItem>
+          {['active', 'expiring', 'expired', 'revoked'].map((s) => (
+            <MenuItem key={s} value={s} sx={{ fontSize: '0.72rem' }}>{statusLabel(s)}</MenuItem>
+          ))}
+        </Select>
+        <Typography variant="caption" color="text.secondary" sx={{ flex: 1, minWidth: 260 }}>
+          {t('exceptions.note')}
+        </Typography>
+      </Box>
+
+      {loading && <Paper sx={{ p: 4, textAlign: 'center' }}><CircularProgress /></Paper>}
+      {error && <Alert severity="warning">{error}</Alert>}
+
+      {!loading && shown.length === 0 && (
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography color="text.secondary">{t('exceptions.empty')}</Typography>
+        </Paper>
+      )}
+
+      {!loading && shown.map((e) => {
+        const c = STATUS_COLORS[e.status] || STATUS_COLORS.revoked
+        const scopeText = e.scope.type === 'all'
+          ? t('exceptions.scope.all')
+          : `${t(`exceptions.scope.${e.scope.type}`)}: ${e.scope.value}`
+        return (
+          <Paper key={e.id} sx={{ p: 1.5, mb: 0.75, display: 'flex', gap: 1.5, alignItems: 'flex-start',
+                                   opacity: e.status === 'revoked' ? 0.6 : 1 }}>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', flexWrap: 'wrap', mb: 0.25 }}>
+                <Chip size="small" label={statusLabel(e.status)}
+                  sx={{ height: 18, fontSize: '0.6rem', bgcolor: c.bg, color: c.text }} />
+                <Chip size="small" variant="outlined" label={scopeText}
+                  sx={{ height: 18, fontSize: '0.6rem', color: 'text.secondary', borderColor: 'divider' }} />
+                <Typography variant="caption" sx={{ color: 'text.disabled', fontFamily: 'monospace', fontSize: '0.62rem' }}>
+                  {e.id}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.disabled', ml: 'auto', fontSize: '0.62rem' }}>
+                  {t('exceptions.approvedBy')}: {e.approved_by} · {e.approved_at} → {e.expires_at}
+                  {expiryText(e) && `（${expiryText(e)}）`}
+                </Typography>
+              </Box>
+              <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.78rem' }}>
+                {e.rule_title || e.rule_id}
+                <Typography component="span" variant="caption"
+                  sx={{ color: 'text.disabled', fontFamily: 'monospace', fontSize: '0.62rem', ml: 0.75 }}>
+                  {e.rule_id}
+                </Typography>
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.25 }}>
+                {e.reason}
+              </Typography>
+              {e.compensating_control && (
+                <Typography variant="caption" sx={{ display: 'block', color: 'text.disabled', mt: 0.25 }}>
+                  {t('exceptions.compensating')}：{e.compensating_control}
+                </Typography>
+              )}
+              {e.revoked && (
+                <Typography variant="caption" sx={{ display: 'block', color: 'text.disabled', mt: 0.25 }}>
+                  {statusLabel('revoked')}：{e.revoked.by} · {e.revoked.at} —— {e.revoked.reason}
+                </Typography>
+              )}
+            </Box>
+            {e.status !== 'revoked' && (
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                <Tooltip title={t('exceptions.renew')}>
+                  <IconButton size="small" onClick={() => setRenewing(e)}>
+                    <Autorenew sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title={t('exceptions.revoke')}>
+                  <IconButton size="small" onClick={() => setRevoking(e)}>
+                    <Block sx={{ fontSize: 16 }} />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            )}
+          </Paper>
+        )
+      })}
+
+      <AuditExceptionDialog open={creating} onClose={() => setCreating(false)}
+        baseHash={data?.base_hash}
+        onSaved={(created) => {
+          setCreating(false)
+          setSnack(t('exceptions.created').replace('{id}', created.id))
+          load()
+        }} />
+
+      {renewing && (
+        <RenewExceptionDialog exc={renewing} t={t} baseHash={data?.base_hash}
+          onClose={() => setRenewing(null)}
+          onDone={() => { setRenewing(null); setSnack(t('exceptions.renewed')); load() }} />
+      )}
+      {revoking && (
+        <RevokeExceptionDialog exc={revoking} t={t} baseHash={data?.base_hash}
+          onClose={() => setRevoking(null)}
+          onDone={() => { setRevoking(null); setSnack(t('exceptions.revoked')); load() }} />
+      )}
+
+      <Snackbar open={!!snack} autoHideDuration={3000} onClose={() => setSnack('')}
+        message={snack} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} />
+    </>
+  )
+}
+
+/** 续期对话框 —— 顺带允许修正理由与批准人（都写回同一条例外） */
+const RenewExceptionDialog: React.FC<{
+  exc: AuditException
+  t: (key: string, fallback?: string) => string
+  baseHash?: string
+  onClose: () => void
+  onDone: () => void
+}> = ({ exc, t, baseHash, onClose, onDone }) => {
+  const [expiresAt, setExpiresAt] = useState(exc.expires_at)
+  const [reason, setReason] = useState(exc.reason)
+  const [approvedBy, setApprovedBy] = useState(exc.approved_by)
+  const [error, setError] = useState('')
+
+  const submit = async () => {
+    try {
+      await auditApi.updateException(exc.id, {
+        expires_at: expiresAt, reason, approved_by: approvedBy, base_hash: baseHash,
+      })
+      onDone()
+    } catch (e) {
+      setError(httpDetail(e) || t('exceptions.saveFailed'))
+    }
+  }
+
+  return (
+    <Dialog open onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ fontSize: '0.9rem', fontFamily: 'monospace' }}>{exc.id}</DialogTitle>
+      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
+        <TextField size="small" type="date" label={t('exceptions.expiresAt')} value={expiresAt}
+          onChange={(e) => setExpiresAt(e.target.value)} InputLabelProps={{ shrink: true }} />
+        <TextField size="small" label={t('exceptions.reason')} value={reason} multiline minRows={2}
+          onChange={(e) => setReason(e.target.value)} />
+        <TextField size="small" label={t('exceptions.approvedBy')} value={approvedBy}
+          onChange={(e) => setApprovedBy(e.target.value)} />
+        {error && <Alert severity="warning" sx={{ py: 0.25 }}>{error}</Alert>}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>{t('auditRules.cancel')}</Button>
+        <Button variant="contained" onClick={submit}>{t('auditRules.save')}</Button>
+      </DialogActions>
+    </Dialog>
+  )
+}
+
+/** 撤销对话框 —— 软删除：必须写明谁撤的、为什么（条目保留供历史审计追溯） */
+const RevokeExceptionDialog: React.FC<{
+  exc: AuditException
+  t: (key: string, fallback?: string) => string
+  baseHash?: string
+  onClose: () => void
+  onDone: () => void
+}> = ({ exc, t, baseHash, onClose, onDone }) => {
+  const [by, setBy] = useState('')
+  const [reason, setReason] = useState('')
+  const [error, setError] = useState('')
+
+  const submit = async () => {
+    if (!by.trim() || !reason.trim()) { setError(t('exceptions.needRevoke')); return }
+    try {
+      await auditApi.revokeException(exc.id, { by, reason, base_hash: baseHash })
+      onDone()
+    } catch (e) {
+      setError(httpDetail(e) || t('exceptions.saveFailed'))
+    }
+  }
+
+  return (
+    <Dialog open onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogTitle sx={{ fontSize: '0.9rem', fontFamily: 'monospace' }}>{exc.id}</DialogTitle>
+      <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
+        <Typography variant="caption" color="text.secondary">{t('exceptions.revokeConfirm')}</Typography>
+        <TextField size="small" label={t('exceptions.revokeBy')} value={by}
+          onChange={(e) => setBy(e.target.value)} />
+        <TextField size="small" label={t('exceptions.revokeReason')} value={reason} multiline minRows={2}
+          onChange={(e) => setReason(e.target.value)} />
+        {error && <Alert severity="warning" sx={{ py: 0.25 }}>{error}</Alert>}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>{t('auditRules.cancel')}</Button>
+        <Button variant="contained" color="warning" onClick={submit}>{t('exceptions.revoke')}</Button>
       </DialogActions>
     </Dialog>
   )

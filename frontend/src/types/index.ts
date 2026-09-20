@@ -120,6 +120,46 @@ export interface AuditFinding {
   satisfied?: string[]
   trigger?: string
   conflict?: string[]
+  /**
+   * 例外豁免信息（命中已登记的例外才有）。
+   * status：active（生效中）/ expiring（即将到期，仍豁免）/ expired（已过期，
+   * **不再豁免**但保留标注提醒复核）。生效中的条目不计入 counts，单列 exempt_count。
+   */
+  exempt?: AuditExemption
+}
+
+export interface AuditExemption {
+  exception_id: string
+  status: 'active' | 'expiring' | 'expired'
+  approved_by: string
+  reason: string
+  compensating_control: string
+  expires_at: string
+}
+
+/** 一条例外登记 */
+export interface AuditException {
+  id: string
+  rule_id: string
+  scope: { type: 'device' | 'site' | 'all'; value?: string }
+  reason: string
+  compensating_control: string
+  approved_by: string
+  approved_at: string
+  expires_at: string
+  revoked?: { at: string; by: string; reason: string }
+  /** 推导状态，不是文件里的字段 */
+  status: 'active' | 'expiring' | 'expired' | 'revoked'
+  rule_title: string
+  days_left: number | null
+  source_file?: string
+}
+
+export interface AuditExceptionsResponse {
+  exceptions: AuditException[]
+  counts: Record<string, number>
+  /** 例外表文件指纹——编辑/撤销时带回做乐观锁 */
+  base_hash: string
 }
 
 /** 单台审计的完整返回体 */
@@ -140,6 +180,8 @@ export interface AuditEnvelope {
   generated_at: string
   findings: AuditFinding[]
   counts: Record<string, number>
+  /** 已批准例外条数（生效中 + 即将到期）——不计入 counts，界面单列一行 */
+  exempt_count: number
   port_roles: Record<string, { role: string; confidence: string; reasons: string[] }>
 }
 

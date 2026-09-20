@@ -217,6 +217,24 @@ export const auditApi = {
    */
   updateRule: (ruleId: string, patch: Record<string, unknown>) =>
     apiJson.put(`/audit/standards/rule/${encodeURIComponent(ruleId)}`, patch).then(res => res.data),
+
+  // ---- 例外登记（已批准的偏离） ----
+
+  /** 例外登记表（含推导状态、规则标题、剩余天数）。state: active/expiring/expired/revoked */
+  exceptions: (state?: string): Promise<import('../types').AuditExceptionsResponse> =>
+    apiJson.get('/audit/exceptions', { params: state ? { state } : undefined }).then(res => res.data),
+
+  /** 登记一条例外（到期日缺省 = 批准日 + 180 天）；传 base_hash 做乐观锁 */
+  createException: (body: Record<string, unknown>) =>
+    apiJson.post('/audit/exceptions', body).then(res => res.data),
+
+  /** 续期 / 改理由（改 scope/rule_id 等于换一条，须撤销后重登记） */
+  updateException: (id: string, patch: Record<string, unknown>) =>
+    apiJson.put(`/audit/exceptions/${encodeURIComponent(id)}`, patch).then(res => res.data),
+
+  /** 撤销（软删除：写 revoked 块，历史审计可追溯） */
+  revokeException: (id: string, body: { by: string; reason: string; base_hash?: string }) =>
+    apiJson.post(`/audit/exceptions/${encodeURIComponent(id)}/revoke`, body).then(res => res.data),
 }
 
 export default apiJson
