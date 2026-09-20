@@ -218,6 +218,15 @@ export interface AuditTrendDiff {
   reason?: string               // 数据不足时的可读原因（不造数）
 }
 
+/** AI 专家简报 —— 把确定性结论讲成人话（不落库，随时可重新生成） */
+export interface AuditBriefing {
+  briefing: string
+  provider: string
+  scope: 'device' | 'network'
+  run_id?: number
+  generated_at: string
+}
+
 /** 单次运行的明细（下钻） */
 export interface AuditRunFinding {
   device_name: string

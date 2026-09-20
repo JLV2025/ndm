@@ -646,6 +646,15 @@ const en: Record<string, string> = {
   'auditPage.loadFailed': 'Failed to load data',
   'auditPage.emptyHistory': 'No audit runs yet — click “Audit all devices”, or wait for the post-collection run',
 
+  // AI 专家简报
+  'briefing.title': 'Expert briefing',
+  'briefing.generate': 'Generate briefing',
+  'briefing.generating': 'Generating… (AI composing, ~5–15s)',
+  'briefing.copy': 'Copy',
+  'briefing.failed': 'Failed to generate briefing',
+  'briefing.scopeNetwork': 'Fleet-wide',
+  'briefing.footerNote': 'This briefing is AI-composed from deterministic rule-engine findings; the findings themselves contain no AI',
+
   // 设备生命周期（EoL / 保修期）
   'lifecycle.title': 'Lifecycle',
   'lifecycle.hint': 'Model EoL and warranty: manual entry first (Aruba has no public API; Cisco warranty needs SNTC); with Cisco credentials the EoL refresh runs automatically',

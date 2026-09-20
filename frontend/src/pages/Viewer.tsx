@@ -7,16 +7,18 @@ import {
 } from '@mui/material'
 import {
   Visibility, Compare, Storage, ContentCopy, FactCheck, FileDownload, MyLocation, VerifiedUser,
+  AutoAwesome,
 } from '@mui/icons-material'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import type { AxiosResponse } from 'axios'
 import { dataApi, deviceApi } from '../services/api'
 import { sessionManager } from '../services/auth'
 
-import type { Device, AuditEnvelope } from '../types'
+import type { Device, AuditEnvelope, AuditBriefing } from '../types'
 import { auditApi } from '../services/api'
 import LocationFilter from '../components/devices/LocationFilter'
 import AuditExceptionDialog from '../components/AuditExceptionDialog'
+import BriefingDialog from '../components/BriefingDialog'
 import { useI18n } from '../i18n'
 
 /** 语义颜色常量 — 对应 MUI OLED Dark 主题 */
@@ -115,6 +117,10 @@ const Viewer: React.FC = () => {
   const [auditOnlyExempt, setAuditOnlyExempt] = useState(false) // 只看已批准例外
   const [exceptionRuleId, setExceptionRuleId] = useState<string>('')  // 非空 = 打开登记例外对话框
   const [auditSnack, setAuditSnack] = useState('')
+  const [briefingOpen, setBriefingOpen] = useState(false)
+  const [briefingLoading, setBriefingLoading] = useState(false)
+  const [briefing, setBriefing] = useState<AuditBriefing | null>(null)
+  const [briefingError, setBriefingError] = useState('')
 
   const [loading, setLoading] = useState(false)
   const [loadingContent, setLoadingContent] = useState(false)
@@ -289,6 +295,21 @@ const Viewer: React.FC = () => {
     setAuditActive(key)
     auditCardRefs.current.get(key)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
   }, [])
+
+  // AI 专家简报：把确定性结论讲成人话（prompt 里约束不得新增未列出的问题）
+  const openBriefing = useCallback(async () => {
+    if (!selectedDevice) return
+    setBriefingOpen(true); setBriefing(null); setBriefingError('')
+    setBriefingLoading(true)
+    try {
+      setBriefing(await auditApi.briefingDevice(selectedDevice))
+    } catch (e: unknown) {
+      const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      setBriefingError(detail || t('briefing.failed'))
+    } finally {
+      setBriefingLoading(false)
+    }
+  }, [selectedDevice, t])
 
   const handleExport = useCallback(async (format: 'md' | 'json') => {
     if (!selectedDevice) return
@@ -595,6 +616,10 @@ const Viewer: React.FC = () => {
               </Button>
               {auditResult?.usable && (
                 <>
+                  <Button size="small" startIcon={<AutoAwesome sx={{ fontSize: 16 }} />}
+                    onClick={openBriefing} disabled={briefingLoading}>
+                    {t('briefing.generate')}
+                  </Button>
                   <Button size="small" startIcon={<FileDownload sx={{ fontSize: 16 }} />}
                     onClick={() => handleExport('md')}>{t('audit.exportMd')}</Button>
                   <Button size="small" onClick={() => handleExport('json')}>JSON</Button>
@@ -816,6 +841,10 @@ const Viewer: React.FC = () => {
                 }} />
               <Snackbar open={!!auditSnack} autoHideDuration={3000} onClose={() => setAuditSnack('')}
                 message={auditSnack} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} />
+
+              <BriefingDialog open={briefingOpen} onClose={() => setBriefingOpen(false)}
+                loading={briefingLoading} error={briefingError} briefing={briefing}
+                title={`${t('briefing.title')} —— ${selectedDevice || ''}`} />
             </>
           )}
         </Paper>

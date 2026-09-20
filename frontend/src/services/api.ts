@@ -247,6 +247,14 @@ export const auditApi = {
     apiJson.get('/audit/trends/diff', {
       params: { from_run: fromRun, to_run: toRun },
     }).then(res => res.data),
+
+  /** AI 单台专家简报（把该设备的确定性结论讲成人话；不落库） */
+  briefingDevice: (name: string): Promise<import('../types').AuditBriefing> =>
+    apiJson.post(`/audit/device/${encodeURIComponent(name)}/briefing`).then(res => res.data),
+
+  /** AI 全网简报；缺省用最新一次运行 */
+  briefingNetwork: (runId?: number): Promise<import('../types').AuditBriefing> =>
+    apiJson.post('/audit/briefing', null, { params: { run_id: runId } }).then(res => res.data),
 }
 
 // 设备生命周期（EoL / 保修期）—— 手工登记为主，Cisco EoX 可自动刷新

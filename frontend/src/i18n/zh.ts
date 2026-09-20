@@ -648,6 +648,15 @@ const zh: Record<string, string> = {
   'auditPage.loadFailed': '数据加载失败',
   'auditPage.emptyHistory': '还没有审计记录 —— 点「全网审计」跑一轮，或等采集后自动跑',
 
+  // AI 专家简报
+  'briefing.title': '专家简报',
+  'briefing.generate': '生成专家简报',
+  'briefing.generating': '正在生成…（AI 组织语言，约 5–15 秒）',
+  'briefing.copy': '复制',
+  'briefing.failed': '简报生成失败',
+  'briefing.scopeNetwork': '全网',
+  'briefing.footerNote': '本简报由 AI 依据规则引擎的判定组织语言；判定本身不含 AI 成分',
+
   // 设备生命周期（EoL / 保修期）
   'lifecycle.title': '生命周期',
   'lifecycle.hint': '型号 EoL 与保修期：手工登记为主（Aruba 无公开 API、Cisco 保修需 SNTC 权限）；配好 Cisco 凭据后可自动刷新型号 EoL',

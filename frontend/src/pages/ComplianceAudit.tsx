@@ -4,16 +4,17 @@ import {
   DialogActions, IconButton, MenuItem, Paper, Select, Snackbar, Table, TableBody, TableCell,
   TableHead, TableRow, ToggleButton, ToggleButtonGroup, Tooltip, Typography,
 } from '@mui/material'
-import { PlayArrow, Refresh, TrendingDown, TrendingUp } from '@mui/icons-material'
+import { AutoAwesome, PlayArrow, Refresh, TrendingDown, TrendingUp } from '@mui/icons-material'
 import {
   CartesianGrid, Legend, Line, LineChart, ResponsiveContainer,
   Tooltip as RechartsTooltip, XAxis, YAxis,
 } from 'recharts'
 import { useNavigate } from 'react-router-dom'
 import { auditApi } from '../services/api'
+import BriefingDialog from '../components/BriefingDialog'
 import { sessionManager } from '../services/auth'
 import { useI18n } from '../i18n'
-import type { AuditRun, AuditRunDetail, AuditTrendDiff, AuditTrends } from '../types'
+import type { AuditBriefing, AuditRun, AuditRunDetail, AuditTrendDiff, AuditTrends } from '../types'
 
 /** 与仪表盘一致的图表配色（深色主题） */
 const GRID = '#1E293B'
@@ -49,6 +50,10 @@ const ComplianceAudit: React.FC = () => {
   const [running, setRunning] = useState(false)
   const [snack, setSnack] = useState('')
   const [detailId, setDetailId] = useState<number | null>(null)
+  const [briefingOpen, setBriefingOpen] = useState(false)
+  const [briefingLoading, setBriefingLoading] = useState(false)
+  const [briefing, setBriefing] = useState<AuditBriefing | null>(null)
+  const [briefingError, setBriefingError] = useState('')
 
   const load = useCallback(() => {
     setLoading(true); setError('')
@@ -87,6 +92,18 @@ const ComplianceAudit: React.FC = () => {
       setError(t('auditPage.runFailed'))
     } finally {
       setRunning(false)
+    }
+  }
+
+  const openBriefing = async () => {
+    setBriefingOpen(true); setBriefing(null); setBriefingError(''); setBriefingLoading(true)
+    try {
+      setBriefing(await auditApi.briefingNetwork())
+    } catch (e: unknown) {
+      const detail = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+      setBriefingError(detail || t('briefing.failed'))
+    } finally {
+      setBriefingLoading(false)
     }
   }
 
@@ -140,6 +157,11 @@ const ComplianceAudit: React.FC = () => {
             <Button variant="contained" size="small" startIcon={<PlayArrow sx={{ fontSize: 16 }} />}
               onClick={handleRunAll} disabled={running} sx={{ fontSize: '0.75rem' }}>
               {running ? t('auditPage.running') : t('auditPage.runAll')}
+            </Button>
+            <Button size="small" startIcon={<AutoAwesome sx={{ fontSize: 16 }} />}
+              onClick={openBriefing} disabled={briefingLoading}
+              sx={{ fontSize: '0.75rem' }}>
+              {t('briefing.generate')}
             </Button>
             <IconButton onClick={load} title={t('auditPage.title')}><Refresh /></IconButton>
           </Box>
@@ -333,6 +355,10 @@ const ComplianceAudit: React.FC = () => {
       )}
 
       {detailId != null && <RunDetailDialog runId={detailId} onClose={() => setDetailId(null)} />}
+
+      <BriefingDialog open={briefingOpen} onClose={() => setBriefingOpen(false)}
+        loading={briefingLoading} error={briefingError} briefing={briefing}
+        title={`${t('briefing.title')} —— ${t('briefing.scopeNetwork')}`} />
 
       <Snackbar open={!!snack} autoHideDuration={4000} onClose={() => setSnack('')}
         message={snack} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} />
