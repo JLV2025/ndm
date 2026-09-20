@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T05:42:14.968Z
-> Files: 163 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T06:01:20.464Z
+> Files: 171 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -48,6 +48,7 @@
 - `add_buglog.py` — 向 .wolf/buglog.json 追加一条手工记录（避免手改 JSON 出错）。 (~328 tok)
 - `add_buglog2.py` — 追加 bug-199（周格式约定）到 .wolf/buglog.json。 (~258 tok)
 - `add_buglog3.py` — 追加 bug-200（单台审计漏传 lifecycle）到 .wolf/buglog.json。 (~320 tok)
+- `add_buglog4.py` — 追加 bug-201（heredoc 写错目录：根目录有同名旧 tests/）到 .wolf/buglog.json。 (~349 tok)
 - `eq_check.py` — 移植等价性回归：同库同配置，逐设备逐规则对比 findings（stderr 输出给 A/B 两侧）。 (~317 tok)
 - `fix_bug151_again.py` — 把「第 5 次怪文件」记到**正确**的 bug-151 条目上，并还原被误改的另一条。 (~364 tok)
 - `upd_bug151.py` — 怪文件现象第 5 次：更新 bug-151 的计数与最近一次样本。 (~240 tok)
@@ -155,11 +156,12 @@
 - `port_roles.py` — 端口角色推断 —— 让端口级规则真正可达。 (~1798 tok)
 - `runner.py` — 全网审计执行器 —— API 端点与「采集后自动跑」共用同一实现。 (~1180 tok)
 - `source.py` — 审计数据源 —— 从 NDM 库取"这次审计要审什么"。 (~1704 tok)
+- `trends.py` — 审计趋势的查询核心 —— 从 api/audit.py 抽出（API 与 AI 简报共用）。 (~1612 tok)
 
 ## backend/api/
 
 - `alerts.py` — 告警 API 路由 (~2091 tok)
-- `audit.py` — 配置审计 API 路由。 (~8012 tok)
+- `audit.py` — 配置审计 API 路由。 (~6916 tok)
 - `collector.py` — 配置收集 API 路由 (~1741 tok)
 - `data.py` — 数据文件 API 路由 (~3944 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
@@ -181,6 +183,7 @@
 
 ## backend/services/
 
+- `audit_briefing.py` — AI 专家简报 —— 让 AI 把**确定性审计结论**讲成人话。 (~3067 tok)
 - `audit_scheduler.py` — 采集后自动审计（去抖）。 (~580 tok)
 - `collector_service.py` — 配置收集服务 (~20590 tok)
 - `eox_client.py` — Cisco EoX 客户端 —— 按型号批量查生命周期（停止销售 / 停止支持）。 (~1502 tok)
@@ -200,6 +203,7 @@
 - `test_anomaly_config_drift.py` — 未保存配置告警测试 —— 重点是**状态型告警的去重与自动消除**。 (~1086 tok)
 - `test_anomaly_version_mismatch.py` — 异常检测：堆叠成员版本不一致告警 (~693 tok)
 - `test_audit_api.py` — 审计 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）。 (~3397 tok)
+- `test_audit_briefing.py` — AI 专家简报测试 —— prompt 构建（纯函数）+ 调用链 + 数据装配。 (~3164 tok)
 - `test_audit_scheduler.py` — 采集后自动审计（去抖）测试。 (~793 tok)
 - `test_audit_trends.py` — 审计趋势端点测试 —— 周聚合、统计口径、对比榜。 (~2011 tok)
 - `test_collector_service.py` — collector_service 型号/序列号/成员ID提取测试 — 重点：Aruba CX VSF 堆叠 (~1644 tok)
@@ -222,6 +226,7 @@
 - `test_port_roles.py` — 端口角色推断测试 —— 让「BPDU Guard 不该配在上行口」这类端口级规则可信。 (~3120 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试（21 列 INSERT / NULL 与读数 0 区分 / 大数据精度） (~900 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试 —— 重点：累计计数器列（in_octets / out_octets） (~1043 tok)
+- `test_redact.py` — 凭据打码测试 —— 纪律项：发给 LLM 的文本里绝不带凭据值。 (~865 tok)
 - `test_reports_api.py` — 自定义报告端点测试 —— 临时库直接调端点函数（HTTP 层之下） (~2205 tok)
 - `test_retention.py` — 分层保留与归档测试 (~3006 tok)
 - `test_stats_overview.py` — Dashboard 端口统计口径测试 —— Disabled 单独计数 (~784 tok)
@@ -237,6 +242,7 @@
 
 - `config_diff.py` — running-config 与 startup-config 的差异比对。 (~1228 tok)
 - `port_names.py` — 端口名归一化 —— CDP/LLDP/STP/配置文本之间的端口名对齐。 (~414 tok)
+- `redact.py` — 凭据打码 —— 发给 LLM 之前，把配置证据里的凭据值替换掉。 (~686 tok)
 
 ## config/
 
@@ -266,6 +272,7 @@
 
 - `2026-08-04-aruba-ap-recognition.md` — Aruba AP 识别实现计划 (~3717 tok)
 - `2026-09-14-traffic-counter-delta.md` — 端口流量排行：改用「周锚定」累计计数器差值 (~5604 tok)
+- `2026-09-20-ai-briefing.md` — AI 专家简报（二期收官）—— 设计与实施计划 (~644 tok)
 - `2026-09-20-audit-trends.md` — 审计趋势与历史（二期）—— 设计与实施计划 (~889 tok)
 - `2026-09-20-device-lifecycle.md` — 设备生命周期（EoL + 保修期）（二期）—— 设计与实施计划 (~1466 tok)
 - `2026-09-20-exceptions-registry.md` — 例外登记机制（二期）—— 设计与实施计划 (~1236 tok)
@@ -285,6 +292,7 @@
 ## frontend/src/components/
 
 - `AuditExceptionDialog.tsx` — 登记例外对话框（查看器与标准页共用；到期日默认 +180 天） (~1652 tok)
+- `BriefingDialog.tsx` — 极简 Markdown 渲染：标题行加粗、`- ` 列表、**加粗** —— 不引第三方依赖 (~983 tok)
 - `LifecycleCard.tsx` — 设备生命周期卡片 —— EoL 与保修期。 (~5077 tok)
 
 ## frontend/src/components/devices/
@@ -316,11 +324,11 @@
 - `Login.tsx` — Login (~2283 tok)
 - `Reports.tsx` — 两张表的默认排序：型号字母序 / 吞吐降序 (~4439 tok)
 - `StpTopology.tsx` — StpTopology (~1434 tok)
-- `Viewer.tsx` — 语义颜色常量 — 对应 MUI OLED Dark 主题 (~12462 tok)
+- `Viewer.tsx` — 语义颜色常量 — 对应 MUI OLED Dark 主题 (~12766 tok)
 
 ## frontend/src/services/
 
-- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~3215 tok)
+- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~3335 tok)
 
 ## frontend/src/shared/
 
@@ -331,7 +339,7 @@
 
 ## frontend/src/types/
 
-- `index.ts` — 离线物理设备档案（device_members 表） (~2402 tok)
+- `index.ts` — 离线物理设备档案（device_members 表） (~2455 tok)
 - `topology.ts` — 端口物理断开（status_up=0），图上显示红叉警告 (~1043 tok)
 
 ## tests/

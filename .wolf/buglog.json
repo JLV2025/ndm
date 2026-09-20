@@ -3479,6 +3479,120 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-20T13:45:00.000Z"
+    },
+    {
+      "id": "bug-212",
+      "timestamp": "2026-09-20T05:49:16.013Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/services/audit_briefing.py",
+      "root_cause": "Had \"- （本次没有命中任何规则 —— 请说明\"",
+      "fix": "Changed to \"- （本次没有命中任何规则 —— 请说明「未发现可改进项」，不要凭空找问题）\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:49:16.013Z"
+    },
+    {
+      "id": "bug-213",
+      "timestamp": "2026-09-20T05:52:48.999Z",
+      "error_message": "Missing await",
+      "file": "backend/api/audit.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:52:48.999Z"
+    },
+    {
+      "id": "bug-214",
+      "timestamp": "2026-09-20T05:54:15.082Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/audit_briefing.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→15 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:54:15.082Z"
+    },
+    {
+      "id": "bug-215",
+      "timestamp": "2026-09-20T05:54:24.383Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/audit.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→14 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:54:24.383Z"
+    },
+    {
+      "id": "bug-216",
+      "timestamp": "2026-09-20T05:55:37.984Z",
+      "error_message": "Type error",
+      "file": "frontend/src/types/index.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:55:37.984Z"
+    },
+    {
+      "id": "bug-217",
+      "timestamp": "2026-09-20T05:56:11.657Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:56:11.657Z"
+    },
+    {
+      "id": "bug-201",
+      "timestamp": "2026-09-20T14:05:00.000Z",
+      "error_message": "pytest 报 ModuleNotFoundError: No module named 'api'（跑 tests/test_audit_briefing.py 时）",
+      "file": "—（文件写错了目录）",
+      "root_cause": "用 cat >> 追加测试代码时 cwd 是**项目根目录**（不是 backend/），而仓库根目录恰好也有一个旧的 tests/ 目录 —— 内容被追加到了 F:/projects/ndm/tests/test_audit_briefing.py（散落文件），backend/tests/ 下的真文件没变；随后从根目录跑 pytest 收集到的是那份散落文件，因此在根目录下 'api' 包不存在 → ModuleNotFoundError。",
+      "fix": "确认 cwd 后用 Edit 工具把测试写到 backend/tests/test_audit_briefing.py，删除散落文件。教训：① 追加/写入文件一律用 Write/Edit（带绝对路径），别用 cat >> 靠 cwd；② 仓库根目录的旧 tests/ 是历史遗留，容易被相对路径误中。",
+      "tags": [
+        "cwd",
+        "heredoc",
+        "wrong-directory",
+        "pytest",
+        "tooling"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T14:05:00.000Z"
     }
   ]
 }

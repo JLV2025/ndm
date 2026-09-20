@@ -670,7 +670,14 @@
 - [2026-09-20] **生命周期数据进 DB（v16 两张表），不进 YAML** —— 与例外机制相反：例外是"决策记录"（谁批的、到期复核，要 git 追溯）；EoL/保修是**设备事实数据**（随 API 刷新、条数多、且要"手工值不被自动刷新覆盖"）。DAL 用 `source=api|manual` + `force` 表达覆盖语义。
 - [2026-09-20] **新增通用机制 `engine.collapse_collective()`**：规则标 `collective: true` 时，全量审计命中 ≥ 阈值（默认 3，`params.collective_threshold` 可调）折叠成**一条网络级条目**（`device_name='全网'`，列出设备名）。同时补上了一期承诺但未实现的「集体性漏配单独成类」。runner 的顺序固定为**先收集 → 折叠 → 落库**（边判边写就没法折叠）。
 
+## Decision Log
+- [2026-09-20] **AI 专家简报定案（用户）**：**单台 + 全网两份**都做。铁律 = **判定归引擎、叙事归 AI**（prompt 硬约束"不得新增任何未列出的问题、命令、日期"）；不喂配置原文；发送前所有文本过 `utils/redact`（凭据值不外发）；**不落库**（讲解随时可重新生成）；LLM 不可用 → 可读 400，审计不受影响。
+- [2026-09-20] **凭据打码是独立纪律项**：`utils/redact.py` 按行打码（团体字/各类 key/auth-priv/Cisco 哈希/ciphertext），**保留命令与加密类型数字**（"配了什么、用了哪种加密"是有用信息）。原则"宁可多打不可漏打"。
+
 ## Key Learnings
+- [2026-09-20] **真实 LLM 验证结果（DeepSeek）**：单台简报能识别"管理面三条（MGMT_ACL/SNMP 团体字/SNMPv3）是同一件事的三个面"、指出"DAI 依赖 DHCP snooping"的配套关系、如实说"生命周期这块没有数据"——**且未编造任何规则 id**（自动抽查：正文提到的 id ⊆ 给定条目）。这正是总计划要的"资深专家评审"效果。全网简报同理，并会主动标注"标准变过，条目变化不一定代表设备变差"。
+- [2026-09-20] **两个接线坑（都在本次踩到并留下测试）**：① SQLite 连接**不能跨线程** —— `asyncio.to_thread` 里不能读库，正确做法是"读库在主线程、只把阻塞的 LLM 调用放进线程"；② 用 `cat >>` 追加代码时 **cwd 漂移会写错目录**（仓库根目录有个历史遗留 `tests/`，害我查了半天 ModuleNotFoundError）——写文件一律 Write/Edit + 绝对路径。
+- [2026-09-20] **trends 查询核心提取到 `analyzers/compliance/trends.py`**：API 与简报共用同一口径；放在 api 层会让 services 反向依赖，且服务里 `asyncio.run` 调异步端点会在运行中的事件循环里炸。
 - [2026-09-20] **Cisco EoX API 事实**（调研确认）：4 个方法 `EOXByProductID`（每次 ≤20 个型号，支持通配符）/`EOXBySerialNumber`/`EOXByDates`/`EOXBySWReleaseString`；OAuth2 凭据来自 `apiconsole.cisco.com`；返回 `EndOfSaleDate`/`LastDateOfSupport`/公告号与链接。**保修是另一套**：`SN2INFO`（`/product/v1.0/coverage/summary/serial_numbers/…` 给 `warranty_end_date`）**仅 PSS 伙伴 / SNTC 客户可用**。Aruba/HPE 两者都只有网页表单。
 - [2026-09-20] **多入口接线是这类功能的典型坑**：同一份新数据往往要接 `runner`（全量）与 `_envelope`（单台）**两条路径** —— 本次只接了 runner，单台审计就一直报"待查"（幸而浏览器复验抓到了，见 bug-200）。改这类"上下文注入"时，**先 grep 这个参数名在哪些调用点出现**，一处不能漏。
 - [2026-09-20] **串行号/型号在库里是逗号拼接的成员串**（`SG30LMQ17K, SG30LMQ108` / `JL659A, JL659A`）—— 11 台堆叠设备各有 2–3 个成员。`lifecycle_dal.split_serials()` 负责拆分；匹配用大写归一化。判定器要把 `extra_rows`（登记过但当前采集不到的序列号）也算上，否则成员换件/采集缺列会丢数据。
@@ -695,4 +702,5 @@
   - 趋势：计划 `docs/superpowers/plans/2026-09-20-audit-trends.md`；提交链 2836c54 → 40ef6a9（提取 runner）→ 02b0369（趋势/对比端点）→ d8cd37e（采集后自动跑）→ 9a2630d（新页面）；浏览器实测通过（触发→toast+新记录；下钻明细 486 条、档位筛选 238/486）；采集后自动跑真实链路验证（run 4, trigger=post_collect, 969 ms）。
   - schema **v15**；测试 **401 项全绿**；等价性回归 486=486；主库现有 4 条运行记录（10:03 用户/12:50 验证/13:01 页面按钮/13:0x post_collect）。
 - **二期进展（2026-09-20 深夜）**：**设备生命周期（EoL + 保修期）✅** —— 计划 `docs/superpowers/plans/2026-09-20-device-lifecycle.md`；提交链 90fd17e（计划）→ fb7b80c（v16 + DAL）→ 41d5976（EoX 客户端）→ b356c1a（API）→ 37477e4（三规则 + 折叠）→ 825b753（接线修复）→ 0207abc（前端卡片）。schema **v16**；测试 **443 项全绿**；等价性：禁用三条新规则后 **486 且逐设备逐规则与改动前一致**；浏览器实测通过（登记保修 → 审计报「保修已于 2025-03-31 过期（538 天前）」；批量导入回显匹配/未匹配/坏行；刷新未配凭据给可读原因）。
-- 待办（二期剩余）：**AI 专家简报**（最后一项）；另有：Cisco EoX 凭据到位后**实盘验证刷新**（用户正在办 API Console 注册）、问清 SNTC 订阅以决定保修能否自动化、`port_snapshots.is_uplink` 之类不可用信号的清理、前端 `deviceApi.batchCollect` 指向不存在的 `/collect/batch`（死代码，待清理）。
+- **二期进展（2026-09-20 收尾）**：**AI 专家简报 ✅ —— 二期四项全部完成**。计划 `docs/superpowers/plans/2026-09-20-ai-briefing.md`；提交链 79969e6（计划）→ afd9368（打码）→ 426472f（trends 提取）→ 2a1b3aa（打码修复）→ 1116006（简报服务）→ ab79ecd（端点）→ 592cdaf（前端）。测试 **466 项全绿**；真实 DeepSeek 调用实测通过（单台 + 全网）。
+- **待办（二期之后 / 外部依赖）**：① Cisco EoX 凭据到位后**实盘验证刷新**（用户正在办 API Console 注册）；② 问清 SNTC 订阅以决定保修能否自动化；③ **CUI/CMMC/等保 待用户向合规口确认** —— 简报会把审计条目（已打码凭据、不含配置原文）发给第三方 LLM，若确认涉及 CUI 需重新评估；④ 生命周期数据需要用户登记（Aruba 18 台 EoL + 各家保修，走批量导入）；⑤ 清理项：`port_snapshots.is_uplink`、前端 `deviceApi.batchCollect` 死代码。
