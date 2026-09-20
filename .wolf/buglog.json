@@ -3657,6 +3657,54 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-20T06:35:55.675Z"
+    },
+    {
+      "id": "bug-223",
+      "timestamp": "2026-09-20T07:03:32.156Z",
+      "error_message": "Incorrect value in code",
+      "file": "README.md",
+      "root_cause": "Had \"https://img.shields.io/badge/Version-2.9.19-2DD46",
+      "fix": "Changed to \"https://img.shields.io/badge/Version-2.10.0-2DD46",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T07:03:32.156Z"
+    },
+    {
+      "id": "bug-224",
+      "timestamp": "2026-09-20T07:04:18.864Z",
+      "error_message": "Significant refactor of ",
+      "file": "README.md",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 23→31 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T07:04:18.864Z"
+    },
+    {
+      "id": "bug-225",
+      "timestamp": "2026-09-20T07:04:54.282Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/package.json",
+      "root_cause": "Had \"2.9.19\"",
+      "fix": "Changed to \"2.10.0\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T07:04:54.282Z"
     }
   ]
 }
