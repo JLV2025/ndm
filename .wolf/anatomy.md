@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T02:51:50.362Z
-> Files: 135 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T02:53:07.382Z
+> Files: 136 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -96,6 +96,7 @@
 - `cerebrum_append3.md` — Decision Log (~418 tok)
 - `cerebrum_audit.md` — Decision Log (~554 tok)
 - `cerebrum_c.md` — Key Learnings (~341 tok)
+- `cerebrum_final.md` — Decision Log (~583 tok)
 - `dec1.md` — ## 定案 1（2026-09-20）：运维就绪度检查**纳入一期**，含 startup 一致性 (~184 tok)
 - `dec2.md` — ## 定案 2（2026-09-20）：厂商安全公告与生命周期 —— **二期做，先只做 EoL** (~123 tok)
 - `dec3.md` — ## 定案 3（2026-09-20）：规则增加 NIST 控制族标签 (~225 tok)

@@ -637,3 +637,21 @@
 
 ## Decision Log
 - [2026-09-20] **规则文件编辑采用 ruamel.yaml（新增依赖 `ruamel.yaml>=0.19`）**，而非计划里"一期用 PyYAML、接受丢注释"的方案。理由：规则文件里的注释记录着每条规则**为什么存在**（不采纳项的来龙去脉、现网实测依据、勘误说明），是这个库最值钱的部分，丢注释等于丢机构记忆。代价是要处理 ruamel 的重排/折行/合并三个坑（已修并有测试守着）。
+
+## Decision Log
+- [2026-09-20] **startup-config 的存储策略定案（用户拍板）**：数据库 `collections.startup_config` 与 running 同一套保留策略（留最近 2 次）；**文件层只留最新一份**（`data/{设备}/startup-config.raw`，覆盖写），**不做周历史**。理由：两者价值曲线不同——running 变化频繁、历史有价值（变更检测/审计取证）；startup 变化极少（只在 save 时），按周存 52 份里 51 份是重复副本。总增量约 3.5 MB 且不随时间增长；照 running 的方式存则每年 +62 MB。
+- [2026-09-20] **"改了没保存"做成双轨（用户定案）**：采集后即时**告警**（`config_drift`，时效性强——设备随时可能重启）+ **审计检查项**（`ops_config_not_saved`，状态画像）。与项目既有的「堆叠成员版本不一致」同构（那个也是既进告警又进报告）。
+- [2026-09-20] **状态型告警必须有去重与自动消除**：`config_changed` 是**事件型**（每次变更一条，累积 258 条合理），而 `config_drift` 是**状态型**——只要没保存就一直存在，每次都插一条的话一周能堆上千条。所以：已有未处理的同类告警不重复新增；running/startup 恢复一致时自动 resolve。**一个不会自己消失的告警，很快就会被无视，那这条检查就白做了。**
+
+## Key Learnings
+- [2026-09-20] **running/startup 比对必须重度归一化，否则 100% 误报**（一条总在误报的检查等于没有）。109 对真实样本的实测过程：最初版本 108/109 报差异（全误报）→ 逐类剥离后 **105 一致 / 4 差异**。要剥掉的噪声：`Building configuration...`/`Current configuration : N bytes`/`Using N out of M bytes` 头部、`! Last configuration change at ...`（**两边本来就该不同**）、命令行回显（`SWI01#` / `SWI01# show running-config`）、**证书块**（running 是 `certificate ca 01` + 数十行 hex + `quit`，startup 只有 `certificate ca 01 nvram:xxx.cer` —— 同一条证书两种表示）、`ntp clock-period N`（IOS 自动校准值，NTP 每次校准都改写 running）、空行/分隔行（`!`/`! ! !`/`---`）/行尾空格。**消费方（告警与审计）必须共用同一套归一化**（`utils/config_diff.py`），否则会出现「告警说没问题、审计说有差异」的自相矛盾。
+- [2026-09-20] **这条检查第一次跑就抓到真隐患**：SHAD1SWI01（C9500 SVL 对）的 `stackwise-virtual link 1` 在 running 里、不在 startup 里，**且经设备自报时间戳独立印证**——`! Last configuration change at 6/30 13:58` vs `! NVRAM config last updated at 6/25 21:36`，即 6/30 的改动从未保存。设备一重启，SVL 链路配置会丢。**交叉验证的办法很值得复用：设备自己会交代"最后变更时间"与"最后保存时间"。**
+- [2026-09-20] **`_save_data` / `_save_to_sqlite` 加参数要加在末尾并带默认值**：这两个函数在 collector_service 里被位置传参调用（测试也直接调），中间插参数会让所有后续实参错位（本次导致 21 个测试失败）。`_save_to_sqlite` 的调用点用的是关键字传参，所以只需在它签名末尾加 `startup_config: str = ""`。
+- [2026-09-20] **`_seed_remediation_hints` 原来"表非空就跳过"** → 新增的告警类型永远进不了已有库（老库 count 早 > 0）。已改为**按 alert_type 补缺**。
+
+## 当前状态（2026-09-20 收尾）
+**第一期全部完成**：A 引擎+规则库 ✅ / B v13 迁移 ✅ / C API ✅ / D 前端 ✅ / E 测试 ✅ / 定案 1 startup-config ✅
+- 规则库 **59 条**（公司总部 29 / 厂商基线 21 / 组织规范 9）；schema **v14**
+- 测试 **355 项全绿**；移植等价性回归（按 netstd 原 26 条规则 id 过滤）仍 **207 = 207**
+- 后端可 `python backend/main.py` 启动（8002），前端已构建进 `frontend/dist`
+- 待办（二期）：趋势图表、例外登记机制（一期改用"集体性漏配单独成类"处理噪声）、EoL 生命周期检查、AI 专家简报、`port_snapshots.is_uplink` 之类不可用信号的清理
