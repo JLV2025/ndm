@@ -41,6 +41,7 @@ class Device:
     vty_blocks: list[dict] = field(default_factory=list)   # {header, line, body[], end}
     if_blocks: list[dict] = field(default_factory=list)    # {header, line, body[], end}
     port_roles: dict = field(default_factory=dict)         # 端口名 -> PortRole（analyze 时注入）
+    startup_config: str = ""                               # 启动配置（analyze 时注入，用于"改了没保存"）
 
 
 def _detect_platform(text: str) -> str:

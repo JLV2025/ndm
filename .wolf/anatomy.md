@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T02:22:14.576Z
-> Files: 132 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T02:51:50.362Z
+> Files: 135 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -131,7 +131,7 @@
 
 ## backend/analyzers/
 
-- `anomaly_detector.py` — AnomalyDetector: detect_all, detect_and_save (~3715 tok)
+- `anomaly_detector.py` — AnomalyDetector: detect_all, detect_and_save, resolve_recovered_drift (~4618 tok)
 - `counter_parser.py` — 端口累计计数器解析器 (~3198 tok)
 - `neighbor_parser.py` — CDP / LLDP 邻居解析器 (~6462 tok)
 - `performance.py` — PerformanceAnalyzer: analyze (~7668 tok)
@@ -140,10 +140,10 @@
 ## backend/analyzers/compliance/
 
 - `__init__.py` — 配置合规审计模块（移植自 allright/netstd，NDM 版）。 (~144 tok)
-- `checks.py` — 内置判定器 —— 规则通过 `check` 名 + `params` 引用这里面的函数。 (~4928 tok)
-- `engine.py` — 配置审计 —— 判定引擎（对外入口）。 (~1112 tok)
+- `checks.py` — 内置判定器 —— 规则通过 `check` 名 + `params` 引用这里面的函数。 (~5236 tok)
+- `engine.py` — 配置审计 —— 判定引擎（对外入口）。 (~1132 tok)
 - `loader.py` — 规则库加载与校验。 (~2365 tok)
-- `parser.py` — 配置文本解析 —— 从 running-config 文本构建判定所需的设备模型。 (~1671 tok)
+- `parser.py` — 配置文本解析 —— 从 running-config 文本构建判定所需的设备模型。 (~1697 tok)
 - `port_roles.py` — 端口角色推断 —— 让端口级规则真正可达。 (~1798 tok)
 - `source.py` — 审计数据源 —— 从 NDM 库取"这次审计要审什么"。 (~1402 tok)
 
@@ -160,7 +160,7 @@
 
 ## backend/collectors/
 
-- `base.py` — DeviceConnection: connect, send_command, collect_config, collect_logs + 14 more (~3477 tok)
+- `base.py` — DeviceConnection: connect, send_command, collect_config, collect_logs + 13 more (~3612 tok)
 
 ## backend/models/
 
@@ -171,27 +171,29 @@
 
 ## backend/services/
 
-- `collector_service.py` — 配置收集服务 (~20266 tok)
+- `collector_service.py` — 配置收集服务 (~20501 tok)
 
 ## backend/storage/
 
 - `__init__.py` — 数据存储服务模块 (~162 tok)
-- `database.py` — init_db, get_connection, close_connection (~6450 tok)
+- `database.py` — init_db, get_connection, close_connection (~6613 tok)
 - `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~2296 tok)
-- `file_manager.py` — 存储管理模块 (~2595 tok)
+- `file_manager.py` — 存储管理模块 (~2714 tok)
 
 ## backend/tests/
 
 - `conftest.py` — test_password_manager (~78 tok)
 - `test_alerts_resolve_all.py` — 「全部清除」端点测试 —— 批量把未处理告警标记为已处理 (~812 tok)
+- `test_anomaly_config_drift.py` — 未保存配置告警测试 —— 重点是**状态型告警的去重与自动消除**。 (~1086 tok)
 - `test_anomaly_version_mismatch.py` — 异常检测：堆叠成员版本不一致告警 (~693 tok)
 - `test_audit_api.py` — 审计 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）。 (~3397 tok)
 - `test_collector_service.py` — collector_service 型号/序列号/成员ID提取测试 — 重点：Aruba CX VSF 堆叠 (~1644 tok)
 - `test_collector_service.py` — extract_model/extract_serial_number 测试（重点 VSF 堆叠成员型号，4 用例） (~500 tok)
-- `test_compliance_engine.py` — 配置审计引擎测试 —— 解析、判定器、站点作用域、行号契约。 (~5389 tok)
+- `test_compliance_engine.py` — 配置审计引擎测试 —— 解析、判定器、站点作用域、行号契约。 (~5955 tok)
 - `test_compliance_source.py` — 审计数据源测试 —— 重点在三条边界： (~1511 tok)
+- `test_config_diff.py` — running/startup 配置比对测试。 (~1673 tok)
 - `test_counter_parser.py` — 端口累计计数器解析器测试 (~4010 tok)
-- `test_database_migration.py` — 数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表） (~2659 tok)
+- `test_database_migration.py` — 数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表） (~2713 tok)
 - `test_member_parser.py` — 堆叠成员级解析测试 —— 编号 / 序列号 / 版本 / ROM / 运行时间 (~3084 tok)
 - `test_neighbor_parser.py` — CDP/LLDP 邻居解析器测试 — 重点：Aruba AP 名识别 (~1543 tok)
 - `test_performance_aruba.py` — Aruba show interface brief 解析测试 (~389 tok)
@@ -213,6 +215,7 @@
 
 ## backend/utils/
 
+- `config_diff.py` — running-config 与 startup-config 的差异比对。 (~1228 tok)
 - `port_names.py` — 端口名归一化 —— CDP/LLDP/STP/配置文本之间的端口名对齐。 (~414 tok)
 
 ## config/
@@ -224,7 +227,7 @@
 
 - `_scopes.yaml` — NDM 配置审计 —— 共用段（唯一一份，所有规则文件共享） (~792 tok)
 - `company-standard.yaml` — NDM 配置审计 —— 公司总部要求层（CFG-Aruba / CFG-CISCO） (~4345 tok)
-- `org-convention.yaml` — NDM 配置审计 —— 组织惯例层（我们自己的使用习惯） (~753 tok)
+- `org-convention.yaml` — NDM 配置审计 —— 组织惯例层（我们自己的使用习惯） (~918 tok)
 - `vendor-baseline.yaml` — NDM 配置审计 —— 厂商基线层（厂商加固建议） (~3230 tok)
 
 ## data/

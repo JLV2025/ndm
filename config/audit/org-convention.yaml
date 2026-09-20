@@ -88,6 +88,26 @@ rules:
     fix: 'banner motd ^ … ^'
     why: 登录前通告是追责前提。
 
+  # ==== 运维就绪度 ====
+  - id: ops_config_not_saved
+    title: 有配置改动尚未保存（运行配置与启动配置不一致）
+    check: config_drift
+    platforms: [all]
+    level: 强烈建议
+    source: 组织规范
+    severity: convention
+    fix: |
+      write memory
+    why: >-
+      运行配置与启动配置不一致，说明有改动没保存 —— 设备一旦重启，这些改动会全部丢失。
+      现网实测到一例：C9500 的 SVL 链路配置在 running 里、不在 startup 里；
+      设备自报时间戳也印证了（配置 6/30 变更、NVRAM 6/25 保存）。
+    note: >-
+      比对前已剥离两边本来就不同的内容：头部元信息、命令行回显、证书块
+      （running 是 hex 正文、startup 只有 nvram 路径）、ntp clock-period、
+      空行/分隔行/行尾空格。不剥离的话这条检查会 100% 误报。
+      采集后也会产生同类告警（config_drift），保存并重新采集后自动消除。
+
   # 与其他规则相反：**缺此项才提示**（公司标准要求保留 allow-fail-through）
   - id: cx_allow_fail_through_present
     title: 已配 allow-fail-through（公司标准，要求保留）

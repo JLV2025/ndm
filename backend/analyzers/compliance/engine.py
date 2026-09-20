@@ -66,7 +66,7 @@ def rule_applies(rule: dict, dev: Device, std: dict) -> bool:
 
 
 def analyze(name: str, text: str, std: dict, site: str | None = None,
-            port_context=None) -> dict:
+            port_context=None, startup_config: str = "") -> dict:
     """对一台设备的配置文本执行全部适用规则。
 
     site：显式站点（NDM 传 devices.location）。为空时回退到设备名解析——
@@ -76,6 +76,7 @@ def analyze(name: str, text: str, std: dict, site: str | None = None,
     """
     dev = parse_device(name, text, std["naming"], site=site)
     dev.port_roles = build_port_roles(dev, port_context)
+    dev.startup_config = startup_config or ""
     findings: list[dict] = []
     for rule in std["rules"]:
         if rule.get("enabled") is False:      # 停用：与更高优先层冲突、或用户手动关掉

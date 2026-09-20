@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 # 当前 Schema 版本（每次 schema 变更递增）
-SCHEMA_VERSION = 13
+SCHEMA_VERSION = 14
 
 # 线程本地存储 —— 每个线程持有自己的连接
 _local = threading.local()
@@ -128,11 +128,12 @@ def _seed_data(conn: sqlite3.Connection) -> None:
 
 
 def _seed_remediation_hints(conn: sqlite3.Connection) -> None:
-    """种子：修复建议映射表"""
+    """种子：修复建议映射表
+
+    **按 alert_type 补缺**而不是"表非空就跳过"：后者会让以后新增的告警类型
+    永远进不了已有库（老库的 count 早就 > 0 了）。
+    """
     if not _table_exists(conn, "remediation_hints"):
-        return
-    count = conn.execute("SELECT COUNT(*) FROM remediation_hints").fetchone()[0]
-    if count > 0:
         return
 
     hints = [
@@ -172,12 +173,19 @@ def _seed_remediation_hints(conn: sqlite3.Connection) -> None:
             "端口带宽利用率过高。建议：1) 确认是否为业务高峰期正常使用 "
             "2) 检查是否存在异常流量 3) 考虑负载均衡或扩容",
         ),
+        (
+            "config_drift",
+            "设备运行配置与启动配置不一致 —— 有改动没保存，设备重启后会全部丢失。"
+            "建议：1) 确认这些改动是否为计划内、已完成验证的 2) 在设备上执行 "
+            "write memory（Aruba CX 用 write memory）保存 3) 保存后再采集一次，告警会自动消除",
+        ),
     ]
-    conn.executemany(
-        "INSERT INTO remediation_hints (alert_type, suggestion) VALUES (?, ?)",
-        hints,
-    )
-    print(f"[数据库] 种子数据: {len(hints)} 条修复建议已写入")
+    existing = {r[0] for r in conn.execute("SELECT DISTINCT alert_type FROM remediation_hints")}
+    missing = [h for h in hints if h[0] not in existing]
+    if missing:
+        conn.executemany(
+            "INSERT INTO remediation_hints (alert_type, suggestion) VALUES (?, ?)", missing)
+        print(f"[数据库] 种子数据: 补充 {len(missing)} 条修复建议")
 
 
 def _migrate_yaml_if_needed(data_root: str) -> None:
@@ -640,6 +648,24 @@ def _migrate_v13(conn: sqlite3.Connection) -> None:
     # status 取值约定：running / done / failed
 
 
+def _migrate_v14(conn: sqlite3.Connection) -> None:
+    """Schema v14: collections 增加 startup_config 列。
+
+    用途：与 running_config 比对，发现「改了但没保存」——设备重启会丢配置。
+
+    **保留策略与 running_config 一致**（`retention.CONFIG_KEEP=2`，更早置 NULL）：
+    两份配置的差异只在"当下"有意义，不需要长期历史。
+
+    刻意**不给 startup 存周文件历史**：配置文本本身按周存一年是 62 MB，
+    而 startup 变化极少（只在有人 save 时），52 份里 51 份是重复副本。
+    文件层只在设备目录下留一份最新的 startup-config.raw（覆盖写）。
+    """
+    try:
+        conn.execute("ALTER TABLE collections ADD COLUMN startup_config TEXT")
+    except sqlite3.OperationalError:
+        pass  # 列已存在
+
+
 # 迁移注册表
 _MIGRATIONS = {
     1: _migrate_v1,
@@ -655,4 +681,5 @@ _MIGRATIONS = {
     11: _migrate_v11,
     12: _migrate_v12,
     13: _migrate_v13,
+    14: _migrate_v14,
 }

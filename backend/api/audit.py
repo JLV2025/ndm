@@ -53,8 +53,9 @@ def _envelope(item: source.AuditInput, std: dict) -> dict:
     }
     if not snap.usable:
         return result
-    analysis = engine.analyze(snap.name, snap.config, std,
-                              site=snap.location, port_context=item.port_context)
+    analysis = engine.analyze(snap.name, snap.config, std, site=snap.location,
+                              port_context=item.port_context,
+                              startup_config=snap.startup_config)
     result.update({
         "findings": analysis["findings"],
         "counts": analysis["counts"],
@@ -193,8 +194,9 @@ async def run_audit(trigger: str = "manual"):
         if not snap.usable:
             skipped.append({"device": snap.name, "reason": snap.reason})
             continue
-        analysis = engine.analyze(snap.name, snap.config, std,
-                                  site=snap.location, port_context=item.port_context)
+        analysis = engine.analyze(snap.name, snap.config, std, site=snap.location,
+                                  port_context=item.port_context,
+                                  startup_config=snap.startup_config)
         for f in analysis["findings"]:
             db.execute(
                 "INSERT INTO audit_findings (run_id, device_id, device_name, collection_id, week, "

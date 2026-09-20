@@ -3010,6 +3010,118 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-20T02:13:42.975Z"
+    },
+    {
+      "id": "bug-183",
+      "timestamp": "2026-09-20T02:36:41.955Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/utils/config_diff.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 23→44 lines (7 removed) | Also: # 证书块：running 显示 `certificate self-signed 01` + 数十; # startup 显示 `certificate self-signed 01 nvram:xxx",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T02:37:24.955Z"
+    },
+    {
+      "id": "bug-184",
+      "timestamp": "2026-09-20T02:40:08.064Z",
+      "error_message": "Wrong operator: == should be <=",
+      "file": "backend/utils/config_diff.py",
+      "root_cause": "Used \"==\" instead of \"<=\"",
+      "fix": "Changed operator == → <=",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:40:08.064Z"
+    },
+    {
+      "id": "bug-185",
+      "timestamp": "2026-09-20T02:41:22.412Z",
+      "error_message": "Wrong return value",
+      "file": "backend/collectors/base.py",
+      "root_cause": "Was returning: running, \"\"",
+      "fix": "Now returns: running, startup",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:41:22.412Z"
+    },
+    {
+      "id": "bug-186",
+      "timestamp": "2026-09-20T02:46:01.761Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/tests/test_database_migration.py",
+      "root_cause": "Had \"in_octets\"",
+      "fix": "Changed to \"startup_config\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:46:01.761Z"
+    },
+    {
+      "id": "bug-187",
+      "timestamp": "2026-09-20T02:47:50.099Z",
+      "error_message": "Wrong reference: dict should be startup_config",
+      "file": "backend/analyzers/compliance/engine.py",
+      "root_cause": "Used \"dict\" instead of \"startup_config\"",
+      "fix": "Changed dict → startup_config",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:47:50.099Z"
+    },
+    {
+      "id": "bug-188",
+      "timestamp": "2026-09-20T02:50:46.786Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_compliance_engine.py",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 10→8 lines (9 removed) | Also: running = \"Current configuration : 100 bytes; !",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T02:51:12.118Z"
+    },
+    {
+      "id": "bug-189",
+      "timestamp": "2026-09-20T02:50:55.105Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/tests/test_compliance_engine.py",
+      "root_cause": "Had \"hostname X\n\"",
+      "fix": "Changed to \"hostname X\\n\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:50:55.105Z"
     }
   ]
 }

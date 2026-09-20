@@ -7,6 +7,8 @@ import json
 from datetime import datetime
 from typing import List, Dict, Optional
 
+from utils.config_diff import diff_configs
+
 
 def _distinct_nonempty(value: str) -> set:
     """逗号拼接的成员级字段（与序列号同序）→ 去重后的非空取值集合
@@ -33,6 +35,7 @@ class AnomalyDetector:
         alerts.extend(self._check_port_down(device_id, collection_id, week))
         alerts.extend(self._check_port_errors(device_id, collection_id, week))
         alerts.extend(self._check_config_change(device_id, collection_id))
+        alerts.extend(self._check_config_drift(device_id, collection_id))
         alerts.extend(self._check_topology_change(device_id, collection_id, week))
         alerts.extend(self._check_version_mismatch(device_id, collection_id))
         alerts.extend(self._check_high_utilization(device_id, collection_id, week))
@@ -42,6 +45,9 @@ class AnomalyDetector:
 
     def detect_and_save(self, device_id: int, collection_id: int, week: str) -> int:
         """运行全部检测并写入 alerts 表，返回告警数"""
+        # 先处理"状态型"告警的恢复：running/startup 一致了就把未保存告警自动消除。
+        # 放在检测前，避免"先把旧的留着、又插一条新的"。
+        self.resolve_recovered_drift(device_id, collection_id)
         alerts = self.detect_all(device_id, collection_id, week)
 
         now = datetime.now().isoformat()
@@ -209,6 +215,83 @@ class AnomalyDetector:
                 },
             }]
         return []
+
+    def _check_config_drift(self, device_id: int, collection_id: int) -> List[Dict]:
+        """running-config 与 startup-config 不一致 → 存在**未保存的配置变更**。
+
+        设备一旦重启，这些变更会全部丢失。现网已实测到一例：SHAD1SWI01 的
+        C9500 SVL 链路配置在 running 里、不在 startup 里（设备自报时间戳印证：
+        配置 6/30 变更、NVRAM 6/25 保存）。
+
+        **这是"状态型"告警，不是"事件型"**（对比 config_changed：每次变更一条是合理的）：
+          · 只要没人保存，它就一直存在 —— 每次都插一条的话，一周能堆上千条
+          · 所以：已有未处理的同类告警就不重复新增；恢复一致时自动消除（见 resolve_recovered）
+        """
+        row = self.db.execute(
+            "SELECT running_config, startup_config FROM collections WHERE id=?",
+            (collection_id,),
+        ).fetchone()
+        if not row:
+            return []
+        running, startup = row["running_config"] or "", row["startup_config"] or ""
+        if not running or not startup:
+            return []          # 没采到就不判 —— 绝不能因为"没采到"报一条假问题
+
+        d = diff_configs(running, startup)
+        if not d["differ"]:
+            return []
+        if self._has_open_drift(device_id):
+            return []          # 已在提示中，不重复
+
+        device_row = self.db.execute(
+            "SELECT name FROM devices WHERE id=?", (device_id,)
+        ).fetchone()
+        sample = [x["text"].strip() for x in d["only_running"][:5]]
+        return [{
+            "alert_type": "config_drift",
+            "severity": "WARNING",
+            "title": f"设备 {device_row['name']} 有未保存的配置变更",
+            "detail": {
+                "unsaved_lines": d.get("total_running_only", 0),
+                "startup_extra_lines": d.get("total_startup_only", 0),
+                "sample": sample,
+                "truncated": d.get("truncated", False),
+            },
+            "suggestion": "在设备上执行 write memory（Aruba CX: write memory / copy running-config startup-config）"
+                          "保存配置；未保存的变更在设备重启后会全部丢失。",
+        }]
+
+    def _has_open_drift(self, device_id: int) -> bool:
+        """该设备是否已有未处理的"未保存配置"告警"""
+        return self.db.execute(
+            "SELECT 1 FROM alerts WHERE device_id=? AND alert_type='config_drift' "
+            "AND resolved_at IS NULL LIMIT 1",
+            (device_id,),
+        ).fetchone() is not None
+
+    def resolve_recovered_drift(self, device_id: int, collection_id: int) -> int:
+        """running 与 startup 恢复一致时，把未处理的"未保存配置"告警自动消除。
+
+        没有这一步，用户保存完配置后告警会一直挂着 —— 一个不会自己消失的告警，
+        很快就会被人无视，那这条检查就白做了。
+        返回被消除的告警数。
+        """
+        row = self.db.execute(
+            "SELECT running_config, startup_config FROM collections WHERE id=?",
+            (collection_id,),
+        ).fetchone()
+        if not row:
+            return 0
+        running, startup = row["running_config"] or "", row["startup_config"] or ""
+        if not running or not startup:
+            return 0                       # 没采到就保持现状，不误消除
+        if diff_configs(running, startup)["differ"]:
+            return 0
+        return self.db.execute(
+            "UPDATE alerts SET resolved_at=? WHERE device_id=? AND alert_type='config_drift' "
+            "AND resolved_at IS NULL",
+            (datetime.now().isoformat(), device_id),
+        ).rowcount
 
     def _check_topology_change(self, device_id: int, collection_id: int, week: str) -> List[Dict]:
         """检测拓扑变更：邻居列表与上周不同"""

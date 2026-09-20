@@ -37,6 +37,7 @@ class Snapshot:
     week: str = ""
     collected_at: str = ""
     config: str = ""
+    startup_config: str = ""    # 启动配置（用于「改了没保存」检查；没采到为空）
     usable: bool = False        # 配置文本是否可用于审计
     reason: str = ""            # 不可用原因（给用户看的中文说明）
 
@@ -81,7 +82,7 @@ def load_snapshot(conn: sqlite3.Connection, name: str) -> Snapshot | None:
                     platform=dev["platform"] or "", model=dev["model"] or "")
 
     row = conn.execute(
-        "SELECT id, week, collected_at, running_config FROM collections "
+        "SELECT id, week, collected_at, running_config, startup_config FROM collections "
         "WHERE device_id = ? ORDER BY id DESC LIMIT 1", (dev["id"],)).fetchone()
     if row is None:
         snap.reason = "该设备从未采集过配置"
@@ -92,6 +93,10 @@ def load_snapshot(conn: sqlite3.Connection, name: str) -> Snapshot | None:
     snap.collected_at = row["collected_at"] or ""
     config, reason = _clean_config(row["running_config"])
     snap.config, snap.usable, snap.reason = config, bool(config), reason
+    # startup 用同一套可用性判断：采集失败/被清理/过短都不参与比对
+    if snap.usable and row["startup_config"]:
+        startup, _ = _clean_config(row["startup_config"])
+        snap.startup_config = startup
     return snap
 
 

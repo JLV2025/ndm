@@ -146,8 +146,20 @@ class DeviceConnection:
         return self._platform() or self._device_type()
 
     def collect_config(self) -> Tuple[str, str]:
+        """返回 (running-config, startup-config)。
+
+        startup-config 与 running 比对可发现「改了但没保存」——设备一旦重启，
+        未保存的变更会全部丢失（现网已实测到一例：C9500 的 SVL 链路配置）。
+        **单独失败不能拖垮整个采集**，所以吞掉异常回空串：没采到就不判，
+        绝不因为拿不到 startup 就把整台设备标成采集失败。
+        """
         running = self.send_command("show running-config", read_timeout=40)
-        return running, ""
+        startup = ""
+        try:
+            startup = self.send_command("show startup-config", read_timeout=40)
+        except Exception as e:
+            print(f"[收集警告] startup-config 获取失败（不影响其余采集）: {e}")
+        return running, startup
 
     def collect_logs(self) -> str:
         """统一收集最新 300 条日志

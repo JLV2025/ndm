@@ -26,7 +26,8 @@ def test_全新库包含计数器列且版本为最新(tmp_path, restore_db_path
     db_path = db.init_db(str(tmp_path))
     conn = sqlite3.connect(db_path)
 
-    assert max_version(conn) == db.SCHEMA_VERSION == 13
+    assert max_version(conn) == db.SCHEMA_VERSION
+    assert "startup_config" in table_columns(conn, "collections")   # v14：与 running 比对用
     assert {"in_octets", "out_octets"} <= table_columns(conn, "port_snapshots")
     assert {"vlan", "port_name", "role", "state", "is_root", "mode"} <= table_columns(conn, "stp_snapshots")
     assert {"started_at", "trigger", "ruleset_hash", "device_count", "finding_count"} <= table_columns(conn, "audit_runs")

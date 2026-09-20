@@ -798,10 +798,11 @@ def collect_device(
         # 收集原始数据
         print(f"[收集进度] 获取 running-config...")
         try:
-            running_config, _ = conn.collect_config()
+            running_config, startup_config = conn.collect_config()
         except Exception as e:
             print(f"[收集异常] config: {e}")
             running_config = f"% 收集失败: {str(e)}"
+            startup_config = ""
         _advance(f"running-config: {len(running_config) if running_config else 0} 行")
 
         # 日志
@@ -985,7 +986,7 @@ def collect_device(
         _save_data(
             device_name, device_ip, device_type,
             week, data_root, settings,
-            running_config, logs,
+            running_config, startup_config, logs,
             interface_status, version_info, interface_utilization, system_info, vsf_info, switch_info, route_info,
             validation_results, performance_results, change_results,
             software_version, serial_number, device_model,
@@ -1088,11 +1089,15 @@ def _save_to_sqlite(
     member_rom_versions: str = "",
     member_uptimes: str = "",
     stp_data: list | None = None,
+    startup_config: str = "",
 ) -> dict:
     """将采集数据写入 SQLite 数据库
 
     返回写入统计信息。
     此函数与文件写入并行执行，互不影响。
+
+    startup_config 放在**末尾且带默认值**：它是后加的，这样既有的位置传参
+    （含测试）不受影响。
     """
     try:
         db = get_db()
@@ -1174,8 +1179,9 @@ def _save_to_sqlite(
         db.execute("""
             INSERT INTO collections (device_id, week, phase, collected_at,
                 software_version, serial_number, model, system_uptime_seconds,
-                running_config, running_config_lines, boot_history_raw, lag_membership)
-            VALUES (?, ?, '1', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                running_config, running_config_lines, boot_history_raw, lag_membership,
+                startup_config)
+            VALUES (?, ?, '1', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             device_id, week, collected_at,
             software_version, serial_number, device_model,
@@ -1183,6 +1189,7 @@ def _save_to_sqlite(
             running_config, running_lines,
             boot_history,
             lag_membership_json,
+            startup_config or None,
         ))
         collection_id = db.execute("SELECT last_insert_rowid()").fetchone()[0]
 
@@ -1376,6 +1383,7 @@ def _save_data(
     device_name: str, device_ip: str, device_type: str,
     week: str, data_dir: str, settings: Dict,
     running_config: str,
+    startup_config: str,
     logs_raw: str, interface_status: str, version_info: str,
     interface_utilization: str, system_info: str, vsf_info: str, switch_info: str, route_info: str,
     validation_results: str, performance_results: str, change_results: str,
@@ -1397,6 +1405,17 @@ def _save_data(
     # 保存原始配置
     with open(os.path.join(week_dir, "running-config.raw"), "w", encoding="utf-8") as f:
         f.write(running_config)
+
+    # startup-config：**只保留最新一份**（写在设备目录下，每次覆盖），不做周历史。
+    # 理由：startup 变化极少（只在有人 save 时），按周存 52 份里 51 份是重复副本；
+    # 而配置文本按周存一年是 62 MB。它的用途只有「与 running 比对」和应急取用。
+    if startup_config and not startup_config.lstrip().startswith("%"):
+        try:
+            with open(os.path.join(device_base_dir, "startup-config.raw"), "w",
+                      encoding="utf-8") as f:
+                f.write(startup_config)
+        except OSError as e:
+            print(f"[保存警告] startup-config.raw 写入失败（不影响其余数据）: {e}")
 
     # 仅保留 running-config.raw 文件写入（双轨策略）
     # 其他所有数据仅写入 SQLite
@@ -1587,6 +1606,7 @@ def _save_data(
             week=week,
             collected_at=datetime.now().isoformat(),
             running_config=running_config,
+            startup_config=startup_config,
             logs_raw=logs_raw,
             performance_results=performance_results,
             validation_results=validation_results,

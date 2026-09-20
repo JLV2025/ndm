@@ -22,7 +22,8 @@ SCHEMA = """
 CREATE TABLE devices (id INTEGER PRIMARY KEY, name TEXT, location TEXT, platform TEXT,
                       model TEXT, uplink_ports TEXT);
 CREATE TABLE collections (id INTEGER PRIMARY KEY, device_id INTEGER, week TEXT,
-                          collected_at TEXT, running_config TEXT, lag_membership TEXT);
+                          collected_at TEXT, running_config TEXT, lag_membership TEXT,
+                          startup_config TEXT);
 CREATE TABLE neighbors (id INTEGER PRIMARY KEY, collection_id INTEGER, local_port TEXT,
                         neighbor_type TEXT);
 CREATE TABLE stp_snapshots (id INTEGER PRIMARY KEY, collection_id INTEGER, vlan INTEGER,
@@ -43,9 +44,9 @@ def db():
     conn.close()
 
 
-def add_collection(conn, cid, device_id, config, lag=None, week="2026-38"):
-    conn.execute("INSERT INTO collections VALUES (?,?,?,?,?,?)",
-                 (cid, device_id, week, "2026-09-18T08:00:00", config, lag))
+def add_collection(conn, cid, device_id, config, lag=None, week="2026-38", startup=None):
+    conn.execute("INSERT INTO collections VALUES (?,?,?,?,?,?,?)",
+                 (cid, device_id, week, "2026-09-18T08:00:00", config, lag, startup))
     conn.commit()
 
 

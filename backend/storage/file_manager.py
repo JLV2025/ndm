@@ -179,7 +179,7 @@ def prune_db(conn, config_keep: int = CONFIG_KEEP, logs_keep: int = LOGS_KEEP,
     三种数据各自按自己的保留次数取 keep 列表（此前 logs/stp 误用 config 的列表，
     参数形同虚设——都默认 2 才没出事）。
     """
-    stats = {"config_cleared": 0, "logs_deleted": 0, "stp_deleted": 0}
+    stats = {"config_cleared": 0, "startup_cleared": 0, "logs_deleted": 0, "stp_deleted": 0}
 
     def _keep_ids(device_id: int, limit: int) -> list:
         return [
@@ -194,9 +194,17 @@ def prune_db(conn, config_keep: int = CONFIG_KEEP, logs_keep: int = LOGS_KEEP,
         keep_ids = _keep_ids(device_id, config_keep)
         if keep_ids:
             marks = ",".join("?" * len(keep_ids))
+            # running 与 startup 同一套保留策略：两者的差异只在"当下"有意义，
+            # 不需要长期历史（startup 变化极少，历史全是重复副本）。
             stats["config_cleared"] += conn.execute(
                 f"UPDATE collections SET running_config = NULL "
                 f"WHERE device_id = ? AND phase = '1' AND running_config IS NOT NULL "
+                f"AND id NOT IN ({marks})",
+                (device_id, *keep_ids),
+            ).rowcount
+            stats["startup_cleared"] += conn.execute(
+                f"UPDATE collections SET startup_config = NULL "
+                f"WHERE device_id = ? AND phase = '1' AND startup_config IS NOT NULL "
                 f"AND id NOT IN ({marks})",
                 (device_id, *keep_ids),
             ).rowcount
@@ -237,6 +245,7 @@ def run_retention(data_root: str, conn=None, dry_run: bool = False,
         "archived": 0,
         "deleted": 0,
         "config_cleared": 0,
+        "startup_cleared": 0,
         "logs_deleted": 0,
         "stp_deleted": 0,
         "errors": [],

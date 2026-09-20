@@ -407,6 +407,43 @@ def test_hq_cisco_snmpv3_user_rule_catches_group_without_user():
     assert f["level"] == "强烈建议" and f["controls"] == ["SC-12", "SC-13", "AC-17", "AU-2"]
 
 
+# ---------------------------------------------------------------- 未保存配置检查项
+
+def test_config_drift_checker_reports_unsaved_lines():
+    """running 有、startup 没有的行 → 有改动没保存。行号必须映射回 running 原文。"""
+    r = rule(id="drift", check="config_drift", level="强烈建议")
+    running = ("hostname X\n"
+               "interface Gi0/1\n"
+               " stackwise-virtual link 1\n"
+               " description sw\n")
+    startup = ("hostname X\n"
+               "interface Gi0/1\n"
+               " description sw\n")
+    res = engine.analyze("BJQD1SWI01", running, make_std([r]), startup_config=startup)
+    f = res["findings"][0]
+    assert f["check_kind"] == "config_drift"
+    assert f["lines"] == [3] and "1 行改动尚未保存" in f["detail"]
+    assert "stackwise-virtual link 1" in f["current"]
+
+
+def test_config_drift_checker_is_silent_without_startup():
+    """没采到 startup 就不判 —— 绝不能因为"没采到"报一条假问题。"""
+    r = rule(id="drift2", check="config_drift")
+    res = engine.analyze("BJQD1SWI01", "hostname X\n", make_std([r]))
+    assert res["findings"] == []
+
+
+def test_config_drift_checker_silent_when_identical():
+    """两边只差头部元信息/空行时不算差异（归一化在 utils/config_diff，那边有专项测试）。"""
+    r = rule(id="drift3", check="config_drift")
+    running = ("Current configuration : 100 bytes\n!\n"
+               "hostname X   \n!\nend\n")
+    startup = ("Using 50 out of 100 bytes\n!\n"
+               "hostname X\n!\nend\n")
+    assert engine.analyze("BJQD1SWI01", running, make_std([r]),
+                          startup_config=startup)["findings"] == []
+
+
 def test_loader_validates_command_set_params(tmp_path):
     (tmp_path / "_scopes.yaml").write_text(
         "sites: {}\nnaming: {pattern: 'x', type_codes: {}}\nvlans: {standard: {}}\n", encoding="utf-8")

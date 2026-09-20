@@ -249,6 +249,38 @@ def check_vsf_split_detect(dev: Device, rule: dict, std: dict) -> list[dict]:
             | {"detail": "该机是 VSF 堆叠，但未启用 mgmt 口脑裂检测"}]
 
 
+def check_config_drift(dev: Device, rule: dict, std: dict) -> list[dict]:
+    """运行配置与启动配置不一致 → 有改动没保存，设备重启会丢。
+
+    与采集后告警（anomaly_detector 的 config_drift）**共用同一套归一化**
+    （utils/config_diff），否则会出现「告警说没问题、审计说有差异」的自相矛盾。
+
+    没采到 startup 就不判 —— 绝不能因为"没采到"报一条假问题。
+    """
+    if not dev.startup_config:
+        return []
+    from utils.config_diff import diff_configs
+    d = diff_configs(dev.text, dev.startup_config)
+    if not d["differ"]:
+        return []
+
+    ev = [{"line": x["line"], "text": x["text"]} for x in d["only_running"][:10]]
+    if not ev:      # 只有 startup 侧多出来的行（运行配置被删了内容）
+        ev = [{"line": None, "text": "（运行配置缺少了启动配置中已有的内容）"}]
+
+    detail = f"有 {d.get('total_running_only', 0)} 行改动尚未保存"
+    if d.get("total_startup_only"):
+        detail += f"；另有 {d['total_startup_only']} 行只在启动配置里"
+    if d.get("truncated"):
+        detail += "（仅列出前 10 行）"
+
+    return [make_finding(rule, ev, **{
+        "check_kind": "config_drift",
+        "detail": detail,
+        "unsaved_lines": d.get("total_running_only", 0),
+    })]
+
+
 # ---------------------------------------------------------------- 组合判定器
 #
 # 一条规则表达"配套关系"，而不是"某条命令在不在"——这是审计从「逐条查命令」
@@ -431,4 +463,5 @@ CHECKS: dict[str, callable] = {
     "device_name_format": check_device_name_format,
     "hostname_match": check_hostname_match,
     "vsf_split_detect": check_vsf_split_detect,
+    "config_drift": check_config_drift,
 }
