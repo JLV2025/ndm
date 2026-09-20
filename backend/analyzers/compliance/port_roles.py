@@ -11,7 +11,9 @@
   中置信  配置里是 vlan access / switchport access vlan
   低置信  接口描述关键词（UPLINK / TO_ / _TO_ 等）、配置里只有 vlan trunk
 
-**不可用信号**：port_snapshots.is_uplink —— 实测 4.5 万行里仅 14 行为 1。
+**不可用信号（已修）**：port_snapshots.is_uplink 原先只按手工的 devices.uplink_ports 计算
+（全库仅 4/36 台填过 → 4.5 万行里只有 14 行为 1，"流量排行上行口优先"静默失效）。
+现在改由 `derive_uplink_ports()` 在**采集落库时**推导（见下），手工字段降为"覆盖/佐证"。
 
 低置信结论不能直接下判定：conflict 类规则只在 high 时出 finding，
 否则降级为「需人工判断」——宁可说"我拿不准"，也不要瞎报警。
@@ -20,6 +22,8 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+
+from utils.port_names import norm_lag_name
 
 from .parser import Device
 
@@ -32,6 +36,14 @@ ACCESS_NEIGHBORS = {"server", "ap", "wireless", "phone"}
 # 注意 `to[_-]` 必须带分隔符：否则 "total"/"storage" 这类词会被误命中
 UPLINK_DESC = re.compile(r"(?i)(uplink|上行|多链路|multi-?link|\bto[_-]|_to_|-to-)")
 ACCESS_DESC = re.compile(r"(?i)\b(phone|ap|printer|camera|pc|user|desk)\b")
+
+# 「采集侧推导上行口」专用的两类信号（与审计的端口角色分开，见 derive_uplink_ports）
+# 朝上游的**基础设备**对端：**刻意不含 switch** —— 核心交换机朝下的口对端也是交换机，
+# 全算会把下行口误标成上行；非核心交换机朝上的口（对端是交换机）由 STP root 那条覆盖。
+UPSTREAM_NEIGHBORS = {"sdwan", "router", "firewall"}
+# 比 UPLINK_DESC 更宽：加入上游设备词（单机站点常见 "to SDWAN" / "TO_FW" 这类描述）
+UPSTREAM_DESC = re.compile(
+    r"(?i)(uplink|上行|上联|多链路|multi-?link|\bto[_-]|_to_|-to-|sd-?wan|firewall|\bfw\b|\bwan\b)")
 
 
 @dataclass
@@ -51,6 +63,58 @@ class PortContext:
         ctx = cls()
         ctx.lag_members = members
         return ctx
+
+
+def derive_uplink_ports(*, stp_root_ports: set[str] | None = None,
+                        neighbor_types: dict[str, str] | None = None,
+                        descriptions: dict[str, str] | None = None,
+                        manual: list[str] | set[str] | None = None,
+                        lag_members: dict[str, list[str]] | None = None) -> dict[str, str]:
+    """推导上行口 —— 采集落库时写入 ``port_snapshots.is_uplink``（原先是近死信号）。
+
+    应用场景（用户 2026-09-20 说明）：
+      · **多层架构且跑 STP 的站点** → 非核心交换机的上行口 = STP **根端口**（朝根桥的那个口）
+      · **单台设备的站点** → 上行口是对着 **SD-WAN 的 LAN 口** → 按邻居类型/端口描述判断
+
+    分层规则（**宁缺毋滥：不标比误标好**）：
+      1. 有 STP 根端口 → 只认这些口（最精确；核心交换机/单机没有根端口，自然落到 2/3）
+      2. 否则按对端类型 ∈ {sdwan, router, firewall}（**不含 switch**，见 UPSTREAM_NEIGHBORS 注释）
+      3. 否则按端口描述关键词（uplink/上行/to_/sd-wan/wan）
+      4. 手工 devices.uplink_ports **始终并入**（用户明确指定的照办，覆盖前三条的判定理由）
+
+    **聚合口展开**：STP 的根端口常常是 LAG（Aruba `lag49` / Cisco `Po1`），而 is_uplink
+    标在物理口上、流量也统计在物理口 —— 有 `lag_members` 时把 LAG 展开成成员口，
+    否则十几台设备的标记等于没标。
+
+    返回 {端口: 判定理由}；什么都不满足的端口不出现（前端/排行按"不是上行口"处理）。
+    """
+    out: dict[str, str] = {}
+    root_ports = {p for p in (stp_root_ports or set()) if p}
+    if root_ports:
+        for p in sorted(root_ports):
+            out[p] = "STP 根端口（朝根桥）"
+    else:
+        for port, ntype in (neighbor_types or {}).items():
+            if (ntype or "").lower() in UPSTREAM_NEIGHBORS:
+                out[port] = f"对端为基础设备（{ntype}）"
+        for port, desc in (descriptions or {}).items():
+            if port not in out and UPSTREAM_DESC.search(desc or ""):
+                out[port] = "端口描述命中上行关键词"
+    for port in (manual or []):
+        if port:
+            out[port] = "手工指定（devices.uplink_ports）"
+
+    # 统一做一次 LAG 展开（键名用 norm_lag_name 归一：'Po1'/'lag49' → 'po 1'/'lag 49'）
+    expanded: dict[str, str] = {}
+    members_map = lag_members or {}
+    for port, why in out.items():
+        members = list(members_map.get(norm_lag_name(port)) or [])
+        if members:
+            for m in members:
+                expanded[m] = f"{why} → LAG 成员"
+        else:
+            expanded[port] = why
+    return expanded
 
 
 @dataclass

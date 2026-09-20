@@ -955,9 +955,36 @@ def collect_device(
 
         if settings.get("analysis", {}).get("enable_performance_analysis", True):
             try:
+                # 上行口推导（STP 根端口 → 上游设备对端 → 描述关键词 → 手工覆盖）——
+                # 写入 port_snapshots.is_uplink，供「流量排行上行口优先」与设备面板高亮使用。
+                # 失败退回手工清单：这只是个标识，不该影响采集。
+                uplink_ports = list(device.uplink_ports or [])
+                try:
+                    from analyzers.compliance.port_roles import derive_uplink_ports
+                    from analyzers.neighbor_parser import parse_cdp, parse_lldp, merge_neighbors
+                    from analyzers.config_parser import ConfigParser
+                    _cdp = parse_cdp(cdp_neighbors_raw, device_type) if cdp_neighbors_raw else []
+                    _lldp = parse_lldp(lldp_neighbors_raw, device_type) if lldp_neighbors_raw else []
+                    _ntypes = {e.local_port: e.neighbor_type
+                               for e in merge_neighbors(_cdp, _lldp) if e.local_port}
+                    _descs = {e.name: e.description
+                              for e in ConfigParser(device_type).parse(running_config)}
+                    _root = {r["port_name"] for r in stp_rows
+                             if (r.get("role") or "").lower() == "root" and r.get("port_name")}
+                    derived = derive_uplink_ports(
+                        stp_root_ports=_root, neighbor_types=_ntypes,
+                        descriptions=_descs, manual=uplink_ports,
+                        lag_members=_parse_lag_members(lacp_raw))
+                    if derived:
+                        print(f"[上行口] {device_name}: " +
+                              "；".join(f"{p}（{why}）" for p, why in sorted(derived.items())))
+                    uplink_ports = sorted(derived.keys())
+                except Exception as e:      # noqa: BLE001
+                    print(f"[上行口] 推导失败，退回手工清单：{e}")
+
                 perf_analyzer = PerformanceAnalyzer(
                     interface_status, running_config, device_type,
-                    interface_utilization, uplink_ports=device.uplink_ports,
+                    interface_utilization, uplink_ports=uplink_ports,
                     counters_raw=interface_counters,
                     description_raw=interface_description,
                     model=device_model,
@@ -1050,6 +1077,37 @@ def collect_device(
         }
     finally:
         conn.disconnect()
+
+
+def _parse_lag_members(lacp_raw: str) -> dict:
+    """解析 LAG 成员关系：``{"lag 49": ["1/1/49", "1/1/50"], "po 1": [...]}``。
+
+    Aruba `show lacp aggregates` / Cisco `show etherchannel summary` 两种输出；
+    键名统一归一（lag14 → 'lag 14'，Port-channel3 → 'po 3'），与 utils.port_names.norm_lag_name 同口径。
+    采集侧两处使用（上行口推导 / 落库），故抽成模块级函数。
+    """
+    if not (lacp_raw and lacp_raw.strip()):
+        return {}
+    try:
+        from analyzers.neighbor_parser import parse_lacp_aruba, parse_etherchannel_cisco
+        raw_map: dict = {}
+        if "Aggregate name" in lacp_raw:
+            raw_map = parse_lacp_aruba(lacp_raw)
+        elif "Port-channel" in lacp_raw or "Group" in lacp_raw:
+            raw_map = parse_etherchannel_cisco(lacp_raw)
+        if not raw_map:
+            return {}
+        import re as _re
+        out: dict = {}
+        for k, v in raw_map.items():
+            m = _re.match(r'^(lag|po|port-channel)\s*(\d+)$', k, _re.IGNORECASE)
+            key = (f'{m.group(1).lower().replace("port-channel", "po")} {m.group(2)}'
+                   if m else k)
+            out[key] = v
+        return out
+    except Exception as e:                      # noqa: BLE001 —— 解析失败不影响采集
+        print(f"[LAG] 解析失败: {e}")
+        return {}
 
 
 def _build_stp_rows(result) -> list:
@@ -1430,30 +1488,10 @@ def _save_data(
     _neighbors_in_memory = []  # 供后续 SQLite 写入使用，避免磁盘回读
 
     # 先解析 LAG 成员关系（需要在下游邻居补充时使用）
-    lag_map: dict = {}
-    lag_membership_json = "{}"
-    if lacp_raw and lacp_raw.strip():
-        try:
-            from analyzers.neighbor_parser import parse_lacp_aruba, parse_etherchannel_cisco
-            raw_map: dict = {}
-            if "Aggregate name" in lacp_raw:
-                raw_map = parse_lacp_aruba(lacp_raw)
-            elif "Port-channel" in lacp_raw or "Group" in lacp_raw:
-                raw_map = parse_etherchannel_cisco(lacp_raw)
-            if raw_map:
-                # 键名归一化: lag14 → lag 14
-                import re as _re
-                for k, v in raw_map.items():
-                    m = _re.match(r'^(lag|po|port-channel)\s*(\d+)$', k, _re.IGNORECASE)
-                    if m:
-                        norm_key = f'{m.group(1).lower().replace("port-channel", "po")} {m.group(2)}'
-                    else:
-                        norm_key = k
-                    lag_map[norm_key] = v
-                lag_membership_json = json.dumps(lag_map, ensure_ascii=False)
-                print(f"[LAG] 成员关系: {lag_map}")
-        except Exception as e:
-            print(f"[LAG] 解析失败: {e}")
+    lag_map: dict = _parse_lag_members(lacp_raw)
+    lag_membership_json = json.dumps(lag_map, ensure_ascii=False) if lag_map else "{}"
+    if lag_map:
+        print(f"[LAG] 成员关系: {lag_map}")
 
     try:
         from analyzers.neighbor_parser import parse_cdp, parse_lldp, merge_neighbors, NeighborEntry

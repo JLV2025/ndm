@@ -253,3 +253,79 @@ def test_loader_validates_when_role_value(tmp_path):
     msg = str(ei.value)
     assert "需要 params.forbidden 或 params.when_role 之一" in msg
     assert "when_role 只能是" in msg
+
+
+# ---------------------------------------------------------------- 上行口推导（采集侧 is_uplink）
+
+def test_上行口推导_STP根端口最精确只认它():
+    """多层站点：非核心交换机的上行口 = STP 根端口；此时不看邻居（避免把下行口算进来）。"""
+    from analyzers.compliance.port_roles import derive_uplink_ports
+    out = derive_uplink_ports(
+        stp_root_ports={"1/1/49"},
+        neighbor_types={"1/1/1": "switch", "1/1/49": "switch", "1/1/10": "sdwan"},
+        descriptions={})
+    assert out == {"1/1/49": "STP 根端口（朝根桥）"}
+
+
+def test_上行口推导_单机站点按SDWAN对端():
+    """单台设备的站点：没有根端口（本机就是根/没跑 STP）→ 对着 SD-WAN LAN 口的是上行口。"""
+    from analyzers.compliance.port_roles import derive_uplink_ports
+    out = derive_uplink_ports(
+        stp_root_ports=set(),
+        neighbor_types={"1/1/1": "server", "1/1/48": "sdwan", "1/1/47": "router"},
+        descriptions={})
+    assert set(out) == {"1/1/48", "1/1/47"}
+    assert "sdwan" in out["1/1/48"] and "router" in out["1/1/47"]
+
+
+def test_上行口推导_核心交换机不被误标():
+    """核心交换机没有根端口，且朝下的口对端也是交换机 —— 绝不能标成上行。"""
+    from analyzers.compliance.port_roles import derive_uplink_ports
+    out = derive_uplink_ports(
+        stp_root_ports=set(),
+        neighbor_types={"1/1/1": "switch", "1/1/2": "switch", "1/1/24": "switch"},
+        descriptions={})
+    assert out == {}
+
+
+def test_上行口推导_描述关键词兜底():
+    from analyzers.compliance.port_roles import derive_uplink_ports
+    out = derive_uplink_ports(
+        stp_root_ports=None, neighbor_types={},
+        descriptions={"Gi1/0/1": "Uplink to core", "Gi1/0/2": "to SDWAN",
+                      "Gi1/0/3": "PC-Data", "Gi1/0/4": "TO_FW"})
+    assert set(out) == {"Gi1/0/1", "Gi1/0/2", "Gi1/0/4"}
+    assert "PC-Data" not in out
+
+
+def test_上行口推导_手工指定始终并入():
+    from analyzers.compliance.port_roles import derive_uplink_ports
+    out = derive_uplink_ports(stp_root_ports={"1/1/49"}, neighbor_types={},
+                              descriptions={}, manual=["1/1/1", "1/1/49"])
+    assert out["1/1/1"] == "手工指定（devices.uplink_ports）"
+    assert out["1/1/49"] == "手工指定（devices.uplink_ports）"    # 手工覆盖推导理由
+
+
+def test_上行口推导_什么信号都没有就不标():
+    from analyzers.compliance.port_roles import derive_uplink_ports
+    assert derive_uplink_ports() == {}
+
+
+def test_上行口推导_聚合口展开成物理成员():
+    """STP 根端口是 LAG（Po1/lag49）时必须展开 —— is_uplink 标在物理口上、流量也统计在物理口。"""
+    from analyzers.compliance.port_roles import derive_uplink_ports
+    out = derive_uplink_ports(stp_root_ports={"Po1"}, lag_members={"po 1": ["Gi1/1/1", "Gi1/1/2"]})
+    assert set(out) == {"Gi1/1/1", "Gi1/1/2"}
+    assert all("LAG 成员" in why for why in out.values())
+
+
+def test_上行口推导_手工指定的聚合口也展开():
+    from analyzers.compliance.port_roles import derive_uplink_ports
+    out = derive_uplink_ports(manual=["lag49"], lag_members={"lag 49": ["1/1/49", "1/1/50"]})
+    assert set(out) == {"1/1/49", "1/1/50"}
+
+
+def test_上行口推导_没有成员数据时保留聚合口本身():
+    """拿不到成员关系时不要把标记丢掉 —— 总比什么都不标好（前端只渲染物理口，聚合名无害）。"""
+    from analyzers.compliance.port_roles import derive_uplink_ports
+    assert derive_uplink_ports(stp_root_ports={"Po9"}, lag_members={}) == {"Po9": "STP 根端口（朝根桥）"}
