@@ -287,3 +287,27 @@ def test_空命令拒绝(monkeypatch):
     monkeypatch.setattr("collectors.base.DeviceConnection", Fake)
     res = batch_exec.execute_on_device(DEV, "admin", "pw", ["", "  "])
     assert res["status"] == "failed" and Fake.calls == []
+
+
+def test_连接超时必须是数值_回归真机崩溃(monkeypatch):
+    """回归（2026-09-21 真机踩过）：settings['ssh_timeout'] 是 **dict**
+    （{connect, read, write}），整块传给 DeviceConnection 会在 netmiko 里炸
+    "unsupported operand type(s) for +: 'float' and 'dict'"。
+    这里用真实 settings 形态跑一遍，断言传下去的是数值。"""
+    captured: dict = {}
+    Fake = make_conn_cls()
+    orig_init = Fake.__init__
+
+    def spy_init(self, config):
+        captured.update(config)
+        orig_init(self, config)
+
+    monkeypatch.setattr(Fake, "__init__", spy_init)
+    monkeypatch.setattr("collectors.base.DeviceConnection", Fake)
+
+    batch_exec.execute_on_device(
+        DEV, "admin", "pw", ["show clock"],
+        settings={"ssh_timeout": {"connect": 20, "read": 20, "write": 20}})
+
+    assert isinstance(captured["timeout"], (int, float)), \
+        f"timeout 必须是数值（netmiko 要拿它做算术），得到 {type(captured['timeout'])}"

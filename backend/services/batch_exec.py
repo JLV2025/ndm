@@ -127,7 +127,10 @@ def execute_on_device(device, username: str, password: str, commands: list[str],
     conn = DeviceConnection({
         "name": device.name, "ip": device.ip, "type": device.type,
         "platform": getattr(device, "platform", "") or "",
-        "port": 22, "timeout": settings.get("ssh_timeout", 60),
+        # 与采集侧一致硬编码 120 —— **别**改成 settings["ssh_timeout"]：
+        # 那是 dict（{connect, read, write}），整块传给 netmiko 会在连接时炸
+        # "unsupported operand type(s) for +: 'float' and 'dict'"（2026-09-21 真机踩过）
+        "port": 22, "timeout": 120,
     })
     output_parts: list[str] = []
     try:
