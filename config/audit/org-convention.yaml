@@ -16,7 +16,7 @@ rules:
     level: 风险提示
     source: 组织规范
     severity: convention
-    fix: '按 站点码+机房/层级+类型+编号 重命名（改设备名会影响网管与日志归属，需评估）'
+    fix: '# 按 站点码+机房/层级+类型+编号 重命名（改设备名会影响网管与日志归属，需评估）'
     why: 设备名是排障与网管识别设备的唯一依据；格式不符容易导致连错设备。
 
   - id: naming_hostname_match
@@ -26,8 +26,9 @@ rules:
     level: 风险提示
     source: 组织规范
     severity: convention
-    fix: 'hostname <设备名>（会中断现有管理会话，需窗口）'
+    fix: 'hostname <设备名>'
     why: 不一致或重名会让日志与网管无法区分设备，排障时容易连错机器。
+    note: 执行会中断现有管理会话，需安排窗口。
 
   # ==== VLAN ====
   - id: vlan_name_pure_purpose
@@ -49,7 +50,7 @@ rules:
     level: 改进建议
     source: 组织规范
     severity: convention
-    fix: '把业务迁移到标准 VLAN，再删除非标 VLAN（涉及端口重划与地址变更，需单独排期）'
+    fix: '# 把业务迁移到标准 VLAN，再删除非标 VLAN（涉及端口重划与地址变更，需单独排期）'
     why: 非标 VLAN 会让 VLAN 规划失去唯一性，新同事无法凭编号判断用途。
 
   - id: vlan_address_third_octet
@@ -60,7 +61,9 @@ rules:
     source: 组织规范
     severity: convention
     exempt_sites: [exempt_vlan_address]
-    fix: 'interface vlan <id> / ip address 10.xx.<id>.x/24'
+    fix: |
+      interface vlan <id>
+      ip address 10.xx.<id>.x/24
     why: 组织标准规定网段第三段等于 VLAN ID；不适用 OSAT 站点与 BJD。
 
   - id: vlan1_in_use
@@ -85,7 +88,7 @@ rules:
     level: 改进建议
     source: 组织规范
     severity: convention
-    fix: 'banner motd ^ … ^'
+    fix: 'banner motd ^ <登录告警文本> ^'
     why: 登录前通告是追责前提。
 
   # ==== 运维就绪度 ====
@@ -134,7 +137,7 @@ rules:
     level: 风险提示
     source: 组织规范
     severity: convention
-    fix: '规划替换：查厂商迁移建议，在停止支持日期（LastDateOfSupport）之前完成替换'
+    fix: '# 规划替换：查厂商迁移建议，在停止支持日期（LastDateOfSupport）之前完成替换'
     why: >-
       停止支持之后不再有安全补丁与硬件更换渠道 —— 这是**时效风险**，不是配置错误。
       现网那台 C9500 正属此类：设备越旧，故障后拿不到同型号替代的时间越长。
@@ -148,7 +151,7 @@ rules:
     level: 风险提示
     source: 组织规范
     severity: convention
-    fix: '评估续保（或列入更换计划）；过保设备故障后需按 T&M 付费维修'
+    fix: '# 评估续保（或列入更换计划）；过保设备故障后需按 T&M 付费维修'
     why: 保修到期后硬件故障的维修与备件要走付费流程，修复时间也会变长。
     note: >-
       注意区分「保修（hardware warranty）」与「服务合同（Smart Net 等）」：
@@ -163,7 +166,7 @@ rules:
     level: 需人工判断
     source: 组织规范
     severity: convention
-    fix: '在设备详情页「生命周期」登记型号 EoL 与各序列号保修到期日（支持批量粘贴导入）'
+    fix: '# 在设备详情页「生命周期」登记型号 EoL 与各序列号保修到期日（支持批量粘贴导入）'
     why: >-
       没有登记就没有判断依据 —— 与其静默通过，不如明确标成"待查"去核实。
       信息登记超过 stale_days 天未复核的，同样回到"待查"（两年前抄来的日期不能一直冒充已确认）。

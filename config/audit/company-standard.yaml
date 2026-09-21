@@ -46,7 +46,9 @@ rules:
     source: 公司总部
     severity: shall
     controls: [AC-17, SC-8, IA-2]
-    fix: 'ssh server vrf mgmt （带外）/ ssh server vrf default （带内）'
+    fix: |
+      ssh server vrf mgmt
+      ssh server vrf default
     why: 总部基线第 4、7 章要求 SSH 为交互式管理的唯一协议。
 
   - id: hq_cx_aaa_central
@@ -93,7 +95,7 @@ rules:
     source: 公司总部
     severity: shall
     controls: [AC-2, IA-2]
-    fix: 'user <应急账号> group administrators password ciphertext <…>'
+    fix: 'user <应急账号> group administrators password ciphertext <加密口令>'
     why: >-
       总部第 5 章：必须存在本地 break-glass 账号，供集中式 AAA 故障时应急登录。
       没有它，AAA 服务器全挂时无人能登设备。用后须立即改密。
@@ -123,7 +125,7 @@ rules:
     controls: [SC-8, AC-17]
     fix: |
       cli-session
-          timeout 15        ! 分钟；加固指南对非敏感网络推荐 15，默认 30
+          timeout 15
           max-per-user 1
     why: >-
       总部第 7 章要求"SSH 空闲超时按企业策略配置"。
@@ -140,7 +142,9 @@ rules:
     source: 公司总部
     severity: shall
     controls: [SC-12, SC-13, AC-17]
-    fix: 'no snmp-server community <团体字>  ／  snmp-server snmpv3-only'
+    fix: |
+      no snmp-server community <团体字>
+      snmp-server snmpv3-only
     why: >-
       总部第 8 章：SNMPv1 与 SNMPv2c **不得**配置。团体字是明文凭据，
       拿到即可读取（RW 团体字还能改写）设备配置。
@@ -168,7 +172,7 @@ rules:
     source: 公司总部
     severity: shall
     controls: [AU-8, SC-45, CM-6]
-    fix: 'no ntp server <公网地址>  ／ 改用企业内部 NTP'
+    fix: 'no ntp server <公网地址>'
     why: >-
       总部第 9 章要求**使用企业内部 NTP 服务器**。公网 NTP 既违反要求，
       也带来可达性风险（出口受限时时间同步中断）与欺骗风险。
@@ -244,8 +248,8 @@ rules:
     controls: [AC-4, AC-17, SC-7, CM-6]
     fix: |
       access-list ip MGMT_ACL
-       10 permit tcp <APPROVED_SUBNET> any eq 22
-       30 permit udp <APPROVED_SUBNET> any eq 161
+       10 permit tcp <批准的管理网段> any eq 22
+       30 permit udp <批准的管理网段> any eq 161
       110 permit icmp any any
       999 deny ip any any log
       !
@@ -273,7 +277,9 @@ rules:
     source: 公司总部
     severity: shall
     controls: [SC-12, SC-13, AC-17, AU-2]
-    fix: 'snmp-server group <组名> v3 priv ／ snmp-server user <用户> <组名> v3 auth sha256 <…> priv aes256 <…>'
+    fix: |
+      snmp-server group <组名> v3 priv
+      snmp-server user <用户名> <组名> v3 auth sha256 <认证口令> priv aes256 <加密口令>
     why: 总部第 8 章要求 SNMPv3 AuthPriv。
     note: >-
       ⚠️ 现网 18 台 Cisco **全部配了 `snmp-server group ... v3 priv`、却一台都没配 user**
@@ -308,8 +314,8 @@ rules:
     controls: [AC-4, AC-17, SC-7, CM-6]
     fix: |
       ip access-list extended MGMT_ACL
-       permit tcp <APPROVED_SUBNET> any eq 22
-       permit udp <APPROVED_SUBNET> any eq 161
+       permit tcp <批准的管理网段> any eq 22
+       permit udp <批准的管理网段> any eq 161
        permit icmp any any
        deny   ip any any log
       !
@@ -345,7 +351,10 @@ rules:
     source: 公司总部
     severity: should
     controls: [AC-2, IA-2]
-    fix: 'tacacs server <服务器2> / address ipv4 <IP> / key 7 <KEY>'
+    fix: |
+      tacacs server <服务器名>
+      address ipv4 <IP>
+      key 7 <密钥>
     why: 总部第 5 章：至少两台 AAA 服务器以提供冗余。
 
   - id: hq_cs_local_account

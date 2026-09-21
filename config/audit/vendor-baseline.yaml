@@ -41,7 +41,7 @@ rules:
     source: 厂商基线
     severity: vendor
     controls: [SC-12, SC-13, AC-17, AU-2]   # 同时满足总部 Ch4/Ch8「SNMPv3 监控」
-    fix: 'snmpv3 user <name> auth sha auth-pass <…> priv aes priv-pass <…>'
+    fix: 'snmpv3 user <用户名> auth sha auth-pass <认证口令> priv aes priv-pass <加密口令>'
     why: SNMPv1/v2c 团体字明文传输；SNMPv3 支持认证与加密。
 
   # ==== B 类：已确认采纳 ====
@@ -286,9 +286,7 @@ rules:
     severity: vendor
     fix: |
       interface <上联口>
-       no spanning-tree bpdu-guard     ! Cisco
-      interface <上联口>
-          no spanning-tree bpdu-guard ! Aruba CX
+       no spanning-tree bpdu-guard
     why: >-
       上联口对端是交换机，会周期性发送 BPDU；配了 bpdu-guard 后该口会在收到
       BPDU 时被判为"下挂了交换机"而 err-disable，直接造成链路中断。
