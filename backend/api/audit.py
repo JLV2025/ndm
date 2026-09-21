@@ -309,7 +309,8 @@ async def run_by_rule(run_id: int):
     run = db.execute("SELECT id FROM audit_runs WHERE id = ?", (run_id,)).fetchone()
     if run is None:
         raise HTTPException(status_code=404, detail=f"审计记录不存在：{run_id}")
-    sql = ("SELECT af.rule_id, af.level, af.source, af.title, af.device_name, d.location, "
+    sql = ("SELECT af.rule_id, af.level, af.source, af.title, af.fix_text, "
+           "af.device_name, d.location, "
            f"{trends.exempt_case()} AS exempt "
            "FROM audit_findings af LEFT JOIN devices d ON d.name = af.device_name "
            "WHERE af.run_id = ? ORDER BY af.rule_id, af.device_name")
@@ -317,8 +318,12 @@ async def run_by_rule(run_id: int):
     for r in db.execute(sql, (run_id,)):
         item = rules.setdefault(r["rule_id"], {
             "rule_id": r["rule_id"], "title": r["title"], "level": r["level"],
-            "source": r["source"], "count": 0, "exempt_count": 0, "devices": [],
+            "source": r["source"], "fix": "", "count": 0, "exempt_count": 0, "devices": [],
         })
+        # 修复命令是规则级模板（同规则各设备一致）——取第一条非空的，
+        # 供前端「批量处理」带入批量执行页
+        if not item["fix"] and r["fix_text"]:
+            item["fix"] = r["fix_text"]
         if r["exempt"]:
             item["exempt_count"] += 1
         else:

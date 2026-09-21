@@ -633,6 +633,8 @@ const en: Record<string, string> = {
   'auditPage.history': 'Run history',
   'auditPage.byRule': 'Findings by Rule',
   'auditPage.byRuleHint': 'Latest run: which devices each finding hit (approved exceptions excluded) — click to expand, click a device to open the viewer',
+  'auditPage.toBatch': 'Batch exec…',
+  'auditPage.toBatchHint': 'Opens Batch Exec with this device list and fix commands pre-filled — nothing runs until you confirm',
   'auditPage.colTime': 'Time',
   'auditPage.colTrigger': 'Trigger',
   'auditPage.colDevices': 'Devices',

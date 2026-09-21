@@ -4,7 +4,7 @@ import {
   DialogActions, IconButton, MenuItem, Paper, Select, Snackbar, Table, TableBody, TableCell,
   TableHead, TableRow, ToggleButton, ToggleButtonGroup, Tooltip, Typography,
 } from '@mui/material'
-import { AutoAwesome, ExpandLess, ExpandMore, PlayArrow, Refresh, TrendingDown, TrendingUp } from '@mui/icons-material'
+import { AutoAwesome, Bolt, ExpandLess, ExpandMore, PlayArrow, Refresh, TrendingDown, TrendingUp } from '@mui/icons-material'
 import {
   CartesianGrid, Legend, Line, LineChart, ResponsiveContainer,
   Tooltip as RechartsTooltip, XAxis, YAxis,
@@ -14,7 +14,7 @@ import { auditApi } from '../services/api'
 import BriefingDialog from '../components/BriefingDialog'
 import { sessionManager } from '../services/auth'
 import { useI18n } from '../i18n'
-import type { AuditBriefing, AuditByRule, AuditRun, AuditRunDetail, AuditTrendDiff, AuditTrends } from '../types'
+import type { AuditBriefing, AuditByRule, AuditByRuleItem, AuditRun, AuditRunDetail, AuditTrendDiff, AuditTrends } from '../types'
 
 /** 与仪表盘一致的图表配色（深色主题） */
 const GRID = '#1E293B'
@@ -98,6 +98,18 @@ const ComplianceAudit: React.FC = () => {
     } finally {
       setRunning(false)
     }
+  }
+
+  /** 带着这条发现的设备清单与修复命令跳到「批量执行」页 —— 只是带入，不会自动执行 */
+  const gotoBatch = (r: AuditByRuleItem) => {
+    navigate('/batch-exec', {
+      state: {
+        devices: r.devices.map((d) => d.name),
+        text: r.fix || '',
+        mode: r.fix ? 'config' : 'show',
+        note: `${r.title}（${r.rule_id}）`,
+      },
+    })
   }
 
   const openBriefing = async () => {
@@ -354,13 +366,26 @@ const ComplianceAudit: React.FC = () => {
                       )}
                     </Box>
                     {expandRule === r.rule_id && (
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, px: 5, pb: 1.25, pt: 0.25 }}>
-                        {r.devices.map((d) => (
-                          <Chip key={d.name} size="small" clickable
-                            label={d.location ? `${d.name} · ${d.location}` : d.name}
-                            onClick={() => navigate(`/viewer?device=${encodeURIComponent(d.name)}`)}
-                            sx={{ height: 22, fontSize: '0.68rem' }} />
-                        ))}
+                      <Box sx={{ px: 5, pb: 1.25, pt: 0.25 }}>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, alignItems: 'center' }}>
+                          {r.devices.map((d) => (
+                            <Chip key={d.name} size="small" clickable
+                              label={d.location ? `${d.name} · ${d.location}` : d.name}
+                              onClick={() => navigate(`/viewer?device=${encodeURIComponent(d.name)}`)}
+                              sx={{ height: 22, fontSize: '0.68rem' }} />
+                          ))}
+                          <Button size="small" variant="outlined"
+                            startIcon={<Bolt sx={{ fontSize: 14 }} />}
+                            onClick={() => gotoBatch(r)}
+                            sx={{ ml: 0.5, fontSize: '0.68rem', textTransform: 'none', py: 0.2 }}>
+                            {t('auditPage.toBatch')}
+                          </Button>
+                        </Box>
+                        {r.fix && (
+                          <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>
+                            {t('auditPage.toBatchHint')}
+                          </Typography>
+                        )}
                       </Box>
                     )}
                   </Box>

@@ -635,6 +635,8 @@ const zh: Record<string, string> = {
   'auditPage.history': '历史运行',
   'auditPage.byRule': '发现排行（按发现看设备）',
   'auditPage.byRuleHint': '最新一次审计：每条发现命中了哪些设备（不含已批准例外）—— 点击展开设备名单，点设备名进查看器',
+  'auditPage.toBatch': '批量处理…',
+  'auditPage.toBatchHint': '将带入设备清单与修复命令到「批量执行」页 —— 只是带入，核对后才会执行',
   'auditPage.colTime': '时间',
   'auditPage.colTrigger': '触发',
   'auditPage.colDevices': '设备',

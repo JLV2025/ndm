@@ -48,13 +48,14 @@ def add_run(conn, rid, started, *, ruleset="R1", exceptions="E1", trigger="manua
     conn.commit()
 
 
-def add_finding(conn, run_id, device, rule, *, level="风险提示", source="公司总部", exempt=None):
+def add_finding(conn, run_id, device, rule, *, level="风险提示", source="公司总部",
+                exempt=None, fix=None):
     conn.execute(
         "INSERT INTO audit_findings (run_id, device_name, rule_id, title, level, source, "
-        "exempt_by, exempt_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "exempt_by, exempt_json, fix_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (run_id, device, rule, f"{rule} 标题", level, source,
          "exc-001" if exempt else None,
-         json.dumps(exempt, ensure_ascii=False) if exempt else None))
+         json.dumps(exempt, ensure_ascii=False) if exempt else None, fix))
     conn.commit()
 
 
@@ -206,6 +207,17 @@ def test_按规则聚合_豁免不计入命中且单列(conn):
     add_finding(conn, 1, "ZGND1SWI01", "r2", exempt=EXPIRED)   # 已过期：回到普通统计
     r2 = next(x for x in call(audit_api.run_by_rule(1))["rules"] if x["rule_id"] == "r2")
     assert r2["count"] == 1 and r2["exempt_count"] == 0
+
+
+def test_按规则聚合带修复命令(conn):
+    """fix 是规则级模板（同规则各设备一致）——取第一条非空的，供「批量处理」带入。"""
+    add_run(conn, 1, "2026-09-20T08:00:00")
+    add_finding(conn, 1, "BJQD1SWI01", "r_ntp", fix="no ntp server 10.8.26.10")
+    add_finding(conn, 1, "ZGND1SWI01", "r_ntp", fix="no ntp server 10.8.26.10")
+    add_finding(conn, 1, "BJQD1SWI01", "r_no_fix")           # 没有修复命令的规则
+    by_rule = {r["rule_id"]: r for r in call(audit_api.run_by_rule(1))["rules"]}
+    assert by_rule["r_ntp"]["fix"] == "no ntp server 10.8.26.10"
+    assert by_rule["r_no_fix"]["fix"] == ""
 
 
 def test_按规则聚合_设备不在册时location为空(conn):
