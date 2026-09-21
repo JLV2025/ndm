@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-21T04:23:41.032Z
-> Files: 184 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-21T04:25:53.075Z
+> Files: 185 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -59,6 +59,7 @@
 - `fix_bug201.py` — 修正 bug-201：还原被误改的自动条目、删掉重复条目、把"第 2 次"记到真条目上。 (~545 tok)
 - `fix_zh_numbering.py` — 修正中文条目编号：整条中文尾巴 +1（英文插入一章后，连续编号要全段顺延）。 (~582 tok)
 - `upd_bug151.py` — 怪文件现象第 5 次：更新 bug-151 的计数与最近一次样本。 (~240 tok)
+- `wrap_memory.py` — 收工：向 .wolf/memory.md 追加会话小结行。 (~184 tok)
 
 ## ./
 
