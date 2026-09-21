@@ -3723,6 +3723,166 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-20T21:50:00.000Z"
+    },
+    {
+      "id": "bug-227",
+      "timestamp": "2026-09-21T02:54:59.826Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/audit.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T02:54:59.826Z"
+    },
+    {
+      "id": "bug-228",
+      "timestamp": "2026-09-21T02:58:00.269Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "frontend/src/pages/ComplianceAudit.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T02:58:00.269Z"
+    },
+    {
+      "id": "bug-229",
+      "timestamp": "2026-09-21T02:58:40.652Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/ComplianceAudit.tsx",
+      "root_cause": "Had 'auditPage.devicesUnit'",
+      "fix": "Changed to 'auditPage.devicesHit'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T02:58:40.652Z"
+    },
+    {
+      "id": "bug-230",
+      "timestamp": "2026-09-21T03:09:34.876Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "frontend/src/services/api.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:09:34.876Z"
+    },
+    {
+      "id": "bug-231",
+      "timestamp": "2026-09-21T03:10:20.592Z",
+      "error_message": "Type error",
+      "file": "frontend/src/pages/BatchExec.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:10:20.592Z"
+    },
+    {
+      "id": "bug-232",
+      "timestamp": "2026-09-21T03:10:24.955Z",
+      "error_message": "CSS fix: bgcolor, color",
+      "file": "frontend/src/pages/BatchExec.tsx",
+      "root_cause": "bgcolor: `${STATUS_COLOR[(r.status as QueueItem['status']) in STATUS_COLOR ? r.status as QueueItem['status'] : 'pending'] → `${statusColor(r.status); color: STATUS_COLOR[(r.status as QueueItem['status']) in STATUS_COLOR ? r.status as QueueItem['status'] : 'pending'], → statusColor(r.status),",
+      "fix": "Changed bgcolor: `${STATUS_COLOR[(r.status as QueueItem['status']) in STATUS_COLOR ? r.status as QueueItem['status'] : 'pending'] → `${statusColor(r.status); color: STATUS_COLOR[(r.status as QueueItem['status']) in STATUS_COLOR ? r.status as QueueItem['status'] : 'pending'], → statusColor(r.status),",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:10:24.956Z"
+    },
+    {
+      "id": "bug-233",
+      "timestamp": "2026-09-21T03:11:09.318Z",
+      "error_message": "CSS fix: label",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "label: t('auditRules.title'), icon: <AuditIcon />, path: '/compliance-standard' → t('nav.batchExec'), icon: <BoltIcon />, path: '/batch-exec'",
+      "fix": "Changed label: t('auditRules.title'), icon: <AuditIcon />, path: '/compliance-standard' → t('nav.batchExec'), icon: <BoltIcon />, path: '/batch-exec'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:11:09.318Z"
+    },
+    {
+      "id": "bug-234",
+      "timestamp": "2026-09-21T03:11:52.125Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/BatchExec.tsx",
+      "root_cause": "Had 'batch.colDevices'",
+      "fix": "Changed to 'batch.colOutcome'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-21T03:12:41.724Z"
+    },
+    {
+      "id": "bug-235",
+      "timestamp": "2026-09-21T03:15:02.466Z",
+      "error_message": "Type error",
+      "file": "frontend/src/pages/ComplianceAudit.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:15:02.466Z"
+    },
+    {
+      "id": "bug-236",
+      "timestamp": "2026-09-21T03:15:07.250Z",
+      "error_message": "CSS fix: display",
+      "file": "frontend/src/pages/ComplianceAudit.tsx",
+      "root_cause": "display: 'flex', flexWrap: 'wrap', gap: 0.75, px: 5, pb: 1.25, pt: 0.25 → 'block', mt: 0.5",
+      "fix": "Changed display: 'flex', flexWrap: 'wrap', gap: 0.75, px: 5, pb: 1.25, pt: 0.25 → 'block', mt: 0.5",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:15:07.250Z"
     }
   ]
 }

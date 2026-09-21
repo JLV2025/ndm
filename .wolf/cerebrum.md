@@ -715,3 +715,18 @@
 ## Key Learnings
 - [2026-09-20] **《NDM用户使用文档》的章节编号是「中英连续」的一条序列**（en 1..N + zh N+1..M）：在**英文段插入一章，中文段全部要跟着 +1**（不能只动中文段尾部）——我漏了这条，导致 zh-intro 与 en-faq 撞号，靠复核脚本（编号连续性断言）抓回。补章流程已固化为脚本（`F:\temp\add_stp_chapter.py` 等，带锚点断言）：改完必须复核「编号连续无重复 / 目录与标题一一对应 / 标签无未闭合」。
 - [2026-09-20] 使用文档是**纯静态单文件 HTML**（`NDM用户使用文档.html`，48KB，自带 CSS，无外部依赖），浏览器里用 `file:` 打不开（Playwright 拦），本地 `python -m http.server` 即可预览；注意：**用 Playwright 就会重新生成 `.playwright-mcp/`**（那是它的会话产物目录，之前清过 49M，会再长）。
+
+## 三期进展（2026-09-21）：发现汇总视图 + 批量执行
+- **两项都已交付**：① 审计页「发现排行（按发现看设备）」—— `GET /api/audit/runs/{id}/by-rule` 按规则聚合（count 未豁免 / exempt_count / 设备名单带 location / **fix 修复命令**），按台数降序、展开可进查看器；明细 `get_run` 加 `rule` 过滤。② **批量执行**（新页 `/batch-exec`）—— 选设备（站点筛选/搜索/从审计带入）→ 命令（查询/配置模式 + 可保存）→ 预检（黑名单三态）→ 配置模式二次确认 → 逐台队列（实时进度/可停止/输出可展开）→ 历史留痕（详情/删除）。
+- 计划：`docs/superpowers/plans/2026-09-21-batch-exec.md`；提交链 67f6fb7（计划）→ ba5321f（by-rule）→ b9911aa（发现排行卡片）→ 275f8c4（v17 迁移）→ 13b4636（黑名单+执行器）→ a7dffeb（batch API）→ ff2814c（BatchExec 页）→ 7c83689（审计联动）。
+- schema **v17**（batch_runs + batch_results）；测试 **544 项全绿**；浏览器实测通过（发现排行展开 5 台 NTP 公网源真实名单 → 批量处理带入 5 台 + fix；reload 被拦 + 开始按钮禁用；show 预检通过；配置模式二次确认对话框）。
+
+## Decision Log
+- [2026-09-21] **批量执行的边界（用户定案）**：可下发配置 + **三层保护** —— ① 危险命令静态拦截（服务端为准，`execute` 里再查一次，前端被绕过也拦得住）② 执行前逐台预览 ③ 配置模式二次确认；保存配置默认**不勾**；留痕落库（谁/何时/哪台/命令/输出，**凭据绝不入库**）；串行执行（前端逐台调端点，与采集同一编排模式，一期不做并发）。
+
+## Key Learnings（三期）
+- [2026-09-21] **黑名单必须"只读放行"**：`show boot` 含 boot 但无害 —— 判定前用 `^(show|display|do show)` 前缀整行放行，否则只读查询被误拦。`shutdown` 警告要排除 `no shutdown`（那是**开启**端口）：先 collapse 空白再 `(?<!no )\bshutdown\b`。
+- [2026-09-21] **批量执行的编排放前端**（与采集一致）：逐台调 `POST /api/batch/execute`，进度天然实时、可中断、服务端无批次生命周期；`batch_id` 前端生成（`crypto.randomUUID` 带 fallback——非 localhost 访问不是安全上下文），首台到达 upsert 批次行。**SQLite 写库留主线程、SSH 进 `asyncio.to_thread`**（既有线程边界教训）。
+- [2026-09-21] 审计条目的 `fix` 可能是**说明性文本而非可执行命令**（真实例子："no ntp server <公网地址> ／ 改用企业内部 NTP"）—— 带入批量执行页必须"用户核对后才执行"，绝不能自动执行；这正是三层保护里"预览"存在的意义。
+- [2026-09-21] 开发期浏览器验证技巧：同源页面 `sessionStorage.setItem('ndm_session', ...)` 注入会话即可进页面（前端登录态只看 sessionStorage，后端端点不校验）；**凭据填假值、绝不点"开始执行"**（会真连生产设备）。
+- [2026-09-21] MUI `TextField` 的 multiline 会渲染**两个 textarea**（第二个是隐藏测量元素）——Playwright 选择器要用 `textarea:not([readonly])`，`t('...')` 空 locator('textarea') 会 strict mode 报错。

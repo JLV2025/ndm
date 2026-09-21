@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-20T07:21:34.130Z
-> Files: 177 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-21T03:15:21.137Z
+> Files: 183 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -141,7 +141,7 @@
 ## backend/
 
 - `_verify_version.py` — 临时验证脚本：检查 FastAPI 应用版本号动态读取（验证后删除） (~76 tok)
-- `main.py` — API: 3 endpoints (~1438 tok)
+- `main.py` — API: 3 endpoints (~1466 tok)
 - `tmp_stp_check.py` — 临时诊断：用真实库数据模拟前端层带判定（跑完即删） (~889 tok)
 
 ## backend/analyzers/
@@ -167,7 +167,8 @@
 ## backend/api/
 
 - `alerts.py` — 告警 API 路由 (~2091 tok)
-- `audit.py` — 配置审计 API 路由。 (~6916 tok)
+- `audit.py` — 配置审计 API 路由。 (~7451 tok)
+- `batch.py` — 批量命令执行 API —— 预检 / 单台执行 / 历史留痕。 (~1444 tok)
 - `collector.py` — 配置收集 API 路由 (~1741 tok)
 - `data.py` — 数据文件 API 路由 (~3944 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
@@ -191,13 +192,14 @@
 
 - `audit_briefing.py` — AI 专家简报 —— 让 AI 把**确定性审计结论**讲成人话。 (~3067 tok)
 - `audit_scheduler.py` — 采集后自动审计（去抖）。 (~580 tok)
+- `batch_exec.py` — 批量命令执行 —— 危险命令预检 + 单台执行器。 (~1730 tok)
 - `collector_service.py` — 配置收集服务 (~21250 tok)
 - `eox_client.py` — Cisco EoX 客户端 —— 按型号批量查生命周期（停止销售 / 停止支持）。 (~1502 tok)
 
 ## backend/storage/
 
 - `__init__.py` — 数据存储服务模块 (~162 tok)
-- `database.py` — init_db, get_connection, close_connection (~7536 tok)
+- `database.py` — init_db, get_connection, close_connection (~8031 tok)
 - `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~2296 tok)
 - `file_manager.py` — 存储管理模块 (~2714 tok)
 - `lifecycle_dal.py` — 设备生命周期数据访问 —— EoL 型号缓存 + 逐序列号保修登记。 (~2692 tok)
@@ -211,7 +213,9 @@
 - `test_audit_api.py` — 审计 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）。 (~3397 tok)
 - `test_audit_briefing.py` — AI 专家简报测试 —— prompt 构建（纯函数）+ 调用链 + 数据装配。 (~3164 tok)
 - `test_audit_scheduler.py` — 采集后自动审计（去抖）测试。 (~793 tok)
-- `test_audit_trends.py` — 审计趋势端点测试 —— 周聚合、统计口径、对比榜。 (~2011 tok)
+- `test_audit_trends.py` — 审计趋势端点测试 —— 周聚合、统计口径、对比榜。 (~2798 tok)
+- `test_batch_api.py` — 批量执行 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）+ 假 SSH 连接。 (~2012 tok)
+- `test_batch_exec.py` — 批量命令执行测试 —— 黑名单三态 + 单台执行器（mock netmiko）。 (~2441 tok)
 - `test_collector_service.py` — collector_service 型号/序列号/成员ID提取测试 — 重点：Aruba CX VSF 堆叠 (~1644 tok)
 - `test_collector_service.py` — extract_model/extract_serial_number 测试（重点 VSF 堆叠成员型号，4 用例） (~500 tok)
 - `test_compliance_engine.py` — 配置审计引擎测试 —— 解析、判定器、站点作用域、行号契约。 (~5955 tok)
@@ -219,7 +223,7 @@
 - `test_compliance_source.py` — 审计数据源测试 —— 重点在三条边界： (~1844 tok)
 - `test_config_diff.py` — running/startup 配置比对测试。 (~1673 tok)
 - `test_counter_parser.py` — 端口累计计数器解析器测试 (~4010 tok)
-- `test_database_migration.py` — 数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表） (~3503 tok)
+- `test_database_migration.py` — 数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表） (~4643 tok)
 - `test_eox_client.py` — Cisco EoX 客户端测试 —— mock HTTP（凭据到位前无法实盘验证，如实标注）。 (~1565 tok)
 - `test_lifecycle_api.py` — 生命周期 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）。 (~1447 tok)
 - `test_lifecycle_checks.py` — 生命周期判定器与「集体性折叠」测试。 (~2561 tok)
@@ -282,6 +286,7 @@
 - `2026-09-20-audit-trends.md` — 审计趋势与历史（二期）—— 设计与实施计划 (~889 tok)
 - `2026-09-20-device-lifecycle.md` — 设备生命周期（EoL + 保修期）（二期）—— 设计与实施计划 (~1466 tok)
 - `2026-09-20-exceptions-registry.md` — 例外登记机制（二期）—— 设计与实施计划 (~1236 tok)
+- `2026-09-21-batch-exec.md` — 发现汇总视图 + 批量执行命令 —— 设计与实施计划 (~1318 tok)
 
 ## docs/superpowers/specs/
 
@@ -293,7 +298,7 @@
 
 ## frontend/src/
 
-- `App.tsx` — DRAWER_WIDTH — renders modal (~3586 tok)
+- `App.tsx` — DRAWER_WIDTH — renders modal (~3644 tok)
 
 ## frontend/src/components/
 
@@ -316,13 +321,14 @@
 
 ## frontend/src/i18n/
 
-- `en.ts` — Declares en (~8630 tok)
-- `zh.ts` — Declares zh (~6586 tok)
+- `en.ts` — Declares en (~9759 tok)
+- `zh.ts` — Declares zh (~7357 tok)
 
 ## frontend/src/pages/
 
 - `Alerts.tsx` — 字段中文标签映射 (~4641 tok)
-- `ComplianceAudit.tsx` — 与仪表盘一致的图表配色（深色主题） (~6420 tok)
+- `BatchExec.tsx` — 执行队列的一项 (~6783 tok)
+- `ComplianceAudit.tsx` — 与仪表盘一致的图表配色（深色主题） (~8288 tok)
 - `ComplianceStandard.tsx` — 档位 → 配色，与查看器审计模式保持一致（刻意不用红色系：这是建议强度不是违规等级） (~7818 tok)
 - `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~11085 tok)
 - `DeviceDetail.tsx` — DeviceDetail (~6839 tok)
@@ -334,7 +340,7 @@
 
 ## frontend/src/services/
 
-- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~3335 tok)
+- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~3811 tok)
 
 ## frontend/src/shared/
 
@@ -345,7 +351,7 @@
 
 ## frontend/src/types/
 
-- `index.ts` — 离线物理设备档案（device_members 表） (~2455 tok)
+- `index.ts` — 离线物理设备档案（device_members 表） (~2882 tok)
 - `topology.ts` — 端口物理断开（status_up=0），图上显示红叉警告 (~1043 tok)
 
 ## tests/
