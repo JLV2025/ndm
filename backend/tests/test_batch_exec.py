@@ -112,6 +112,42 @@ def test_split_commands():
         ["ntp server 1.1.1.1", "vlan 16"]
 
 
+def test_split_commands_井号是说明性建议():
+    """流程类 fix 以 `# ` 开头（如"规划替换…"）——带入后天然不执行。"""
+    assert batch_exec.split_commands(
+        "# 规划替换：查厂商迁移建议\nwrite memory\n# 评估续保") == ["write memory"]
+
+
+# ---------------------------------------------------------------- 占位符警示
+
+def test_未替换的占位符给警告():
+    """`<NTP_SERVER_2>` 这类没填值的命令直接执行会把占位符字面发出去 —— 必须警示。"""
+    v = batch_exec.check_commands(["ntp server <NTP_SERVER_2>", "ssh server vrf mgmt"])
+    assert v["blocked"] == []
+    assert len(v["warnings"]) == 1
+    assert "<NTP_SERVER_2>" in v["warnings"][0]["reason"]
+
+
+def test_占位符填值后不再警告():
+    v = batch_exec.check_commands(["ntp server 10.1.1.1", "ip address 10.1.16.1/24"])
+    assert v["warnings"] == []
+
+
+def test_占位符警示优先于锁死风险():
+    """先填值，填完重新预检再看风险（那时占位符已消失）—— 一次只报一条。"""
+    v = batch_exec.check_commands(["no vlan <id>"])
+    assert len(v["warnings"]) == 1 and "占位符" in v["warnings"][0]["reason"]
+    # 填完值 → 变成"删除 VLAN"风险警告
+    v2 = batch_exec.check_commands(["no vlan 16"])
+    assert "删除 VLAN" in v2["warnings"][0]["reason"]
+
+
+def test_只读命令的占位符不警示():
+    """`show ...` 只读放行在前 —— 即使带尖括号也不警示（不会改设备）。"""
+    v = batch_exec.check_commands(["show interfaces <端口>"])
+    assert v["blocked"] == [] and v["warnings"] == []
+
+
 # ---------------------------------------------------------------- 执行器（mock）
 
 def make_conn_cls(*, connect_ok=True, enable_mode=True, enable_raises=False,

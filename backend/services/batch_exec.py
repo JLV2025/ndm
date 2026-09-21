@@ -49,11 +49,20 @@ _WARN_PATTERNS = [
 
 _READONLY_RE = re.compile(r"(?i)^(show|display|do\s+(show|display))\b")
 
+# 未替换的占位符（`<公网地址>`、`<NTP_SERVER_2>`、`10.xx.<id>.x` …）。
+# 设备 CLI 的命令参数不用尖括号，命中即"还没填值"——直接执行会把占位符字面发出去
+# （`hostname <设备名>` 真会把主机名改成那个字面量），必须警示。
+_PLACEHOLDER_RE = re.compile(r"<[^<>\n]{1,40}>")
+
 
 def split_commands(text: str) -> list[str]:
-    """把前端的多行文本拆成命令列表（忽略空行与 `!` 注释行）。"""
+    """把前端的多行文本拆成命令列表（忽略空行与 `!` / `#` 注释行）。
+
+    `#` 用于**说明性建议**（流程类规则的 fix，如"规划替换…"）——
+    带入批量执行页时天然不会被执行，与 `!` 同一语义。
+    """
     return [ln.strip() for ln in (text or "").splitlines()
-            if ln.strip() and not ln.strip().startswith("!")]
+            if ln.strip() and not ln.strip().startswith(("!", "#"))]
 
 
 def check_commands(commands: list[str]) -> dict:
@@ -78,6 +87,13 @@ def check_commands(commands: list[str]) -> dict:
                     blocked.append({"cmd": line, "reason": reason})
                 break
         else:
+            ph = _PLACEHOLDER_RE.search(norm)
+            if ph and line not in seen:
+                # 占位符优先：先填值，填完重新预检再看锁死风险（那时占位符已消失）
+                seen.add(line)
+                warnings.append({"cmd": line,
+                                 "reason": f"含未替换的占位符 {ph.group(0)}，执行前请替换为实际值"})
+                continue
             for pat, reason in _WARN_PATTERNS:
                 if re.search(pat, norm, re.I):
                     if line not in seen:
