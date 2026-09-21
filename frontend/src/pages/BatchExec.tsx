@@ -234,7 +234,7 @@ const BatchExec: React.FC = () => {
                     <Checkbox size="small" checked={selected.includes(d.name)}
                       onChange={() => toggleOne(d.name)} onClick={(e) => e.stopPropagation()} />
                   </TableCell>
-                  <TableCell sx={{ fontSize: '0.76rem', fontFamily: 'monospace' }}>{d.name}</TableCell>
+                  <TableCell sx={{ fontSize: '0.72rem' }}>{d.name}</TableCell>
                   <TableCell sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>{d.model || '—'}</TableCell>
                   <TableCell sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>{d.location || '—'}</TableCell>
                   <TableCell sx={{ fontSize: '0.72rem', color: 'text.secondary', fontFamily: 'monospace' }}>{d.ip}</TableCell>
@@ -267,7 +267,7 @@ const BatchExec: React.FC = () => {
         <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', md: 'nowrap' }, alignItems: 'stretch' }}>
           <TextField fullWidth multiline rows={6} value={text} onChange={(e) => setText(e.target.value)}
             placeholder={t('batch.commandPlaceholder')}
-            sx={{ flex: '1 1 50%', '& textarea': { fontFamily: 'monospace', fontSize: '0.8rem' } }} />
+            sx={{ flex: '1 1 50%', '& textarea': { fontSize: '0.8rem' } }} />
           {/* 设备当前配置（带入的现状）—— 对着它把左侧命令里的占位符填成实际值 */}
           <Box sx={{
             flex: '1 1 50%', minWidth: 260, border: '1px solid', borderColor: 'divider',
@@ -364,7 +364,7 @@ const BatchExec: React.FC = () => {
                 <React.Fragment key={it.name}>
                   <TableRow hover sx={{ cursor: 'pointer' }}
                     onClick={() => setExpandedOut(expandedOut === it.name ? '' : it.name)}>
-                    <TableCell sx={{ fontSize: '0.76rem', fontFamily: 'monospace' }}>{it.name}</TableCell>
+                    <TableCell sx={{ fontSize: '0.72rem' }}>{it.name}</TableCell>
                     <TableCell>
                       <Chip size="small" label={t(`batch.status.${it.status}`)}
                         sx={{
@@ -499,7 +499,7 @@ const BatchExec: React.FC = () => {
                 <TableBody>
                   {detail.results.map((r) => (
                     <TableRow key={r.device_name}>
-                      <TableCell sx={{ fontSize: '0.74rem', fontFamily: 'monospace', verticalAlign: 'top', width: 150 }}>
+                      <TableCell sx={{ fontSize: '0.72rem', verticalAlign: 'top', width: 150 }}>
                         {r.device_name}
                       </TableCell>
                       <TableCell sx={{ fontSize: '0.72rem', verticalAlign: 'top', width: 90 }}>
