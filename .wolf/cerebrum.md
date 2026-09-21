@@ -739,3 +739,7 @@
 - [2026-09-21] **未替换占位符警示**（安全项）：`<设备名>` 这类占位符若被字面下发，`hostname <设备名>` 真会把主机名改成那个字面量 → `check_commands` 检出 `<[^<>]{1,40}>` 给黄警（**优先于**锁死风险：先填值，重新预检时再看风险）。
 - [2026-09-21] **by-rule 逐台带现状**（`devices[].current` = audit_findings.current_text）：审计页「批量处理」带入时按文本去重合并成 `现状    ← 设备 A、设备 B`，批量执行页右侧橙色参照容器显示 —— 用户对着它把修复命令占位符填成实际值（实测：左 `no ntp server <公网地址>`，右 `ntp server pool.ntp.org minpoll 4 maxpoll 4 iburst ← 5 台`）。
 - [2026-09-21] 改规则 YAML 后**必须重跑全网审计**（audit_findings 是快照，fix_text 不随 YAML 变）——跑完 ruleset_hash 变化会体现在趋势图上（属预期）。
+
+## Do-Not-Repeat（2026-09-21 真机）
+- [2026-09-21] **别把 settings 的分组值整块塞给 DeviceConnection**：`ssh_timeout` 是 **dict**（`{connect, read, write}`），传给 netmiko 的超时参数会炸 `unsupported operand type(s) for +: 'float' and 'dict'` —— 用户在 DEZD1SWI01 / DZND1SWI01 上连试三次全败（bug-205）。**连接超时一律与采集一致硬编码 120**（collector_service.py 就是这么做的）。推广：从 settings 取标量前先确认它是标量——本项目 settings 的分组键多为 dict（collection / ssh_timeout / analysis / audit / llm）。
+- [2026-09-21] 新功能接线到真实设备时，**假连接（mock）测不出参数类型错误**：50 项单测全绿，但 timeout 传了 dict 依然要真机才炸。回归测试要**用真实配置形态**（这里：用真实的 `{"connect":20,...}` dict 跑一遍并断言传下去的是数值）——与 bug-202（字段名）同一类教训。

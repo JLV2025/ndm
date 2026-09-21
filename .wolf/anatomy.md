@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-21T04:25:53.075Z
-> Files: 185 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-21T04:46:47.416Z
+> Files: 187 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -47,6 +47,7 @@
 - `add_audit_chapters.py` — 向《NDM用户使用文档》补写「配置审计」章节（英文 + 中文各一章）。 (~2790 tok)
 - `add_audit_chapters2.py` — 向《NDM用户使用文档》补写「配置审计」章节（英文 + 中文各一章）。 (~2669 tok)
 - `add_audit_settings.py` — 向本地 config/settings.yaml 追加 audit 段（若还没有）。不打印文件内容。 (~175 tok)
+- `add_bug203.py` — 追加 bug-203（批量执行连接超时误传 settings dict → float+dict 崩溃）到 .wolf/buglog.json。 (~436 tok)
 - `add_buglog.py` — 向 .wolf/buglog.json 追加一条手工记录（避免手改 JSON 出错）。 (~328 tok)
 - `add_buglog2.py` — 追加 bug-199（周格式约定）到 .wolf/buglog.json。 (~258 tok)
 - `add_buglog202.py` — 追加 bug-202（ConfigParser 字段名写错被 try/except 静默吞掉）到 .wolf/buglog.json。 (~312 tok)
@@ -60,6 +61,7 @@
 - `fix_zh_numbering.py` — 修正中文条目编号：整条中文尾巴 +1（英文插入一章后，连续编号要全段顺延）。 (~582 tok)
 - `upd_bug151.py` — 怪文件现象第 5 次：更新 bug-151 的计数与最近一次样本。 (~240 tok)
 - `wrap_memory.py` — 收工：向 .wolf/memory.md 追加会话小结行。 (~184 tok)
+- `wrap_memory2.py` — 追加 memory 行：修复批量执行真机报错（float+dict）。 (~140 tok)
 
 ## ./
 
@@ -194,7 +196,7 @@
 
 - `audit_briefing.py` — AI 专家简报 —— 让 AI 把**确定性审计结论**讲成人话。 (~3067 tok)
 - `audit_scheduler.py` — 采集后自动审计（去抖）。 (~580 tok)
-- `batch_exec.py` — 批量命令执行 —— 危险命令预检 + 单台执行器。 (~1904 tok)
+- `batch_exec.py` — 批量命令执行 —— 危险命令预检 + 单台执行器。 (~1954 tok)
 - `collector_service.py` — 配置收集服务 (~21250 tok)
 - `eox_client.py` — Cisco EoX 客户端 —— 按型号批量查生命周期（停止销售 / 停止支持）。 (~1502 tok)
 
@@ -217,7 +219,7 @@
 - `test_audit_scheduler.py` — 采集后自动审计（去抖）测试。 (~793 tok)
 - `test_audit_trends.py` — 审计趋势端点测试 —— 周聚合、统计口径、对比榜。 (~2963 tok)
 - `test_batch_api.py` — 批量执行 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）+ 假 SSH 连接。 (~2012 tok)
-- `test_batch_exec.py` — 批量命令执行测试 —— 黑名单三态 + 单台执行器（mock netmiko）。 (~2790 tok)
+- `test_batch_exec.py` — 批量命令执行测试 —— 黑名单三态 + 单台执行器（mock netmiko）。 (~3034 tok)
 - `test_collector_service.py` — collector_service 型号/序列号/成员ID提取测试 — 重点：Aruba CX VSF 堆叠 (~1644 tok)
 - `test_collector_service.py` — extract_model/extract_serial_number 测试（重点 VSF 堆叠成员型号，4 用例） (~500 tok)
 - `test_compliance_engine.py` — 配置审计引擎测试 —— 解析、判定器、站点作用域、行号契约。 (~5955 tok)

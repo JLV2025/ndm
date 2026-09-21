@@ -4059,6 +4059,27 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-21T04:23:34.801Z"
+    },
+    {
+      "id": "bug-205",
+      "timestamp": "2026-09-21T12:52:00.000Z",
+      "error_message": "用户批量执行 DEZD1SWI01 / DZND1SWI01 的配置命令时报错：SSH 连接异常：unsupported operand type(s) for +: 'float' and 'dict'（连续三次尝试）",
+      "file": "backend/services/batch_exec.py",
+      "root_cause": "settings.yaml 的 ssh_timeout 是 **dict**（{connect, read, write}），execute_on_device 写了 settings.get('ssh_timeout', 60) 把整块传给 DeviceConnection['timeout']；netmiko 内部拿 conn_timeout 做算术 → float + dict 崩溃。采集侧硬编码 120、从不读该键，所以这个坑一直没被踩到——这是全项目第一次从 settings 取 SSH 超时。单测全绿也挡不住：假连接不校验 timeout 的类型。",
+      "fix": "改为与采集一致的硬编码 \"timeout\": 120（附注释：别改回 settings['ssh_timeout']，那是 dict）；补回归测试——用真实 settings 形态（dict）跑接线并断言传给 DeviceConnection 的 timeout 是数值。",
+      "tags": [
+        "batch-exec",
+        "netmiko",
+        "settings",
+        "type-error",
+        "real-machine",
+        "user-reported"
+      ],
+      "related_bugs": [
+        "bug-202"
+      ],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T12:52:00.000Z"
     }
   ]
 }
