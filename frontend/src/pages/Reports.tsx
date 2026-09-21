@@ -232,7 +232,7 @@ export default function ReportsPage() {
                   <TableCell>{r.name}</TableCell>
                   <TableCell>{r.location || '—'}</TableCell>
                   <TableCell>{r.model}</TableCell>
-                  <TableCell sx={{ fontFamily: '"JetBrains Mono", monospace', fontSize: '0.75rem' }}>
+                  <TableCell sx={{ fontSize: '0.75rem' }}>
                     {r.serial || '—'}
                   </TableCell>
                   <TableCell>

@@ -240,7 +240,7 @@ const ImportDialog: React.FC<{ open: boolean; onClose: () => void; onImported: (
                       .map((r, i) => (
                         <TableRow key={i}>
                           <TableCell sx={{ fontSize: '0.75rem' }}>{r.row}</TableCell>
-                          <TableCell sx={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>{r.name}</TableCell>
+                          <TableCell sx={{ fontSize: '0.75rem' }}>{r.name}</TableCell>
                           <TableCell>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                               {statusIcon(r.status)}

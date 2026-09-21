@@ -191,7 +191,7 @@ const ComplianceStandard: React.FC = () => {
                       <Chip size="small" variant="outlined" label={r.severity}
                         sx={{ height: 18, fontSize: '0.6rem', color: 'text.disabled', borderColor: 'divider' }} />
                     )}
-                    <Typography variant="caption" sx={{ color: 'text.disabled', fontFamily: 'monospace', fontSize: '0.62rem' }}>
+                    <Typography variant="caption" sx={{ color: 'text.disabled', fontFamily: '"Fira Code", monospace', fontSize: '0.62rem' }}>
                       {r.id}
                     </Typography>
                     {!r.enabled && (
@@ -290,7 +290,7 @@ const RuleEditDialog: React.FC<{
 
   return (
     <Dialog open onClose={onClose} maxWidth="md" fullWidth>
-      <DialogTitle sx={{ fontSize: '1rem', fontFamily: 'monospace' }}>{rule.id}</DialogTitle>
+      <DialogTitle sx={{ fontSize: '1rem', fontFamily: '"Fira Code", monospace' }}>{rule.id}</DialogTitle>
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Typography variant="body2">{t('auditRules.enabled')}</Typography>
@@ -431,7 +431,7 @@ const ExceptionsPanel: React.FC = () => {
                   sx={{ height: 18, fontSize: '0.6rem', bgcolor: c.bg, color: c.text }} />
                 <Chip size="small" variant="outlined" label={scopeText}
                   sx={{ height: 18, fontSize: '0.6rem', color: 'text.secondary', borderColor: 'divider' }} />
-                <Typography variant="caption" sx={{ color: 'text.disabled', fontFamily: 'monospace', fontSize: '0.62rem' }}>
+                <Typography variant="caption" sx={{ color: 'text.disabled', fontFamily: '"Fira Code", monospace', fontSize: '0.62rem' }}>
                   {e.id}
                 </Typography>
                 <Typography variant="caption" sx={{ color: 'text.disabled', ml: 'auto', fontSize: '0.62rem' }}>
@@ -442,7 +442,7 @@ const ExceptionsPanel: React.FC = () => {
               <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.78rem' }}>
                 {e.rule_title || e.rule_id}
                 <Typography component="span" variant="caption"
-                  sx={{ color: 'text.disabled', fontFamily: 'monospace', fontSize: '0.62rem', ml: 0.75 }}>
+                  sx={{ color: 'text.disabled', fontFamily: '"Fira Code", monospace', fontSize: '0.62rem', ml: 0.75 }}>
                   {e.rule_id}
                 </Typography>
               </Typography>
@@ -529,7 +529,7 @@ const RenewExceptionDialog: React.FC<{
 
   return (
     <Dialog open onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ fontSize: '0.9rem', fontFamily: 'monospace' }}>{exc.id}</DialogTitle>
+      <DialogTitle sx={{ fontSize: '0.9rem', fontFamily: '"Fira Code", monospace' }}>{exc.id}</DialogTitle>
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
         <TextField size="small" type="date" label={t('exceptions.expiresAt')} value={expiresAt}
           onChange={(e) => setExpiresAt(e.target.value)} InputLabelProps={{ shrink: true }} />
@@ -571,7 +571,7 @@ const RevokeExceptionDialog: React.FC<{
 
   return (
     <Dialog open onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ fontSize: '0.9rem', fontFamily: 'monospace' }}>{exc.id}</DialogTitle>
+      <DialogTitle sx={{ fontSize: '0.9rem', fontFamily: '"Fira Code", monospace' }}>{exc.id}</DialogTitle>
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '8px !important' }}>
         <Typography variant="caption" color="text.secondary">{t('exceptions.revokeConfirm')}</Typography>
         <TextField size="small" label={t('exceptions.revokeBy')} value={by}

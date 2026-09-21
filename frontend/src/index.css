@@ -5,7 +5,9 @@
 }
 
 body {
-  font-family: 'Fira Code', system-ui, sans-serif;
+  /* 与 MUI 主题（main.tsx typography.fontFamily）保持一致 —— 历史上这里是 Fira Code（等宽），
+     导致裸元素与 MUI 组件两套字体并存 */
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #020617;
@@ -16,5 +18,5 @@ body {
 }
 
 code, pre, .mono, [class*="mono"] {
-  font-family: 'Fira Code', 'Fira Code', monospace;
+  font-family: 'Fira Code', monospace;
 }

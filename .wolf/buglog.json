@@ -4096,6 +4096,246 @@
       "related_bugs": [],
       "occurrences": 4,
       "last_seen": "2026-09-21T04:47:40.655Z"
+    },
+    {
+      "id": "bug-250",
+      "timestamp": "2026-09-21T04:52:24.081Z",
+      "error_message": "CSS fix: font-family",
+      "file": "frontend/src/index.css",
+      "root_cause": "font-family: 'Fira Code', system-ui, sans-serif → 'IBM Plex Sans', system-ui, sans-serif",
+      "fix": "Changed font-family: 'Fira Code', system-ui, sans-serif → 'IBM Plex Sans', system-ui, sans-serif",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:52:24.081Z"
+    },
+    {
+      "id": "bug-251",
+      "timestamp": "2026-09-21T04:52:29.927Z",
+      "error_message": "Wrong reference: Fira should be monospace",
+      "file": "frontend/src/index.css",
+      "root_cause": "Used \"Fira\" instead of \"monospace\"",
+      "fix": "Changed Fira → monospace",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:52:29.927Z"
+    },
+    {
+      "id": "bug-252",
+      "timestamp": "2026-09-21T04:52:34.711Z",
+      "error_message": "CSS fix: color",
+      "file": "frontend/src/components/devices/DeviceTable.tsx",
+      "root_cause": "color: 'text.secondary', fontSize: '0.75rem', fontFamily: '\"Fira Code\", monospace' → 'text.secondary', fontSize: '0.75rem'",
+      "fix": "Changed color: 'text.secondary', fontSize: '0.75rem', fontFamily: '\"Fira Code\", monospace' → 'text.secondary', fontSize: '0.75rem'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:52:34.711Z"
+    },
+    {
+      "id": "bug-253",
+      "timestamp": "2026-09-21T04:52:39.293Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/Reports.tsx",
+      "root_cause": "Had \"JetBrains Mono\"",
+      "fix": "Changed to '0.75rem'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:52:39.293Z"
+    },
+    {
+      "id": "bug-254",
+      "timestamp": "2026-09-21T04:52:43.845Z",
+      "error_message": "CSS fix: fontSize",
+      "file": "frontend/src/components/devices/ImportDialog.tsx",
+      "root_cause": "fontSize: '0.75rem', fontFamily: 'monospace' → '0.75rem'",
+      "fix": "Changed fontSize: '0.75rem', fontFamily: 'monospace' → '0.75rem'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:52:43.845Z"
+    },
+    {
+      "id": "bug-255",
+      "timestamp": "2026-09-21T04:52:55.916Z",
+      "error_message": "CSS fix: fontSize",
+      "file": "frontend/src/components/LifecycleCard.tsx",
+      "root_cause": "fontSize: '0.72rem', fontFamily: 'monospace', py: 0.4 → '0.72rem', py: 0.4",
+      "fix": "Changed fontSize: '0.72rem', fontFamily: 'monospace', py: 0.4 → '0.72rem', py: 0.4",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-21T04:53:10.354Z"
+    },
+    {
+      "id": "bug-256",
+      "timestamp": "2026-09-21T04:53:05.944Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/LifecycleCard.tsx",
+      "root_cause": "Had 'monospace'",
+      "fix": "Changed to '0.72rem'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-21T04:53:14.827Z"
+    },
+    {
+      "id": "bug-257",
+      "timestamp": "2026-09-21T04:53:23.248Z",
+      "error_message": "CSS fix: fontSize",
+      "file": "frontend/src/pages/BatchExec.tsx",
+      "root_cause": "fontSize: '0.72rem', color: 'text.secondary', fontFamily: 'monospace' → '0.72rem', color: 'text.secondary'",
+      "fix": "Changed fontSize: '0.72rem', color: 'text.secondary', fontFamily: 'monospace' → '0.72rem', color: 'text.secondary'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:53:23.248Z"
+    },
+    {
+      "id": "bug-258",
+      "timestamp": "2026-09-21T04:53:28.472Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/BatchExec.tsx",
+      "root_cause": "Had 'monospace'",
+      "fix": "Changed to \"Fira Code\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-21T04:53:33.039Z"
+    },
+    {
+      "id": "bug-259",
+      "timestamp": "2026-09-21T04:53:42.689Z",
+      "error_message": "CSS fix: fontSize",
+      "file": "frontend/src/pages/ComplianceAudit.tsx",
+      "root_cause": "fontSize: '0.72rem', py: 0.5, fontFamily: 'monospace' → '0.72rem', py: 0.5",
+      "fix": "Changed fontSize: '0.72rem', py: 0.5, fontFamily: 'monospace' → '0.72rem', py: 0.5",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:53:42.689Z"
+    },
+    {
+      "id": "bug-260",
+      "timestamp": "2026-09-21T04:53:48.380Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/ComplianceAudit.tsx",
+      "root_cause": "Had 'monospace'",
+      "fix": "Changed to \"Fira Code\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:53:48.380Z"
+    },
+    {
+      "id": "bug-261",
+      "timestamp": "2026-09-21T04:53:53.309Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/ComplianceStandard.tsx",
+      "root_cause": "Had 'monospace'",
+      "fix": "Changed to \"Fira Code\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:53:53.309Z"
+    },
+    {
+      "id": "bug-262",
+      "timestamp": "2026-09-21T04:53:57.813Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Had \"JetBrains Mono\"",
+      "fix": "Changed to \"Fira Code\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-21T04:54:02.096Z"
+    },
+    {
+      "id": "bug-263",
+      "timestamp": "2026-09-21T04:54:14.560Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/LogAnalyzer.tsx",
+      "root_cause": "Had \"Fira Code\"",
+      "fix": "Changed to \"0.85rem\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:54:14.560Z"
+    },
+    {
+      "id": "bug-264",
+      "timestamp": "2026-09-21T04:54:57.427Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/DeviceList.tsx",
+      "root_cause": "Had \"Fira Code\"",
+      "fix": "Changed to '0.75rem'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:54:57.427Z"
     }
   ]
 }

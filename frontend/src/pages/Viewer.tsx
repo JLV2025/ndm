@@ -687,7 +687,7 @@ const Viewer: React.FC = () => {
                 <Grid item xs={12} md={7}>
                   <Paper sx={{ height: '72vh', overflow: 'auto', bgcolor: 'background.default',
                                border: '1px solid', borderColor: 'divider', p: 1 }}>
-                    <Box sx={{ fontFamily: '"JetBrains Mono",monospace', fontSize: '0.72rem', lineHeight: 1.6 }}>
+                    <Box sx={{ fontFamily: '"Fira Code", monospace', fontSize: '0.72rem', lineHeight: 1.6 }}>
                       {auditLines.map((line, i) => {
                         const ln = i + 1
                         const fs = lineFindings.get(ln)
@@ -747,7 +747,7 @@ const Viewer: React.FC = () => {
                             )}
                             <Chip size="small" label={f.source} variant="outlined"
                               sx={{ height: 18, fontSize: '0.6rem', color: 'text.secondary', borderColor: 'divider' }} />
-                            <Typography variant="caption" sx={{ color: 'text.disabled', fontFamily: 'monospace', fontSize: '0.6rem' }}>
+                            <Typography variant="caption" sx={{ color: 'text.disabled', fontFamily: '"Fira Code", monospace', fontSize: '0.6rem' }}>
                               {f.rule_id}
                             </Typography>
                             {f.locatable ? (
@@ -791,12 +791,12 @@ const Viewer: React.FC = () => {
                           )}
                           {f.current && (
                             <pre style={{ margin: '4px 0', padding: 6, borderRadius: 4, background: 'rgba(2,6,23,0.6)',
-                                          fontFamily: '"JetBrains Mono",monospace', fontSize: '0.66rem',
+                                          fontFamily: '"Fira Code", monospace', fontSize: '0.66rem',
                                           whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: '#94A3B8' }}>{f.current}</pre>
                           )}
                           {f.fix && (
                             <pre style={{ margin: '4px 0', padding: 6, borderRadius: 4, background: 'rgba(45,212,110,0.06)',
-                                          fontFamily: '"JetBrains Mono",monospace', fontSize: '0.66rem',
+                                          fontFamily: '"Fira Code", monospace', fontSize: '0.66rem',
                                           whiteSpace: 'pre-wrap', wordBreak: 'break-all', color: '#5CE68C' }}>{f.fix.trimEnd()}</pre>
                           )}
                           {f.why && (

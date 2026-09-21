@@ -399,7 +399,7 @@ const DeviceList: React.FC = () => {
                 <TableBody>
                   {offlineDevices.map((od) => (
                     <TableRow key={od.serial_number} hover>
-                      <TableCell sx={{ fontFamily: '"Fira Code", monospace', fontSize: '0.75rem' }}>{od.serial_number}</TableCell>
+                      <TableCell sx={{ fontSize: '0.75rem' }}>{od.serial_number}</TableCell>
                       <TableCell sx={{ fontSize: '0.75rem' }}>{od.model || '-'}</TableCell>
                       <TableCell sx={{ fontSize: '0.75rem' }}>
                         {od.last_device ? `${od.last_device}${od.last_member ? ` (成员 ${od.last_member})` : ''}` : '-'}

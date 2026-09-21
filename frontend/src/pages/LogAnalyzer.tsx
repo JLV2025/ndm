@@ -442,7 +442,7 @@ export default function LogAnalyzer() {
                 <DetailRow label={t('logs.timestamp')} value={selectedLog.timestamp || '—'} />
                 <DetailRow label={t('collect.deviceLabel')} value={
                   <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="body2" fontFamily='"Fira Code", monospace'>{selectedDeviceName}</Typography>
+                    <Typography variant="body2">{selectedDeviceName}</Typography>
                     {selectedDeviceInfo && (
                       <Typography variant="caption" color="text.secondary">
                         {selectedDeviceInfo.ip}
@@ -459,7 +459,7 @@ export default function LogAnalyzer() {
                   />
                 } />
                 <DetailRow label={t('logs.facility')} value={
-                  <Typography variant="body2" fontFamily='"Fira Code", monospace' fontSize="0.85rem">
+                  <Typography variant="body2" fontSize="0.85rem">
                     {selectedLog.facility || '—'}
                   </Typography>
                 } />

@@ -316,7 +316,7 @@ const ComplianceAudit: React.FC = () => {
                       : <TrendingUp sx={{ fontSize: 16, color: DIFF_UP }} />}
                     <Typography variant="body2" sx={{ fontSize: '0.78rem', flex: 1, minWidth: 0 }}>
                       {r.title}
-                      <Typography component="span" variant="caption" sx={{ color: 'text.disabled', fontFamily: 'monospace', fontSize: '0.6rem', ml: 0.75 }}>
+                      <Typography component="span" variant="caption" sx={{ color: 'text.disabled', fontFamily: '"Fira Code", monospace', fontSize: '0.6rem', ml: 0.75 }}>
                         {r.rule_id}
                       </Typography>
                     </Typography>
@@ -364,7 +364,7 @@ const ComplianceAudit: React.FC = () => {
                       </IconButton>
                       <Typography variant="body2" sx={{ fontSize: '0.78rem', flex: 1, minWidth: 0 }}>
                         {r.title}
-                        <Typography component="span" variant="caption" sx={{ color: 'text.disabled', fontFamily: 'monospace', fontSize: '0.6rem', ml: 0.75 }}>
+                        <Typography component="span" variant="caption" sx={{ color: 'text.disabled', fontFamily: '"Fira Code", monospace', fontSize: '0.6rem', ml: 0.75 }}>
                           {r.rule_id}
                         </Typography>
                       </Typography>
@@ -426,7 +426,7 @@ const ComplianceAudit: React.FC = () => {
                 <TableBody>
                   {historyRows.map((r) => (
                     <TableRow key={r.id} hover onClick={() => setDetailId(r.id)} sx={{ cursor: 'pointer' }}>
-                      <TableCell sx={{ fontSize: '0.72rem', py: 0.5, fontFamily: 'monospace' }}>{fmtTime(r.started_at)}</TableCell>
+                      <TableCell sx={{ fontSize: '0.72rem', py: 0.5 }}>{fmtTime(r.started_at)}</TableCell>
                       <TableCell sx={{ fontSize: '0.72rem', py: 0.5 }}>{triggerLabel(t, r.trigger)}</TableCell>
                       <TableCell sx={{ fontSize: '0.72rem', py: 0.5 }}>{r.device_count}</TableCell>
                       <TableCell sx={{ fontSize: '0.72rem', py: 0.5 }}>{r.finding_count - (r.exempt_count || 0)}</TableCell>
@@ -519,12 +519,12 @@ const RunDetailDialog: React.FC<{ runId: number; onClose: () => void }> = ({ run
               <Box key={`${f.device_name}-${f.rule_id}-${i}`}
                 sx={{ py: 0.75, borderBottom: '1px solid', borderColor: 'divider', opacity: f.exempt && f.exempt.status !== 'expired' ? 0.75 : 1 }}>
                 <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <Typography variant="caption" sx={{ fontFamily: 'monospace', fontSize: '0.68rem', color: 'text.secondary', minWidth: 92 }}>
+                  <Typography variant="caption" sx={{ fontFamily: '"Fira Code", monospace', fontSize: '0.68rem', color: 'text.secondary', minWidth: 92 }}>
                     {f.device_name}
                   </Typography>
                   <Typography variant="body2" sx={{ fontSize: '0.76rem', flex: 1, minWidth: 0 }}>
                     {f.title}
-                    <Typography component="span" variant="caption" sx={{ color: 'text.disabled', fontFamily: 'monospace', fontSize: '0.58rem', ml: 0.75 }}>
+                    <Typography component="span" variant="caption" sx={{ color: 'text.disabled', fontFamily: '"Fira Code", monospace', fontSize: '0.58rem', ml: 0.75 }}>
                       {f.rule_id}
                     </Typography>
                   </Typography>

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-21T04:47:40.612Z
-> Files: 187 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-21T04:54:57.358Z
+> Files: 191 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -303,17 +303,20 @@
 ## frontend/src/
 
 - `App.tsx` — DRAWER_WIDTH — renders modal (~3644 tok)
+- `index.css` — Stylesheet (~206 tok)
 
 ## frontend/src/components/
 
 - `AuditExceptionDialog.tsx` — 登记例外对话框（查看器与标准页共用；到期日默认 +180 天） (~1652 tok)
 - `BriefingDialog.tsx` — 极简 Markdown 渲染：标题行加粗、`- ` 列表、**加粗** —— 不引第三方依赖 (~983 tok)
-- `LifecycleCard.tsx` — 设备生命周期卡片 —— EoL 与保修期。 (~5077 tok)
+- `LifecycleCard.tsx` — 设备生命周期卡片 —— EoL 与保修期。 (~5052 tok)
 
 ## frontend/src/components/devices/
 
 - `DeleteConfirmDialog.tsx` — 自定义提示文案；不传则用 devices.deleteWarning 并把 {name} 替换为 deviceName (~462 tok)
+- `DeviceTable.tsx` — DeviceTable — renders table (~2483 tok)
 - `deviceUtils.ts` — 解析堆叠成员编号后缀（每成员一个后缀，与序列号同序） (~408 tok)
+- `ImportDialog.tsx` — ImportDialog — renders table, modal (~2775 tok)
 
 ## frontend/src/components/topology/
 
@@ -331,16 +334,17 @@
 ## frontend/src/pages/
 
 - `Alerts.tsx` — 字段中文标签映射 (~4641 tok)
-- `BatchExec.tsx` — 执行队列的一项 (~7098 tok)
-- `ComplianceAudit.tsx` — 与仪表盘一致的图表配色（深色主题） (~8406 tok)
-- `ComplianceStandard.tsx` — 档位 → 配色，与查看器审计模式保持一致（刻意不用红色系：这是建议强度不是违规等级） (~7818 tok)
+- `BatchExec.tsx` — 执行队列的一项 (~7102 tok)
+- `ComplianceAudit.tsx` — 与仪表盘一致的图表配色（深色主题） (~8413 tok)
+- `ComplianceStandard.tsx` — 档位 → 配色，与查看器审计模式保持一致（刻意不用红色系：这是建议强度不是违规等级） (~7840 tok)
 - `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~11085 tok)
 - `DeviceDetail.tsx` — DeviceDetail (~6839 tok)
-- `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5691 tok)
+- `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5680 tok)
+- `LogAnalyzer.tsx` — 严重级别 → 颜色 (数字→hex) (~7989 tok)
 - `Login.tsx` — Login (~2283 tok)
-- `Reports.tsx` — 两张表的默认排序：型号字母序 / 吞吐降序 (~4439 tok)
+- `Reports.tsx` — 两张表的默认排序：型号字母序 / 吞吐降序 (~4427 tok)
 - `StpTopology.tsx` — StpTopology (~1434 tok)
-- `Viewer.tsx` — 语义颜色常量 — 对应 MUI OLED Dark 主题 (~12766 tok)
+- `Viewer.tsx` — 语义颜色常量 — 对应 MUI OLED Dark 主题 (~12866 tok)
 
 ## frontend/src/services/
 

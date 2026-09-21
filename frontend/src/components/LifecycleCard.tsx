@@ -106,7 +106,7 @@ const LifecycleCard: React.FC<{ deviceName: string }> = ({ deviceName }) => {
                   const announced = !!(m.end_of_sale || m.end_of_support)
                   return (
                     <TableRow key={m.model}>
-                      <TableCell sx={{ fontSize: '0.72rem', fontFamily: 'monospace', py: 0.4 }}>{m.model}</TableCell>
+                      <TableCell sx={{ fontSize: '0.72rem', py: 0.4 }}>{m.model}</TableCell>
                       <TableCell sx={{ py: 0.4 }}>
                         <Chip size="small"
                           label={announced ? t('lifecycle.announced') : (m.source ? t('lifecycle.notAnnounced') : t('lifecycle.notRegistered'))}
@@ -151,7 +151,7 @@ const LifecycleCard: React.FC<{ deviceName: string }> = ({ deviceName }) => {
               <TableBody>
                 {data.serials.map((s) => (
                   <TableRow key={s.serial}>
-                    <TableCell sx={{ fontSize: '0.72rem', fontFamily: 'monospace', py: 0.4 }}>{s.serial}</TableCell>
+                    <TableCell sx={{ fontSize: '0.72rem', py: 0.4 }}>{s.serial}</TableCell>
                     <TableCell sx={{ fontSize: '0.72rem', py: 0.4 }}>{s.warranty_end || t('lifecycle.notRegistered')}</TableCell>
                     <TableCell sx={{ fontSize: '0.68rem', color: 'text.secondary', py: 0.4 }}>{s.note || '—'}</TableCell>
                     <TableCell sx={{ fontSize: '0.66rem', color: 'text.disabled', py: 0.4 }}>
@@ -237,7 +237,7 @@ const WarrantyDialog: React.FC<{
         <Typography variant="caption" color="text.secondary">{t('lifecycle.warrantyHint')}</Typography>
         {rows.map((row, i) => (
           <Box key={row.serial} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-            <Typography sx={{ fontFamily: 'monospace', fontSize: '0.72rem', minWidth: 130 }}>
+            <Typography sx={{ fontSize: '0.72rem', minWidth: 130 }}>
               {row.serial}
             </Typography>
             <TextField size="small" type="date" value={row.warranty_end}
@@ -291,7 +291,7 @@ const ModelEolDialog: React.FC<{
 
   return (
     <Dialog open onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ fontSize: '0.92rem', fontFamily: 'monospace' }}>{model.model}</DialogTitle>
+      <DialogTitle sx={{ fontSize: '0.92rem' }}>{model.model}</DialogTitle>
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, pt: '8px !important' }}>
         <Typography variant="caption" color="text.secondary">{t('lifecycle.modelHint')}</Typography>
         <TextField size="small" type="date" label={t('lifecycle.endOfSale')} value={endOfSale}
@@ -344,7 +344,7 @@ const ImportDialog: React.FC<{
         <Typography variant="caption" color="text.secondary">{t('lifecycle.importHint')}</Typography>
         <TextField multiline minRows={6} placeholder={'FOC1234X5AB,2028-05-01,Smart Net\nCN41LM90H4,2027-12-31'}
           value={text} onChange={(e) => setText(e.target.value)} fullWidth
-          sx={{ '& textarea': { fontFamily: 'monospace', fontSize: '0.75rem' } }} />
+          sx={{ '& textarea': { fontFamily: '"Fira Code", monospace', fontSize: '0.75rem' } }} />
         <TextField size="small" label={t('lifecycle.verifiedBy')} value={verifiedBy}
           onChange={(e) => setVerifiedBy(e.target.value)} sx={{ width: 200 }} />
         {error && <Alert severity="warning" sx={{ py: 0.25, fontSize: '0.75rem' }}>{error}</Alert>}

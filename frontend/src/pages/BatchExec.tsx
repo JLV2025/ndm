@@ -237,7 +237,7 @@ const BatchExec: React.FC = () => {
                   <TableCell sx={{ fontSize: '0.72rem' }}>{d.name}</TableCell>
                   <TableCell sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>{d.model || '—'}</TableCell>
                   <TableCell sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>{d.location || '—'}</TableCell>
-                  <TableCell sx={{ fontSize: '0.72rem', color: 'text.secondary', fontFamily: 'monospace' }}>{d.ip}</TableCell>
+                  <TableCell sx={{ fontSize: '0.72rem', color: 'text.secondary' }}>{d.ip}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -279,7 +279,7 @@ const BatchExec: React.FC = () => {
             </Typography>
             {fromAuditCurrent ? (
               <Box component="pre" sx={{
-                m: 0, fontSize: '0.72rem', fontFamily: 'monospace', whiteSpace: 'pre-wrap',
+                m: 0, fontSize: '0.72rem', fontFamily: '"Fira Code", monospace', whiteSpace: 'pre-wrap',
                 color: '#FB923C', maxHeight: 136, overflow: 'auto',
               }}>{fromAuditCurrent}</Box>
             ) : (
@@ -326,7 +326,7 @@ const BatchExec: React.FC = () => {
           <Alert severity="error" sx={{ mt: 1.5 }}>
             <Typography variant="body2" sx={{ fontWeight: 700 }}>{t('batch.blockedTitle')}</Typography>
             {check.blocked.map((b) => (
-              <Typography key={b.cmd} variant="caption" sx={{ display: 'block', fontFamily: 'monospace' }}>
+              <Typography key={b.cmd} variant="caption" sx={{ display: 'block', fontFamily: '"Fira Code", monospace' }}>
                 {b.cmd} —— {b.reason}
               </Typography>
             ))}
@@ -336,7 +336,7 @@ const BatchExec: React.FC = () => {
           <Alert severity="warning" sx={{ mt: 1.5 }}>
             <Typography variant="body2" sx={{ fontWeight: 700 }}>{t('batch.warnTitle')}</Typography>
             {check.warnings.map((w) => (
-              <Typography key={w.cmd} variant="caption" sx={{ display: 'block', fontFamily: 'monospace' }}>
+              <Typography key={w.cmd} variant="caption" sx={{ display: 'block', fontFamily: '"Fira Code", monospace' }}>
                 {w.cmd} —— {w.reason}
               </Typography>
             ))}
