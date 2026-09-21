@@ -4,7 +4,7 @@ import {
   DialogActions, IconButton, MenuItem, Paper, Select, Snackbar, Table, TableBody, TableCell,
   TableHead, TableRow, ToggleButton, ToggleButtonGroup, Tooltip, Typography,
 } from '@mui/material'
-import { AutoAwesome, PlayArrow, Refresh, TrendingDown, TrendingUp } from '@mui/icons-material'
+import { AutoAwesome, ExpandLess, ExpandMore, PlayArrow, Refresh, TrendingDown, TrendingUp } from '@mui/icons-material'
 import {
   CartesianGrid, Legend, Line, LineChart, ResponsiveContainer,
   Tooltip as RechartsTooltip, XAxis, YAxis,
@@ -14,7 +14,7 @@ import { auditApi } from '../services/api'
 import BriefingDialog from '../components/BriefingDialog'
 import { sessionManager } from '../services/auth'
 import { useI18n } from '../i18n'
-import type { AuditBriefing, AuditRun, AuditRunDetail, AuditTrendDiff, AuditTrends } from '../types'
+import type { AuditBriefing, AuditByRule, AuditRun, AuditRunDetail, AuditTrendDiff, AuditTrends } from '../types'
 
 /** 与仪表盘一致的图表配色（深色主题） */
 const GRID = '#1E293B'
@@ -41,6 +41,8 @@ const ComplianceAudit: React.FC = () => {
 
   const [trends, setTrends] = useState<AuditTrends | null>(null)
   const [diff, setDiff] = useState<AuditTrendDiff | null>(null)
+  const [byRule, setByRule] = useState<AuditByRule | null>(null)
+  const [expandRule, setExpandRule] = useState('')
   const [runs, setRuns] = useState<AuditRun[]>([])
   const [sites, setSites] = useState<string[]>([])
   const [site, setSite] = useState('')
@@ -62,8 +64,11 @@ const ComplianceAudit: React.FC = () => {
       auditApi.trendDiff(),
       auditApi.runs(30),
       auditApi.ruleset().catch(() => null),   // 只为拿站点清单
-    ]).then(([tr, df, rs, ruleset]) => {
+    ]).then(async ([tr, df, rs, ruleset]) => {
       setTrends(tr); setDiff(df); setRuns(rs.runs || [])
+      // 发现排行跟着**最新一次**运行走；拉失败不拖垮整页
+      const latestId = rs.runs?.[0]?.id
+      setByRule(latestId ? await auditApi.byRule(latestId).catch(() => null) : null)
       if (ruleset?.sites) {
         const all = new Set<string>()
         Object.values(ruleset.sites as Record<string, string[]>).forEach(
@@ -301,6 +306,62 @@ const ComplianceAudit: React.FC = () => {
                     {r.exempt_count > 0 && (
                       <Chip size="small" label={`${t('auditPage.exemptCount')} ${r.exempt_count}`}
                         sx={{ height: 18, fontSize: '0.58rem', bgcolor: 'rgba(148,163,184,0.12)', color: 'text.disabled' }} />
+                    )}
+                  </Box>
+                ))}
+              </Box>
+            )}
+          </Paper>
+
+          {/* 发现排行：按发现看设备（反向视图 —— "用了外部 NTP 的一共几台、都是谁"） */}
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{t('auditPage.byRule')}</Typography>
+            <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 0.5 }}>
+              {t('auditPage.byRuleHint')}
+            </Typography>
+            {!byRule || byRule.rules.length === 0 ? (
+              <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center', fontSize: '0.82rem' }}>
+                {t('audit.noFindings')}
+              </Typography>
+            ) : (
+              <Box sx={{ mt: 1, maxHeight: 320, overflow: 'auto' }}>
+                {byRule.rules.map((r) => (
+                  <Box key={r.rule_id} sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+                    <Box
+                      onClick={() => setExpandRule(expandRule === r.rule_id ? '' : r.rule_id)}
+                      sx={{
+                        display: 'flex', alignItems: 'center', gap: 1, py: 0.5, cursor: 'pointer',
+                        '&:hover': { bgcolor: 'action.hover' },
+                      }}>
+                      <IconButton size="small" sx={{ p: 0.25 }}>
+                        {expandRule === r.rule_id
+                          ? <ExpandLess sx={{ fontSize: 16 }} />
+                          : <ExpandMore sx={{ fontSize: 16 }} />}
+                      </IconButton>
+                      <Typography variant="body2" sx={{ fontSize: '0.78rem', flex: 1, minWidth: 0 }}>
+                        {r.title}
+                        <Typography component="span" variant="caption" sx={{ color: 'text.disabled', fontFamily: 'monospace', fontSize: '0.6rem', ml: 0.75 }}>
+                          {r.rule_id}
+                        </Typography>
+                      </Typography>
+                      <Chip size="small" label={r.level} sx={{ height: 18, fontSize: '0.6rem', bgcolor: 'rgba(148,163,184,0.1)', color: 'text.secondary' }} />
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.68rem', minWidth: 44, textAlign: 'right' }}>
+                        {t('auditPage.devicesHit').replace('{n}', String(r.count))}
+                      </Typography>
+                      {r.exempt_count > 0 && (
+                        <Chip size="small" label={`${t('auditPage.exemptCount')} ${r.exempt_count}`}
+                          sx={{ height: 18, fontSize: '0.58rem', bgcolor: 'rgba(148,163,184,0.12)', color: 'text.disabled' }} />
+                      )}
+                    </Box>
+                    {expandRule === r.rule_id && (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, px: 5, pb: 1.25, pt: 0.25 }}>
+                        {r.devices.map((d) => (
+                          <Chip key={d.name} size="small" clickable
+                            label={d.location ? `${d.name} · ${d.location}` : d.name}
+                            onClick={() => navigate(`/viewer?device=${encodeURIComponent(d.name)}`)}
+                            sx={{ height: 22, fontSize: '0.68rem' }} />
+                        ))}
+                      </Box>
                     )}
                   </Box>
                 ))}

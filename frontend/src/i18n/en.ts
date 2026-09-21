@@ -631,6 +631,8 @@ const en: Record<string, string> = {
   'auditPage.worsened': 'Worsened {n}',
   'auditPage.devicesHit': '{n} devices hit',
   'auditPage.history': 'Run history',
+  'auditPage.byRule': 'Findings by Rule',
+  'auditPage.byRuleHint': 'Latest run: which devices each finding hit (approved exceptions excluded) — click to expand, click a device to open the viewer',
   'auditPage.colTime': 'Time',
   'auditPage.colTrigger': 'Trigger',
   'auditPage.colDevices': 'Devices',

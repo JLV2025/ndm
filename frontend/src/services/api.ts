@@ -194,8 +194,12 @@ export const auditApi = {
     apiJson.post('/audit/run', null, { params: { trigger } }).then(res => res.data),
 
   runs: (limit = 20) => apiJson.get('/audit/runs', { params: { limit } }).then(res => res.data),
-  runDetail: (id: number, params?: { level?: string; device?: string }) =>
+  runDetail: (id: number, params?: { level?: string; device?: string; rule?: string }) =>
     apiJson.get(`/audit/runs/${id}`, { params }).then(res => res.data),
+
+  /** 按发现看设备：某次运行按规则聚合（命中台数 + 设备名单，按台数降序） */
+  byRule: (id: number): Promise<import('../types').AuditByRule> =>
+    apiJson.get(`/audit/runs/${id}/by-rule`).then(res => res.data),
 
   /**
    * 编辑一条规则并写回来源文件（保留注释）。

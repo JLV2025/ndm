@@ -247,6 +247,22 @@ export interface AuditRunDetail {
   findings: AuditRunFinding[]
 }
 
+/** 按发现看设备（by-rule 聚合的反向视图）：一条发现命中了哪些设备 */
+export interface AuditByRuleItem {
+  rule_id: string
+  title: string
+  level: string
+  source: string
+  count: number                                    // 未豁免命中台数
+  exempt_count: number                             // 豁免台数（生效中 + 即将到期）
+  devices: { name: string; location: string }[]    // 命中设备名单（不含豁免的）
+}
+
+export interface AuditByRule {
+  run_id: number
+  rules: AuditByRuleItem[]
+}
+
 // ---------------------------------------------------------------- 设备生命周期（EoL / 保修）
 
 /** 刷新可用性：未配 Cisco 凭据时 available=false + 可读原因（手工登记不受影响） */

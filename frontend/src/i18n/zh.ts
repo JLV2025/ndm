@@ -633,6 +633,8 @@ const zh: Record<string, string> = {
   'auditPage.worsened': '恶化 {n} 条',
   'auditPage.devicesHit': '命中 {n} 台',
   'auditPage.history': '历史运行',
+  'auditPage.byRule': '发现排行（按发现看设备）',
+  'auditPage.byRuleHint': '最新一次审计：每条发现命中了哪些设备（不含已批准例外）—— 点击展开设备名单，点设备名进查看器',
   'auditPage.colTime': '时间',
   'auditPage.colTrigger': '触发',
   'auditPage.colDevices': '设备',
