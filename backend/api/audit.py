@@ -263,8 +263,9 @@ async def network_briefing(run_id: int | None = None):
 
 
 @router.get("/api/audit/runs/{run_id}")
-async def get_run(run_id: int, level: str | None = None, device: str | None = None):
-    """某次审计的明细，可按档位 / 设备过滤。"""
+async def get_run(run_id: int, level: str | None = None, device: str | None = None,
+                  rule: str | None = None):
+    """某次审计的明细，可按档位 / 设备 / 规则过滤。"""
     db = _get_db()
     db.row_factory = __import__("sqlite3").Row
     run = db.execute("SELECT * FROM audit_runs WHERE id = ?", (run_id,)).fetchone()
@@ -279,6 +280,9 @@ async def get_run(run_id: int, level: str | None = None, device: str | None = No
     if device:
         sql += " AND device_name = ?"
         params.append(device)
+    if rule:
+        sql += " AND rule_id = ?"
+        params.append(rule)
     sql += " ORDER BY device_name, level, rule_id"
     findings = []
     for r in db.execute(sql, params):
@@ -288,6 +292,40 @@ async def get_run(run_id: int, level: str | None = None, device: str | None = No
         d["exempt"] = json.loads(d.pop("exempt_json") or "null")
         findings.append(d)
     return {"run": dict(run), "findings": findings}
+
+
+@router.get("/api/audit/runs/{run_id}/by-rule")
+async def run_by_rule(run_id: int):
+    """按规则聚合本次运行（"按发现看设备"的反向视图）。
+
+    数据本来就按「设备 × 规则」落库，这里只是换一个聚合方向：
+    每条发现命中多少台设备、都是谁 —— 回答"用了外部 NTP 的交换机一共几台"。
+    口径与趋势页一致：**count 只数未豁免的**，豁免单独计数（生效中 + 即将到期，
+    已过期的例外回到普通统计）。设备名单随行返回（当前规模几十台，无需按需拉），
+    带 location 供前端展示/筛选；设备已删或改名时 location 为空（LEFT JOIN，不算错）。
+    """
+    db = _get_db()
+    db.row_factory = __import__("sqlite3").Row
+    run = db.execute("SELECT id FROM audit_runs WHERE id = ?", (run_id,)).fetchone()
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"审计记录不存在：{run_id}")
+    sql = ("SELECT af.rule_id, af.level, af.source, af.title, af.device_name, d.location, "
+           f"{trends.exempt_case()} AS exempt "
+           "FROM audit_findings af LEFT JOIN devices d ON d.name = af.device_name "
+           "WHERE af.run_id = ? ORDER BY af.rule_id, af.device_name")
+    rules: dict[str, dict] = {}
+    for r in db.execute(sql, (run_id,)):
+        item = rules.setdefault(r["rule_id"], {
+            "rule_id": r["rule_id"], "title": r["title"], "level": r["level"],
+            "source": r["source"], "count": 0, "exempt_count": 0, "devices": [],
+        })
+        if r["exempt"]:
+            item["exempt_count"] += 1
+        else:
+            item["count"] += 1
+            item["devices"].append({"name": r["device_name"], "location": r["location"] or ""})
+    out = sorted(rules.values(), key=lambda x: (-x["count"], x["rule_id"]))
+    return {"run_id": run_id, "rules": out}
 
 
 # ---------------------------------------------------------------- 规则编辑

@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from fastapi import HTTPException
 
 BACKEND = Path(__file__).resolve().parents[1]
 if str(BACKEND) not in sys.path:
@@ -174,3 +175,55 @@ def test_历史列表含例外数与两个指纹(conn):
     add_run(conn, 1, "2026-09-20T08:00:00", ruleset="R9", exceptions="E9")
     runs = call(audit_api.list_runs())["runs"]
     assert runs[0]["exceptions_hash"] == "E9" and "exempt_count" in runs[0]
+
+
+# ---------------------------------------------------------------- 按规则聚合（by-rule）
+
+def test_按规则聚合带设备名单(conn):
+    """反向视图：每条发现命中几台、都是谁（按台数降序、设备名升序）。"""
+    add_run(conn, 1, "2026-09-20T08:00:00")
+    add_finding(conn, 1, "BJQD1SWI01", "r_ntp")
+    add_finding(conn, 1, "ZGND1SWI01", "r_ntp")
+    add_finding(conn, 1, "BJQD1SWI01", "r_only_once")
+    res = call(audit_api.run_by_rule(1))
+    assert res["run_id"] == 1
+    assert [r["rule_id"] for r in res["rules"]] == ["r_ntp", "r_only_once"]  # 台数降序
+    ntp = res["rules"][0]
+    assert ntp["count"] == 2 and ntp["title"] == "r_ntp 标题"
+    assert [d["name"] for d in ntp["devices"]] == ["BJQD1SWI01", "ZGND1SWI01"]
+    assert ntp["devices"][0]["location"] == "BJQ"
+
+
+def test_按规则聚合_豁免不计入命中且单列(conn):
+    """口径与趋势一致：生效中豁免不数进 count、不进设备名单；过期豁免回到普通统计。"""
+    add_run(conn, 1, "2026-09-20T08:00:00")
+    add_finding(conn, 1, "BJQD1SWI01", "r1")
+    add_finding(conn, 1, "ZGND1SWI01", "r1", exempt=ACTIVE)
+    r = call(audit_api.run_by_rule(1))["rules"][0]
+    assert r["count"] == 1 and r["exempt_count"] == 1
+    assert [d["name"] for d in r["devices"]] == ["BJQD1SWI01"]
+
+    add_finding(conn, 1, "ZGND1SWI01", "r2", exempt=EXPIRED)   # 已过期：回到普通统计
+    r2 = next(x for x in call(audit_api.run_by_rule(1))["rules"] if x["rule_id"] == "r2")
+    assert r2["count"] == 1 and r2["exempt_count"] == 0
+
+
+def test_按规则聚合_设备不在册时location为空(conn):
+    add_run(conn, 1, "2026-09-20T08:00:00")
+    add_finding(conn, 1, "GHOST01", "r1")               # 设备已删/改名
+    d = call(audit_api.run_by_rule(1))["rules"][0]["devices"][0]
+    assert d["name"] == "GHOST01" and d["location"] == ""
+
+
+def test_按规则聚合_运行不存在404(conn):
+    with pytest.raises(HTTPException) as ei:
+        call(audit_api.run_by_rule(999))
+    assert ei.value.status_code == 404
+
+
+def test_明细支持按规则过滤(conn):
+    add_run(conn, 1, "2026-09-20T08:00:00")
+    add_finding(conn, 1, "BJQD1SWI01", "r1")
+    add_finding(conn, 1, "BJQD1SWI01", "r2")
+    res = call(audit_api.get_run(1, rule="r2"))
+    assert len(res["findings"]) == 1 and res["findings"][0]["rule_id"] == "r2"
