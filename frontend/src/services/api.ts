@@ -247,6 +247,46 @@ export const auditApi = {
     apiJson.post('/audit/briefing', null, { params: { run_id: runId } }).then(res => res.data),
 }
 
+// 批量执行 — 命令下发（预检 → 逐台执行 → 历史留痕）
+// 用 fetch + FormData（与采集一致：凭据不进 JSON、不进日志、不落盘）
+export const batchApi = {
+  /** 命令预检（黑名单三态）。执行前服务端还会再查一次，前端预检只是提前告知 */
+  check: (text: string): Promise<import('../types').BatchCheckResult> =>
+    apiJson.post('/batch/check', { text }).then(res => res.data),
+
+  /** 对单台设备执行（前端逐台调用，编排在页面侧；单台失败不影响队列） */
+  execute: async (p: {
+    device_name: string; username: string; password: string; text: string
+    mode: 'show' | 'config'; save: boolean; batch_id: string; total: number; note?: string
+  }): Promise<import('../types').BatchExecuteResult> => {
+    const fd = new FormData()
+    fd.append('device_name', p.device_name)
+    fd.append('username', p.username)
+    fd.append('password', p.password)
+    fd.append('text', p.text)
+    fd.append('mode', p.mode)
+    fd.append('save', p.save ? '1' : '0')
+    fd.append('batch_id', p.batch_id)
+    fd.append('total', String(p.total))
+    fd.append('note', p.note || '')
+    const res = await fetch(apiUrl('/batch/execute'), {
+      method: 'POST', body: fd, credentials: 'include',
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error(data.detail || `执行请求失败 (${res.status})`)
+    return data
+  },
+
+  history: (limit = 20): Promise<{ batches: import('../types').BatchRun[] }> =>
+    apiJson.get('/batch/history', { params: { limit } }).then(res => res.data),
+
+  historyDetail: (batchId: string): Promise<import('../types').BatchHistoryDetail> =>
+    apiJson.get(`/batch/history/${encodeURIComponent(batchId)}`).then(res => res.data),
+
+  remove: (batchId: string) =>
+    apiJson.delete(`/batch/history/${encodeURIComponent(batchId)}`).then(res => res.data),
+}
+
 // 设备生命周期（EoL / 保修期）—— 手工登记为主，Cisco EoX 可自动刷新
 export const lifecycleApi = {
   device: (name: string): Promise<import('../types').DeviceLifecycle> =>

@@ -28,6 +28,7 @@ import {
   Assessment as ReportsIcon,
   BugReport as BugIcon,
   FactCheck as AuditIcon,
+  Bolt as BoltIcon,
 } from '@mui/icons-material'
 import Login from './pages/Login'
 import DeviceList from './pages/DeviceList'
@@ -42,6 +43,7 @@ import Reports from './pages/Reports'
 import LogAnalyzer from './pages/LogAnalyzer'
 import ComplianceStandard from './pages/ComplianceStandard'
 import ComplianceAudit from './pages/ComplianceAudit'
+import BatchExec from './pages/BatchExec'
 import MatrixRain from './components/MatrixRain'
 import { sessionManager } from './services/auth'
 import { useI18n } from './i18n'
@@ -99,6 +101,7 @@ function Layout() {
     { label: t('logs.title'), icon: <BugIcon />, path: '/log-analyzer' },
     { label: t('nav.audit'), icon: <AuditIcon />, path: '/compliance-audit' },
     { label: t('auditRules.title'), icon: <AuditIcon />, path: '/compliance-standard' },
+    { label: t('nav.batchExec'), icon: <BoltIcon />, path: '/batch-exec' },
   ]
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen)
@@ -364,6 +367,7 @@ const App: React.FC = () => {
           <Route path="log-analyzer" element={<LogAnalyzer />} />
           <Route path="compliance-standard" element={<ComplianceStandard />} />
           <Route path="compliance-audit" element={<ComplianceAudit />} />
+          <Route path="batch-exec" element={<BatchExec />} />
         </Route>
       </Routes>
       </ErrorBoundary>

@@ -386,3 +386,49 @@ export interface AuditRun {
   finding_count: number
   status: string
 }
+
+// ---------------------------------------------------------------- 批量执行（命令下发）
+
+/** 命令预检结果（黑名单三态；blocked 非空 = 拒绝执行） */
+export interface BatchCheckResult {
+  commands: string[]
+  blocked: { cmd: string; reason: string }[]
+  warnings: { cmd: string; reason: string }[]
+}
+
+/** 单台执行结果（status: success | failed | blocked） */
+export interface BatchExecuteResult {
+  device: string
+  status: 'success' | 'failed' | 'blocked'
+  output: string
+  error: string
+}
+
+/** 一个执行批次（命令全文只存一份；统计字段来自 history 端点） */
+export interface BatchRun {
+  batch_id: string
+  created_at: string
+  username: string
+  mode: string
+  save_config: number
+  command_text: string
+  device_count: number
+  note: string
+  success_count?: number
+  failed_count?: number
+  done_count?: number
+}
+
+export interface BatchResultRow {
+  device_name: string
+  status: string
+  output: string
+  error: string
+  started_at: string
+  finished_at: string
+}
+
+export interface BatchHistoryDetail {
+  batch: BatchRun
+  results: BatchResultRow[]
+}
