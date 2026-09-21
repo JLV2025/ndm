@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-21T03:40:30.147Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-21T04:23:41.032Z
 > Files: 184 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
@@ -64,10 +64,10 @@
 
 - `.gitignore` — Git ignore rules (~335 tok)
 - `CLAUDE.md` — OpenWolf (~1664 tok)
-- `NDM用户使用文档.html` — NDM User Guide / 用户使用文档 — Network Device Management (~13552 tok)
-- `README.md` — Project documentation (~2759 tok)
+- `NDM用户使用文档.html` — NDM User Guide / 用户使用文档 — Network Device Management (~14443 tok)
+- `README.md` — Project documentation (~3136 tok)
 - `start.bat` (~1023 tok)
-- `VERSION` (~2 tok)
+- `VERSION` (~3 tok)
 
 ## .claude/
 
@@ -295,7 +295,7 @@
 
 ## frontend/
 
-- `package.json` — Node.js package manifest (~406 tok)
+- `package.json` — Node.js package manifest (~421 tok)
 
 ## frontend/src/
 
