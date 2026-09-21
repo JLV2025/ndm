@@ -344,3 +344,48 @@ def test_v15老库升级到v16只加表不动既有数据():
 
     assert conn.execute("SELECT started_at FROM audit_runs").fetchone()[0] == "2026-09-20T10:00:00"
     assert table_columns(conn, "device_lifecycle")
+
+
+# ---- v17：批量命令执行两张表 ----
+
+def test_v17可重复执行():
+    """CREATE TABLE IF NOT EXISTS / CREATE INDEX IF NOT EXISTS —— 重复执行不抛异常。"""
+    conn = sqlite3.connect(":memory:")
+
+    db._migrate_v17(conn)
+    db._migrate_v17(conn)
+
+    assert {"batch_id", "created_at", "username", "mode", "save_config",
+            "command_text", "device_count", "note"} <= table_columns(conn, "batch_runs")
+    assert {"batch_id", "device_name", "status", "output", "error",
+            "started_at", "finished_at"} <= table_columns(conn, "batch_results")
+    idx = {row[1] for row in conn.execute("PRAGMA index_list(batch_results)")}
+    assert "idx_batch_results_batch" in idx
+
+
+def test_v17批次内同设备唯一():
+    """(batch_id, device_name) 唯一 —— 同一台重复写结果时是约束错误而不是重复行。"""
+    conn = sqlite3.connect(":memory:")
+    db._migrate_v17(conn)
+    conn.execute("INSERT INTO batch_results (batch_id, device_name, status) "
+                 "VALUES ('b1', 'BJQD1SWI01', 'success')")
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute("INSERT INTO batch_results (batch_id, device_name, status) "
+                     "VALUES ('b1', 'BJQD1SWI01', 'failed')")
+    # 不同批次 / 不同设备可以共存
+    conn.execute("INSERT INTO batch_results (batch_id, device_name, status) "
+                 "VALUES ('b2', 'BJQD1SWI01', 'success')")
+    conn.execute("INSERT INTO batch_results (batch_id, device_name, status) "
+                 "VALUES ('b1', 'ZGND1SWI01', 'success')")
+    assert conn.execute("SELECT COUNT(*) FROM batch_results").fetchone()[0] == 3
+
+
+def test_v16老库升级到v17只加表不动既有数据():
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE device_lifecycle (id INTEGER PRIMARY KEY, device_name TEXT)")
+    conn.execute("INSERT INTO device_lifecycle VALUES (1, 'BJQD1SWI01')")
+
+    db._migrate_v17(conn)
+
+    assert conn.execute("SELECT device_name FROM device_lifecycle").fetchone()[0] == "BJQD1SWI01"
+    assert table_columns(conn, "batch_runs") and table_columns(conn, "batch_results")

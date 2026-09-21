@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 # 当前 Schema 版本（每次 schema 变更递增）
-SCHEMA_VERSION = 16
+SCHEMA_VERSION = 17
 
 # 线程本地存储 —— 每个线程持有自己的连接
 _local = threading.local()
@@ -733,6 +733,45 @@ def _migrate_v16(conn: sqlite3.Connection) -> None:
     """)
 
 
+def _migrate_v17(conn: sqlite3.Connection) -> None:
+    """Schema v17: 批量命令执行两张表（批次 + 逐台结果）。
+
+    **为什么落库**：批量对生产设备执行命令需要留痕（谁 / 何时 / 哪台 / 什么命令 / 结果），
+    这是变更追溯的底账。命令全文只存批次一份（逐台结果不重复存）；
+    **凭据绝不入库**（用户名可以留痕，密码绝不落盘 —— 与全局纪律一致）。
+
+    batch_id 由前端生成（uuid）：执行是前端逐台调端点（与采集同一编排模式），
+    首台到达时 upsert 批次行，因此服务端无"批次生命周期"概念，只有 append。
+    status 取值：success | failed | blocked（服务端黑名单兜底拦截）| skipped（用户中途停止）。
+    """
+    conn.executescript("""
+        CREATE TABLE IF NOT EXISTS batch_runs (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            batch_id     TEXT UNIQUE NOT NULL,   -- 前端生成的 uuid
+            created_at   TEXT NOT NULL,
+            username     TEXT,                   -- 操作者（登录设备用的账号；密码绝不落库）
+            mode         TEXT,                   -- show（查询）| config（配置）
+            save_config  INTEGER NOT NULL DEFAULT 0,  -- 配置模式下是否执行 write memory
+            command_text TEXT,                   -- 命令全文（多行），只存这一份
+            device_count INTEGER NOT NULL DEFAULT 0,  -- 计划执行台数
+            note         TEXT                    -- 来源备注（如"来自审计发现"）
+        );
+
+        CREATE TABLE IF NOT EXISTS batch_results (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            batch_id    TEXT NOT NULL,
+            device_name TEXT NOT NULL,
+            status      TEXT NOT NULL,           -- success | failed | blocked | skipped
+            output      TEXT DEFAULT '',         -- 命令输出（不截断）
+            error       TEXT DEFAULT '',
+            started_at  TEXT,
+            finished_at TEXT,
+            UNIQUE(batch_id, device_name)
+        );
+        CREATE INDEX IF NOT EXISTS idx_batch_results_batch ON batch_results(batch_id);
+    """)
+
+
 # 迁移注册表
 _MIGRATIONS = {
     1: _migrate_v1,
@@ -751,4 +790,5 @@ _MIGRATIONS = {
     14: _migrate_v14,
     15: _migrate_v15,
     16: _migrate_v16,
+    17: _migrate_v17,
 }
