@@ -743,3 +743,6 @@
 ## Do-Not-Repeat（2026-09-21 真机）
 - [2026-09-21] **别把 settings 的分组值整块塞给 DeviceConnection**：`ssh_timeout` 是 **dict**（`{connect, read, write}`），传给 netmiko 的超时参数会炸 `unsupported operand type(s) for +: 'float' and 'dict'` —— 用户在 DEZD1SWI01 / DZND1SWI01 上连试三次全败（bug-205）。**连接超时一律与采集一致硬编码 120**（collector_service.py 就是这么做的）。推广：从 settings 取标量前先确认它是标量——本项目 settings 的分组键多为 dict（collection / ssh_timeout / analysis / audit / llm）。
 - [2026-09-21] 新功能接线到真实设备时，**假连接（mock）测不出参数类型错误**：50 项单测全绿，但 timeout 传了 dict 依然要真机才炸。回归测试要**用真实配置形态**（这里：用真实的 `{"connect":20,...}` dict 跑一遍并断言传下去的是数值）——与 bug-202（字段名）同一类教训。
+
+## User Preferences（2026-09-21 UI 细节）
+- [2026-09-21] **设备名/命令输入框用正文普通字体，不要 monospace**（用户反馈"'设备'列的字体不好看，统一用'型号'列的字体"）——等宽只保留在代码/配置内容的展示处（IP 列、设备当前配置参照、预检警告里的命令片段）。新页面做表格时设备名列直接用正文体（0.72rem）。

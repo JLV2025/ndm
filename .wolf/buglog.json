@@ -4080,6 +4080,22 @@
       ],
       "occurrences": 1,
       "last_seen": "2026-09-21T12:52:00.000Z"
+    },
+    {
+      "id": "bug-249",
+      "timestamp": "2026-09-21T04:47:25.631Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/BatchExec.tsx",
+      "root_cause": "Had '0.76rem'",
+      "fix": "Changed to '0.72rem'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-09-21T04:47:40.655Z"
     }
   ]
 }

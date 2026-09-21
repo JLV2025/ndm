@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-21T04:46:47.416Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-21T04:47:40.612Z
 > Files: 187 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
@@ -331,7 +331,7 @@
 ## frontend/src/pages/
 
 - `Alerts.tsx` — 字段中文标签映射 (~4641 tok)
-- `BatchExec.tsx` — 执行队列的一项 (~7127 tok)
+- `BatchExec.tsx` — 执行队列的一项 (~7098 tok)
 - `ComplianceAudit.tsx` — 与仪表盘一致的图表配色（深色主题） (~8406 tok)
 - `ComplianceStandard.tsx` — 档位 → 配色，与查看器审计模式保持一致（刻意不用红色系：这是建议强度不是违规等级） (~7818 tok)
 - `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~11085 tok)
