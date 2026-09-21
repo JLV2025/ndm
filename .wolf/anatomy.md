@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-21T03:15:21.137Z
-> Files: 183 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-21T03:40:30.147Z
+> Files: 184 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -53,6 +53,7 @@
 - `add_buglog3.py` — 追加 bug-200（单台审计漏传 lifecycle）到 .wolf/buglog.json。 (~320 tok)
 - `add_buglog4.py` — 追加 bug-201（heredoc 写错目录：根目录有同名旧 tests/）到 .wolf/buglog.json。 (~349 tok)
 - `add_stp_chapter.py` — 向《NDM用户使用文档》补写「STP 拓扑图」章节（中英各一章）。 (~1725 tok)
+- `bump151_v7.py` — 更新 bug-151：怪文件现象第 7 次（本次是 0 字节文件 `'`）。 (~305 tok)
 - `eq_check.py` — 移植等价性回归：同库同配置，逐设备逐规则对比 findings（stderr 输出给 A/B 两侧）。 (~317 tok)
 - `fix_bug151_again.py` — 把「第 5 次怪文件」记到**正确**的 bug-151 条目上，并还原被误改的另一条。 (~364 tok)
 - `fix_bug201.py` — 修正 bug-201：还原被误改的自动条目、删掉重复条目、把"第 2 次"记到真条目上。 (~545 tok)
@@ -167,7 +168,7 @@
 ## backend/api/
 
 - `alerts.py` — 告警 API 路由 (~2091 tok)
-- `audit.py` — 配置审计 API 路由。 (~7451 tok)
+- `audit.py` — 配置审计 API 路由。 (~7514 tok)
 - `batch.py` — 批量命令执行 API —— 预检 / 单台执行 / 历史留痕。 (~1444 tok)
 - `collector.py` — 配置收集 API 路由 (~1741 tok)
 - `data.py` — 数据文件 API 路由 (~3944 tok)
@@ -192,7 +193,7 @@
 
 - `audit_briefing.py` — AI 专家简报 —— 让 AI 把**确定性审计结论**讲成人话。 (~3067 tok)
 - `audit_scheduler.py` — 采集后自动审计（去抖）。 (~580 tok)
-- `batch_exec.py` — 批量命令执行 —— 危险命令预检 + 单台执行器。 (~1730 tok)
+- `batch_exec.py` — 批量命令执行 —— 危险命令预检 + 单台执行器。 (~1904 tok)
 - `collector_service.py` — 配置收集服务 (~21250 tok)
 - `eox_client.py` — Cisco EoX 客户端 —— 按型号批量查生命周期（停止销售 / 停止支持）。 (~1502 tok)
 
@@ -213,9 +214,9 @@
 - `test_audit_api.py` — 审计 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）。 (~3397 tok)
 - `test_audit_briefing.py` — AI 专家简报测试 —— prompt 构建（纯函数）+ 调用链 + 数据装配。 (~3164 tok)
 - `test_audit_scheduler.py` — 采集后自动审计（去抖）测试。 (~793 tok)
-- `test_audit_trends.py` — 审计趋势端点测试 —— 周聚合、统计口径、对比榜。 (~2798 tok)
+- `test_audit_trends.py` — 审计趋势端点测试 —— 周聚合、统计口径、对比榜。 (~2963 tok)
 - `test_batch_api.py` — 批量执行 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）+ 假 SSH 连接。 (~2012 tok)
-- `test_batch_exec.py` — 批量命令执行测试 —— 黑名单三态 + 单台执行器（mock netmiko）。 (~2441 tok)
+- `test_batch_exec.py` — 批量命令执行测试 —— 黑名单三态 + 单台执行器（mock netmiko）。 (~2790 tok)
 - `test_collector_service.py` — collector_service 型号/序列号/成员ID提取测试 — 重点：Aruba CX VSF 堆叠 (~1644 tok)
 - `test_collector_service.py` — extract_model/extract_serial_number 测试（重点 VSF 堆叠成员型号，4 用例） (~500 tok)
 - `test_compliance_engine.py` — 配置审计引擎测试 —— 解析、判定器、站点作用域、行号契约。 (~5955 tok)
@@ -263,9 +264,9 @@
 
 - `_exceptions.yaml` — NDM 配置审计 —— 例外登记表 (~283 tok)
 - `_scopes.yaml` — NDM 配置审计 —— 共用段（唯一一份，所有规则文件共享） (~792 tok)
-- `company-standard.yaml` — NDM 配置审计 —— 公司总部要求层（CFG-Aruba / CFG-CISCO） (~4345 tok)
-- `org-convention.yaml` — NDM 配置审计 —— 组织惯例层（我们自己的使用习惯） (~1348 tok)
-- `vendor-baseline.yaml` — NDM 配置审计 —— 厂商基线层（厂商加固建议） (~3230 tok)
+- `company-standard.yaml` — NDM 配置审计 —— 公司总部要求层（CFG-Aruba / CFG-CISCO） (~4337 tok)
+- `org-convention.yaml` — NDM 配置审计 —— 组织惯例层（我们自己的使用习惯） (~1360 tok)
+- `vendor-baseline.yaml` — NDM 配置审计 —— 厂商基线层（厂商加固建议） (~3207 tok)
 
 ## data/
 
@@ -321,14 +322,14 @@
 
 ## frontend/src/i18n/
 
-- `en.ts` — Declares en (~9759 tok)
-- `zh.ts` — Declares zh (~7357 tok)
+- `en.ts` — Declares en (~9842 tok)
+- `zh.ts` — Declares zh (~7401 tok)
 
 ## frontend/src/pages/
 
 - `Alerts.tsx` — 字段中文标签映射 (~4641 tok)
-- `BatchExec.tsx` — 执行队列的一项 (~6783 tok)
-- `ComplianceAudit.tsx` — 与仪表盘一致的图表配色（深色主题） (~8288 tok)
+- `BatchExec.tsx` — 执行队列的一项 (~7127 tok)
+- `ComplianceAudit.tsx` — 与仪表盘一致的图表配色（深色主题） (~8406 tok)
 - `ComplianceStandard.tsx` — 档位 → 配色，与查看器审计模式保持一致（刻意不用红色系：这是建议强度不是违规等级） (~7818 tok)
 - `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~11085 tok)
 - `DeviceDetail.tsx` — DeviceDetail (~6839 tok)
@@ -351,7 +352,7 @@
 
 ## frontend/src/types/
 
-- `index.ts` — 离线物理设备档案（device_members 表） (~2882 tok)
+- `index.ts` — 离线物理设备档案（device_members 表） (~2886 tok)
 - `topology.ts` — 端口物理断开（status_up=0），图上显示红叉警告 (~1043 tok)
 
 ## tests/
