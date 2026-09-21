@@ -310,7 +310,7 @@ async def run_by_rule(run_id: int):
     if run is None:
         raise HTTPException(status_code=404, detail=f"审计记录不存在：{run_id}")
     sql = ("SELECT af.rule_id, af.level, af.source, af.title, af.fix_text, "
-           "af.device_name, d.location, "
+           "af.device_name, af.current_text, d.location, "
            f"{trends.exempt_case()} AS exempt "
            "FROM audit_findings af LEFT JOIN devices d ON d.name = af.device_name "
            "WHERE af.run_id = ? ORDER BY af.rule_id, af.device_name")
@@ -328,7 +328,12 @@ async def run_by_rule(run_id: int):
             item["exempt_count"] += 1
         else:
             item["count"] += 1
-            item["devices"].append({"name": r["device_name"], "location": r["location"] or ""})
+            # current = 该设备上的现状片段（"当前的错误配置"）——带入批量执行页供参照，
+            # 帮用户把修复命令里的占位符填成实际值。逐台存（各机可能不同）
+            item["devices"].append({
+                "name": r["device_name"], "location": r["location"] or "",
+                "current": (r["current_text"] or "").strip(),
+            })
     out = sorted(rules.values(), key=lambda x: (-x["count"], x["rule_id"]))
     return {"run_id": run_id, "rules": out}
 

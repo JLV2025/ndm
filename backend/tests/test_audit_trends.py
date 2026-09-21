@@ -49,13 +49,13 @@ def add_run(conn, rid, started, *, ruleset="R1", exceptions="E1", trigger="manua
 
 
 def add_finding(conn, run_id, device, rule, *, level="风险提示", source="公司总部",
-                exempt=None, fix=None):
+                exempt=None, fix=None, current=None):
     conn.execute(
         "INSERT INTO audit_findings (run_id, device_name, rule_id, title, level, source, "
-        "exempt_by, exempt_json, fix_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "exempt_by, exempt_json, fix_text, current_text) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (run_id, device, rule, f"{rule} 标题", level, source,
          "exc-001" if exempt else None,
-         json.dumps(exempt, ensure_ascii=False) if exempt else None, fix))
+         json.dumps(exempt, ensure_ascii=False) if exempt else None, fix, current))
     conn.commit()
 
 
@@ -218,6 +218,17 @@ def test_按规则聚合带修复命令(conn):
     by_rule = {r["rule_id"]: r for r in call(audit_api.run_by_rule(1))["rules"]}
     assert by_rule["r_ntp"]["fix"] == "no ntp server 10.8.26.10"
     assert by_rule["r_no_fix"]["fix"] == ""
+
+
+def test_按规则聚合逐台带现状(conn):
+    """current = 设备上的现状片段（"当前的错误配置"）——各机可能不同，逐台存。"""
+    add_run(conn, 1, "2026-09-20T08:00:00")
+    add_finding(conn, 1, "BJQD1SWI01", "r_ntp", current="ntp server pool.ntp.org")
+    add_finding(conn, 1, "ZGND1SWI01", "r_ntp", current="ntp server time.windows.com")
+    r = call(audit_api.run_by_rule(1))["rules"][0]
+    cur = {d["name"]: d["current"] for d in r["devices"]}
+    assert cur["BJQD1SWI01"] == "ntp server pool.ntp.org"
+    assert cur["ZGND1SWI01"] == "ntp server time.windows.com"
 
 
 def test_按规则聚合_设备不在册时location为空(conn):

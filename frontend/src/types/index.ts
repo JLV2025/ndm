@@ -256,7 +256,7 @@ export interface AuditByRuleItem {
   fix: string                                      // 修复命令（规则级模板，带入批量执行用）
   count: number                                    // 未豁免命中台数
   exempt_count: number                             // 豁免台数（生效中 + 即将到期）
-  devices: { name: string; location: string }[]    // 命中设备名单（不含豁免的）
+  devices: { name: string; location: string; current: string }[]  // 命中设备（含现状片段）
 }
 
 export interface AuditByRule {

@@ -27,6 +27,7 @@ interface FromAudit {
   text?: string
   mode?: 'show' | 'config'
   note?: string
+  current?: string      // 设备上的现状（"当前的错误配置"），右侧参照用
 }
 
 const STATUS_COLOR: Record<QueueItem['status'], string> = {
@@ -69,6 +70,7 @@ const BatchExec: React.FC = () => {
   const [snack, setSnack] = useState('')
   const [error, setError] = useState('')
   const [fromAudit, setFromAudit] = useState(false)
+  const [fromAuditCurrent, setFromAuditCurrent] = useState('')
   const stopRef = useRef(false)
 
   const loadHistory = useCallback(() => {
@@ -80,12 +82,13 @@ const BatchExec: React.FC = () => {
     deviceApi.list().then((res) => setDevices(res.data || []))
       .catch(() => setError(t('batch.loadFailed')))
     loadHistory()
-    // 从审计页「批量处理」带入：设备清单 + 修复命令
+    // 从审计页「批量处理」带入：设备清单 + 修复命令 + 现状（供参照）
     if (routeState?.devices?.length) {
       setSelected(routeState.devices)
       if (routeState.text) setText(routeState.text)
       if (routeState.mode) setMode(routeState.mode)
       setNote(routeState.note || '')
+      setFromAuditCurrent(routeState.current || '')
       setFromAudit(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -261,9 +264,29 @@ const BatchExec: React.FC = () => {
             {t('batch.modeConfig')}
           </ToggleButton>
         </ToggleButtonGroup>
-        <TextField fullWidth multiline rows={5} value={text} onChange={(e) => setText(e.target.value)}
-          placeholder={t('batch.commandPlaceholder')}
-          sx={{ '& textarea': { fontFamily: 'monospace', fontSize: '0.8rem' } }} />
+        <Box sx={{ display: 'flex', gap: 2, flexWrap: { xs: 'wrap', md: 'nowrap' }, alignItems: 'stretch' }}>
+          <TextField fullWidth multiline rows={6} value={text} onChange={(e) => setText(e.target.value)}
+            placeholder={t('batch.commandPlaceholder')}
+            sx={{ flex: '1 1 50%', '& textarea': { fontFamily: 'monospace', fontSize: '0.8rem' } }} />
+          {/* 设备当前配置（带入的现状）—— 对着它把左侧命令里的占位符填成实际值 */}
+          <Box sx={{
+            flex: '1 1 50%', minWidth: 260, border: '1px solid', borderColor: 'divider',
+            borderRadius: 1, p: 1.25, bgcolor: 'rgba(148,163,184,0.04)',
+          }}>
+            <Typography variant="caption" color="text.secondary"
+              sx={{ display: 'block', mb: 0.5, fontWeight: 700 }}>
+              {t('batch.currentTitle')}
+            </Typography>
+            {fromAuditCurrent ? (
+              <Box component="pre" sx={{
+                m: 0, fontSize: '0.72rem', fontFamily: 'monospace', whiteSpace: 'pre-wrap',
+                color: '#FB923C', maxHeight: 136, overflow: 'auto',
+              }}>{fromAuditCurrent}</Box>
+            ) : (
+              <Typography variant="caption" color="text.disabled">{t('batch.currentHint')}</Typography>
+            )}
+          </Box>
+        </Box>
         {mode === 'config' && (
           <Box sx={{ mt: 1 }}>
             <FormControlLabel control={

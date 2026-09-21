@@ -102,12 +102,24 @@ const ComplianceAudit: React.FC = () => {
 
   /** 带着这条发现的设备清单与修复命令跳到「批量执行」页 —— 只是带入，不会自动执行 */
   const gotoBatch = (r: AuditByRuleItem) => {
+    // 现状按文本去重合并（同一条错误配置往往多台一致）—— 批量执行页右侧参照用
+    const groups = new Map<string, string[]>()
+    r.devices.forEach((d) => {
+      const txt = d.current || '（无现状片段）'
+      const arr = groups.get(txt) || []
+      arr.push(d.name)
+      groups.set(txt, arr)
+    })
+    const current = [...groups.entries()]
+      .map(([txt, names]) => `${txt}    ← ${names.join('、')}`)
+      .join('\n')
     navigate('/batch-exec', {
       state: {
         devices: r.devices.map((d) => d.name),
         text: r.fix || '',
         mode: r.fix ? 'config' : 'show',
         note: `${r.title}（${r.rule_id}）`,
+        current,
       },
     })
   }
