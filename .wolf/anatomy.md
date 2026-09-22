@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T08:27:36.219Z
-> Files: 2 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T08:34:36.182Z
+> Files: 5 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
 
@@ -91,6 +91,7 @@
 
 ## frontend/src/
 
+- `App.tsx` — 侧栏分组展开态的 localStorage 键 (~4563 tok)
 
 ## frontend/src/components/
 
@@ -103,6 +104,8 @@
 
 ## frontend/src/i18n/
 
+- `en.ts` — Declares en (~10242 tok)
+- `zh.ts` — Declares zh (~7690 tok)
 
 ## frontend/src/pages/
 
