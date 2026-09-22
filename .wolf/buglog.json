@@ -4352,6 +4352,360 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-22T06:00:43.058Z"
+    },
+    {
+      "id": "bug-266",
+      "timestamp": "2026-09-22T06:27:55.301Z",
+      "error_message": "Wrong operator: == should be <=",
+      "file": "backend/storage/database.py",
+      "root_cause": "Used \"==\" instead of \"<=\"",
+      "fix": "Changed operator == → <=",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:27:55.301Z"
+    },
+    {
+      "id": "bug-267",
+      "timestamp": "2026-09-22T06:31:16.928Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/topology.py",
+      "root_cause": "15 lines replaced/restructured",
+      "fix": "Rewrote 19→7 lines (15 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:31:16.928Z"
+    },
+    {
+      "id": "bug-268",
+      "timestamp": "2026-09-22T06:32:58.498Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 16→32 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:32:58.498Z"
+    },
+    {
+      "id": "bug-269",
+      "timestamp": "2026-09-22T06:37:07.481Z",
+      "error_message": "Wrong operator: >= should be ==",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "Used \">=\" instead of \"==\"",
+      "fix": "Changed operator >= → ==",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:37:07.481Z"
+    },
+    {
+      "id": "bug-270",
+      "timestamp": "2026-09-22T06:42:09.082Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/storage/device_dal.py",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 26→44 lines (9 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:42:09.082Z"
+    },
+    {
+      "id": "bug-271",
+      "timestamp": "2026-09-22T06:47:56.167Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/services/log_analyzer.py",
+      "root_cause": "Had \"SELECT name, ip FROM devices WHERE location=? AND",
+      "fix": "Changed to \"SELECT name, ip FROM devices WHERE location=? AND",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:47:56.167Z"
+    },
+    {
+      "id": "bug-272",
+      "timestamp": "2026-09-22T06:48:01.675Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/storage/file_manager.py",
+      "root_cause": "Had \"SELECT id FROM devices\"",
+      "fix": "Changed to \"SELECT id FROM devices WHERE kind != '",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:48:01.675Z"
+    },
+    {
+      "id": "bug-273",
+      "timestamp": "2026-09-22T06:48:08.004Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/analyzers/compliance/source.py",
+      "root_cause": "Had \"SELECT name FROM devices ORDER BY name\"",
+      "fix": "Changed to \"SELECT name FROM devices WHERE kind != '",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:48:08.004Z"
+    },
+    {
+      "id": "bug-274",
+      "timestamp": "2026-09-22T06:52:57.251Z",
+      "error_message": "Wrong return value",
+      "file": "backend/api/devices.py",
+      "root_cause": "Was returning: [DeviceResponse(**d).model_dump() for d in get_all",
+      "fix": "Now returns: [DeviceResponse(**d).model_dump() for d in data]",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:52:57.251Z"
+    },
+    {
+      "id": "bug-275",
+      "timestamp": "2026-09-22T06:53:48.637Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "32 lines replaced/restructured",
+      "fix": "Rewrote 32→6 lines (32 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:53:48.637Z"
+    },
+    {
+      "id": "bug-276",
+      "timestamp": "2026-09-22T06:56:50.512Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/devices/deviceUtils.ts",
+      "root_cause": "16 lines replaced/restructured",
+      "fix": "Rewrote 23→5 lines (16 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:56:50.512Z"
+    },
+    {
+      "id": "bug-277",
+      "timestamp": "2026-09-22T06:59:31.949Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_migration_v18.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→5 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:59:31.949Z"
+    },
+    {
+      "id": "bug-278",
+      "timestamp": "2026-09-22T07:04:17.237Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/storage/lifecycle_dal.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 16→28 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:04:17.237Z"
+    },
+    {
+      "id": "bug-279",
+      "timestamp": "2026-09-22T07:04:50.393Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/LifecycleCard.tsx",
+      "root_cause": "Had 'lifecycle.serial'",
+      "fix": "Changed to 'lifecycle.physicalName'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:04:50.393Z"
+    },
+    {
+      "id": "bug-280",
+      "timestamp": "2026-09-22T07:08:34.409Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/topology.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 10→6 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:08:34.409Z"
+    },
+    {
+      "id": "bug-281",
+      "timestamp": "2026-09-22T07:08:40.827Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/api/topology.py",
+      "root_cause": "Had \"BJQD1SWI01-01\"",
+      "fix": "Changed to \"BJQD1SWI01-1\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:08:40.827Z"
+    },
+    {
+      "id": "bug-282",
+      "timestamp": "2026-09-22T07:08:50.675Z",
+      "error_message": "Wrong return value",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Was returning: m ? `${m[1]} (Member ${m[2]})` : name",
+      "fix": "Now returns: m ? `${m[1]}-${m[2]}` : name",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:08:50.675Z"
+    },
+    {
+      "id": "bug-283",
+      "timestamp": "2026-09-22T07:08:55.156Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Had `${deviceName} (Member ${member})`",
+      "fix": "Changed to `${deviceName}-${member}`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:08:55.156Z"
+    },
+    {
+      "id": "bug-284",
+      "timestamp": "2026-09-22T07:14:42.938Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/i18n/zh.ts",
+      "root_cause": "Had '总设备'",
+      "fix": "Changed to '总设备（管理 / 物理）'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:14:42.938Z"
+    },
+    {
+      "id": "bug-285",
+      "timestamp": "2026-09-22T07:14:48.235Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/i18n/en.ts",
+      "root_cause": "Had 'Total Devices'",
+      "fix": "Changed to 'Devices (managed / physical)'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:14:48.235Z"
+    },
+    {
+      "id": "bug-286",
+      "timestamp": "2026-09-22T07:14:54.357Z",
+      "error_message": "CSS fix: accent",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "accent: '#3B82F6', label: t('dashboard.totalDevicesCard'), value: dashboardStats?.device_count ?? stats.total → '#3B82F6', label: t('dashboard.totalDevicesCard'),",
+      "fix": "Changed accent: '#3B82F6', label: t('dashboard.totalDevicesCard'), value: dashboardStats?.device_count ?? stats.total → '#3B82F6', label: t('dashboard.totalDevicesCard'),",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:14:54.357Z"
+    },
+    {
+      "id": "bug-287",
+      "timestamp": "2026-09-22T15:45:00",
+      "error_message": "v18 回填把成员级版本丢了：成员行 version 全部写成整机版本，软件版本报告将不再检出「升级未完成」",
+      "file": "backend/storage/database.py",
+      "root_cause": "_v18_backfill_member_rows 只拆了 model，没拆 member_versions —— 采集写入路径 _maintain_member_rows 是拆的，两处规则不一致",
+      "fix": "回填 SELECT 补 member_versions，按同序 1:1 逐成员写入（数量不一致时回退整机版本）；测试补版本断言（b2ce037）",
+      "tags": [
+        "v18",
+        "迁移",
+        "成员行",
+        "版本拆分",
+        "规则不一致"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T15:45:00"
     }
   ]
 }

@@ -785,8 +785,8 @@ def _migrate_v18(conn: sqlite3.Connection) -> None:
     """Schema v18: 设备身份模型 —— kind + 物理成员行（spec 第三节）
 
     迁移是**冻结代码**：拆分逻辑不 import 业务模块（collector/utils 会演进，
-    迁移必须永远可重放）。规则与 reports._expand_device_members 一致：
-    序列号同序 1:1，member_ids 数量一致且全数字才采用真实号，否则顺序号（不补零）。
+    迁移必须永远可重放）。规则：序列号同序 1:1，member_ids 数量一致且全数字
+    才采用真实号，否则顺序号（不补零）；成员级型号/版本按同序拆分。
 
     逐表判存在再动：老库升级测试会手工造只含单表的旧库（如只有 port_snapshots），
     缺表必须跳过而不是炸掉整条迁移链。

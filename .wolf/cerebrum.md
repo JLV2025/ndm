@@ -771,3 +771,10 @@
 
 ## Do-Not-Repeat
 - [2026-09-22] **不要用 bash heredoc 追加 cerebrum/memory**（内容含反引号/花括号/中文时）——会生成 0 字节怪文件（bug-151 第 8 次，本次 3 个：`1`、`3`、`FCW2129B3TR`，已删除）。追加一律用 Edit/Write 工具；`git add` 前先跑 `git status --short` 拦截。
+- [2026-09-22] **管道会吃掉退出码**：`pytest ... | tail -3 && git commit` 在测试失败时照样提交（身份模型会话带病提交一次，已 amend 修正）。测试与提交同链时用 `pytest ... > /tmp/x.log 2>&1; echo exit=$?` 显式检查。
+- [2026-09-22] "从逗号串拆分"这类规则同时出现在**迁移回填**与**采集写入**两处时，必须逐项对齐：v18 回填漏拆 member_versions（与 _maintain_member_rows 不一致），报告会静默丢成员级版本差异（bug-287）。写迁移时拿采集路径的拆分清单逐项核。
+
+## Key Learnings
+- [2026-09-22] 验证 schema 迁移的可靠姿势：**复制生产库到 tempfile 目录（含 -wal/-shm）→ `init_db` 就地迁移副本 → 抽查**。全程不碰生产库（本次 v18：36→61 行、双口径 36/49、幂等，一次通过）。
+- [2026-09-22] 身份模型落地后各身份入口：位置行（stack/standalone）持配置/采集/审计/告警；成员行（member）持序列号/型号/版本；**命名唯一实现在 `utils/device_identity.py`**；`device_dal.list_managed()/list_physical()` 是 devices 查询的两个入口（禁止裸查）。
+- [2026-09-22] 过渡期分工：成员行是 serial/model/version 权威；ROM 版本与运行时间仍读堆叠行的 member_* 缓存串（第二步退役）；物理名展示规则 = 成员数≥2 带 `-N`、1 成员/单机不带。
