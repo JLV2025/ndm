@@ -770,7 +770,7 @@
 - [2026-09-22] 备件/报废等**意图**类信息：人工标注，不要系统猜。
 
 ## Do-Not-Repeat
-- [2026-09-22] **不要用 bash heredoc 追加 cerebrum/memory**（内容含反引号/花括号/中文时）——会生成 0 字节怪文件（bug-151 第 8 次，本次 3 个：`1`、`3`、`FCW2129B3TR`，已删除）。追加一律用 Edit/Write 工具；`git add` 前先跑 `git status --short` 拦截。
+- [2026-09-22] **不要用 bash heredoc 追加 cerebrum/memory**（内容含反引号/花括号/中文时）——会生成 0 字节怪文件（bug-151 第 8 次，本次 3 个：`1`、`3`、`FCW2129B3TR`，已删除）。追加一律用 Edit/Write 工具；`git add` 前先跑 `git status --short` 拦截。**第 9-10 次（同日 15:59/16:01）新线索：触发不限于写入——把含中文的 .wolf 内容 `cat`/`python print` 到 GBK 控制台（显示成 锟斤拷 乱码）同样会生成怪文件（`identical`、`dict`锟斤拷时锟斤拷`shell`）。查 .wolf 文件一律用 Read 工具，不要打到控制台。**
 - [2026-09-22] **管道会吃掉退出码**：`pytest ... | tail -3 && git commit` 在测试失败时照样提交（身份模型会话带病提交一次，已 amend 修正）。测试与提交同链时用 `pytest ... > /tmp/x.log 2>&1; echo exit=$?` 显式检查。
 - [2026-09-22] "从逗号串拆分"这类规则同时出现在**迁移回填**与**采集写入**两处时，必须逐项对齐：v18 回填漏拆 member_versions（与 _maintain_member_rows 不一致），报告会静默丢成员级版本差异（bug-287）。写迁移时拿采集路径的拆分清单逐项核。
 

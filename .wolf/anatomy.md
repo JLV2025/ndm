@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T07:58:09.455Z
-> Files: 212 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T08:02:20.176Z
+> Files: 214 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -108,6 +108,8 @@
 - `add_bug2.py` (~430 tok)
 - `add_bug3.py` (~406 tok)
 - `baseline205.py` — 复现移植等价性基线：用 netstd 原版引擎跑 NDM 库里 36 台设备的最新配置 (~411 tok)
+- `bump151_v10.py` — bug-151 第 10 次：删除怪文件 + 更新条目（本次线索：打印中文到 GBK 控制台也会触发）。 (~354 tok)
+- `bump151_v9.py` — 更新 bug-151：怪文件现象第 9 次（本次样本 identical / frontend/identical）。 (~248 tok)
 - `bump151.py` — 修正 bug-151：累计第 3 次出现，并如实记录「成因未定 + 已排除项」 (~288 tok)
 - `cerebrum_append.md` — Key Learnings (~844 tok)
 - `cerebrum_append2.md` — Key Learnings (~812 tok)
