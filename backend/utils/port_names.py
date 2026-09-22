@@ -44,3 +44,32 @@ def norm_lag_name(port: str) -> str:
         pfx = m.group(1).lower().replace('port-channel', 'po')
         return f'{pfx} {m.group(2)}'
     return port
+
+
+# 逻辑口不属于任何物理成员（Po 是成员口聚合、Hu 是堆叠背板口、vlan 是虚接口）
+_LOGICAL_PORT_RE = re.compile(r'^(po|hu|lag|vlan)\s*\d', re.IGNORECASE)
+_ARUBA_MEMBER_RE = re.compile(r'^(\d+)/')                      # 1/1/49 → 成员 1
+_CISCO_MEMBER_RE = re.compile(r'^[A-Za-z][A-Za-z\-]*(\d+)/')   # Gi1/0/1 → 成员 1
+
+
+def member_no_from_port(port_name: str, platform: str = "") -> int | None:
+    """端口名 → 所属堆叠成员号（1-based）。
+
+    Aruba VSF（`1/1/49`）与 Cisco 堆叠（`Gi1/0/1`、`TwentyFiveGigE1/0/2`）的
+    首个数字段都是成员号 —— 这是"端口属于哪个物理成员"的平台无关事实来源
+    （画图靠端口编号定位成员）。
+
+    逻辑口（Po*/Hu*/lag*/vlan*）→ None；认不出来（空串、0 号槽）→ None，
+    **不猜**——默认归到成员 1 会把 unknown 悄悄画到错误的成员上。
+
+    规则迁自 api/topology._member_slot_for_port（2026-09-22），那边保留
+    同名包装（`or 1`）维持既有的"认不出按成员 1 分组"行为。
+    """
+    port = (port_name or "").strip()
+    if not port or _LOGICAL_PORT_RE.match(port):
+        return None
+    m = _ARUBA_MEMBER_RE.match(port) or _CISCO_MEMBER_RE.match(port)
+    if not m:
+        return None
+    slot = int(m.group(1))
+    return slot if slot >= 1 else None

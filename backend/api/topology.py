@@ -10,6 +10,7 @@ from analyzers.neighbor_parser import TYPE_MAP as DEVICE_TYPE_MAP
 from analyzers.neighbor_parser import _extract_type as _extract_device_type
 from analyzers.role_verifier import RoleVerifier
 from storage.database import get_connection as _get_db
+from utils.port_names import member_no_from_port
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -956,22 +957,10 @@ def _logical_name(device_name: str) -> str:
 def _member_slot_for_port(local_port: str, device_type: str) -> int:
     """从端口名推断所属堆叠成员序号 (1-based)
 
-    Aruba VSF: 1/1/49 → member 1, 2/1/49 → member 2
-    Cisco Stack: TwentyFiveGigE1/0/x → member 1
+    规则统一在 utils.port_names.member_no_from_port（唯一实现，2026-09-22 迁入）；
+    这里保留"认不出按成员 1 分组"的历史行为——分组场景宁可归到 1 也不能丢端口。
     """
-    if not local_port:
-        return 1
-    m = re.match(r'^(\d+)/', local_port)
-    if m:
-        slot = int(m.group(1))
-        if slot >= 1:
-            return slot
-    m = re.match(r'^[A-Za-z]+(\d+)/', local_port)
-    if m:
-        slot = int(m.group(1))
-        if slot >= 1:
-            return slot
-    return 1
+    return member_no_from_port(local_port, device_type) or 1
 
 
 def _expand_physical_devices(location_devices: list[dict]) -> list[dict]:
