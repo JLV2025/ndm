@@ -16,29 +16,47 @@ from storage.database import get_connection
 # ================================================================
 
 
-def get_all_devices() -> list[dict]:
-    """获取所有设备，返回字典列表（前端 API 兼容格式）"""
+# 查询列（含身份三列 kind/stack_name/member_no —— API 与前端按 kind 分流）
+_DEVICE_COLUMNS = """name, ip, type, platform, location, notes,
+                     serial_number, member_ids, model, version, last_synced,
+                     member_versions, member_rom_versions, member_uptimes,
+                     uplink_ports, username, kind, stack_name, member_no"""
+
+
+def list_managed() -> list[dict]:
+    """全部**管理体**（stack + standalone）—— 采集/审计/配置/日志类页面的唯一入口。
+
+    纪律（spec 第八节）：**禁止新代码裸查 devices**；需要设备清单时用本函数
+    或 list_physical()。成员行不得混入管理体视角。
+    """
     conn = get_connection()
     rows = conn.execute(
-        """SELECT name, ip, type, platform, location, notes,
-                  serial_number, member_ids, model, version, last_synced,
-                  member_versions, member_rom_versions, member_uptimes,
-                  uplink_ports, username
-           FROM devices
-           ORDER BY name"""
+        f"SELECT {_DEVICE_COLUMNS} FROM devices "
+        "WHERE kind IN ('stack', 'standalone') ORDER BY name"
     ).fetchall()
     return [_row_to_dict(r) for r in rows]
 
 
+def list_physical() -> list[dict]:
+    """全部**物理设备**（member + standalone）—— 清单/版本/保修/画图类页面的唯一入口"""
+    conn = get_connection()
+    rows = conn.execute(
+        f"SELECT {_DEVICE_COLUMNS} FROM devices "
+        "WHERE kind IN ('member', 'standalone') ORDER BY name"
+    ).fetchall()
+    return [_row_to_dict(r) for r in rows]
+
+
+def get_all_devices() -> list[dict]:
+    """兼容别名 = list_managed（既有调用点的语义就是"管理体清单"）"""
+    return list_managed()
+
+
 def get_device_by_name(name: str) -> dict | None:
-    """根据设备名获取单个设备"""
+    """根据设备名获取单个设备（任何 kind —— 成员行详情页也要能按名取到）"""
     conn = get_connection()
     row = conn.execute(
-        """SELECT name, ip, type, platform, location, notes,
-                  serial_number, member_ids, model, version, last_synced,
-                  member_versions, member_rom_versions, member_uptimes,
-                  uplink_ports, username
-           FROM devices WHERE name = ?""",
+        f"SELECT {_DEVICE_COLUMNS} FROM devices WHERE name = ?",
         (name,),
     ).fetchone()
     return _row_to_dict(row) if row else None
@@ -98,6 +116,15 @@ def update_device(name: str, data: dict) -> bool:
                WHERE name=?""",
             (new_name, *_extract_fields(merged), name),
         )
+        if new_name != name:
+            # 改名级联（spec 第五节：改名只允许改堆叠行；成员行名字是物化派生）
+            conn.execute(
+                "UPDATE devices SET name = ? || '-' || member_no, stack_name = ? "
+                "WHERE kind = 'member' AND stack_name = ?",
+                (new_name, new_name, name))
+            # 档案表 last_device 同步 —— 否则下次采集把改名误报成"调拨"
+            conn.execute("UPDATE device_members SET last_device = ? WHERE last_device = ?",
+                         (new_name, name))
         conn.commit()
         # 检查 rowcount：并发场景下设备可能已被删除/改名
         return cursor.rowcount > 0
@@ -110,11 +137,18 @@ def update_device(name: str, data: dict) -> bool:
 
 
 def delete_device(name: str) -> bool:
-    """删除设备及其关联数据（级联删除 collections/ports/neighbors 等）"""
+    """删除设备及其关联数据（级联删除 collections/ports/neighbors 等）。
+
+    成员行**不可单独删除**（ValueError）—— 它是堆叠的一部分；
+    删除堆叠行时级联删除其成员行与变更事件。
+    """
     conn = get_connection()
     device = get_device_by_name(name)
     if not device:
         return False
+    if device.get("kind") == "member":
+        raise ValueError(
+            f"{name} 是堆叠成员，请对堆叠 {device.get('stack_name') or '（未知）'} 操作")
     device_id = conn.execute(
         "SELECT id FROM devices WHERE name = ?", (name,)
     ).fetchone()["id"]
@@ -131,6 +165,9 @@ def delete_device(name: str) -> bool:
     conn.execute(
         "DELETE FROM collections WHERE device_id = ?", (device_id,)
     )
+    conn.execute("DELETE FROM device_change_events WHERE device_id = ?", (device_id,))
+    # 成员行级联（成员行自身无 collections 等数据，只删行）
+    conn.execute("DELETE FROM devices WHERE kind = 'member' AND stack_name = ?", (name,))
     conn.execute("DELETE FROM devices WHERE id = ?", (device_id,))
     conn.commit()
     return True
