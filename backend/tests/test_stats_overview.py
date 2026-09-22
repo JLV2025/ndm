@@ -63,6 +63,22 @@ def test_端口统计_Disabled单独计数(conn):
     assert ps["down"] + ps["disabled"] == 4   # 空闲端口卡片口径 = 全部非 up
 
 
+def test_双口径_管理体与物理机(conn, monkeypatch):
+    """管理设备 = stack + standalone；物理口径 = 当前在位的物理交换机
+    （堆叠按序列号缓存展开，不数成员行——成员行含离线保留行）"""
+    from storage.device_dal import list_managed
+    monkeypatch.setattr(stats_api, "get_all_devices", list_managed)
+
+    conn.execute("UPDATE devices SET kind='stack', serial_number='A1, A2' WHERE name='D1SWI01'")
+    conn.execute("INSERT INTO devices (name, ip, type) VALUES ('D2SWI01', '10.0.0.2', 'cisco_ios')")
+    conn.commit()
+
+    data = _overview()
+
+    assert data["managed_count"] == 2
+    assert data["device_count"] == 3          # D1 双成员 + D2 单机
+
+
 def test_端口统计_只取每台设备最新一次采集(conn):
     """旧一次采集的端口不进统计（与流量排序、STP 图同口径）"""
     for week, when, ports in (

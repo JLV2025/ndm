@@ -147,6 +147,12 @@ async def get_overview(window: int = DEFAULT_WINDOW):
     devices_list = yaml_data
 
     device_count = _count_physical_devices(devices_list)
+    # 双口径（2026-09-22 身份模型，spec 第七节）：
+    #   管理设备 = stack + standalone（采集/审计的对象）；
+    #   device_count 是**物理口径** = 当前在位的物理交换机（堆叠按序列号缓存展开）——
+    #   不能直接 COUNT 成员行：成员行含离线保留行，会把已拆除的机器算进去。
+    managed_count = db.execute(
+        "SELECT COUNT(*) FROM devices WHERE kind IN ('stack', 'standalone')").fetchone()[0]
     device_types = {}
     locations = set()
 
@@ -215,7 +221,8 @@ async def get_overview(window: int = DEFAULT_WINDOW):
     error_ports = err_row["cnt"] if err_row else 0
 
     return {
-        "device_count": device_count,
+        "device_count": device_count,        # 物理口径（当前在位的物理交换机）
+        "managed_count": managed_count,      # 管理体口径（stack + standalone）
         "device_types": device_types,
         "port_stats": port_stats,
         "error_ports": error_ports,

@@ -228,7 +228,7 @@ const zh: Record<string, string> = {
   'devices.deleteWarning': '确定要删除设备 {name}？此操作不可撤销。',
 
   // Dashboard 统计卡片
-  'dashboard.totalDevicesCard': '总设备',
+  'dashboard.totalDevicesCard': '总设备（管理 / 物理）',
   'dashboard.activePorts': 'Active 端口',
   'dashboard.idlePorts': 'Idle 端口',
   'dashboard.errorPorts': '错误端口',

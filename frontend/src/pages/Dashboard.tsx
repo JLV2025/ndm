@@ -46,6 +46,7 @@ const DevicesLink = React.forwardRef<HTMLAnchorElement, React.HTMLProps<HTMLAnch
 
 interface DashboardStats {
   device_count: number
+  managed_count: number
   device_types: Record<string, number>
   port_stats: { total: number; up: number; down: number; disabled: number }
   error_ports: number
@@ -414,7 +415,9 @@ const Dashboard: React.FC = () => {
 
   // 4 张统计卡片：配置数组驱动，消除复制粘贴
   const statCardDefs = useMemo(() => [
-    { accent: '#3B82F6', label: t('dashboard.totalDevicesCard'), value: dashboardStats?.device_count ?? stats.total },
+    // 双口径（2026-09-22 身份模型）：管理设备 / 物理交换机
+    { accent: '#3B82F6', label: t('dashboard.totalDevicesCard'),
+      value: dashboardStats ? `${dashboardStats.managed_count ?? 0} / ${dashboardStats.device_count ?? 0}` : stats.total },
     { accent: '#2DD46E', label: t('dashboard.activePorts'), value: dashboardStats?.port_stats.up ?? 0 },
     { accent: '#94A3B8', label: t('dashboard.idlePorts'), value: (dashboardStats?.port_stats.down ?? 0) + (dashboardStats?.port_stats.disabled ?? 0) },
     { accent: '#EF4444', label: t('dashboard.errorPorts'), value: dashboardStats?.error_ports ?? 0, danger: true },

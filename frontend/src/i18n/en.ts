@@ -228,7 +228,7 @@ const en: Record<string, string> = {
   'devices.deleteWarning': 'Are you sure you want to delete device {name}? This action cannot be undone.',
 
   // Dashboard Stat Cards
-  'dashboard.totalDevicesCard': 'Total Devices',
+  'dashboard.totalDevicesCard': 'Devices (managed / physical)',
   'dashboard.activePorts': 'Active Ports',
   'dashboard.idlePorts': 'Idle Ports',
   'dashboard.errorPorts': 'Error Ports',
