@@ -233,3 +233,18 @@ def test_型号预填_未登记回空壳(phys_conn):
     """页面点型号编辑要先取当前登记（保存是整条覆盖，不回填会抹掉公告/链接/备注）"""
     assert call(lc.get_model_registered_eol("JL659A"))["model"]["end_of_sale"] == PAST
     assert call(lc.get_model_registered_eol("NOSUCHMODEL"))["model"] == {"model": "NOSUCHMODEL"}
+
+
+def test_型号EoL改动同步所有同型号行(phys_conn):
+    """EoL 是型号级：改一次型号，所有用该型号的物理行（双成员堆叠的 -1/-2）一起变"""
+    rows = {r["name"]: r for r in call(lc.lifecycle_physical())["devices"]}
+    assert rows["SZXD1SWI01-1"]["eol"]["end_of_sale"] == FAR
+    assert rows["SZXD1SWI01-2"]["eol"] == rows["SZXD1SWI01-1"]["eol"]
+
+    call(lc.save_model_eol("C9500-24Y4C", lc.ModelEolUpdate(
+        end_of_sale=PAST, end_of_support=FAR)))
+
+    rows = {r["name"]: r for r in call(lc.lifecycle_physical())["devices"]}
+    assert rows["SZXD1SWI01-1"]["eol"] == {"end_of_sale": PAST, "end_of_support": FAR,
+                                           "status": "expired"}
+    assert rows["SZXD1SWI01-2"]["eol"]["status"] == "expired"
