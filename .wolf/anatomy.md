@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T06:11:10.959Z
-> Files: 195 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T07:17:57.444Z
+> Files: 207 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -132,6 +132,7 @@
 - `sunday_todo.md` — 周日开工前（2026-09-20）必读：待确认与待办 (~306 tok)
 - `undef_check.py` — 轻量未定义名检查：找出「作为全局/自由变量被读取，但既未定义也未导入」的名字。 (~840 tok)
 - `upd151.py` (~348 tok)
+- `v18_verify.py` — v18 身份模型：生产库副本端到端验证（只碰副本，不碰生产库）。 (~662 tok)
 
 ## C:/Users/jingl/OneDrive - Qorvo/01-DocWiKi/01_network_configuration/
 
@@ -152,6 +153,7 @@
 
 - `anomaly_detector.py` — AnomalyDetector: detect_all, detect_and_save, resolve_recovered_drift (~4618 tok)
 - `counter_parser.py` — 端口累计计数器解析器 (~3198 tok)
+- `hardware_change.py` — 硬件变更检测 —— 指纹 diff 与事件（spec 第六节）。 (~1001 tok)
 - `neighbor_parser.py` — CDP / LLDP 邻居解析器 (~6462 tok)
 - `performance.py` — PerformanceAnalyzer: analyze (~7668 tok)
 - `stp_parser.py` — 生成树（STP）输出解析器 (~2662 tok)
@@ -165,21 +167,22 @@
 - `parser.py` — 配置文本解析 —— 从 running-config 文本构建判定所需的设备模型。 (~1697 tok)
 - `port_roles.py` — 端口角色推断 —— 让端口级规则真正可达。 (~2561 tok)
 - `runner.py` — 全网审计执行器 —— API 端点与「采集后自动跑」共用同一实现。 (~1180 tok)
-- `source.py` — 审计数据源 —— 从 NDM 库取"这次审计要审什么"。 (~1704 tok)
+- `source.py` — 审计数据源 —— 从 NDM 库取"这次审计要审什么"。 (~1713 tok)
 - `trends.py` — 审计趋势的查询核心 —— 从 api/audit.py 抽出（API 与 AI 简报共用）。 (~1612 tok)
 
 ## backend/api/
 
 - `alerts.py` — 告警 API 路由 (~2091 tok)
-- `audit.py` — 配置审计 API 路由。 (~7514 tok)
-- `batch.py` — 批量命令执行 API —— 预检 / 单台执行 / 历史留痕。 (~1444 tok)
-- `collector.py` — 配置收集 API 路由 (~1741 tok)
+- `audit.py` — 配置审计 API 路由。 (~7591 tok)
+- `batch.py` — 批量命令执行 API —— 预检 / 单台执行 / 历史留痕。 (~1494 tok)
+- `collector.py` — 配置收集 API 路由 (~1810 tok)
 - `data.py` — 数据文件 API 路由 (~3944 tok)
-- `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3116 tok)
+- `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3323 tok)
 - `lifecycle.py` — 设备生命周期 API —— EoL 与保修期的登记、批量导入、刷新与概况。 (~1350 tok)
-- `reports.py` — 自定义报告 API 路由 (~2484 tok)
-- `stats.py` — Dashboard 统计 API — 全量从 SQLite 读取 (~2546 tok)
-- `topology.py` — 拓扑图 API 路由 (~15518 tok)
+- `logs.py` — 日志分析 API 路由 (~2638 tok)
+- `reports.py` — 自定义报告 API 路由 (~2500 tok)
+- `stats.py` — Dashboard 统计 API — 全量从 SQLite 读取 (~2665 tok)
+- `topology.py` — 拓扑图 API 路由 (~15402 tok)
 
 ## backend/collectors/
 
@@ -197,16 +200,17 @@
 - `audit_briefing.py` — AI 专家简报 —— 让 AI 把**确定性审计结论**讲成人话。 (~3067 tok)
 - `audit_scheduler.py` — 采集后自动审计（去抖）。 (~580 tok)
 - `batch_exec.py` — 批量命令执行 —— 危险命令预检 + 单台执行器。 (~1954 tok)
-- `collector_service.py` — 配置收集服务 (~21250 tok)
+- `collector_service.py` — 配置收集服务 (~22575 tok)
 - `eox_client.py` — Cisco EoX 客户端 —— 按型号批量查生命周期（停止销售 / 停止支持）。 (~1502 tok)
+- `log_analyzer.py` — 日志 AI 分析服务 (~3102 tok)
 
 ## backend/storage/
 
 - `__init__.py` — 数据存储服务模块 (~162 tok)
-- `database.py` — init_db, get_connection, close_connection (~8031 tok)
-- `device_dal.py` — get_all_devices, get_device_by_name, device_exists, create_device (~2296 tok)
-- `file_manager.py` — 存储管理模块 (~2714 tok)
-- `lifecycle_dal.py` — 设备生命周期数据访问 —— EoL 型号缓存 + 逐序列号保修登记。 (~2692 tok)
+- `database.py` — init_db, get_connection, close_connection (~9436 tok)
+- `device_dal.py` — list_managed, list_physical, get_all_devices, get_device_by_name (~2849 tok)
+- `file_manager.py` — 存储管理模块 (~2820 tok)
+- `lifecycle_dal.py` — 设备生命周期数据访问 —— EoL 型号缓存 + 逐序列号保修登记。 (~2884 tok)
 
 ## backend/tests/
 
@@ -224,38 +228,46 @@
 - `test_collector_service.py` — extract_model/extract_serial_number 测试（重点 VSF 堆叠成员型号，4 用例） (~500 tok)
 - `test_compliance_engine.py` — 配置审计引擎测试 —— 解析、判定器、站点作用域、行号契约。 (~5955 tok)
 - `test_compliance_exceptions.py` — 例外登记机制测试 —— 登记表校验 + 豁免判定。 (~3137 tok)
-- `test_compliance_source.py` — 审计数据源测试 —— 重点在三条边界： (~1844 tok)
+- `test_compliance_source.py` — 审计数据源测试 —— 重点在三条边界： (~1862 tok)
 - `test_config_diff.py` — running/startup 配置比对测试。 (~1673 tok)
 - `test_counter_parser.py` — 端口累计计数器解析器测试 (~4010 tok)
 - `test_database_migration.py` — 数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表） (~4643 tok)
+- `test_device_identity.py` — 设备身份助手测试（spec 第四节：物理名格式的唯一规则）。 (~560 tok)
+- `test_devices_api.py` — 设备列表 API 测试：managed / physical 两个视图（HTTP 层之下直接调端点函数）。 (~590 tok)
 - `test_eox_client.py` — Cisco EoX 客户端测试 —— mock HTTP（凭据到位前无法实盘验证，如实标注）。 (~1565 tok)
+- `test_hardware_change.py` — 硬件变更检测测试（spec 第六节）：指纹 diff 各情形 + 事件落库 + 调拨。 (~1718 tok)
+- `test_kind_filters.py` — kind 过滤纪律测试：成员行不得混入管理体视角（每类页面防漏网）。 (~1253 tok)
 - `test_lifecycle_api.py` — 生命周期 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）。 (~1447 tok)
 - `test_lifecycle_checks.py` — 生命周期判定器与「集体性折叠」测试。 (~2561 tok)
-- `test_lifecycle_dal.py` — 设备生命周期数据层测试。 (~1982 tok)
-- `test_member_parser.py` — 堆叠成员级解析测试 —— 编号 / 序列号 / 版本 / ROM / 运行时间 (~3084 tok)
+- `test_lifecycle_dal.py` — 设备生命周期数据层测试。 (~2272 tok)
+- `test_member_parser.py` — 堆叠成员级解析测试 —— 编号 / 序列号 / 版本 / ROM / 运行时间 (~3301 tok)
+- `test_member_rows.py` — 成员行维护测试（spec 第五节）：成功 upsert / 失败保护 / 离线保留。 (~1072 tok)
+- `test_migration_v18.py` — v18 迁移测试：设备身份模型（kind + 物理成员行） (~1306 tok)
 - `test_neighbor_parser.py` — CDP/LLDP 邻居解析器测试 — 重点：Aruba AP 名识别 (~1543 tok)
 - `test_performance_aruba.py` — Aruba show interface brief 解析测试 (~389 tok)
 - `test_performance_counters.py` — 端口累计计数器与端口详情合并测试（PerformanceAnalyzer 接线） (~2443 tok)
 - `test_port_names.py` — 端口名归一化测试。 (~660 tok)
 - `test_port_roles.py` — 端口角色推断测试 —— 让「BPDU Guard 不该配在上行口」这类端口级规则可信。 (~3983 tok)
-- `test_port_snapshot_write.py` — port_snapshots 落库测试（21 列 INSERT / NULL 与读数 0 区分 / 大数据精度） (~900 tok)
+- `test_port_snapshot_write.py` — port_snapshots 落库测试 —— 重点：累计计数器列（in_octets / out_octets） (~1265 tok)
 - `test_port_snapshot_write.py` — port_snapshots 落库测试 —— 重点：累计计数器列（in_octets / out_octets） (~1043 tok)
 - `test_redact.py` — 凭据打码测试 —— 纪律项：发给 LLM 的文本里绝不带凭据值。 (~865 tok)
-- `test_reports_api.py` — 自定义报告端点测试 —— 临时库直接调端点函数（HTTP 层之下） (~2205 tok)
+- `test_reports_api.py` — 自定义报告端点测试 —— 临时库直接调端点函数（HTTP 层之下） (~2265 tok)
 - `test_retention.py` — 分层保留与归档测试 (~3006 tok)
-- `test_stats_overview.py` — Dashboard 端口统计口径测试 —— Disabled 单独计数 (~784 tok)
+- `test_stats_overview.py` — Dashboard 端口统计口径测试 —— Disabled 单独计数 (~952 tok)
 - `test_stats_window.py` — 区间流量 Top10 周锚定测试（16 用例，**核心：周中再采一次结果完全不变**） (~1900 tok)
 - `test_stats_window.py` — 区间流量 Top10 测试 —— 周锚定口径 (~2078 tok)
 - `test_stp_api.py` — STP 端点集成测试 —— 临时库 + 真机样本 → 完整 JSON（HTTP 层之下） (~1658 tok)
 - `test_stp_graph.py` — 站点级 STP 图构建测试 —— 纯函数 _build_stp_graph（真机样本驱动） (~3076 tok)
 - `test_stp_parser.py` — stp_parser 测试 — 两个平台的真机样本（backend/tests/fixtures/） (~1610 tok)
 - `test_stp_snapshot_write.py` — stp_snapshots 落库测试 —— 生成树快照（站点 STP 拓扑图的数据源） (~1391 tok)
+- `test_topology_members.py` — 多设备拓扑的物理成员命名（spec 第四节：物理名统一 -N 不补零）。 (~408 tok)
 - `test_uptime_parser.py` — 运行时间解析测试 —— extract_uptime_seconds（Cisco show version / Aruba boot-history） (~1040 tok)
 
 ## backend/utils/
 
 - `config_diff.py` — running-config 与 startup-config 的差异比对。 (~1228 tok)
-- `port_names.py` — 端口名归一化 —— CDP/LLDP/STP/配置文本之间的端口名对齐。 (~414 tok)
+- `device_identity.py` — 设备身份助手 —— 物理名格式的唯一实现（spec 第四节）。 (~428 tok)
+- `port_names.py` — 端口名归一化 —— CDP/LLDP/STP/配置文本之间的端口名对齐。 (~700 tok)
 - `redact.py` — 凭据打码 —— 发给 LLM 之前，把配置证据里的凭据值替换掉。 (~686 tok)
 
 ## config/
@@ -313,27 +325,27 @@
 
 - `AuditExceptionDialog.tsx` — 登记例外对话框（查看器与标准页共用；到期日默认 +180 天） (~1652 tok)
 - `BriefingDialog.tsx` — 极简 Markdown 渲染：标题行加粗、`- ` 列表、**加粗** —— 不引第三方依赖 (~983 tok)
-- `LifecycleCard.tsx` — 设备生命周期卡片 —— EoL 与保修期。 (~5052 tok)
+- `LifecycleCard.tsx` — 设备生命周期卡片 —— EoL 与保修期。 (~5092 tok)
 
 ## frontend/src/components/devices/
 
 - `DeleteConfirmDialog.tsx` — 自定义提示文案；不传则用 devices.deleteWarning 并把 {name} 替换为 deviceName (~462 tok)
 - `DeviceTable.tsx` — DeviceTable — renders table (~2483 tok)
-- `deviceUtils.ts` — 解析堆叠成员编号后缀（每成员一个后缀，与序列号同序） (~408 tok)
+- `deviceUtils.ts` — Exports getDeviceColor, getTypeLabel (~192 tok)
 - `ImportDialog.tsx` — ImportDialog — renders table, modal (~2775 tok)
 
 ## frontend/src/components/topology/
 
 - `LabeledSmoothstepEdge.tsx` — 带端点端口标签的 smoothstep 边。 (~1026 tok)
 - `LocationTopologyCanvas.tsx` — NODE_H (~7754 tok)
-- `PortTopologyCanvas.tsx` — 解析设备命名规范：PVGD1SWI02 → { site: "PVG", room: "D1", typeCode: "SWI", num: 2 } (~14392 tok)
+- `PortTopologyCanvas.tsx` — 解析设备命名规范：PVGD1SWI02 → { site: "PVG", room: "D1", typeCode: "SWI", num: 2 } (~14388 tok)
 - `StpTopologyCanvas.tsx` — 边的运行时数据（buildLayout 注入；finalEdges 里刷新高亮/明细态） (~6774 tok)
 - `TopologyCanvas.tsx` — 判断端口拓扑是否符合三层结构：有 WAN 设备 + 中心交换机 + 终端设备 (~6637 tok)
 
 ## frontend/src/i18n/
 
-- `en.ts` — Declares en (~9842 tok)
-- `zh.ts` — Declares zh (~7401 tok)
+- `en.ts` — Declares en (~9860 tok)
+- `zh.ts` — Declares zh (~7414 tok)
 
 ## frontend/src/pages/
 
@@ -341,7 +353,7 @@
 - `BatchExec.tsx` — 执行队列的一项 (~7102 tok)
 - `ComplianceAudit.tsx` — 与仪表盘一致的图表配色（深色主题） (~8413 tok)
 - `ComplianceStandard.tsx` — 档位 → 配色，与查看器审计模式保持一致（刻意不用红色系：这是建议强度不是违规等级） (~7840 tok)
-- `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~11085 tok)
+- `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~10850 tok)
 - `DeviceDetail.tsx` — DeviceDetail (~6839 tok)
 - `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5680 tok)
 - `LogAnalyzer.tsx` — 严重级别 → 颜色 (数字→hex) (~7989 tok)
@@ -352,7 +364,7 @@
 
 ## frontend/src/services/
 
-- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~3811 tok)
+- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~3845 tok)
 
 ## frontend/src/shared/
 
@@ -363,7 +375,7 @@
 
 ## frontend/src/types/
 
-- `index.ts` — 离线物理设备档案（device_members 表） (~2886 tok)
+- `index.ts` — 离线物理设备档案（device_members 表） (~3066 tok)
 - `topology.ts` — 端口物理断开（status_up=0），图上显示红叉警告 (~1043 tok)
 
 ## tests/
