@@ -28,6 +28,7 @@ router = APIRouter()
 from analyzers.compliance import engine, loader, runner, source, trends  # noqa: E402
 from services import audit_briefing as briefing  # noqa: E402
 from storage.database import get_connection as _get_db  # noqa: E402
+from storage.device_dal import member_reject_message  # noqa: E402
 
 
 def _now() -> str:
@@ -113,6 +114,8 @@ async def get_ruleset():
 @router.get("/api/audit/device/{name}")
 async def audit_device(name: str, include_config: bool = True):
     """单台设备的即时审计（不落库）。"""
+    if msg := member_reject_message(name):
+        raise HTTPException(status_code=400, detail=msg)
     std = loader.load_standard()
     item = source.load_audit_input(_get_db(), name)
     if item is None:
@@ -235,6 +238,8 @@ async def audit_trend_diff(from_run: int | None = None, to_run: int | None = Non
 @router.post("/api/audit/device/{name}/briefing")
 async def device_briefing(name: str):
     """单台专家简报：把该设备的确定性结论讲成人话。"""
+    if msg := member_reject_message(name):
+        raise HTTPException(status_code=400, detail=msg)
     std = loader.load_standard()
     item = source.load_audit_input(_get_db(), name)
     if item is None:

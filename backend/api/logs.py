@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 from storage.database import get_connection as _get_db
+from storage.device_dal import member_reject_message
 from services.log_analyzer import analyze_logs
 
 router = APIRouter()
@@ -135,6 +136,8 @@ async def get_device_logs(
                          (device_name,)).fetchone()
     if not dev_row:
         raise HTTPException(status_code=404, detail="设备不存在")
+    if msg := member_reject_message(device_name):
+        raise HTTPException(status_code=400, detail=msg)
 
     device_id = dev_row["id"]
     device_info = {
@@ -210,6 +213,8 @@ async def analyze_device_logs(req: AnalyzeRequest):
     ).fetchone()
     if not dev_row:
         raise HTTPException(status_code=404, detail="设备不存在")
+    if msg := member_reject_message(req.device_name):
+        raise HTTPException(status_code=400, detail=msg)
 
     log_entries = [
         {"timestamp": r["log_timestamp"] or "", "severity": r["severity"] or "",

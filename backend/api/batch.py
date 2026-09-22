@@ -19,6 +19,7 @@ router = APIRouter()
 
 from services import batch_exec  # noqa: E402
 from storage.database import get_connection as _get_db  # noqa: E402
+from storage.device_dal import member_reject_message  # noqa: E402
 
 
 class CheckBody(BaseModel):
@@ -55,6 +56,8 @@ async def execute(
                      (device_name,)).fetchone()
     if row is None:
         raise HTTPException(status_code=404, detail=f"设备 '{device_name}' 不存在")
+    if msg := member_reject_message(device_name):
+        raise HTTPException(status_code=400, detail=msg)
 
     commands = batch_exec.split_commands(text)
     if not commands:

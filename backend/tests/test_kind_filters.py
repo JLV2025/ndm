@@ -3,7 +3,10 @@
 spec 第八节：devices 查询收敛到 device_dal 的两个入口
 （list_managed / list_physical），禁止新代码裸查 devices。
 """
+import asyncio
+
 import pytest
+from fastapi import HTTPException
 
 import storage.database as db
 from storage import device_dal
@@ -75,3 +78,44 @@ def test_改名级联成员行与档案(seeded):
     assert seeded.execute(
         "SELECT last_device FROM device_members WHERE serial_number='SN1'"
     ).fetchone()["last_device"] == "STACK9"
+
+
+# ============================================================
+# 按名入口拒绝成员行（spec 第八节：成员不可采集/执行/查日志/单台审计）
+# ============================================================
+
+def test_成员拒绝文案(seeded):
+    assert device_dal.member_reject_message("STACK1-2") == \
+        "STACK1-2 是堆叠成员，请对堆叠 STACK1 操作"
+    assert device_dal.member_reject_message("STACK1") == ""
+    assert device_dal.member_reject_message("不存在") == ""
+
+
+def test_采集与Ping拒绝成员(seeded):
+    """collector 两个按名入口在碰设备/建进度前就拒绝"""
+    from api import collector as collector_api
+
+    with pytest.raises(HTTPException) as e:
+        asyncio.run(collector_api.ping_device("STACK1-2"))
+    assert e.value.status_code == 400 and "堆叠成员" in e.value.detail
+
+    with pytest.raises(HTTPException) as e:
+        asyncio.run(collector_api.collect_config("STACK1-2", username="u", password="p"))
+    assert e.value.status_code == 400 and "堆叠成员" in e.value.detail
+
+
+def test_批量执行拒绝成员(seeded):
+    from api import batch as batch_api
+
+    with pytest.raises(HTTPException) as e:
+        asyncio.run(batch_api.execute(
+            device_name="STACK1-2", username="u", password="p",
+            text="show version", batch_id="b1"))
+    assert e.value.status_code == 400 and "堆叠成员" in e.value.detail
+
+
+def test_审计源不含成员行(seeded):
+    """扫描类查询（全量审计输入）只遍历管理体"""
+    from analyzers.compliance import source
+
+    assert [i.snapshot.name for i in source.list_audit_inputs(seeded)] == ["SINGLE1", "STACK1"]

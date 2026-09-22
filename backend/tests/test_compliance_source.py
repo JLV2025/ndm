@@ -20,7 +20,8 @@ from analyzers.compliance import source  # noqa: E402
 
 SCHEMA = """
 CREATE TABLE devices (id INTEGER PRIMARY KEY, name TEXT, location TEXT, platform TEXT,
-                      model TEXT, uplink_ports TEXT, serial_number TEXT);
+                      model TEXT, uplink_ports TEXT, serial_number TEXT,
+                      kind TEXT NOT NULL DEFAULT 'standalone');
 CREATE TABLE collections (id INTEGER PRIMARY KEY, device_id INTEGER, week TEXT,
                           collected_at TEXT, running_config TEXT, lag_membership TEXT,
                           startup_config TEXT, serial_number TEXT);

@@ -10,7 +10,7 @@ import subprocess
 import platform
 import socket
 from utils.settings_loader import load_settings
-from storage.device_dal import get_device_by_name
+from storage.device_dal import get_device_by_name, member_reject_message
 
 router = APIRouter()
 
@@ -101,6 +101,8 @@ async def ping_device(device_name: str) -> Dict:
     device = get_device_by_name(device_name)
     if not device:
         raise HTTPException(status_code=404, detail=f"设备 '{device_name}' 不存在")
+    if msg := member_reject_message(device_name):
+        raise HTTPException(status_code=400, detail=msg)
 
     ip = device.get("ip", "")
     if not ip:
@@ -127,6 +129,8 @@ async def collect_config(
     device = get_device_by_name(device_name)
     if not device:
         raise HTTPException(status_code=404, detail=f"设备 '{device_name}' 不存在")
+    if msg := member_reject_message(device_name):
+        raise HTTPException(status_code=400, detail=msg)
 
     print(f"[收集] 设备={device_name}, 用户名={username}")
 

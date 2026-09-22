@@ -165,7 +165,8 @@ def load_audit_input(conn: sqlite3.Connection, name: str) -> AuditInput | None:
 def list_audit_inputs(conn: sqlite3.Connection) -> list[AuditInput]:
     """全网快照（用于全量审计）。包含不可用的设备——它们的 reason 要展示给用户。"""
     conn.row_factory = sqlite3.Row
-    names = [r["name"] for r in conn.execute("SELECT name FROM devices ORDER BY name")]
+    names = [r["name"] for r in conn.execute(
+        "SELECT name FROM devices WHERE kind != 'member' ORDER BY name")]
     out = []
     for n in names:
         item = load_audit_input(conn, n)

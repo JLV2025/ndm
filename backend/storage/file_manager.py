@@ -190,7 +190,8 @@ def prune_db(conn, config_keep: int = CONFIG_KEEP, logs_keep: int = LOGS_KEEP,
             ).fetchall()
         ]
 
-    for (device_id,) in conn.execute("SELECT id FROM devices").fetchall():
+    for (device_id,) in conn.execute(
+            "SELECT id FROM devices WHERE kind != 'member'").fetchall():
         keep_ids = _keep_ids(device_id, config_keep)
         if keep_ids:
             marks = ",".join("?" * len(keep_ids))

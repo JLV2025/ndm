@@ -45,7 +45,7 @@ def _build_sanitize_map(device_name: str, device_ip: str) -> Dict[str, str]:
             if row and row["location"]:
                 loc = row["location"]
                 others = db.execute(
-                    "SELECT name, ip FROM devices WHERE location=? AND name!=?",
+                    "SELECT name, ip FROM devices WHERE location=? AND name!=? AND kind != 'member'",
                     (loc, device_name)
                 ).fetchall()
                 for i, dev in enumerate(others, 1):

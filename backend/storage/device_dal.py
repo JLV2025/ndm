@@ -205,6 +205,22 @@ def delete_member(serial: str) -> bool:
     return cur.rowcount > 0
 
 
+def member_reject_message(name: str) -> str:
+    """按名入口的统一拒绝文案（spec 第八节：成员行不可采集/执行/查日志/单台审计）。
+
+    返回空串 = 不是成员行。API 层用法：
+        if msg := member_reject_message(device_name):
+            raise HTTPException(status_code=400, detail=msg)
+    """
+    conn = get_connection()
+    row = conn.execute(
+        "SELECT stack_name FROM devices WHERE name = ? AND kind = 'member'",
+        (name,)).fetchone()
+    if not row:
+        return ""
+    return f"{name} 是堆叠成员，请对堆叠 {row['stack_name'] or '（未知）'} 操作"
+
+
 # ================================================================
 # YAML 迁移（一次性）
 # ================================================================
