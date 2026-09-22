@@ -7,7 +7,7 @@
 
 ### 工具与流程
 - [2026-09-22] 改 buglog **按 `error_message` 内容匹配，不能按 id** —— 钩子自动条目会与手工条目撞名（bug-151/bug-201 各撞过，已犯两次）。
-- [2026-09-22] bash 里不写大段内容（heredoc / f-string 裸花括号 / 反引号）—— 会生成 0 字节怪文件（bug-151，已 10 次；`git add` 前必跑 `git status --short` 拦）。Markdown/JSON/代码一律用 Write/Edit；查 .wolf 文件用 Read 工具，**别 cat/python print 到控制台**（GBK 乱码同样触发）。
+- [2026-09-22] bash 里不写大段内容（heredoc / f-string 裸花括号 / 反引号）—— 会生成 0 字节怪文件（bug-151，**已 11 次**；`git add` 前必跑 `git status --short` 拦；兜底清扫脚本 `%TEMP%\wolf_sweep.py` 删根目录 0 字节文件）。**探针/仿真命令一律写成临时 .py 文件再跑，不写内联一行命令** —— 含 `$()` 替换、单引号 JSON 载荷、回显数字的批次全部中招，而 Write 工具写的脚本零复现。Markdown/JSON/代码一律用 Write/Edit；查 .wolf 文件用 Read 工具，**别 cat/python print 到控制台**（GBK 乱码同样触发）。
 - [2026-09-22] 测试与提交同链时必须 `pytest > /tmp/x.log 2>&1; echo exit=$?` —— 管道会吃掉退出码（曾带病提交一次，amend 修正）。
 - [2026-09-22] 规则变更要同步**多处**：设备名正则 3 处（前端 `parseDeviceName` / `neighbor_parser.DEVICE_NAME_RE` / `role_verifier._parse_device_name`）；版本号 5 处（`VERSION`/`start.bat`/`package.json`/`README` 徽章/使用文档）；类型提取 4 处（以 `neighbor_parser._extract_type` 为唯一事实来源）。漏一处就漂移。
 - [2026-09-22] 删函数/常量前 grep 全仓；改前端画布前先确认**实际使用**的组件（`PortTopologyCanvas` 真、`TopologyCanvas` 是死代码）；新 i18n 键先 grep（防 TS1117 重复键）；发现零调用方的 export 直接删，不要往里加逻辑。

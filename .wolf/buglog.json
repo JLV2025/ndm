@@ -663,7 +663,7 @@
     {
       "id": "bug-151",
       "timestamp": "2026-09-18T11:35:00",
-      "error_message": "工作区出现 0 字节垃圾文件 —— 与 heredoc/引号碎片陷阱同源；第 8 次（本次 3 个文件：`1`、`3`、`FCW2129B3TR`，出现在 Claude 会话的 bash heredoc 查询之后，成因仍未定）。历史样本：dict、{nb}、1、7}、ZGND1SWI01、backend/AuditInput、10MB、'、3、FCW2129B3TR；第 9 次（2026-09-22 15:59）：`identical`、`frontend/identical`（各 0 字节，出现在一条多行 python -c 单行命令之后，命令输出串里含 identical 一词）。处置同前：删除 + 提交前 git status --short 拦截。；第 10 次（2026-09-22 16:01）：项目根一个（名字为 dict + 乱码 + shell，0 字节），出现在「用 python 把本条目中文内容打印到 GBK 控制台」之后——控制台里中文显示为 锟斤拷 乱码，文件名正是那段乱码文本的片段。新认识：触发不限于**写入**，**读取/打印含中文的 .wolf 内容到控制台**同样会触发；预防：查 .wolf 文件用 Read 工具，不要用 cat / python print 打到控制台。",
+      "error_message": "工作区出现 0 字节垃圾文件 —— 与 heredoc/引号碎片陷阱同源；第 8 次（本次 3 个文件：`1`、`3`、`FCW2129B3TR`，出现在 Claude 会话的 bash heredoc 查询之后，成因仍未定）。历史样本：dict、{nb}、1、7}、ZGND1SWI01、backend/AuditInput、10MB、'、3、FCW2129B3TR；第 9 次（2026-09-22 15:59）：`identical`、`frontend/identical`（各 0 字节，出现在一条多行 python -c 单行命令之后，命令输出串里含 identical 一词）。处置同前：删除 + 提交前 git status --short 拦截。；第 10 次（2026-09-22 16:01）：项目根一个（名字为 dict + 乱码 + shell，0 字节），出现在「用 python 把本条目中文内容打印到 GBK 控制台」之后——控制台里中文显示为 锟斤拷 乱码，文件名正是那段乱码文本的片段。新认识：触发不限于**写入**，**读取/打印含中文的 .wolf 内容到控制台**同样会触发；预防：查 .wolf 文件用 Read 工具，不要用 cat / python print 打到控制台。；第 11 次（2026-09-22 16:2x）：`$M2`、`'`、`3650` 三个（0 字节，仓库根）——出现在一条**内联 shell 一行命令**之后（含 `M2=$(wc -l ...)` 变量赋值、单引号包裹的 JSON 载荷、回显数字 3650）。对比：本会话改用 Write 工具写临时脚本执行的几十次操作**零怪文件**；出怪文件的批次都含内联 `node -e`/`echo '{\"json\"}' | node`/复杂 $() 替换。预防升级：探针/仿真类命令一律写成临时 .py 文件再执行，不写内联一行命令。",
       "file": "（由 bash heredoc 追加 .wolf/cerebrum.md 时产生，非代码文件）",
       "root_cause": "用 bash heredoc 追加含**行内代码反引号**的 Markdown 文本（如 `analyze(name, text, std) -> dict`）时，shell 把成对反引号当成命令替换解析，碎片被重定向成了文件名。上一次同类事故的根因是 heredoc 里 f-string 的花括号（bug-094），这次是反引号 —— 同一类问题：**bash 不是用来写文本内容的** ｜ 2026-09-18 第 3 次出现，成因仍未确认：本次会话未使用任何含反引号的 bash heredoc；对照实验（for 循环 + 引号 heredoc + dict(...)）无法复现；已排除 .wolf/hooks/*.js（无 shell 插值，仅 env-check/post-edit/pre-commit 用 execSync 且不含内容插值）；该文件只在项目根出现，其他目录无副本。 ｜ 2026-09-20 第 4 次出现（frontend/src/convention 加撇号，0 字节），新证据：\n   ① 查 git 历史发现**本项目历史上发生过同样的事**：d7d8317 误把 backend/ 加撇号、backend/{e[target]} 两个怪文件一起提交，后来 140697c 才删掉，提交信息写的是「命令输出残留」。\n   ② 已排除 OpenWolf hooks：grep .wolf/hooks/*.js 的全部 writeFileSync/appendFileSync，写入路径都是固定值（memory.md / anatomy.md / buglog.json），没有任何「用内容拼文件名」的写法；post-edit.js 只对 .py 跑 py_compile。\n   ③ 文件名特征：**一个词 + 撇号或反引号**（dict、convention、backend、{e[target]}），是典型的 shell **引号不配对**后，重定向把后续文本当成文件名的产物。\n   ④ 本次触发点在编辑 frontend/src/types/index.ts 之后、出现在同目录，说明产生时机与**被编辑文件的内容**有关。\n   → 处置：删除 + **提交前一律逐个看 git status --short，不要用 git add -A**（它会把这类垃圾一并 stage，历史上正是这么栽的）。",
       "fix": "删除垃圾文件后照常提交。预防：① Markdown/JSON 等含反引号、花括号、管道符、引号的内容一律用 Write/Edit 工具写入；② `git add` 前必跑 `git status --short` 拦截（本项目已拦截 7 次）",
@@ -677,8 +677,8 @@
       "related_bugs": [
         "bug-094"
       ],
-      "occurrences": 10,
-      "last_seen": "2026-09-22T16:20:00"
+      "occurrences": 11,
+      "last_seen": "2026-09-22T16:30:00"
     },
     {
       "id": "bug-156",
