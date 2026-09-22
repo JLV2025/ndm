@@ -308,13 +308,14 @@ export const lifecycleApi = {
   importText: (text: string, verifiedBy: string): Promise<import('../types').LifecycleImportResult> =>
     apiJson.post('/lifecycle/import', { text, verified_by: verifiedBy }).then(res => res.data),
 
-  /** 型号 EoL 当前登记（编辑预填；保存是整条覆盖，不回填会丢公告/链接/备注） */
+  /** 型号 EoL 当前登记（编辑预填；保存是整条覆盖，不回填会丢公告/链接/备注）。
+      型号走查询参数：型号含 "/"（CISCO2951/K9），放路径会被 uvicorn 解码成路径分隔符（bug-298）。 */
   model: (model: string): Promise<{ model: import('../types').LifecycleModelEol }> =>
-    apiJson.get(`/lifecycle/model/${encodeURIComponent(model)}`).then(res => res.data),
+    apiJson.get('/lifecycle/model', { params: { model } }).then(res => res.data),
 
-  /** 手工登记型号 EoL（覆盖已有记录） */
+  /** 手工登记型号 EoL（覆盖已有记录）—— 型号是查询参数，原因同 model() */
   saveModel: (model: string, patch: Record<string, unknown>) =>
-    apiJson.put(`/lifecycle/model/${encodeURIComponent(model)}`, patch).then(res => res.data),
+    apiJson.put('/lifecycle/model', patch, { params: { model } }).then(res => res.data),
 
   /** 按型号刷新 Cisco EoX（未配凭据 → 400 + 可读原因） */
   refresh: (force = false) =>

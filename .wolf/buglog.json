@@ -933,6 +933,25 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-22T16:10:00"
+    },
+    {
+      "id": "bug-298",
+      "timestamp": "2026-09-22T17:35:00",
+      "error_message": "用户反馈：生命周期页点 Cisco 路由器型号 CISCO2951/K9 无法进入 EoL 编辑（怀疑是 / 字符）",
+      "file": "backend/api/lifecycle.py",
+      "root_cause": "型号走 URL 路径参数 /api/lifecycle/model/{model}；型号含 \"/\" 时前端 encodeURIComponent 成 %2F，但 uvicorn 在交给 Starlette 路由前会把整条路径 unquote（%2F → /），单段路径路由永远匹配不到 → 404（GET/PUT 同病）。前端 openModelEdit 捕获错误只弹提示，弹窗永不打开。既有测试全部直调端点函数、绕过 URL 路由，所以抓不到。",
+      "fix": "GET/PUT 型号改为查询参数 /api/lifecycle/model?model=…（前端 axios params 自带编码）；补 3 个走真实路由的 TestClient 用例；用临时 uvicorn 实例（8011）curl 与浏览器实测：点击 → GET ?model=CISCO2951%2FK9 → 200 → 弹窗打开并预填",
+      "tags": [
+        "lifecycle",
+        "routing",
+        "url-encoding",
+        "uvicorn",
+        "fastapi",
+        "test-blindspot"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T17:35:00"
     }
   ]
 }

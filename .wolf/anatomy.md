@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T08:49:04.264Z
-> Files: 5 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T09:18:17.756Z
+> Files: 9 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
 
@@ -34,6 +34,7 @@
 
 ## backend/
 
+- `requirements.txt` — Python dependencies (~75 tok)
 
 ## backend/analyzers/
 
@@ -43,6 +44,7 @@
 
 ## backend/api/
 
+- `lifecycle.py` — 设备生命周期 API —— EoL 与保修期的登记、批量导入、刷新与概况。 (~1809 tok)
 
 ## backend/collectors/
 
@@ -61,6 +63,7 @@
 
 ## backend/tests/
 
+- `test_lifecycle_api.py` — 生命周期 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）。 (~3449 tok)
 
 ## backend/utils/
 
@@ -112,6 +115,7 @@
 
 ## frontend/src/services/
 
+- `api.ts` — 前端 API 客户端：axios 实例（prod 指向 localhost:8002）+ 各域端点封装 (~3990 tok)
 
 ## frontend/src/shared/
 

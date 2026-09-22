@@ -10,3 +10,7 @@ requests>=2.31.0
 
 # 规则文件的往返编辑（保留注释）—— 规则库写回用
 ruamel.yaml>=0.19
+
+# 测试：TestClient 走真实路由（型号含 "/" 的回归测试）需要 httpx
+pytest>=8.0
+httpx>=0.27

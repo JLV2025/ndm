@@ -11,7 +11,8 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
-from fastapi import HTTPException
+from fastapi import FastAPI, HTTPException
+from fastapi.testclient import TestClient
 
 BACKEND = Path(__file__).resolve().parents[1]
 if str(BACKEND) not in sys.path:
@@ -173,6 +174,7 @@ def phys_conn(tmp_path):
             ("C9500-24Y4C", FAR, FAR),
             ("JL659A", PAST, ""),
             ("C9500-48Y4C", EOL_SOON, ""),
+            ("CISCO2951/K9", PAST, FAR),      # 型号含 "/"：查询参数路由的回归样本（bug-298）
         ])
     c.commit()
     yield c
@@ -248,3 +250,38 @@ def test_型号EoL改动同步所有同型号行(phys_conn):
     assert rows["SZXD1SWI01-1"]["eol"] == {"end_of_sale": PAST, "end_of_support": FAR,
                                            "status": "expired"}
     assert rows["SZXD1SWI01-2"]["eol"]["status"] == "expired"
+
+
+# ------------------------------ HTTP 路由层：型号走查询参数（bug-298）
+# 上面的测试都直接调端点函数、绕过 URL 路由，抓不到路由问题；而型号里的 "/" 曾在
+# 路径参数里被 percent-decode 还原成路径分隔符（%2F → /），路由永远 404 ——
+# 页面点 CISCO2951/K9 打不开 EOL 编辑就是这个原因。这里用最小 app + TestClient
+# 走真实路由，把「型号是查询参数」的契约锁死。
+
+def _http_client() -> TestClient:
+    """最小 app + 真实 lifecycle router（不导入 main：它在模块层 init_db 写生产库）。"""
+    app = FastAPI()
+    app.include_router(lc.router)
+    return TestClient(app)
+
+
+def test_型号含斜杠_经HTTP路由可预填(phys_conn):
+    r = _http_client().get("/api/lifecycle/model", params={"model": "CISCO2951/K9"})
+    assert r.status_code == 200
+    assert r.json()["model"]["model"] == "CISCO2951/K9"
+    assert r.json()["model"]["end_of_sale"] == PAST
+
+
+def test_型号含斜杠_经HTTP路由可保存(phys_conn):
+    client = _http_client()
+    r = client.put("/api/lifecycle/model", params={"model": "CISCO2951/K9"},
+                   json={"end_of_sale": EOL_SOON, "end_of_support": FAR, "updated_by": "张工"})
+    assert r.status_code == 200
+    got = client.get("/api/lifecycle/model", params={"model": "CISCO2951/K9"}).json()["model"]
+    assert got["end_of_sale"] == EOL_SOON and got["end_of_support"] == FAR
+    assert got["updated_by"] == "张工"
+
+
+def test_型号经HTTP路由_普通型号照常(phys_conn):
+    r = _http_client().get("/api/lifecycle/model", params={"model": "JL659A"})
+    assert r.status_code == 200 and r.json()["model"]["end_of_sale"] == PAST

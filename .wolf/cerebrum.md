@@ -9,6 +9,7 @@
 
 ### 工具与流程
 - buglog 按 `error_message` 匹配改，**不按 id**（钩子条目会撞名）。
+- OpenWolf 全局包（npm `openwolf/dist/hooks`）部署时会用**出厂版覆盖项目里定制过的 config.json / post-write.js**（auto_log 开关、跨盘守卫都被抹过，2026-09-22 撞见；copy 保留 mtime=安装日）→ 发现 .wolf 配置"自己变回去"就先 `git checkout -- .wolf/` 还原；想永久修得改全局包（影响所有 OpenWolf 项目，先问用户）。
 - bash 不写大段内容（heredoc/f-string 裸花括号/反引号）与**内联一行命令**（`$()`、引号 JSON）→ 0 字节怪文件（bug-151，11 次）；Markdown/JSON/代码用 Write/Edit；读 .wolf 用 Read 工具（别打到 GBK 控制台）；`git add` 前 `git status --short`，兜底 `%TEMP%\wolf_sweep.py`。
 - 测试与提交同链：`pytest > /tmp/x.log 2>&1; echo exit=$?`（管道吃退出码）。
 - 规则变更同步多处：设备名正则 3 处（前端 `parseDeviceName` / `neighbor_parser.DEVICE_NAME_RE` / `role_verifier`）；版本号 5 处（VERSION/start.bat/package.json/README/使用文档）；类型提取以 `neighbor_parser._extract_type` 为准。
@@ -30,6 +31,7 @@
 - 计数器列**不过 `_safe_str`**（None 落 NULL，"读到 0"与"没采到"要可分）。
 - `present_regex` = **应该有**（未命中才报）；`absent_regex`/`present_flag` 才是命中即报。
 - FastAPI 默认参数别用 `Query(...)`；`/{name}` 路由注册在固定路径**之后**。
+- URL **路径参数不能承载含 "/" 的值**：uvicorn 先对整条路径 unquote（%2F→/）再交给 Starlette，`/model/{model}` 对 `CISCO2951/K9` 永远 404（GET/PUT 同病）→ 标识符走查询参数（`?model=`）；**路由层问题直调端点函数的单测抓不到**，补最小 app + TestClient 用例（bug-298）。
 - 静默失效用"异常组合探针"抓（status=unknown 却带计数器 / is_uplink 全 0 / 路由器快照 0 条）。
 - 同数据多消费方同口径同改：config_diff（告警+审计）、版本不一致（报告+anomaly）、`_envelope`+`runner` 两条路径都要接线。
 - OneDrive 占位文件先 `cp` 到本地再给 Python 处理。
@@ -121,7 +123,7 @@
 ## 当前状态（2026-09-22）
 - **发布 2.9.22**：版本号 6 处同步（VERSION / start.bat / package.json / README 徽章 / 使用文档页头+页脚）；
   README 与 CLAUDE.md 已同步身份模型、生命周期页与三色判定唯一来源。
-- 版本 **2.9.22**；schema **v18**；测试 **613 全绿**；dist 已入库。
+- 版本 **2.9.22**；schema **v18**；测试 **617 全绿**；dist 已入库。
 - 生产库 61 行（12 stack / 24 standalone / 25 member）→ 物理 **49 台**。
 - 使用文档：**中英章节编号已全量修正**（此前中文子标题号整体错位，如 17 章下挂 15.1）；已补
   「批量执行」「设备生命周期」两章中英各一（编号 15/16 与 33/34，其余整段顺延）；数据存储章节
