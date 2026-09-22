@@ -275,6 +275,9 @@ export interface LifecycleRefreshStatus {
   reason: string
 }
 
+/** 生命周期三色（判定在后端 services/lifecycle_status.py） */
+export type LifecycleStatus = 'ok' | 'soon' | 'missing' | 'expired' | 'none'
+
 export interface LifecycleModelEol {
   model: string
   description?: string
@@ -287,6 +290,7 @@ export interface LifecycleModelEol {
   fetched_at?: string
   updated_by?: string
   note?: string
+  status?: LifecycleStatus   // EoS/EoL 两日期取最严重（后端装配）
 }
 
 export interface LifecycleSerial {
@@ -297,6 +301,24 @@ export interface LifecycleSerial {
   source?: string
   verified_at?: string
   verified_by?: string
+  warranty_status?: LifecycleStatus   // 后端装配（未登记 = missing）
+}
+
+/** 生命周期页：一台物理设备一行（堆叠成员行或单机行） */
+export interface PhysicalLifecycleRow {
+  name: string               // 存储名（成员行 = SZXD1SWI01-1）
+  display_name: string       // 展示名（1 成员堆叠 → 基础名）
+  device: string             // 所属堆叠/单机（保修记账与编辑目标）
+  kind: 'member' | 'standalone'
+  serial: string
+  model: string
+  location: string
+  warranty_end: string
+  note: string
+  source: string
+  verified_at: string
+  warranty_status: LifecycleStatus
+  eol: { end_of_sale: string; end_of_support: string; status: LifecycleStatus }
 }
 
 export interface DeviceLifecycle {

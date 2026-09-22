@@ -136,3 +136,17 @@ export const ENDPOINT_TYPE_MAP: Record<string, string> = {
   'Phone': '电话', 'Printer': '打印机', 'AP': '无线AP',
   'Laptop': '笔记本', 'Internet': '互联网', 'ISP': 'ISP',
 }
+
+// ============================================================
+// 生命周期三色（判定在后端 services/lifecycle_status.py，这里只管颜色）
+// ============================================================
+/** 状态 → MUI 语义色（唯一映射处：生命周期页与详情页卡片共用，不引入新色） */
+export const STATUS_COLOR: Record<string, 'success.main' | 'warning.main' | 'error.main' | 'text.disabled'> = {
+  ok: 'success.main', soon: 'warning.main', missing: 'warning.main',
+  expired: 'error.main', none: 'text.disabled',
+}
+
+/** 状态严重度（数字越小越严重）—— 生命周期页按状态排序时用 */
+export const STATUS_RANK: Record<string, number> = {
+  expired: 0, missing: 1, soon: 2, ok: 3, none: 4,
+}

@@ -500,6 +500,7 @@ const en: Record<string, string> = {
 
   // Configuration audit
   'nav.audit': 'Config Audit',
+  'nav.lifecycle': 'Lifecycle',
   'audit.title': 'Configuration Audit',
   'audit.description': 'Reviews your config like a senior network engineer: company requirements, vendor guidance and site conventions',
   'audit.mode': 'Audit',
@@ -702,6 +703,25 @@ const en: Record<string, string> = {
   'lifecycle.needVerifiedBy': 'Please fill in who verified this (for review traceability)',
   'lifecycle.saved': 'Saved',
   'lifecycle.saveFailed': 'Save failed',
+  // Lifecycle page (Plan 2): all physical devices + three-colour status
+  'lifecycle.page.hint': 'All physical devices (each stack member + standalones) with EoS/EoL and warranty; warranty is booked per managed device; colour = status',
+  'lifecycle.page.all': 'All',
+  'lifecycle.page.location': 'Location',
+  'lifecycle.page.allLocations': 'All locations',
+  'lifecycle.page.allModels': 'All models',
+  'lifecycle.page.status': 'Status',
+  'lifecycle.page.source': 'Source',
+  'lifecycle.page.verified': 'Last verified',
+  'lifecycle.page.device': 'Managed device',
+  'lifecycle.page.count': '{n} devices',
+  'lifecycle.page.editRow': 'Edit warranty',
+  'lifecycle.page.saveOk': 'Saved; status refreshed',
+  'lifecycle.page.filteredEmpty': 'No physical device matches the filters',
+  'lifecycle.status.ok': 'In warranty',
+  'lifecycle.status.soon': 'Expiring',
+  'lifecycle.status.missing': 'Not registered',
+  'lifecycle.status.expired': 'Out of warranty',
+  'lifecycle.status.none': 'Not registered',
 
   // Batch command execution
   'nav.batchExec': 'Batch Exec',

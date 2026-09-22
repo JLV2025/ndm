@@ -29,6 +29,7 @@ import {
   BugReport as BugIcon,
   FactCheck as AuditIcon,
   Bolt as BoltIcon,
+  VerifiedUser as LifecycleIcon,
 } from '@mui/icons-material'
 import Login from './pages/Login'
 import DeviceList from './pages/DeviceList'
@@ -44,6 +45,7 @@ import LogAnalyzer from './pages/LogAnalyzer'
 import ComplianceStandard from './pages/ComplianceStandard'
 import ComplianceAudit from './pages/ComplianceAudit'
 import BatchExec from './pages/BatchExec'
+import Lifecycle from './pages/Lifecycle'
 import MatrixRain from './components/MatrixRain'
 import { sessionManager } from './services/auth'
 import { useI18n } from './i18n'
@@ -101,6 +103,7 @@ function Layout() {
     { label: t('logs.title'), icon: <BugIcon />, path: '/log-analyzer' },
     { label: t('nav.audit'), icon: <AuditIcon />, path: '/compliance-audit' },
     { label: t('auditRules.title'), icon: <AuditIcon />, path: '/compliance-standard' },
+    { label: t('nav.lifecycle'), icon: <LifecycleIcon />, path: '/lifecycle' },
     { label: t('nav.batchExec'), icon: <BoltIcon />, path: '/batch-exec' },
   ]
 
@@ -367,6 +370,7 @@ const App: React.FC = () => {
           <Route path="log-analyzer" element={<LogAnalyzer />} />
           <Route path="compliance-standard" element={<ComplianceStandard />} />
           <Route path="compliance-audit" element={<ComplianceAudit />} />
+          <Route path="lifecycle" element={<Lifecycle />} />
           <Route path="batch-exec" element={<BatchExec />} />
         </Route>
       </Routes>

@@ -502,6 +502,7 @@ const zh: Record<string, string> = {
 
   // 配置审计
   'nav.audit': '配置审计',
+  'nav.lifecycle': '生命周期',
   'audit.title': '配置审计',
   'audit.description': '像资深网络工程师那样审配置：结合公司要求、厂商建议与现网惯例给建议',
   'audit.mode': '审计',
@@ -704,6 +705,25 @@ const zh: Record<string, string> = {
   'lifecycle.needVerifiedBy': '请填写核实人（记录谁核实的，便于复核）',
   'lifecycle.saved': '已保存',
   'lifecycle.saveFailed': '保存失败',
+  // 生命周期页（Plan 2）：全部物理设备一览 + 三色状态
+  'lifecycle.page.hint': '全部物理设备（堆叠成员逐台 + 单机）的 EoS/EoL 与维保一览；保修按管理体记账，颜色即状态',
+  'lifecycle.page.all': '全部',
+  'lifecycle.page.location': '位置',
+  'lifecycle.page.allLocations': '全部位置',
+  'lifecycle.page.allModels': '全部型号',
+  'lifecycle.page.status': '状态',
+  'lifecycle.page.source': '来源',
+  'lifecycle.page.verified': '最后核验',
+  'lifecycle.page.device': '所属设备',
+  'lifecycle.page.count': '共 {n} 台',
+  'lifecycle.page.editRow': '编辑维保信息',
+  'lifecycle.page.saveOk': '已保存，状态已刷新',
+  'lifecycle.page.filteredEmpty': '没有符合筛选条件的物理设备',
+  'lifecycle.status.ok': '在保',
+  'lifecycle.status.soon': '临近',
+  'lifecycle.status.missing': '未登记',
+  'lifecycle.status.expired': '出保',
+  'lifecycle.status.none': '未登记',
 
   // 批量执行（命令下发）
   'nav.batchExec': '批量执行',

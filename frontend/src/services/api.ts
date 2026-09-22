@@ -294,6 +294,10 @@ export const lifecycleApi = {
   device: (name: string): Promise<import('../types').DeviceLifecycle> =>
     apiJson.get(`/lifecycle/device/${encodeURIComponent(name)}`).then(res => res.data),
 
+  /** 生命周期页：全部物理设备（成员 + 单机）一行一台，每行带三色状态 */
+  listPhysical: (): Promise<{ devices: import('../types').PhysicalLifecycleRow[] }> =>
+    apiJson.get('/lifecycle/physical').then(res => res.data),
+
   /** 逐序列号保存保修期（source=manual + 核实人） */
   saveDevice: (name: string, rows: { serial: string; warranty_end: string; note?: string }[],
                verifiedBy: string) =>
@@ -303,6 +307,10 @@ export const lifecycleApi = {
   /** 批量粘贴导入：每行 `序列号,到期日[,备注]`；未匹配的原样回显 */
   importText: (text: string, verifiedBy: string): Promise<import('../types').LifecycleImportResult> =>
     apiJson.post('/lifecycle/import', { text, verified_by: verifiedBy }).then(res => res.data),
+
+  /** 型号 EoL 当前登记（编辑预填；保存是整条覆盖，不回填会丢公告/链接/备注） */
+  model: (model: string): Promise<{ model: import('../types').LifecycleModelEol }> =>
+    apiJson.get(`/lifecycle/model/${encodeURIComponent(model)}`).then(res => res.data),
 
   /** 手工登记型号 EoL（覆盖已有记录） */
   saveModel: (model: string, patch: Record<string, unknown>) =>
