@@ -1,0 +1,3943 @@
+{
+  "version": 1,
+  "note": "OpenWolf post-write 钩子自动生成的编辑摘要（tags 含 auto-detected）。2026-09-22 起已停用自动记录（config: openwolf.buglog.auto_log=false）；本文件仅作编辑历史备查，可 grep。",
+  "bugs": [
+    {
+      "id": "bug-001",
+      "timestamp": "2026-07-27T01:57:57.015Z",
+      "error_message": "Wrong return value",
+      "file": "backend/collectors/base.py",
+      "root_cause": "Was returning: self.send_command(\"show lldp nei\", read_timeout=60",
+      "fix": "Now returns: self.send_command(\"show lldp neighbor-info detail\"",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T01:57:57.015Z"
+    },
+    {
+      "id": "bug-002",
+      "timestamp": "2026-07-27T02:02:15.310Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→15 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T02:02:15.310Z"
+    },
+    {
+      "id": "bug-003",
+      "timestamp": "2026-07-27T03:00:44.312Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/topology.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 52→70 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T03:00:44.312Z"
+    },
+    {
+      "id": "bug-004",
+      "timestamp": "2026-07-27T03:30:08.809Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→8 lines (2 removed) | Also: ): { positions: Record<string, { x: number; y: num; tierWidths[t] = groups[t].length * nodeW(t) + Math",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-27T03:30:43.022Z"
+    },
+    {
+      "id": "bug-005",
+      "timestamp": "2026-07-27T03:30:20.333Z",
+      "error_message": "Wrong return value",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "Was returning: tier === 'core' ? CORE_NODE_W : NODE_W }",
+      "fix": "Now returns: Math.max(base, maxHandles * HANDLE_MIN_PX)",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T03:30:20.333Z"
+    },
+    {
+      "id": "bug-006",
+      "timestamp": "2026-07-27T04:21:07.991Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 15→25 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T04:21:07.991Z"
+    },
+    {
+      "id": "bug-007",
+      "timestamp": "2026-07-27T05:12:09.481Z",
+      "error_message": "CSS fix: fontSize",
+      "file": "frontend/src/components/topology/LabeledSmoothstepEdge.tsx",
+      "root_cause": "fontSize: hl ? 14 : 12, → hl ? 16 : 14,",
+      "fix": "Changed fontSize: hl ? 14 : 12, → hl ? 16 : 14,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T05:12:09.481Z"
+    },
+    {
+      "id": "bug-008",
+      "timestamp": "2026-07-27T05:12:47.190Z",
+      "error_message": "CSS fix: fontSize",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "fontSize: hl ? 14 : 12, fontWeight: hl ? 700 : (500 as const), → hl ? 16 : 14, fontWeight: hl ? 700 : (500 as const),",
+      "fix": "Changed fontSize: hl ? 14 : 12, fontWeight: hl ? 700 : (500 as const), → hl ? 16 : 14, fontWeight: hl ? 700 : (500 as const),",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-07-27T05:12:54.963Z"
+    },
+    {
+      "id": "bug-009",
+      "timestamp": "2026-07-27T05:15:55.334Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/package.json",
+      "root_cause": "Had \"2.7.22\"",
+      "fix": "Changed to \"2.7.27\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-07-27T05:15:55.334Z"
+    },
+    {
+      "id": "bug-010",
+      "timestamp": "2026-08-03T01:39:26.610Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/analyzers/neighbor_parser.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 7→19 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T01:39:26.610Z"
+    },
+    {
+      "id": "bug-017",
+      "timestamp": "2026-08-03T03:14:29.344Z",
+      "error_message": "Type error",
+      "file": "frontend/src/components/topology/LabeledSmoothstepEdge.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T03:14:29.344Z"
+    },
+    {
+      "id": "bug-018",
+      "timestamp": "2026-08-03T03:29:02.387Z",
+      "error_message": "CSS fix: member",
+      "file": "frontend/src/components/topology/TopologyCanvas.tsx",
+      "root_cause": "member: memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type → memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type, portDown: n.port_down",
+      "fix": "Changed member: memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type → memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type, portDown: n.port_down",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T03:29:02.387Z"
+    },
+    {
+      "id": "bug-019",
+      "timestamp": "2026-08-03T03:29:20.001Z",
+      "error_message": "CSS fix: data",
+      "file": "frontend/src/components/topology/LocationTopologyCanvas.tsx",
+      "root_cause": "data: { srcPort, tgtPort, srcSide, tgtSide → { srcPort, tgtPort, srcSide, tgtSide, srcPortDown: e.source_port_down, tgtPortDown: e.target_port_down",
+      "fix": "Changed data: { srcPort, tgtPort, srcSide, tgtSide → { srcPort, tgtPort, srcSide, tgtSide, srcPortDown: e.source_port_down, tgtPortDown: e.target_port_down",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-03T03:33:47.484Z"
+    },
+    {
+      "id": "bug-020",
+      "timestamp": "2026-08-03T03:39:03.109Z",
+      "error_message": "CSS fix: member",
+      "file": "frontend/src/components/topology/TopologyCanvas.tsx",
+      "root_cause": "member: memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type, portDown: n.port_down → memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type",
+      "fix": "Changed member: memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type, portDown: n.port_down → memberName, iface: n.interface, targetName: n.device_name, targetType: n.device_type",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T03:39:03.109Z"
+    },
+    {
+      "id": "bug-021",
+      "timestamp": "2026-08-03T03:39:23.373Z",
+      "error_message": "Type error",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T03:39:23.373Z"
+    },
+    {
+      "id": "bug-022",
+      "timestamp": "2026-08-03T03:39:28.925Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T03:39:28.925Z"
+    },
+    {
+      "id": "bug-023",
+      "timestamp": "2026-08-03T04:17:31.209Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/package.json",
+      "root_cause": "Had \"2.7.27\"",
+      "fix": "Changed to \"2.8.3\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-03T04:17:31.209Z"
+    },
+    {
+      "id": "bug-024",
+      "timestamp": "2026-08-04T02:37:57.749Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/analyzers/neighbor_parser.py",
+      "root_cause": "Had \"判断是否为有效网络设备名\"",
+      "fix": "Changed to \"判断是否为有效网络设备名（含 Aruba AP 名）\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-04T02:37:57.749Z"
+    },
+    {
+      "id": "bug-025",
+      "timestamp": "2026-08-04T02:39:36.486Z",
+      "error_message": "Wrong reference: _extract_type should be device_type",
+      "file": "backend/analyzers/neighbor_parser.py",
+      "root_cause": "Used \"_extract_type\" instead of \"device_type\"",
+      "fix": "Changed _extract_type → device_type",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-08-04T02:39:44.743Z"
+    },
+    {
+      "id": "bug-026",
+      "timestamp": "2026-08-04T02:40:47.555Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/analyzers/neighbor_parser.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 7→10 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-04T02:40:47.555Z"
+    },
+    {
+      "id": "bug-027",
+      "timestamp": "2026-08-17T05:16:17.534Z",
+      "error_message": "Type error",
+      "file": "frontend/src/pages/Login.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-17T05:16:17.534Z"
+    },
+    {
+      "id": "bug-028",
+      "timestamp": "2026-08-17T05:16:33.250Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/main.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 12→4 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-17T05:16:33.250Z"
+    },
+    {
+      "id": "bug-030",
+      "timestamp": "2026-08-31T05:09:53.644Z",
+      "error_message": "热力图列头 2026-23→2026-26 在 36px 窄格中被截断显示为 26-23-2026",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "列头含年份前缀(YYYY-WW→YYYY-WW, 11字符≈48px)超出格子宽度 36px",
+      "fix": "Dashboard.tsx:355 列头改为去掉年份的 Www-Www 格式(如 W23-W26, ≈31.6px)",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx",
+        "ui-truncation"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T05:09:53.644Z"
+    },
+    {
+      "id": "bug-031",
+      "timestamp": "2026-08-31T05:22:04.598Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 13→33 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T05:22:04.598Z"
+    },
+    {
+      "id": "bug-033",
+      "timestamp": "2026-08-31T06:29:33.214Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 22→50 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T06:29:33.214Z"
+    },
+    {
+      "id": "bug-034",
+      "timestamp": "2026-08-31T06:33:50.695Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/pages/DeviceList.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 17→29 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T06:33:50.695Z"
+    },
+    {
+      "id": "bug-035",
+      "timestamp": "2026-08-31T06:34:00.460Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/pages/DeviceList.tsx",
+      "root_cause": "No early return/throw for edge case: !mode",
+      "fix": "Added guard clause: if (!mode)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T06:34:00.460Z"
+    },
+    {
+      "id": "bug-036",
+      "timestamp": "2026-08-31T06:34:13.316Z",
+      "error_message": "CSS fix: display, fontWeight",
+      "file": "frontend/src/pages/DeviceList.tsx",
+      "root_cause": "display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 → 'block', mb: 1.5; fontWeight: 600, fontSize: '0.875rem' → 600, fontSize: '0.75rem'",
+      "fix": "Changed display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 → 'block', mb: 1.5; fontWeight: 600, fontSize: '0.875rem' → 600, fontSize: '0.75rem'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-08-31T06:34:13.316Z"
+    },
+    {
+      "id": "bug-038",
+      "timestamp": "2026-09-14T00:19:37.132Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 16→11 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T00:19:37.132Z"
+    },
+    {
+      "id": "bug-039",
+      "timestamp": "2026-09-14T00:20:26.216Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/devices.py",
+      "root_cause": "18 lines replaced/restructured",
+      "fix": "Rewrote 34→16 lines (18 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T00:20:26.216Z"
+    },
+    {
+      "id": "bug-040",
+      "timestamp": "2026-09-14T00:21:13.909Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "Had \",\n            member_ids if member_ids != \"",
+      "fix": "Changed to \",\n            member_ids,\n            device_mode",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-14T00:21:36.248Z"
+    },
+    {
+      "id": "bug-041",
+      "timestamp": "2026-09-14T00:21:21.294Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→3 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T00:21:21.294Z"
+    },
+    {
+      "id": "bug-042",
+      "timestamp": "2026-09-14T00:22:57.883Z",
+      "error_message": "CSS fix: DeleteConfirmDialog",
+      "file": "frontend/src/components/devices/DeleteConfirmDialog.tsx",
+      "root_cause": "DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = React.memo(({ open, deviceName, onCancel, onConfirm → React.FC<DeleteConfirmDialogProps> = React.memo(({ open, deviceName, message, onCancel, onConfirm",
+      "fix": "Changed DeleteConfirmDialog: React.FC<DeleteConfirmDialogProps> = React.memo(({ open, deviceName, onCancel, onConfirm → React.FC<DeleteConfirmDialogProps> = React.memo(({ open, deviceName, message, onCancel, onConfirm",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T00:22:57.883Z"
+    },
+    {
+      "id": "bug-043",
+      "timestamp": "2026-09-14T00:23:35.834Z",
+      "error_message": "Wrong reference: handleOfflineDelete should be setOfflineToDelete",
+      "file": "frontend/src/pages/DeviceList.tsx",
+      "root_cause": "Used \"handleOfflineDelete\" instead of \"setOfflineToDelete\"",
+      "fix": "Changed handleOfflineDelete → setOfflineToDelete",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T00:23:35.835Z"
+    },
+    {
+      "id": "bug-044",
+      "timestamp": "2026-09-14T00:23:43.986Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/DeviceList.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T00:23:43.986Z"
+    },
+    {
+      "id": "bug-045",
+      "timestamp": "2026-09-14T00:29:20.194Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/package.json",
+      "root_cause": "Had \"2.8.3\"",
+      "fix": "Changed to \"2.9.14\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T00:29:20.194Z"
+    },
+    {
+      "id": "bug-046",
+      "timestamp": "2026-09-14T00:30:37.967Z",
+      "error_message": "Incorrect value in code",
+      "file": "README.md",
+      "root_cause": "Had \"https://img.shields.io/badge/Version-2.8.3-2DD46E",
+      "fix": "Changed to \"https://img.shields.io/badge/Version-2.9.14-2DD46",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T00:30:37.967Z"
+    },
+    {
+      "id": "bug-048",
+      "timestamp": "2026-09-14T08:58:29.558Z",
+      "error_message": "Incorrect value in code",
+      "file": "C:/Users/jingl/.claude/plans/cisco-precious-thompson.md",
+      "root_cause": "Had `interface-counters.raw`",
+      "fix": "Changed to `collector_service.py:1092`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T08:58:29.558Z"
+    },
+    {
+      "id": "bug-049",
+      "timestamp": "2026-09-14T09:09:41.765Z",
+      "error_message": "Significant refactor of ",
+      "file": "C:/Users/jingl/.claude/plans/cisco-precious-thompson.md",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 9→26 lines (6 removed) | Also: | B2 端口名是否为全称（`GigabitEthernet1/0/1`） | 只改 `_norma; | B3 Aruba CX 的累计计数器命令 | 只加一个 parse 函数 + dispatch  | Also: ### Aruba 侧：`show interface statistics`; AOS-CX 有对应的命令（设备为 **6300M / JL659A，AOS-CX 10.10.10 | Also: | A1 | `backend/analyzers/counter_parser.py`（3 个纯函; | A2 | `backend/tests/test_counter_parser.py`（用已确认",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-09-14T09:15:05.839Z"
+    },
+    {
+      "id": "bug-050",
+      "timestamp": "2026-09-14T09:12:40.551Z",
+      "error_message": "Incorrect value in code",
+      "file": "C:/Users/jingl/.claude/plans/cisco-precious-thompson.md",
+      "root_cause": "Had `MIN_DELTA_SECONDS=60`",
+      "fix": "Changed to `show interface statistics`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-14T09:12:40.551Z"
+    },
+    {
+      "id": "bug-052",
+      "timestamp": "2026-09-15T01:06:30.345Z",
+      "error_message": "Significant refactor of ",
+      "file": "docs/superpowers/plans/2026-09-14-traffic-counter-delta.md",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 13→23 lines (6 removed) | Also: ## 四、周流量算法; 在**每次采集写库时**计算（不是读时）。理由：「本周最早」「上周最早」的查找是有状态判定，写时算可 | Also: **`backend/api/stats.py:88-136`** 重构成两条全局查询（替换现在\"N; - **层级 1（新周口径）**：`WHERE c.id IN (SELECT MAX(id) FR",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-15T01:07:27.557Z"
+    },
+    {
+      "id": "bug-053",
+      "timestamp": "2026-09-15T01:07:36.759Z",
+      "error_message": "Incorrect value in code",
+      "file": "docs/superpowers/plans/2026-09-14-traffic-counter-delta.md",
+      "root_cause": "Had `source`",
+      "fix": "Changed to `window`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 5,
+      "last_seen": "2026-09-15T01:13:02.394Z"
+    },
+    {
+      "id": "bug-054",
+      "timestamp": "2026-09-15T01:20:31.875Z",
+      "error_message": "Incorrect value in code",
+      "file": "docs/superpowers/plans/2026-09-14-traffic-counter-delta.md",
+      "root_cause": "Had `source=\"",
+      "fix": "Changed to `source`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-15T01:20:55.835Z"
+    },
+    {
+      "id": "bug-055",
+      "timestamp": "2026-09-15T01:21:09.425Z",
+      "error_message": "Significant refactor of ",
+      "file": "docs/superpowers/plans/2026-09-14-traffic-counter-delta.md",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 6→59 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T01:21:09.425Z"
+    },
+    {
+      "id": "bug-056",
+      "timestamp": "2026-09-15T01:38:50.930Z",
+      "error_message": "Significant refactor of ",
+      "file": "docs/superpowers/plans/2026-09-14-traffic-counter-delta.md",
+      "root_cause": "16 lines replaced/restructured",
+      "fix": "Rewrote 23→41 lines (16 removed) | Also: | A7 | `stats.py`：`window` 参数 + 两步窗口算法 + Top10 + `; | A8 | 前端 `Dashboard.tsx` + 类型 + i18n | | Also: ## 附：样本文件清单（项目根目录）; Cisco 9500 show interfaces status.txt",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-15T01:42:35.792Z"
+    },
+    {
+      "id": "bug-057",
+      "timestamp": "2026-09-15T01:51:49.612Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_counter_parser.py",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 13→8 lines (10 removed) | Also: def test_区间流量_读数缺失则不出结果():; \"\"\"in_octets 为 NULL（本轮没采到）不等于读数 0\"\"\" | Also: def test_Aruba_行尾列被截断仍能取值():; \"\"\"终端宽度截断会让部分行的尾部列丢失；RX Bytes / TX Bytes 在前段，仍须取到\"",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-15T01:52:26.673Z"
+    },
+    {
+      "id": "bug-059",
+      "timestamp": "2026-09-15T01:55:32.265Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_database_migration.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→19 lines (2 removed) | Also: conn.execute(\"INSERT INTO port_snapshots (port_nam; conn.execute(\"INSERT INTO port_snapshots (port_nam",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-15T01:55:56.761Z"
+    },
+    {
+      "id": "bug-060",
+      "timestamp": "2026-09-15T01:58:01.002Z",
+      "error_message": "Wrong return value",
+      "file": "backend/collectors/base.py",
+      "root_cause": "Was returning: self.send_command(\"show interface brief\", read_tim",
+      "fix": "Now returns: self.send_command(\"show interface physical\", read_",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T01:58:01.002Z"
+    },
+    {
+      "id": "bug-061",
+      "timestamp": "2026-09-15T02:03:49.179Z",
+      "error_message": "Incorrect value in code",
+      "file": "docs/superpowers/plans/2026-09-14-traffic-counter-delta.md",
+      "root_cause": "Had `show interface physical`",
+      "fix": "Changed to `show interface brief`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T02:03:49.179Z"
+    },
+    {
+      "id": "bug-062",
+      "timestamp": "2026-09-15T02:03:54.428Z",
+      "error_message": "Significant refactor of ",
+      "file": "docs/superpowers/plans/2026-09-14-traffic-counter-delta.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→17 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T02:03:54.428Z"
+    },
+    {
+      "id": "bug-064",
+      "timestamp": "2026-09-15T02:10:10.513Z",
+      "error_message": "Wrong return value",
+      "file": "backend/analyzers/performance.py",
+      "root_cause": "Was returning: self._parse_cisco_ios_router()",
+      "fix": "Now returns: self._parse_cisco_router_description()",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T02:10:10.513Z"
+    },
+    {
+      "id": "bug-065",
+      "timestamp": "2026-09-15T02:12:22.035Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/tests/test_performance_counters.py",
+      "root_cause": "Had \"interface_summary\"",
+      "fix": "Changed to \", **kwargs) -> list:\n    return PerformanceAnalyz",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T02:12:22.035Z"
+    },
+    {
+      "id": "bug-068",
+      "timestamp": "2026-09-15T02:13:18.958Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→13 lines (2 removed) | Also: total_cmds = 1 + 5 + 2  # 重新计算：ping + 5 base + 2; if _is_aruba_device(effective_type):",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-15T02:13:50.075Z"
+    },
+    {
+      "id": "bug-069",
+      "timestamp": "2026-09-15T02:15:33.297Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/stats.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 4→102 lines (2 removed) | Also: # 上行链路流量 Top 10; uplinks = db.execute( | Also: # Top 10 排序; top_traffic.sort(key=lambda x: x[\"total_mbps\"], re",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-15T02:15:47.725Z"
+    },
+    {
+      "id": "bug-070",
+      "timestamp": "2026-09-15T02:18:00.859Z",
+      "error_message": "Type error",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T02:18:00.859Z"
+    },
+    {
+      "id": "bug-071",
+      "timestamp": "2026-09-15T02:18:24.548Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "No early return/throw for edge case: !sec || sec <= 0",
+      "fix": "Added guard clause: if (!sec || sec <= 0)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T02:18:24.548Z"
+    },
+    {
+      "id": "bug-072",
+      "timestamp": "2026-09-15T02:18:36.782Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T02:18:36.782Z"
+    },
+    {
+      "id": "bug-073",
+      "timestamp": "2026-09-15T02:29:33.610Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/storage/file_manager.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 6→7 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T02:29:33.610Z"
+    },
+    {
+      "id": "bug-075",
+      "timestamp": "2026-09-15T03:07:54.933Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/analyzers/performance.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 6→8 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T03:07:54.933Z"
+    },
+    {
+      "id": "bug-076",
+      "timestamp": "2026-09-15T03:08:13.688Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_performance_counters.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 14→47 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T03:08:13.688Z"
+    },
+    {
+      "id": "bug-080",
+      "timestamp": "2026-09-15T03:13:17.135Z",
+      "error_message": "Incorrect value in code",
+      "file": "README.md",
+      "root_cause": "Had \"https://img.shields.io/badge/Version-2.9.14-2DD46",
+      "fix": "Changed to \"https://img.shields.io/badge/Version-2.9.15-2DD46",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T03:13:17.135Z"
+    },
+    {
+      "id": "bug-081",
+      "timestamp": "2026-09-15T03:13:51.197Z",
+      "error_message": "Significant refactor of ",
+      "file": "README.md",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 13→35 lines (7 removed) | Also: │   ├── analyzers/           # 分析：配置验证、性能、变更检测、端口解; │   └── utils/               # 存储、密码管理、配置加载",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-15T03:13:56.357Z"
+    },
+    {
+      "id": "bug-082",
+      "timestamp": "2026-09-15T03:14:32.356Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/package.json",
+      "root_cause": "Had \"2.9.14\"",
+      "fix": "Changed to \"2.9.15\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T03:14:32.356Z"
+    },
+    {
+      "id": "bug-083",
+      "timestamp": "2026-09-15T03:15:59.994Z",
+      "error_message": "Significant refactor of ",
+      "file": "CLAUDE.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 8→10 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-15T03:15:59.994Z"
+    },
+    {
+      "id": "bug-084",
+      "timestamp": "2026-09-17T02:25:08.949Z",
+      "error_message": "Significant refactor of ",
+      "file": "C:/Users/jingl/.claude/plans/spanning-tree-glowing-gray.md",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 8→18 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T02:25:08.949Z"
+    },
+    {
+      "id": "bug-085",
+      "timestamp": "2026-09-17T02:34:21.337Z",
+      "error_message": "Wrong reference: SWI should be STP",
+      "file": "C:/Users/jingl/.claude/plans/spanning-tree-glowing-gray.md",
+      "root_cause": "Used \"SWI\" instead of \"STP\"",
+      "fix": "Changed SWI → STP",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T02:34:21.337Z"
+    },
+    {
+      "id": "bug-086",
+      "timestamp": "2026-09-17T03:35:42.962Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "Had \"logs\"",
+      "fix": "Changed to \"stp_snapshots\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:35:42.962Z"
+    },
+    {
+      "id": "bug-087",
+      "timestamp": "2026-09-17T03:36:22.106Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/tests/test_database_migration.py",
+      "root_cause": "Had \"数据库迁移测试（重点 v10：port_snapshots 增加累计计数器列）\"",
+      "fix": "Changed to \"数据库迁移测试（重点 v10 计数器列 / v11 生成树快照表）\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T03:36:32.724Z"
+    },
+    {
+      "id": "bug-088",
+      "timestamp": "2026-09-17T03:40:07.899Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/topology.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:40:07.899Z"
+    },
+    {
+      "id": "bug-089",
+      "timestamp": "2026-09-17T03:44:56.570Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/shared/constants.ts",
+      "root_cause": "No early return/throw for edge case: idx < 0",
+      "fix": "Added guard clause: if (idx < 0)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:44:56.570Z"
+    },
+    {
+      "id": "bug-090",
+      "timestamp": "2026-09-17T03:45:35.386Z",
+      "error_message": "Type error",
+      "file": "frontend/src/i18n/en.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:45:35.386Z"
+    },
+    {
+      "id": "bug-091",
+      "timestamp": "2026-09-17T03:46:41.075Z",
+      "error_message": "CSS fix: label",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "label: t('nav.portTopology'), icon: <HubIcon />, path: '/port-topology' → t('nav.stpTopology'), icon: <TreeIcon />, path: '/stp-topology'",
+      "fix": "Changed label: t('nav.portTopology'), icon: <HubIcon />, path: '/port-topology' → t('nav.stpTopology'), icon: <TreeIcon />, path: '/stp-topology'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:46:41.075Z"
+    },
+    {
+      "id": "bug-092",
+      "timestamp": "2026-09-17T03:51:39.744Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/package.json",
+      "root_cause": "Had \"2.9.15\"",
+      "fix": "Changed to \"2.9.17\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:51:39.744Z"
+    },
+    {
+      "id": "bug-093",
+      "timestamp": "2026-09-17T03:51:44.412Z",
+      "error_message": "Incorrect value in code",
+      "file": "README.md",
+      "root_cause": "Had \"https://img.shields.io/badge/Version-2.9.15-2DD46",
+      "fix": "Changed to \"https://img.shields.io/badge/Version-2.9.17-2DD46",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:51:44.412Z"
+    },
+    {
+      "id": "bug-096",
+      "timestamp": "2026-09-17T03:56:38.552Z",
+      "error_message": "Wrong reference: data should be allVlans",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "Used \"data\" instead of \"allVlans\"",
+      "fix": "Changed data → allVlans",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-17T03:56:46.802Z"
+    },
+    {
+      "id": "bug-097",
+      "timestamp": "2026-09-17T03:56:51.028Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 10→13 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:56:51.028Z"
+    },
+    {
+      "id": "bug-098",
+      "timestamp": "2026-09-17T03:56:59.354Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "Had `stp-${e.source}-${e.target}-${e.vlan}`",
+      "fix": "Changed to `stp-${e.source}-${e.target}-${e.vlan}-${e.source_",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:56:59.354Z"
+    },
+    {
+      "id": "bug-099",
+      "timestamp": "2026-09-17T03:57:03.584Z",
+      "error_message": "CSS fix: detailLabel",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "detailLabel: e.id === hoveredEdge ? (e.data as any)?.detail : undefined → e.id === hoveredEdge ? ed?.detail : undefined",
+      "fix": "Changed detailLabel: e.id === hoveredEdge ? (e.data as any)?.detail : undefined → e.id === hoveredEdge ? ed?.detail : undefined",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:57:03.584Z"
+    },
+    {
+      "id": "bug-100",
+      "timestamp": "2026-09-17T03:57:12.115Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/pages/StpTopology.tsx",
+      "root_cause": "No early return/throw for edge case: !loc",
+      "fix": "Added guard clause: if (!loc)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T03:57:12.115Z"
+    },
+    {
+      "id": "bug-101",
+      "timestamp": "2026-09-17T04:38:19.638Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/storage/file_manager.py",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 37→53 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T04:38:19.638Z"
+    },
+    {
+      "id": "bug-102",
+      "timestamp": "2026-09-17T04:38:59.614Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/scripts/retention.py",
+      "root_cause": "Had ']} 条\"",
+      "fix": "Changed to ']} 条，\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T04:39:05.086Z"
+    },
+    {
+      "id": "bug-103",
+      "timestamp": "2026-09-17T04:44:46.791Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→3 lines (2 removed) | Also: // 边：竖直下探 → 水平管道（按 VLAN 着色）→ 落向目标; const pipeY: number | undefined = d.pipeY",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T04:44:57.291Z"
+    },
+    {
+      "id": "bug-104",
+      "timestamp": "2026-09-17T04:45:13.697Z",
+      "error_message": "CSS fix: data",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "data: { pipeY, dashed: !e.forwarding, edge: e, detail → { dashed: !e.forwarding, edge: e, detail",
+      "fix": "Changed data: { pipeY, dashed: !e.forwarding, edge: e, detail → { dashed: !e.forwarding, edge: e, detail",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T04:45:13.697Z"
+    },
+    {
+      "id": "bug-106",
+      "timestamp": "2026-09-17T04:50:58.936Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: // 芯片绝对中心 x（判断层带是否列对齐）; const chipXOf = new Map<string, number>() | Also: const straight = straightBand.get(`${e.source}->${e.target}`; const off = offsetOf.get(edgeKey(e)) ?? 0",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-17T04:51:15.300Z"
+    },
+    {
+      "id": "bug-107",
+      "timestamp": "2026-09-17T04:55:55.762Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/topology.py",
+      "root_cause": "11 lines replaced/restructured",
+      "fix": "Rewrote 30→43 lines (11 removed) | Also: # ---- 边方向：从高层（层号小）指向下一层 ----; if la is not None and lb is not None and la > lb:",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T04:57:10.528Z"
+    },
+    {
+      "id": "bug-108",
+      "timestamp": "2026-09-17T04:57:25.956Z",
+      "error_message": "CSS fix: left",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "left: chipX(i), top: -3 → chipX(i), bottom: -3",
+      "fix": "Changed left: chipX(i), top: -3 → chipX(i), bottom: -3",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T04:57:25.956Z"
+    },
+    {
+      "id": "bug-109",
+      "timestamp": "2026-09-17T04:57:37.082Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 11→24 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T04:57:37.082Z"
+    },
+    {
+      "id": "bug-110",
+      "timestamp": "2026-09-17T04:57:47.602Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/components/topology/StpTopologyCanvas.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: const sameRowBand = new Map<string, boolean>(); const [src, tgt] = key.split('->') | Also: const key = `${e.source}->${e.target}`; const sameRow = sameRowBand.get(key) ?? false",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-17T04:57:57.656Z"
+    },
+    {
+      "id": "bug-112",
+      "timestamp": "2026-09-17T05:04:52.921Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/package.json",
+      "root_cause": "Had \"2.9.17\"",
+      "fix": "Changed to \"2.9.18\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T05:04:52.921Z"
+    },
+    {
+      "id": "bug-113",
+      "timestamp": "2026-09-17T05:04:58.397Z",
+      "error_message": "Incorrect value in code",
+      "file": "README.md",
+      "root_cause": "Had \"https://img.shields.io/badge/Version-2.9.17-2DD46",
+      "fix": "Changed to \"https://img.shields.io/badge/Version-2.9.18-2DD46",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T05:04:58.397Z"
+    },
+    {
+      "id": "bug-115",
+      "timestamp": "2026-09-17T05:22:50.663Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/stats.py",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 10→20 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T05:22:50.663Z"
+    },
+    {
+      "id": "bug-116",
+      "timestamp": "2026-09-17T05:23:12.522Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_counter_parser.py",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "已修：_parse_cisco_uptime 去掉 'System ' 前缀要求，改为匹配 'uptime is'（真机行首是主机名；下一行 'Uptime for this control processor is' 不含该子串，不会抢匹配）。真机全量回归：data 下所有 version.raw 的 uptime 行 52/52 解析成功。注意：已入库的历史采集不会追溯（show version 原文不入库，无法回填），需重新采集该设备才有数据",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T14:11:07"
+    },
+    {
+      "id": "bug-117",
+      "timestamp": "2026-09-17T05:24:40.982Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "已修：_parse_aruba_uptime 四段全部改为可选（AOS-CX 会省略数值为 0 的单位，实测 350 days 34 mins 32 secs / 180 days 4 hrs 56 secs / 124 days 5 hrs 19 mins 三种缺段写法），并要求至少一段有值。真机全量回归：库内 299 条 boot_history 全部解析成功",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T14:11:07"
+    },
+    {
+      "id": "bug-121",
+      "timestamp": "2026-09-17T05:56:30.408Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 50→69 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T05:56:30.408Z"
+    },
+    {
+      "id": "bug-122",
+      "timestamp": "2026-09-17T05:57:20.379Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/reports.py",
+      "root_cause": "20 lines replaced/restructured",
+      "fix": "Rewrote 49→70 lines (20 removed) | Also: async def report_device_uptime():; \"\"\"SELECT d.name, d.type, c.system_uptime_seconds,",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T05:57:29.446Z"
+    },
+    {
+      "id": "bug-123",
+      "timestamp": "2026-09-17T06:02:46.804Z",
+      "error_message": "Type error",
+      "file": "frontend/src/pages/Reports.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: <Box sx={{ flexGrow: 1 }} />; <Button",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T06:03:23.878Z"
+    },
+    {
+      "id": "bug-124",
+      "timestamp": "2026-09-17T06:03:15.712Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/Reports.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T06:03:15.712Z"
+    },
+    {
+      "id": "bug-126",
+      "timestamp": "2026-09-17T06:39:23.621Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/storage/database.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→13 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T06:39:23.621Z"
+    },
+    {
+      "id": "bug-127",
+      "timestamp": "2026-09-17T06:40:58.977Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 22→30 lines (2 removed) | Also: # 成员三元组: member_ids/serial_number/device_model 同序 ; for serial_part, member_part, model_part in zip(",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T06:41:10.591Z"
+    },
+    {
+      "id": "bug-128",
+      "timestamp": "2026-09-17T06:42:09.584Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/reports.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T06:42:09.584Z"
+    },
+    {
+      "id": "bug-129",
+      "timestamp": "2026-09-17T06:45:31.399Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/Reports.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: [t('reports.member'), t('reports.location'), t('reports.mode; t('reports.version'), t('reports.romVersion'), t('reports.up",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T06:45:41.059Z"
+    },
+    {
+      "id": "bug-131",
+      "timestamp": "2026-09-17T06:52:21.636Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/alerts.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T06:52:21.636Z"
+    },
+    {
+      "id": "bug-132",
+      "timestamp": "2026-09-17T06:53:27.543Z",
+      "error_message": "Type error",
+      "file": "frontend/src/i18n/en.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T06:53:27.543Z"
+    },
+    {
+      "id": "bug-133",
+      "timestamp": "2026-09-17T06:53:41.407Z",
+      "error_message": "Type error",
+      "file": "frontend/src/pages/Alerts.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation | Also: const [confirmClear, setConfirmClear] = useState(false); const [clearing, setClearing] = useState(false)",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-17T06:53:48.337Z"
+    },
+    {
+      "id": "bug-134",
+      "timestamp": "2026-09-17T06:54:06.789Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "frontend/src/pages/Alerts.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-17T06:54:06.789Z"
+    },
+    {
+      "id": "bug-139",
+      "timestamp": "2026-09-18T01:21:16.016Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/reports.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→14 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T01:21:16.017Z"
+    },
+    {
+      "id": "bug-140",
+      "timestamp": "2026-09-18T01:21:30.391Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 18→50 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T01:21:30.391Z"
+    },
+    {
+      "id": "bug-141",
+      "timestamp": "2026-09-18T01:21:53.362Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/main.py",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 22→34 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T01:21:53.362Z"
+    },
+    {
+      "id": "bug-142",
+      "timestamp": "2026-09-18T01:22:59.687Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "No early return/throw for edge case: !running.startsWith('index-'",
+      "fix": "Added guard clause: if (!running.startsWith('index-')",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T01:22:59.687Z"
+    },
+    {
+      "id": "bug-146",
+      "timestamp": "2026-09-18T02:42:35.619Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_reports_api.py",
+      "root_cause": "12 lines replaced/restructured",
+      "fix": "Rewrote 22→3 lines (12 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T02:42:35.619Z"
+    },
+    {
+      "id": "bug-147",
+      "timestamp": "2026-09-18T02:43:15.486Z",
+      "error_message": "CSS fix: version, last_synced",
+      "file": "frontend/src/pages/Reports.tsx",
+      "root_cause": "version: r => r.software_version, → r => r.version,; last_synced: r => r.collected_at, → r => r.last_synced,",
+      "fix": "Changed version: r => r.software_version, → r => r.version,; last_synced: r => r.collected_at, → r => r.last_synced,",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T02:43:15.487Z"
+    },
+    {
+      "id": "bug-148",
+      "timestamp": "2026-09-18T02:43:44.589Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/pages/Reports.tsx",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 14→8 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T02:43:44.589Z"
+    },
+    {
+      "id": "bug-149",
+      "timestamp": "2026-09-18T02:44:25.989Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/Reports.tsx",
+      "root_cause": "Had \"software-versions\"",
+      "fix": "Changed to \"device-status\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-18T02:44:35.257Z"
+    },
+    {
+      "id": "bug-150",
+      "timestamp": "2026-09-18T02:44:55.499Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/services/api.ts",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→3 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T02:44:55.499Z"
+    },
+    {
+      "id": "bug-151",
+      "timestamp": "2026-09-18T03:16:58.964Z",
+      "error_message": "Significant refactor of ",
+      "file": "C:/Users/jingl/.claude/plans/spanning-tree-glowing-gray.md",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Auto-detected change summary; see .wolf/memory.md for the session line.",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18"
+    },
+    {
+      "id": "bug-152",
+      "timestamp": "2026-09-18T03:22:50.097Z",
+      "error_message": "Incorrect value in code",
+      "file": "C:/Users/jingl/.claude/plans/spanning-tree-glowing-gray.md",
+      "root_cause": "Had `splitlines()`",
+      "fix": "Changed to `running_config_lines == splitlines() == split('",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T03:22:50.097Z"
+    },
+    {
+      "id": "bug-154",
+      "timestamp": "2026-09-18T03:29:04.133Z",
+      "error_message": "Significant refactor of ",
+      "file": "C:/Users/jingl/.claude/plans/spanning-tree-glowing-gray.md",
+      "root_cause": "10 lines replaced/restructured",
+      "fix": "Rewrote 13→17 lines (10 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T03:29:04.133Z"
+    },
+    {
+      "id": "bug-155",
+      "timestamp": "2026-09-18T03:29:17.953Z",
+      "error_message": "Incorrect value in code",
+      "file": "C:/Users/jingl/.claude/plans/spanning-tree-glowing-gray.md",
+      "root_cause": "Had `config/compliance/vendor_baseline.yaml`",
+      "fix": "Changed to `config/audit/`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-18T03:29:17.953Z"
+    },
+    {
+      "id": "bug-157",
+      "timestamp": "2026-09-20T01:03:12.978Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/analyzers/compliance/parser.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 9→6 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T01:03:12.978Z"
+    },
+    {
+      "id": "bug-158",
+      "timestamp": "2026-09-20T01:04:42.641Z",
+      "error_message": "Incorrect value in code",
+      "file": "C:/Users/jingl/AppData/Local/Temp/equiv_check.py",
+      "root_cause": "Had 'F:\\projects\\ndm'",
+      "fix": "Changed to 'F:\\projects\\ndm\\backend'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T01:04:42.641Z"
+    },
+    {
+      "id": "bug-159",
+      "timestamp": "2026-09-20T01:05:55.766Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/tests/test_compliance_engine.py",
+      "root_cause": "Had \"detail\"",
+      "fix": "Changed to \"evidence\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T01:05:55.766Z"
+    },
+    {
+      "id": "bug-160",
+      "timestamp": "2026-09-20T01:07:58.589Z",
+      "error_message": "Missing error handling in test_loader_reports_all_errors_at_once",
+      "file": "backend/tests/test_compliance_engine.py",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T01:07:58.589Z"
+    },
+    {
+      "id": "bug-161",
+      "timestamp": "2026-09-20T01:11:31.063Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "23 lines replaced/restructured",
+      "fix": "Rewrote 27→3 lines (23 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T01:11:31.063Z"
+    },
+    {
+      "id": "bug-162",
+      "timestamp": "2026-09-20T01:11:52.287Z",
+      "error_message": "Wrong reference: _normalize_port_name should be normalize_port_name",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "Used \"_normalize_port_name\" instead of \"normalize_port_name\"",
+      "fix": "Changed _normalize_port_name → normalize_port_name",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-20T01:12:28.210Z"
+    },
+    {
+      "id": "bug-164",
+      "timestamp": "2026-09-20T01:15:48.475Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/analyzers/compliance/loader.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 9→19 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T01:15:48.475Z"
+    },
+    {
+      "id": "bug-165",
+      "timestamp": "2026-09-20T01:16:51.678Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/analyzers/compliance/checks.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 15→21 lines (2 removed) | Also: if pr is None:; undetermined.append(f\"{port or '(未知端口)'}（无角色数据）\")",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T01:20:24.707Z"
+    },
+    {
+      "id": "bug-166",
+      "timestamp": "2026-09-20T01:17:16.958Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/tests/test_port_roles.py",
+      "root_cause": "Had \"无法确定\"",
+      "fix": "Changed to \"判断不出\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T01:17:16.958Z"
+    },
+    {
+      "id": "bug-167",
+      "timestamp": "2026-09-20T01:18:38.918Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/analyzers/compliance/port_roles.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 12→18 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T01:18:38.918Z"
+    },
+    {
+      "id": "bug-168",
+      "timestamp": "2026-09-20T01:19:43.362Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_port_roles.py",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 5→14 lines (5 removed) | Also: \"\"\"没有邻居/生成树佐证时不下结论，聚合成一条「需人工判断」。\"\"\"; text = \"ArubaOS-CX\\nhostname x\\ninterface 1/1/49\\n",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T01:20:44.038Z"
+    },
+    {
+      "id": "bug-169",
+      "timestamp": "2026-09-20T01:29:33.495Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/analyzers/compliance/__init__.py",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 10→12 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T01:29:33.495Z"
+    },
+    {
+      "id": "bug-170",
+      "timestamp": "2026-09-20T01:30:03.667Z",
+      "error_message": "Wrong reference: 400 should be 600",
+      "file": "backend/tests/test_compliance_source.py",
+      "root_cause": "Used \"400\" instead of \"600\"",
+      "fix": "Changed 400 → 600",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T01:30:03.667Z"
+    },
+    {
+      "id": "bug-172",
+      "timestamp": "2026-09-20T01:34:49.671Z",
+      "error_message": "Missing error handling in test_min_count_flags_below_threshold",
+      "file": "backend/tests/test_compliance_engine.py",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T01:34:49.671Z"
+    },
+    {
+      "id": "bug-173",
+      "timestamp": "2026-09-20T01:46:46.407Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/audit.py",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 14→11 lines (6 removed) | Also: db = _get_db(); snapshot = source.load_snapshot(db, name)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T01:46:53.473Z"
+    },
+    {
+      "id": "bug-174",
+      "timestamp": "2026-09-20T01:47:57.792Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/tests/test_audit_api.py",
+      "root_cause": "Had \"INSERT INTO neighbors (collection_id, local_port,",
+      "fix": "Changed to \"INSERT INTO neighbors (collection_id, device_id, ",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T01:48:45.157Z"
+    },
+    {
+      "id": "bug-175",
+      "timestamp": "2026-09-20T02:01:22.878Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/audit.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:01:22.878Z"
+    },
+    {
+      "id": "bug-176",
+      "timestamp": "2026-09-20T02:04:26.402Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/audit.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 8→22 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:04:26.402Z"
+    },
+    {
+      "id": "bug-177",
+      "timestamp": "2026-09-20T02:06:32.552Z",
+      "error_message": "Significant refactor of ",
+      "file": "config/audit/company-standard.yaml",
+      "root_cause": "6 lines replaced/restructured",
+      "fix": "Rewrote 6→10 lines (6 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "yaml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:06:32.552Z"
+    },
+    {
+      "id": "bug-178",
+      "timestamp": "2026-09-20T02:10:36.306Z",
+      "error_message": "Missing guard clause",
+      "file": "frontend/src/services/api.ts",
+      "root_cause": "No early return/throw for edge case: !res.ok",
+      "fix": "Added guard clause: if (!res.ok)",
+      "tags": [
+        "auto-detected",
+        "guard-clause",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:10:36.306Z"
+    },
+    {
+      "id": "bug-179",
+      "timestamp": "2026-09-20T02:10:45.488Z",
+      "error_message": "Type error",
+      "file": "frontend/src/types/index.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:10:45.488Z"
+    },
+    {
+      "id": "bug-180",
+      "timestamp": "2026-09-20T02:11:39.540Z",
+      "error_message": "Type error",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:11:39.540Z"
+    },
+    {
+      "id": "bug-181",
+      "timestamp": "2026-09-20T02:12:09.056Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:12:09.056Z"
+    },
+    {
+      "id": "bug-182",
+      "timestamp": "2026-09-20T02:13:42.975Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:13:42.975Z"
+    },
+    {
+      "id": "bug-183",
+      "timestamp": "2026-09-20T02:36:41.955Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/utils/config_diff.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 23→44 lines (7 removed) | Also: # 证书块：running 显示 `certificate self-signed 01` + 数十; # startup 显示 `certificate self-signed 01 nvram:xxx",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T02:37:24.955Z"
+    },
+    {
+      "id": "bug-184",
+      "timestamp": "2026-09-20T02:40:08.064Z",
+      "error_message": "Wrong operator: == should be <=",
+      "file": "backend/utils/config_diff.py",
+      "root_cause": "Used \"==\" instead of \"<=\"",
+      "fix": "Changed operator == → <=",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:40:08.064Z"
+    },
+    {
+      "id": "bug-185",
+      "timestamp": "2026-09-20T02:41:22.412Z",
+      "error_message": "Wrong return value",
+      "file": "backend/collectors/base.py",
+      "root_cause": "Was returning: running, \"\"",
+      "fix": "Now returns: running, startup",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:41:22.412Z"
+    },
+    {
+      "id": "bug-186",
+      "timestamp": "2026-09-20T02:46:01.761Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/tests/test_database_migration.py",
+      "root_cause": "Had \"in_octets\"",
+      "fix": "Changed to \"startup_config\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:46:01.761Z"
+    },
+    {
+      "id": "bug-187",
+      "timestamp": "2026-09-20T02:47:50.099Z",
+      "error_message": "Wrong reference: dict should be startup_config",
+      "file": "backend/analyzers/compliance/engine.py",
+      "root_cause": "Used \"dict\" instead of \"startup_config\"",
+      "fix": "Changed dict → startup_config",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:47:50.099Z"
+    },
+    {
+      "id": "bug-188",
+      "timestamp": "2026-09-20T02:50:46.786Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_compliance_engine.py",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 10→8 lines (9 removed) | Also: running = \"Current configuration : 100 bytes; !",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T02:51:12.118Z"
+    },
+    {
+      "id": "bug-189",
+      "timestamp": "2026-09-20T02:50:55.105Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/tests/test_compliance_engine.py",
+      "root_cause": "Had \"hostname X\n\"",
+      "fix": "Changed to \"hostname X\\n\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T02:50:55.105Z"
+    },
+    {
+      "id": "bug-190",
+      "timestamp": "2026-09-20T03:17:53.179Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/audit.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T03:17:53.179Z"
+    },
+    {
+      "id": "bug-191",
+      "timestamp": "2026-09-20T03:21:28.088Z",
+      "error_message": "Type error",
+      "file": "frontend/src/i18n/en.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T03:21:28.088Z"
+    },
+    {
+      "id": "bug-192",
+      "timestamp": "2026-09-20T03:21:57.009Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/pages/ComplianceStandard.tsx",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 11→12 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T03:21:57.009Z"
+    },
+    {
+      "id": "bug-193",
+      "timestamp": "2026-09-20T03:22:52.668Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "frontend/src/pages/ComplianceStandard.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T03:22:52.668Z"
+    },
+    {
+      "id": "bug-194",
+      "timestamp": "2026-09-20T03:23:21.393Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check) | Also: {isExempted(f) && (; <Tooltip title={t('audit.exemptHint')}>",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T03:24:19.451Z"
+    },
+    {
+      "id": "bug-195",
+      "timestamp": "2026-09-20T03:24:11.925Z",
+      "error_message": "Wrong reference: levelColor should be findingColor",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Used \"levelColor\" instead of \"findingColor\"",
+      "fix": "Changed levelColor → findingColor",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T03:24:11.925Z"
+    },
+    {
+      "id": "bug-196",
+      "timestamp": "2026-09-20T03:25:13.392Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→9 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T03:25:13.392Z"
+    },
+    {
+      "id": "bug-197",
+      "timestamp": "2026-09-20T03:26:42.588Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/AuditExceptionDialog.tsx",
+      "root_cause": "Had '0.8rem'",
+      "fix": "Changed to 'device'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T03:26:42.588Z"
+    },
+    {
+      "id": "bug-199",
+      "timestamp": "2026-09-20T04:50:03.925Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/audit.py",
+      "root_cause": "58 lines replaced/restructured",
+      "fix": "Rewrote 63→5 lines (58 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T04:50:03.926Z"
+    },
+    {
+      "id": "bug-200",
+      "timestamp": "2026-09-20T04:51:28.897Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/audit.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T04:51:28.897Z"
+    },
+    {
+      "id": "bug-201",
+      "timestamp": "2026-09-20T04:56:54.060Z",
+      "error_message": "Type error",
+      "file": "frontend/src/i18n/en.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T04:56:54.060Z"
+    },
+    {
+      "id": "bug-202",
+      "timestamp": "2026-09-20T04:57:44.167Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "Had 'auditRules.title'",
+      "fix": "Changed to 'nav.audit'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T04:57:44.167Z"
+    },
+    {
+      "id": "bug-203",
+      "timestamp": "2026-09-20T04:58:57.102Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/i18n/zh.ts",
+      "root_cause": "Had 'nav.audit'",
+      "fix": "Changed to 'auditPage.title'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T04:58:57.102Z"
+    },
+    {
+      "id": "bug-204",
+      "timestamp": "2026-09-20T04:59:02.426Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/i18n/en.ts",
+      "root_cause": "Had 'nav.audit'",
+      "fix": "Changed to 'auditPage.title'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T04:59:02.426Z"
+    },
+    {
+      "id": "bug-206",
+      "timestamp": "2026-09-20T05:24:17.471Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_compliance_source.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 11→20 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:24:17.471Z"
+    },
+    {
+      "id": "bug-207",
+      "timestamp": "2026-09-20T05:28:30.209Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_eox_client.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 4→7 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:28:30.209Z"
+    },
+    {
+      "id": "bug-208",
+      "timestamp": "2026-09-20T05:32:18.431Z",
+      "error_message": "Type error",
+      "file": "frontend/src/i18n/en.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:32:18.431Z"
+    },
+    {
+      "id": "bug-209",
+      "timestamp": "2026-09-20T05:32:34.255Z",
+      "error_message": "Null/undefined access in ",
+      "file": "frontend/src/pages/DeviceDetail.tsx",
+      "root_cause": "Property access on potentially null/undefined value",
+      "fix": "Added null safety (optional chaining or null check)",
+      "tags": [
+        "auto-detected",
+        "null-safety",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:32:34.255Z"
+    },
+    {
+      "id": "bug-210",
+      "timestamp": "2026-09-20T05:38:09.261Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/tests/test_lifecycle_checks.py",
+      "root_cause": "Had \"INSERT INTO collections (id, device_id, week, col",
+      "fix": "Changed to \"INSERT INTO collections (id, device_id, week, col",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-20T05:38:17.513Z"
+    },
+    {
+      "id": "bug-212",
+      "timestamp": "2026-09-20T05:49:16.013Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/services/audit_briefing.py",
+      "root_cause": "Had \"- （本次没有命中任何规则 —— 请说明\"",
+      "fix": "Changed to \"- （本次没有命中任何规则 —— 请说明「未发现可改进项」，不要凭空找问题）\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:49:16.013Z"
+    },
+    {
+      "id": "bug-213",
+      "timestamp": "2026-09-20T05:52:48.999Z",
+      "error_message": "Missing await",
+      "file": "backend/api/audit.py",
+      "root_cause": "Async call without await — returned Promise instead of value",
+      "fix": "Added await to async call",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:52:48.999Z"
+    },
+    {
+      "id": "bug-214",
+      "timestamp": "2026-09-20T05:54:15.082Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/audit_briefing.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→15 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:54:15.082Z"
+    },
+    {
+      "id": "bug-215",
+      "timestamp": "2026-09-20T05:54:24.383Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/audit.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→14 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:54:24.383Z"
+    },
+    {
+      "id": "bug-216",
+      "timestamp": "2026-09-20T05:55:37.984Z",
+      "error_message": "Type error",
+      "file": "frontend/src/types/index.ts",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:55:37.984Z"
+    },
+    {
+      "id": "bug-217",
+      "timestamp": "2026-09-20T05:56:11.657Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T05:56:11.657Z"
+    },
+    {
+      "id": "bug-219",
+      "timestamp": "2026-09-20T06:26:14.763Z",
+      "error_message": "Wrong reference: interface should be name",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "Used \"interface\" instead of \"name\"",
+      "fix": "Changed interface → name",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T06:26:14.763Z"
+    },
+    {
+      "id": "bug-220",
+      "timestamp": "2026-09-20T06:28:00.134Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/analyzers/compliance/port_roles.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 34→50 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T06:28:00.134Z"
+    },
+    {
+      "id": "bug-221",
+      "timestamp": "2026-09-20T06:28:26.913Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "23 lines replaced/restructured",
+      "fix": "Rewrote 25→5 lines (23 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T06:28:26.914Z"
+    },
+    {
+      "id": "bug-222",
+      "timestamp": "2026-09-20T06:35:55.675Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "26 lines replaced/restructured",
+      "fix": "Rewrote 28→7 lines (26 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T06:35:55.675Z"
+    },
+    {
+      "id": "bug-223",
+      "timestamp": "2026-09-20T07:03:32.156Z",
+      "error_message": "Incorrect value in code",
+      "file": "README.md",
+      "root_cause": "Had \"https://img.shields.io/badge/Version-2.9.19-2DD46",
+      "fix": "Changed to \"https://img.shields.io/badge/Version-2.10.0-2DD46",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T07:03:32.156Z"
+    },
+    {
+      "id": "bug-224",
+      "timestamp": "2026-09-20T07:04:18.864Z",
+      "error_message": "Significant refactor of ",
+      "file": "README.md",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 23→31 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T07:04:18.864Z"
+    },
+    {
+      "id": "bug-225",
+      "timestamp": "2026-09-20T07:04:54.282Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/package.json",
+      "root_cause": "Had \"2.9.19\"",
+      "fix": "Changed to \"2.10.0\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-20T07:04:54.282Z"
+    },
+    {
+      "id": "bug-227",
+      "timestamp": "2026-09-21T02:54:59.826Z",
+      "error_message": "Function not marked async",
+      "file": "backend/api/audit.py",
+      "root_cause": "Function uses await but wasn't declared async",
+      "fix": "Added async modifier",
+      "tags": [
+        "auto-detected",
+        "async-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T02:54:59.826Z"
+    },
+    {
+      "id": "bug-228",
+      "timestamp": "2026-09-21T02:58:00.269Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "frontend/src/pages/ComplianceAudit.tsx",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T02:58:00.269Z"
+    },
+    {
+      "id": "bug-229",
+      "timestamp": "2026-09-21T02:58:40.652Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/ComplianceAudit.tsx",
+      "root_cause": "Had 'auditPage.devicesUnit'",
+      "fix": "Changed to 'auditPage.devicesHit'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T02:58:40.652Z"
+    },
+    {
+      "id": "bug-230",
+      "timestamp": "2026-09-21T03:09:34.876Z",
+      "error_message": "Missing error handling in unknown",
+      "file": "frontend/src/services/api.ts",
+      "root_cause": "Code path had no error handling — exceptions would propagate uncaught",
+      "fix": "Added try/catch block",
+      "tags": [
+        "auto-detected",
+        "error-handling",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:09:34.876Z"
+    },
+    {
+      "id": "bug-231",
+      "timestamp": "2026-09-21T03:10:20.592Z",
+      "error_message": "Type error",
+      "file": "frontend/src/pages/BatchExec.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:10:20.592Z"
+    },
+    {
+      "id": "bug-232",
+      "timestamp": "2026-09-21T03:10:24.955Z",
+      "error_message": "CSS fix: bgcolor, color",
+      "file": "frontend/src/pages/BatchExec.tsx",
+      "root_cause": "bgcolor: `${STATUS_COLOR[(r.status as QueueItem['status']) in STATUS_COLOR ? r.status as QueueItem['status'] : 'pending'] → `${statusColor(r.status); color: STATUS_COLOR[(r.status as QueueItem['status']) in STATUS_COLOR ? r.status as QueueItem['status'] : 'pending'], → statusColor(r.status),",
+      "fix": "Changed bgcolor: `${STATUS_COLOR[(r.status as QueueItem['status']) in STATUS_COLOR ? r.status as QueueItem['status'] : 'pending'] → `${statusColor(r.status); color: STATUS_COLOR[(r.status as QueueItem['status']) in STATUS_COLOR ? r.status as QueueItem['status'] : 'pending'], → statusColor(r.status),",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:10:24.956Z"
+    },
+    {
+      "id": "bug-233",
+      "timestamp": "2026-09-21T03:11:09.318Z",
+      "error_message": "CSS fix: label",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "label: t('auditRules.title'), icon: <AuditIcon />, path: '/compliance-standard' → t('nav.batchExec'), icon: <BoltIcon />, path: '/batch-exec'",
+      "fix": "Changed label: t('auditRules.title'), icon: <AuditIcon />, path: '/compliance-standard' → t('nav.batchExec'), icon: <BoltIcon />, path: '/batch-exec'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:11:09.318Z"
+    },
+    {
+      "id": "bug-234",
+      "timestamp": "2026-09-21T03:11:52.125Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/BatchExec.tsx",
+      "root_cause": "Had 'batch.colDevices'",
+      "fix": "Changed to 'batch.colOutcome'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-21T03:12:41.724Z"
+    },
+    {
+      "id": "bug-235",
+      "timestamp": "2026-09-21T03:15:02.466Z",
+      "error_message": "Type error",
+      "file": "frontend/src/pages/ComplianceAudit.tsx",
+      "root_cause": "Missing or incorrect type annotation",
+      "fix": "Added type assertion/annotation",
+      "tags": [
+        "auto-detected",
+        "type-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:15:02.466Z"
+    },
+    {
+      "id": "bug-236",
+      "timestamp": "2026-09-21T03:15:07.250Z",
+      "error_message": "CSS fix: display",
+      "file": "frontend/src/pages/ComplianceAudit.tsx",
+      "root_cause": "display: 'flex', flexWrap: 'wrap', gap: 0.75, px: 5, pb: 1.25, pt: 0.25 → 'block', mt: 0.5",
+      "fix": "Changed display: 'flex', flexWrap: 'wrap', gap: 0.75, px: 5, pb: 1.25, pt: 0.25 → 'block', mt: 0.5",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:15:07.250Z"
+    },
+    {
+      "id": "bug-237",
+      "timestamp": "2026-09-21T03:28:58.395Z",
+      "error_message": "Incorrect value in code",
+      "file": "config/audit/company-standard.yaml",
+      "root_cause": "Had 'user <应急账号> group administrators password ciphert",
+      "fix": "Changed to 'user <应急账号> group administrators password ciphert",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "yaml"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-21T03:29:16.379Z"
+    },
+    {
+      "id": "bug-238",
+      "timestamp": "2026-09-21T03:29:39.547Z",
+      "error_message": "Incorrect value in code",
+      "file": "config/audit/vendor-baseline.yaml",
+      "root_cause": "Had 'snmpv3 user <name> auth sha auth-pass <…> priv ae",
+      "fix": "Changed to 'snmpv3 user <用户名> auth sha auth-pass <认证口令> priv ",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "yaml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:29:39.547Z"
+    },
+    {
+      "id": "bug-239",
+      "timestamp": "2026-09-21T03:29:44.990Z",
+      "error_message": "Significant refactor of ",
+      "file": "config/audit/vendor-baseline.yaml",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 5→3 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "yaml"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:29:44.990Z"
+    },
+    {
+      "id": "bug-240",
+      "timestamp": "2026-09-21T03:30:02.451Z",
+      "error_message": "Incorrect value in code",
+      "file": "config/audit/org-convention.yaml",
+      "root_cause": "Had 'hostname <设备名>（会中断现有管理会话，需窗口）'",
+      "fix": "Changed to 'hostname <设备名>'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "yaml"
+      ],
+      "related_bugs": [],
+      "occurrences": 7,
+      "last_seen": "2026-09-21T03:31:48.787Z"
+    },
+    {
+      "id": "bug-241",
+      "timestamp": "2026-09-21T03:32:10.696Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/batch_exec.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 7→16 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:32:10.696Z"
+    },
+    {
+      "id": "bug-242",
+      "timestamp": "2026-09-21T03:34:36.326Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/pages/BatchExec.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→23 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:34:36.326Z"
+    },
+    {
+      "id": "bug-243",
+      "timestamp": "2026-09-21T03:38:09.198Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/i18n/zh.ts",
+      "root_cause": "Had '以下命令有锁死 / 断链风险，请确认后再执行：'",
+      "fix": "Changed to '以下命令需要留意（占位符未填 / 锁死 / 断链风险），请确认后再执行：'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:38:09.198Z"
+    },
+    {
+      "id": "bug-244",
+      "timestamp": "2026-09-21T03:38:15.042Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/i18n/en.ts",
+      "root_cause": "Had 'These commands may lock you out or cut links — re",
+      "fix": "Changed to 'These commands need attention (unfilled placehold",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T03:38:15.042Z"
+    },
+    {
+      "id": "bug-245",
+      "timestamp": "2026-09-21T04:22:16.903Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/package.json",
+      "root_cause": "Had \"2.9.20\"",
+      "fix": "Changed to \"2.9.21\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "json"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:22:16.903Z"
+    },
+    {
+      "id": "bug-246",
+      "timestamp": "2026-09-21T04:22:27.936Z",
+      "error_message": "Incorrect value in code",
+      "file": "README.md",
+      "root_cause": "Had \"https://img.shields.io/badge/Version-2.9.20-2DD46",
+      "fix": "Changed to \"https://img.shields.io/badge/Version-2.9.21-2DD46",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:22:27.936Z"
+    },
+    {
+      "id": "bug-247",
+      "timestamp": "2026-09-21T04:23:34.801Z",
+      "error_message": "Significant refactor of ",
+      "file": "README.md",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→4 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:23:34.801Z"
+    },
+    {
+      "id": "bug-249",
+      "timestamp": "2026-09-21T04:47:25.631Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/BatchExec.tsx",
+      "root_cause": "Had '0.76rem'",
+      "fix": "Changed to '0.72rem'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 4,
+      "last_seen": "2026-09-21T04:47:40.655Z"
+    },
+    {
+      "id": "bug-250",
+      "timestamp": "2026-09-21T04:52:24.081Z",
+      "error_message": "CSS fix: font-family",
+      "file": "frontend/src/index.css",
+      "root_cause": "font-family: 'Fira Code', system-ui, sans-serif → 'IBM Plex Sans', system-ui, sans-serif",
+      "fix": "Changed font-family: 'Fira Code', system-ui, sans-serif → 'IBM Plex Sans', system-ui, sans-serif",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:52:24.081Z"
+    },
+    {
+      "id": "bug-251",
+      "timestamp": "2026-09-21T04:52:29.927Z",
+      "error_message": "Wrong reference: Fira should be monospace",
+      "file": "frontend/src/index.css",
+      "root_cause": "Used \"Fira\" instead of \"monospace\"",
+      "fix": "Changed Fira → monospace",
+      "tags": [
+        "auto-detected",
+        "wrong-reference",
+        "css"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:52:29.927Z"
+    },
+    {
+      "id": "bug-252",
+      "timestamp": "2026-09-21T04:52:34.711Z",
+      "error_message": "CSS fix: color",
+      "file": "frontend/src/components/devices/DeviceTable.tsx",
+      "root_cause": "color: 'text.secondary', fontSize: '0.75rem', fontFamily: '\"Fira Code\", monospace' → 'text.secondary', fontSize: '0.75rem'",
+      "fix": "Changed color: 'text.secondary', fontSize: '0.75rem', fontFamily: '\"Fira Code\", monospace' → 'text.secondary', fontSize: '0.75rem'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:52:34.711Z"
+    },
+    {
+      "id": "bug-253",
+      "timestamp": "2026-09-21T04:52:39.293Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/Reports.tsx",
+      "root_cause": "Had \"JetBrains Mono\"",
+      "fix": "Changed to '0.75rem'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:52:39.293Z"
+    },
+    {
+      "id": "bug-254",
+      "timestamp": "2026-09-21T04:52:43.845Z",
+      "error_message": "CSS fix: fontSize",
+      "file": "frontend/src/components/devices/ImportDialog.tsx",
+      "root_cause": "fontSize: '0.75rem', fontFamily: 'monospace' → '0.75rem'",
+      "fix": "Changed fontSize: '0.75rem', fontFamily: 'monospace' → '0.75rem'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:52:43.845Z"
+    },
+    {
+      "id": "bug-255",
+      "timestamp": "2026-09-21T04:52:55.916Z",
+      "error_message": "CSS fix: fontSize",
+      "file": "frontend/src/components/LifecycleCard.tsx",
+      "root_cause": "fontSize: '0.72rem', fontFamily: 'monospace', py: 0.4 → '0.72rem', py: 0.4",
+      "fix": "Changed fontSize: '0.72rem', fontFamily: 'monospace', py: 0.4 → '0.72rem', py: 0.4",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 3,
+      "last_seen": "2026-09-21T04:53:10.354Z"
+    },
+    {
+      "id": "bug-256",
+      "timestamp": "2026-09-21T04:53:05.944Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/LifecycleCard.tsx",
+      "root_cause": "Had 'monospace'",
+      "fix": "Changed to '0.72rem'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-21T04:53:14.827Z"
+    },
+    {
+      "id": "bug-257",
+      "timestamp": "2026-09-21T04:53:23.248Z",
+      "error_message": "CSS fix: fontSize",
+      "file": "frontend/src/pages/BatchExec.tsx",
+      "root_cause": "fontSize: '0.72rem', color: 'text.secondary', fontFamily: 'monospace' → '0.72rem', color: 'text.secondary'",
+      "fix": "Changed fontSize: '0.72rem', color: 'text.secondary', fontFamily: 'monospace' → '0.72rem', color: 'text.secondary'",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:53:23.248Z"
+    },
+    {
+      "id": "bug-258",
+      "timestamp": "2026-09-21T04:53:28.472Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/BatchExec.tsx",
+      "root_cause": "Had 'monospace'",
+      "fix": "Changed to \"Fira Code\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-21T04:53:33.039Z"
+    },
+    {
+      "id": "bug-259",
+      "timestamp": "2026-09-21T04:53:42.689Z",
+      "error_message": "CSS fix: fontSize",
+      "file": "frontend/src/pages/ComplianceAudit.tsx",
+      "root_cause": "fontSize: '0.72rem', py: 0.5, fontFamily: 'monospace' → '0.72rem', py: 0.5",
+      "fix": "Changed fontSize: '0.72rem', py: 0.5, fontFamily: 'monospace' → '0.72rem', py: 0.5",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:53:42.689Z"
+    },
+    {
+      "id": "bug-260",
+      "timestamp": "2026-09-21T04:53:48.380Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/ComplianceAudit.tsx",
+      "root_cause": "Had 'monospace'",
+      "fix": "Changed to \"Fira Code\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:53:48.380Z"
+    },
+    {
+      "id": "bug-261",
+      "timestamp": "2026-09-21T04:53:53.309Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/ComplianceStandard.tsx",
+      "root_cause": "Had 'monospace'",
+      "fix": "Changed to \"Fira Code\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:53:53.309Z"
+    },
+    {
+      "id": "bug-262",
+      "timestamp": "2026-09-21T04:53:57.813Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/Viewer.tsx",
+      "root_cause": "Had \"JetBrains Mono\"",
+      "fix": "Changed to \"Fira Code\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-21T04:54:02.096Z"
+    },
+    {
+      "id": "bug-263",
+      "timestamp": "2026-09-21T04:54:14.560Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/LogAnalyzer.tsx",
+      "root_cause": "Had \"Fira Code\"",
+      "fix": "Changed to \"0.85rem\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:54:14.560Z"
+    },
+    {
+      "id": "bug-264",
+      "timestamp": "2026-09-21T04:54:57.427Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/pages/DeviceList.tsx",
+      "root_cause": "Had \"Fira Code\"",
+      "fix": "Changed to '0.75rem'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-21T04:54:57.427Z"
+    },
+    {
+      "id": "bug-265",
+      "timestamp": "2026-09-22T06:00:43.058Z",
+      "error_message": "Significant refactor of ",
+      "file": "docs/superpowers/specs/2026-09-22-device-identity-design.md",
+      "root_cause": "5 lines replaced/restructured",
+      "fix": "Rewrote 6→8 lines (5 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "md"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:00:43.058Z"
+    },
+    {
+      "id": "bug-266",
+      "timestamp": "2026-09-22T06:27:55.301Z",
+      "error_message": "Wrong operator: == should be <=",
+      "file": "backend/storage/database.py",
+      "root_cause": "Used \"==\" instead of \"<=\"",
+      "fix": "Changed operator == → <=",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:27:55.301Z"
+    },
+    {
+      "id": "bug-267",
+      "timestamp": "2026-09-22T06:31:16.928Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/topology.py",
+      "root_cause": "15 lines replaced/restructured",
+      "fix": "Rewrote 19→7 lines (15 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:31:16.928Z"
+    },
+    {
+      "id": "bug-268",
+      "timestamp": "2026-09-22T06:32:58.498Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "8 lines replaced/restructured",
+      "fix": "Rewrote 16→32 lines (8 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:32:58.498Z"
+    },
+    {
+      "id": "bug-269",
+      "timestamp": "2026-09-22T06:37:07.481Z",
+      "error_message": "Wrong operator: >= should be ==",
+      "file": "backend/services/collector_service.py",
+      "root_cause": "Used \">=\" instead of \"==\"",
+      "fix": "Changed operator >= → ==",
+      "tags": [
+        "auto-detected",
+        "operator-fix",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:37:07.481Z"
+    },
+    {
+      "id": "bug-270",
+      "timestamp": "2026-09-22T06:42:09.082Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/storage/device_dal.py",
+      "root_cause": "9 lines replaced/restructured",
+      "fix": "Rewrote 26→44 lines (9 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:42:09.082Z"
+    },
+    {
+      "id": "bug-271",
+      "timestamp": "2026-09-22T06:47:56.167Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/services/log_analyzer.py",
+      "root_cause": "Had \"SELECT name, ip FROM devices WHERE location=? AND",
+      "fix": "Changed to \"SELECT name, ip FROM devices WHERE location=? AND",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:47:56.167Z"
+    },
+    {
+      "id": "bug-272",
+      "timestamp": "2026-09-22T06:48:01.675Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/storage/file_manager.py",
+      "root_cause": "Had \"SELECT id FROM devices\"",
+      "fix": "Changed to \"SELECT id FROM devices WHERE kind != '",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:48:01.675Z"
+    },
+    {
+      "id": "bug-273",
+      "timestamp": "2026-09-22T06:48:08.004Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/analyzers/compliance/source.py",
+      "root_cause": "Had \"SELECT name FROM devices ORDER BY name\"",
+      "fix": "Changed to \"SELECT name FROM devices WHERE kind != '",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:48:08.004Z"
+    },
+    {
+      "id": "bug-274",
+      "timestamp": "2026-09-22T06:52:57.251Z",
+      "error_message": "Wrong return value",
+      "file": "backend/api/devices.py",
+      "root_cause": "Was returning: [DeviceResponse(**d).model_dump() for d in get_all",
+      "fix": "Now returns: [DeviceResponse(**d).model_dump() for d in data]",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:52:57.251Z"
+    },
+    {
+      "id": "bug-275",
+      "timestamp": "2026-09-22T06:53:48.637Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "32 lines replaced/restructured",
+      "fix": "Rewrote 32→6 lines (32 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:53:48.637Z"
+    },
+    {
+      "id": "bug-276",
+      "timestamp": "2026-09-22T06:56:50.512Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/devices/deviceUtils.ts",
+      "root_cause": "16 lines replaced/restructured",
+      "fix": "Rewrote 23→5 lines (16 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:56:50.512Z"
+    },
+    {
+      "id": "bug-277",
+      "timestamp": "2026-09-22T06:59:31.949Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/tests/test_migration_v18.py",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 3→5 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T06:59:31.949Z"
+    },
+    {
+      "id": "bug-278",
+      "timestamp": "2026-09-22T07:04:17.237Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/storage/lifecycle_dal.py",
+      "root_cause": "4 lines replaced/restructured",
+      "fix": "Rewrote 16→28 lines (4 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:04:17.237Z"
+    },
+    {
+      "id": "bug-279",
+      "timestamp": "2026-09-22T07:04:50.393Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/LifecycleCard.tsx",
+      "root_cause": "Had 'lifecycle.serial'",
+      "fix": "Changed to 'lifecycle.physicalName'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:04:50.393Z"
+    },
+    {
+      "id": "bug-280",
+      "timestamp": "2026-09-22T07:08:34.409Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/api/topology.py",
+      "root_cause": "7 lines replaced/restructured",
+      "fix": "Rewrote 10→6 lines (7 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:08:34.409Z"
+    },
+    {
+      "id": "bug-281",
+      "timestamp": "2026-09-22T07:08:40.827Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/api/topology.py",
+      "root_cause": "Had \"BJQD1SWI01-01\"",
+      "fix": "Changed to \"BJQD1SWI01-1\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:08:40.827Z"
+    },
+    {
+      "id": "bug-282",
+      "timestamp": "2026-09-22T07:08:50.675Z",
+      "error_message": "Wrong return value",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Was returning: m ? `${m[1]} (Member ${m[2]})` : name",
+      "fix": "Now returns: m ? `${m[1]}-${m[2]}` : name",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:08:50.675Z"
+    },
+    {
+      "id": "bug-283",
+      "timestamp": "2026-09-22T07:08:55.156Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/components/topology/PortTopologyCanvas.tsx",
+      "root_cause": "Had `${deviceName} (Member ${member})`",
+      "fix": "Changed to `${deviceName}-${member}`",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:08:55.156Z"
+    },
+    {
+      "id": "bug-284",
+      "timestamp": "2026-09-22T07:14:42.938Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/i18n/zh.ts",
+      "root_cause": "Had '总设备'",
+      "fix": "Changed to '总设备（管理 / 物理）'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:14:42.938Z"
+    },
+    {
+      "id": "bug-285",
+      "timestamp": "2026-09-22T07:14:48.235Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/i18n/en.ts",
+      "root_cause": "Had 'Total Devices'",
+      "fix": "Changed to 'Devices (managed / physical)'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "ts"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:14:48.235Z"
+    },
+    {
+      "id": "bug-286",
+      "timestamp": "2026-09-22T07:14:54.357Z",
+      "error_message": "CSS fix: accent",
+      "file": "frontend/src/pages/Dashboard.tsx",
+      "root_cause": "accent: '#3B82F6', label: t('dashboard.totalDevicesCard'), value: dashboardStats?.device_count ?? stats.total → '#3B82F6', label: t('dashboard.totalDevicesCard'),",
+      "fix": "Changed accent: '#3B82F6', label: t('dashboard.totalDevicesCard'), value: dashboardStats?.device_count ?? stats.total → '#3B82F6', label: t('dashboard.totalDevicesCard'),",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:14:54.357Z"
+    },
+    {
+      "id": "bug-288",
+      "timestamp": "2026-09-22T07:26:36.712Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/storage/lifecycle_dal.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 28→91 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:26:36.712Z"
+    },
+    {
+      "id": "bug-289",
+      "timestamp": "2026-09-22T07:26:58.029Z",
+      "error_message": "Wrong return value",
+      "file": "backend/api/lifecycle.py",
+      "root_cause": "Was returning: {\"ok\": True, \"saved\": saved, \"lifecycle\": dal.get_",
+      "fix": "Now returns: {\"ok\": True, \"saved\": saved, \"lifecycle\": _lifecyc",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:26:58.029Z"
+    },
+    {
+      "id": "bug-290",
+      "timestamp": "2026-09-22T07:27:57.808Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/tests/test_lifecycle_api.py",
+      "root_cause": "Had \"成员详情页看到的保修 = 写在堆叠名下的那行；兄弟成员不算\"",
+      "fix": "Changed to \"成员详情页看到的保修 = 写在堆叠名下的那行；兄弟成员不算「离线登记」\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:27:57.808Z"
+    },
+    {
+      "id": "bug-291",
+      "timestamp": "2026-09-22T07:35:08.985Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "Had 'nav.batchExec'",
+      "fix": "Changed to 'nav.lifecycle'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-22T07:35:17.664Z"
+    },
+    {
+      "id": "bug-292",
+      "timestamp": "2026-09-22T07:37:20.082Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/LifecycleCard.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→21 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:37:20.082Z"
+    },
+    {
+      "id": "bug-293",
+      "timestamp": "2026-09-22T07:37:30.921Z",
+      "error_message": "CSS fix: fontSize",
+      "file": "frontend/src/components/LifecycleCard.tsx",
+      "root_cause": "fontSize: '0.72rem', py: 0.4 → '0.72rem', py: 0.4, color: STATUS_COLOR[m.status || 'none']",
+      "fix": "Changed fontSize: '0.72rem', py: 0.4 → '0.72rem', py: 0.4, color: STATUS_COLOR[m.status || 'none']",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:37:30.921Z"
+    }
+  ]
+}
