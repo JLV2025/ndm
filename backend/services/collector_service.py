@@ -21,6 +21,7 @@ from analyzers.stp_parser import parse_spanning_tree
 from utils.settings_loader import load_settings
 from utils.password import password_manager
 from utils.port_names import normalize_port_name, norm_lag_name
+from utils.device_identity import kind_from_config, member_suffixes, physical_name
 from storage.file_manager import get_week_dir, run_retention
 from storage.database import get_connection as get_db
 from models.devices import Device
@@ -1166,6 +1167,38 @@ def _build_stp_rows(result) -> list:
     return rows
 
 
+def _maintain_member_rows(
+    db, device_id: int, device_name: str, serials: list[str], suffixes: list[str],
+    model_list: list[str], version_list: list[str], software_version: str,
+    collected_at: str,
+) -> None:
+    """成功采集后维护堆叠的成员行（spec 第五节）。
+
+    - upsert by name（name 物化派生 = {堆叠名}-{后缀}，与序列号同序 1:1）
+    - 消失成员：**保留行、不更新 last_synced**（离线由 30 天规则判定，不自动删）
+    - 成员行不存 ip；type/platform/location 从位置行继承
+    """
+    for i, sn in enumerate(serials):
+        suffix = suffixes[i]
+        member_no = int(suffix) if suffix.isdigit() else i + 1
+        name = physical_name(device_name, suffix)
+        m_model = model_list[i] if i < len(model_list) else (model_list[-1] if model_list else "")
+        m_version = version_list[i] if len(version_list) == len(serials) else software_version
+        db.execute(
+            """INSERT INTO devices (name, ip, type, platform, kind, stack_name, member_no,
+                                    serial_number, model, version, location, last_synced)
+               SELECT ?, '', d.type, d.platform, 'member', ?, ?, ?, ?, ?, d.location, ?
+               FROM devices d WHERE d.id = ?
+               ON CONFLICT(name) DO UPDATE SET
+                   serial_number=excluded.serial_number,
+                   model=excluded.model,
+                   version=excluded.version,
+                   location=excluded.location,
+                   last_synced=excluded.last_synced""",
+            (name, device_name, member_no, sn, m_model,
+             m_version if m_version != "未知" else "", collected_at, device_id))
+
+
 def _save_to_sqlite(
     device_name: str, device_ip: str, device_type: str, device_platform: str,
     week: str, collected_at: str,
@@ -1239,12 +1272,12 @@ def _save_to_sqlite(
         # 以**序列号**为基准逐成员展开：member_ids 只有 Aruba VSF 有（Cisco 堆叠为空），
         # 不能拿它当 zip 的基准 —— 否则 Cisco 堆叠成员一条都进不了档案（曾经如此）。
         serials = [s.strip() for s in serial_number.split(",") if s.strip()]
-        member_no_list = [m.strip() for m in member_ids.split(",") if m.strip()]
         model_list = [m.strip() for m in device_model.split(",") if m.strip()]
         version_list = [v.strip() for v in member_versions.split(",") if v.strip()]
+        # 成员后缀（真实号优先、顺序号兜底）——与仪表盘/报告/拓扑同一实现（device_identity）
+        suffixes = member_suffixes(len(serials), member_ids)
         for idx, serial_part in enumerate(serials):
-            # 成员编号：真实 Member ID 优先（需与序列号数量一致），否则用顺序号
-            member_no = member_no_list[idx] if len(member_no_list) == len(serials) else str(idx + 1)
+            member_no = suffixes[idx]
             model_part = model_list[idx] if idx < len(model_list) else (model_list[-1] if model_list else "")
             # 成员自己的版本优先；无成员级版本（IOS-XE 堆叠 / Aruba VSF）退回整机版本
             version_part = version_list[idx] if len(version_list) == len(serials) else software_version
@@ -1265,6 +1298,17 @@ def _save_to_sqlite(
                 member_no,
                 collected_at,
             ))
+
+        # 1.2 设备身份维护（spec 第五节）：kind 按配置判定 + 堆叠成员行成行
+        # 失败保护：本次 serial 为空/"未知" → 不碰身份（沿用"空/未知不覆盖"原则）
+        if serial_number and serial_number != "未知":
+            kind = kind_from_config(running_config or "", len(serials))
+            db.execute("UPDATE devices SET kind=? WHERE id=?", (kind, device_id))
+            # 判据是 kind 而不是成员数：拆到只剩一台的 VSF（配置里 vsf member 还在）
+            # 仍是 stack，剩下那台的成员行必须继续更新（场景 3）
+            if kind == "stack":
+                _maintain_member_rows(db, device_id, device_name, serials, suffixes,
+                                      model_list, version_list, software_version, collected_at)
 
         # 2. 写入采集会话
         running_lines = len(running_config.splitlines()) if running_config and not running_config.startswith('%') else 0
