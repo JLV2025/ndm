@@ -2,6 +2,8 @@
 
 > 细节与逐会话原文：`.wolf/archive/`（`cerebrum-full`=803 行全文；`cerebrum-merged`=178 行合并版）。grep 它们。
 > 维护：条目追加到对应章节，**禁止重开同名章节**；旧条目改在原地；单条一行。
+> 归档三档（2026-09-22 整理）：`.wolf/archive/cerebrum-full-2026-09-22.md`（803 行全文）、`cerebrum-merged-2026-09-22.md`（178 行合并版）、本文件（精简版，目标 ≤10KB）；更早的逐条编辑流水在 `archive/memory-before-2026-09-22.md`（3149 行）。
+> 自动记录：OpenWolf 自动 buglog **已关**（`.wolf/config.json` → `openwolf.buglog.auto_log=false`，改 true 恢复）；anatomy/memory 只收项目内文件（跨盘 `path.relative` 会回退绝对路径，判定要 `..` + `isAbsolute`）；memory.md 只留最近 500 行（滚动）。
 
 ## Do-Not-Repeat
 
