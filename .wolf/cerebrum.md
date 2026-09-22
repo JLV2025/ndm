@@ -35,6 +35,7 @@
 
 ## User Preferences
 - 编辑字段放**编辑弹窗**（不放页面工具栏）；可点入口要显式（图标/下划线/tooltip）。
+- [2026-09-22] **页面名三处统一**（用户定案"为了完美，都改"）：**侧栏标签 = 使用文档章节名 = README 用词**。定案：数据查看器/Viewer、网络拓扑图/Network Topology、端口连接图/Port Topology、告警中心/Alerts、自定义报告/Custom Reports、设备管理/Device Management、配置审计/Configuration Audit、审计标准/Audit Standards、批量执行/Batch Execution、设备生命周期/Device Lifecycle。页面 H1 与侧栏同源（`viewer.title`、`topology.title`、`topology.stpTitle`、`batch.title` 均已对齐）；改动落在 i18n（zh/en）+ 使用文档 HTML + README 三处，改名前先 grep 全部引用点。
 - 侧栏导航**分组折叠**（2026-09-22 用户定案）：顶层留高频 3 项（仪表盘 / 设备管理 / 配置查看器），其余分 4 组（拓扑视图 / 审计与合规 / 监控与报告 / 资产与操作）。**当前路由所在组一律展开**（进站/跳转自动打开，避免深链进来看不到高亮）；其余组开合由点击决定、存 localStorage（键 `ndm_nav_groups`），首次进站展开第一组。否决"合并二级页"方案（要动路由与书签）。
 - 报告类页面 = 扁平大表 + 位置过滤 + 列头排序 + CSV 导出；能排序就不加筛选；页面级滚动。
 - 字体：业务数据正文体；程序性内容 `"Fira Code", monospace`；**画布保持等宽**（勿"顺手统一"）。
