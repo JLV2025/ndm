@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T07:17:57.444Z
-> Files: 207 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T07:38:24.829Z
+> Files: 212 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -122,6 +122,7 @@
 - `dump_aruba.py` — 临时脚本：列出 Aruba 设备与最新采集的配置概况，并按需导出指定设备的配置 (~547 tok)
 - `equiv_check.py` — 移植等价性验证：netstd 原版引擎 vs NDM 移植版引擎 (~788 tok)
 - `extract_docx.py` — 临时脚本：按文档顺序提取 docx 的段落与表格（含样式名，用于判断标题层级） (~423 tok)
+- `lifecycle_check.py` — 生命周期页数据源：生产库副本端到端检查（只碰副本，不碰生产库）。 (~619 tok)
 - `ndm_diag_report.py` — 诊断：用真实函数跑「软件版本报告」的展开逻辑，看每一行缺什么 (~297 tok)
 - `ndm_svl_check.py` — C9500 SVL 端到端演练：真机样本 → member_uptimes → 报告成员行（库副本，不碰生产库） (~403 tok)
 - `plan_addendum.md` — 九、补充：总部《AUTOMATION-Cisco》对审计输出的约束（2026-09-18 晚，评估后新增） (~399 tok)
@@ -178,7 +179,7 @@
 - `collector.py` — 配置收集 API 路由 (~1810 tok)
 - `data.py` — 数据文件 API 路由 (~3944 tok)
 - `devices.py` — 设备管理 API 路由 — SQLite 唯一数据源 (~3323 tok)
-- `lifecycle.py` — 设备生命周期 API —— EoL 与保修期的登记、批量导入、刷新与概况。 (~1350 tok)
+- `lifecycle.py` — 设备生命周期 API —— EoL 与保修期的登记、批量导入、刷新与概况。 (~1770 tok)
 - `logs.py` — 日志分析 API 路由 (~2638 tok)
 - `reports.py` — 自定义报告 API 路由 (~2500 tok)
 - `stats.py` — Dashboard 统计 API — 全量从 SQLite 读取 (~2665 tok)
@@ -202,6 +203,7 @@
 - `batch_exec.py` — 批量命令执行 —— 危险命令预检 + 单台执行器。 (~1954 tok)
 - `collector_service.py` — 配置收集服务 (~22575 tok)
 - `eox_client.py` — Cisco EoX 客户端 —— 按型号批量查生命周期（停止销售 / 停止支持）。 (~1502 tok)
+- `lifecycle_status.py` — 生命周期三色判定 —— 唯一实现（spec 第十三节） (~550 tok)
 - `log_analyzer.py` — 日志 AI 分析服务 (~3102 tok)
 
 ## backend/storage/
@@ -210,7 +212,7 @@
 - `database.py` — init_db, get_connection, close_connection (~9436 tok)
 - `device_dal.py` — list_managed, list_physical, get_all_devices, get_device_by_name (~2849 tok)
 - `file_manager.py` — 存储管理模块 (~2820 tok)
-- `lifecycle_dal.py` — 设备生命周期数据访问 —— EoL 型号缓存 + 逐序列号保修登记。 (~2884 tok)
+- `lifecycle_dal.py` — 设备生命周期数据访问 —— EoL 型号缓存 + 逐序列号保修登记。 (~3785 tok)
 
 ## backend/tests/
 
@@ -237,9 +239,10 @@
 - `test_eox_client.py` — Cisco EoX 客户端测试 —— mock HTTP（凭据到位前无法实盘验证，如实标注）。 (~1565 tok)
 - `test_hardware_change.py` — 硬件变更检测测试（spec 第六节）：指纹 diff 各情形 + 事件落库 + 调拨。 (~1718 tok)
 - `test_kind_filters.py` — kind 过滤纪律测试：成员行不得混入管理体视角（每类页面防漏网）。 (~1253 tok)
-- `test_lifecycle_api.py` — 生命周期 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）。 (~1447 tok)
+- `test_lifecycle_api.py` — 生命周期 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）。 (~2821 tok)
 - `test_lifecycle_checks.py` — 生命周期判定器与「集体性折叠」测试。 (~2561 tok)
 - `test_lifecycle_dal.py` — 设备生命周期数据层测试。 (~2272 tok)
+- `test_lifecycle_status.py` — 三色状态判定测试（spec 第十三节：绿在保 / 橙临近 / 红出保） (~608 tok)
 - `test_member_parser.py` — 堆叠成员级解析测试 —— 编号 / 序列号 / 版本 / ROM / 运行时间 (~3301 tok)
 - `test_member_rows.py` — 成员行维护测试（spec 第五节）：成功 upsert / 失败保护 / 离线保留。 (~1072 tok)
 - `test_migration_v18.py` — v18 迁移测试：设备身份模型（kind + 物理成员行） (~1306 tok)
@@ -318,14 +321,15 @@
 
 ## frontend/src/
 
-- `App.tsx` — DRAWER_WIDTH — renders modal (~3644 tok)
+- `App.tsx` — DRAWER_WIDTH — renders modal (~3707 tok)
 - `index.css` — Stylesheet (~206 tok)
 
 ## frontend/src/components/
 
 - `AuditExceptionDialog.tsx` — 登记例外对话框（查看器与标准页共用；到期日默认 +180 天） (~1652 tok)
 - `BriefingDialog.tsx` — 极简 Markdown 渲染：标题行加粗、`- ` 列表、**加粗** —— 不引第三方依赖 (~983 tok)
-- `LifecycleCard.tsx` — 设备生命周期卡片 —— EoL 与保修期。 (~5092 tok)
+- `LifecycleCard.tsx` — 设备生命周期卡片 —— EoL 与保修期（维保行三色状态，与生命周期页同源） (~3788 tok)
+- `LifecycleDialogs.tsx` — 生命周期对话框 —— 详情页卡片与生命周期页**共用**（两处写同一 API）。 (~1732 tok)
 
 ## frontend/src/components/devices/
 
@@ -344,8 +348,8 @@
 
 ## frontend/src/i18n/
 
-- `en.ts` — Declares en (~9860 tok)
-- `zh.ts` — Declares zh (~7414 tok)
+- `en.ts` — Declares en (~10162 tok)
+- `zh.ts` — Declares zh (~7637 tok)
 
 ## frontend/src/pages/
 
@@ -356,6 +360,7 @@
 - `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~10850 tok)
 - `DeviceDetail.tsx` — DeviceDetail (~6839 tok)
 - `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5680 tok)
+- `Lifecycle.tsx` — 生命周期页 —— 全部物理设备（堆叠成员逐台 + 单机）一行一台。 (~4801 tok)
 - `LogAnalyzer.tsx` — 严重级别 → 颜色 (数字→hex) (~7989 tok)
 - `Login.tsx` — Login (~2283 tok)
 - `Reports.tsx` — 两张表的默认排序：型号字母序 / 吞吐降序 (~4427 tok)
@@ -364,18 +369,18 @@
 
 ## frontend/src/services/
 
-- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~3845 tok)
+- `api.ts` — Visio 导出 — 发送拓扑数据，返回 .vsdx 文件 Blob (~3967 tok)
 
 ## frontend/src/shared/
 
-- `constants.ts` — 全局共享常量 — 设备颜色、图例、端点前缀 (~1616 tok)
+- `constants.ts` — 全局共享常量 — 设备颜色、图例、端点前缀 (~1793 tok)
 
 ## frontend/src/test/
 
 
 ## frontend/src/types/
 
-- `index.ts` — 离线物理设备档案（device_members 表） (~3066 tok)
+- `index.ts` — 离线物理设备档案（device_members 表） (~3287 tok)
 - `topology.ts` — 端口物理断开（status_up=0），图上显示红叉警告 (~1043 tok)
 
 ## tests/

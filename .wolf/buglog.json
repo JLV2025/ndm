@@ -4706,6 +4706,138 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-22T15:45:00"
+    },
+    {
+      "id": "bug-288",
+      "timestamp": "2026-09-22T07:26:36.712Z",
+      "error_message": "Significant refactor of ",
+      "file": "backend/storage/lifecycle_dal.py",
+      "root_cause": "3 lines replaced/restructured",
+      "fix": "Rewrote 28→91 lines (3 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:26:36.712Z"
+    },
+    {
+      "id": "bug-289",
+      "timestamp": "2026-09-22T07:26:58.029Z",
+      "error_message": "Wrong return value",
+      "file": "backend/api/lifecycle.py",
+      "root_cause": "Was returning: {\"ok\": True, \"saved\": saved, \"lifecycle\": dal.get_",
+      "fix": "Now returns: {\"ok\": True, \"saved\": saved, \"lifecycle\": _lifecyc",
+      "tags": [
+        "auto-detected",
+        "return-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:26:58.029Z"
+    },
+    {
+      "id": "bug-290",
+      "timestamp": "2026-09-22T07:27:57.808Z",
+      "error_message": "Incorrect value in code",
+      "file": "backend/tests/test_lifecycle_api.py",
+      "root_cause": "Had \"成员详情页看到的保修 = 写在堆叠名下的那行；兄弟成员不算\"",
+      "fix": "Changed to \"成员详情页看到的保修 = 写在堆叠名下的那行；兄弟成员不算「离线登记」\"",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "py"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:27:57.808Z"
+    },
+    {
+      "id": "bug-291",
+      "timestamp": "2026-09-22T07:35:08.985Z",
+      "error_message": "Incorrect value in code",
+      "file": "frontend/src/App.tsx",
+      "root_cause": "Had 'nav.batchExec'",
+      "fix": "Changed to 'nav.lifecycle'",
+      "tags": [
+        "auto-detected",
+        "wrong-value",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 2,
+      "last_seen": "2026-09-22T07:35:17.664Z"
+    },
+    {
+      "id": "bug-292",
+      "timestamp": "2026-09-22T07:37:20.082Z",
+      "error_message": "Significant refactor of ",
+      "file": "frontend/src/components/LifecycleCard.tsx",
+      "root_cause": "2 lines replaced/restructured",
+      "fix": "Rewrote 9→21 lines (2 removed)",
+      "tags": [
+        "auto-detected",
+        "refactor",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:37:20.082Z"
+    },
+    {
+      "id": "bug-293",
+      "timestamp": "2026-09-22T07:37:30.921Z",
+      "error_message": "CSS fix: fontSize",
+      "file": "frontend/src/components/LifecycleCard.tsx",
+      "root_cause": "fontSize: '0.72rem', py: 0.4 → '0.72rem', py: 0.4, color: STATUS_COLOR[m.status || 'none']",
+      "fix": "Changed fontSize: '0.72rem', py: 0.4 → '0.72rem', py: 0.4, color: STATUS_COLOR[m.status || 'none']",
+      "tags": [
+        "auto-detected",
+        "style-fix",
+        "tsx"
+      ],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T07:37:30.921Z"
+    },
+    {
+      "id": "bug-294",
+      "timestamp": "2026-09-22T15:42:00",
+      "error_message": "计划 T1 的 _add_months 会在月末构造非法日期：date(2027, 2, 31) → ValueError（12-31 加 2 月）",
+      "file": "backend/services/lifecycle_status.py",
+      "root_cause": "日历月偏移直接拿 today.day 当目标月的日号，没考虑目标月天数不足（计划里的原始实现）",
+      "fix": "calendar.monthrange(year, month)[1] 取目标月天数，day = min(today.day, 天数)；测试加 12-31 + 2 月 → 夹到 2-28 的用例",
+      "tags": ["date", "calendar", "lifecycle", "plan-defect"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T15:42:00"
+    },
+    {
+      "id": "bug-295",
+      "timestamp": "2026-09-22T15:42:30",
+      "error_message": "test_详情接口_成员名归到堆叠记账 失败：extra_rows 把兄弟成员的保修行误报成「离线登记」",
+      "file": "backend/storage/lifecycle_dal.py",
+      "root_cause": "成员行查「当前有效序列号」只看本行；v18 后序列号在成员行上、位置行缓存为空，堆叠的 live 集合算成空",
+      "fix": "list_device_serials 增加第三级兜底：本行缓存为空时按 stack_name 取成员行序列号（ORDER BY member_no）",
+      "tags": ["lifecycle", "member-rows", "v18", "extra-rows"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T15:42:30"
+    },
+    {
+      "id": "bug-296",
+      "timestamp": "2026-09-22T15:43:00",
+      "error_message": "计划 T1 的测试与实现互相矛盾：断言 warranty_status('2026-11-30') == 'soon'，但「日历月 +2」阈值是 2026-11-22（该断言应为 ok）",
+      "file": "docs/superpowers/plans/2026-09-22-lifecycle-page.md",
+      "root_cause": "写计划时把「2 个月内」按整月边界想，与 now + N 个月的实现语义不一致",
+      "fix": "按 spec 语义改测试：阈值当天（11-22）橙、前一天橙、超一天（11-23）绿",
+      "tags": ["test", "plan-defect", "boundary", "lifecycle"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T15:43:00"
     }
   ]
 }

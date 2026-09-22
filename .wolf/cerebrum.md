@@ -778,3 +778,20 @@
 - [2026-09-22] 验证 schema 迁移的可靠姿势：**复制生产库到 tempfile 目录（含 -wal/-shm）→ `init_db` 就地迁移副本 → 抽查**。全程不碰生产库（本次 v18：36→61 行、双口径 36/49、幂等，一次通过）。
 - [2026-09-22] 身份模型落地后各身份入口：位置行（stack/standalone）持配置/采集/审计/告警；成员行（member）持序列号/型号/版本；**命名唯一实现在 `utils/device_identity.py`**；`device_dal.list_managed()/list_physical()` 是 devices 查询的两个入口（禁止裸查）。
 - [2026-09-22] 过渡期分工：成员行是 serial/model/version 权威；ROM 版本与运行时间仍读堆叠行的 member_* 缓存串（第二步退役）；物理名展示规则 = 成员数≥2 带 `-N`、1 成员/单机不带。
+
+## Decision Log（2026-09-22 生命周期页，Plan 2）
+- [2026-09-22] **三色判定是后端纯函数**（`backend/services/lifecycle_status.py`，可 pytest、天然覆盖未来第三个消费方）；前端只做「状态 → 颜色」（`STATUS_COLOR` 唯一定义在 `frontend/src/shared/constants.ts`），不重复判一次。
+- [2026-09-22] 阈值定案：维保 2 个月、EoS/EoL 6 个月，按**日历月**（`now + N 月`，目标月天数不足夹月末，不是 60/180 天）；未登记维保 = 橙（missing）、未登记且备注归一化（去空格忽略大小写）等于 `unavailable` = 红（expired）；EoS/EoL 两日期分别判定后取最严重（全未登记 = 灰 none）。
+- [2026-09-22] **保修按管理体记账**：成员行查保修归到所属堆叠（`stack_name`）——导入/手工都写在堆叠名下。`get_device_lifecycle` 解析 owner 查台账；`list_device_serials` 三级兜底（采集缓存 → 本行缓存 → 成员行）。物理清单每行的 `device` 字段 = 编辑目标（所属堆叠/单机）。
+- [2026-09-22] 编辑入口两处并存（spec 第十三节第 5 条）：详情页卡片（多行整表保存）+ 生命周期页（单行只提交该序列号 `rows=[{serial,...}]`，不动兄弟成员）。页面点型号 **必须**先 `GET /api/lifecycle/model/{model}` 预填——PUT 是整条覆盖，不回填会抹掉公告/链接/备注。共用对话框提取到 `components/LifecycleDialogs.tsx`。
+- [2026-09-22] 筛选/排序放前端（约 50 行量级，符合项目偏好）；`GET /api/lifecycle/physical` 只出数据 + 状态；默认按状态严重度排序（`STATUS_RANK`，最严重在前）。
+
+## Key Learnings（2026-09-22 生命周期页）
+- [2026-09-22] 生产库副本实测生命周期数据源：49 台物理设备（25 成员 + 24 单机）；维保 missing 36 / ok 7 / expired 6；EoL none 40 / soon 1 / expired 8；25 个成员行全部归堆叠记账（编辑目标 ≠ 存储名）。
+- [2026-09-22] i18n 是**扁平键**（`'lifecycle.page.hint'`），zh/en 两份要同步补；`t()` 不支持占位符，模板用 `.replace('{n}', ...)`。
+- [2026-09-22] 页面/卡片的表格与排序可照抄 `Reports.tsx` 的 `SortHead` + `sortRows(sort, getters)` 模式（该实现是页面局部的，未抽公共）。
+
+## Do-Not-Repeat（2026-09-22 生命周期页）
+- [2026-09-22] **"N 个月后"的日期算术必须夹月末**：`date(year, month, today.day)` 在 12-31 加 2 月会构造 `2027-02-31` → ValueError（计划原实现如此，执行时先修）。用 `calendar.monthrange` 取目标月天数再 min。
+- [2026-09-22] 测试断言要按**阈值语义**钉死边界（阈值当天橙 / 超一天绿）——计划里 `2026-11-30 → soon` 与"日历月 +2 = 11-22"自相矛盾。测试与实现打架时先判明语义，不要迁就任一方。
+- [2026-09-22] 中文文档串（docstring）**结尾别留引号**：`...不算"离线登记""""` 四引号连排 → SyntaxError；中文引号用「」。
