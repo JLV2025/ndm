@@ -9,7 +9,7 @@ set "PORT=8002"
 set "TMPFILE=%TEMP%\ndm_portcheck.txt"
 
 echo ========================================
-echo   NDM - Network Device Manager v2.9.21
+echo   NDM - Network Device Manager v2.9.22
 echo   SQLite + Config Audit + AI Log Analysis
 echo ========================================
 echo(

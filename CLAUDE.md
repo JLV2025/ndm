@@ -24,8 +24,10 @@ NDM（QCNDM）：通过 SSH 批量收集 Cisco IOS / IOS-XE / Router 与 Aruba O
   SSH 连接封装在 `backend/collectors/base.py`）。批量采集由**前端 worker 队列**逐台调
   `POST /api/collect/{device}`（没有服务端批量端点）
 - **存储**：SQLite 为唯一数据源（`backend/storage/database.py` 管迁移与 schema_version，
-  `file_manager.py` 管分层保留）；`data/YYYY-WW/{设备}/` 保留原始文件
-- **分析**：`backend/analyzers/`（performance / config_validator / change_detector /
+  `file_manager.py` 管分层保留，`device_dal.py` 是设备清单的唯一入口
+  —— `list_managed()`（管理体：stack+standalone）/ `list_physical()`（物理：member+standalone），
+  `lifecycle_dal.py` 管 EoL 与保修台账）；`data/YYYY-WW/{设备}/` 保留原始文件
+- **分析**：`backend/analyzers/`（performance / config_validator / change_detector / hardware_change /
   neighbor_parser / stp_parser / counter_parser / anomaly_detector / role_verifier）
   \- **配置审计**在 `backend/analyzers/compliance/`：`parser`（配置→设备模型）、`checks`（判定器）、
   `engine`（判定 + 例外豁免 + 集体性折叠）、`loader`（规则库校验）、`port_roles`、
@@ -78,12 +80,20 @@ python config/manager.py
 4. **指纹贯穿** —— `config_hash` / `ruleset_hash` / `exceptions_hash` 用于判断"配置/标准/豁免变没变"
 5. **分层保留** —— 配置文本按周留 16 周，更早按月归档；DB 配置全文与日志各留最近 2 次；
    采集结束时执行，也可跑 `backend/scripts/retention.py`
+6. **身份模型：位置身份 vs 硬件身份** —— `devices.kind`（stack / standalone / member）：
+   配置、采集、审计、告警挂**位置行**（stack/standalone，用名字 + IP）；序列号、型号、保修、
+   软件版本挂**物理设备**（member 行有 `stack_name` + `member_no`，或 standalone 行）。
+   物理名 `{堆叠名}-{编号}` 的唯一实现是 `backend/utils/device_identity.py`；
+   **查设备清单必须用 `device_dal` 的两个入口，禁止裸查 `devices`**（成员行不得混入管理体视角）。
+   硬件变更（换件/加成员/整机换代）由 `analyzers/hardware_change.py` 的指纹 diff 判定并留痕
 
 ## Important Notes
 
 - 密码交互式输入，不落盘（`config/settings.yaml` 亦 gitignore，绝不提交）
 - **凭据值绝不外发**：发给 LLM 的文本（日志分析、专家简报）必须先过 `backend/utils/redact.py`
 - 设备目录名优先用 `show version` 里的序列号；堆叠按物理成员逐台建档
+- **生命周期三色判定的唯一来源是 `backend/services/lifecycle_status.py`**（维保 2 个月 / EoS·EoL
+  6 个月，按日历月）；前端只做「状态 → 颜色」（`frontend/src/shared/constants.ts`），不重复判一次
 - 采集时自动跑配置校验与性能分析；采集后自动跑审计（去抖）
 - 改 schema 要加 `_migrate_vN` 并升 `SCHEMA_VERSION`；服务只在 `init_db()`（启动）时迁移
 
