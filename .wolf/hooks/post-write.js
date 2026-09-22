@@ -30,6 +30,13 @@ async function main() {
         process.exit(0);
         return;
     }
+    // 项目外文件（临时脚本、OneDrive 文档等）不进 anatomy / memory。
+    // 判定要覆盖两种形态：同盘外 → "..\\..\\..."；**跨盘**（如 C: 项目写 F:/temp/...）
+    // 时 path.relative 直接回退成绝对路径（Windows 无法跨盘表达相对路径）。
+    if (relPath.startsWith("..") || path.isAbsolute(relPath)) {
+        process.exit(0);
+        return;
+    }
     // Never track .env files in anatomy — they contain secrets
     const baseName = path.basename(absolutePath);
     if (baseName === ".env" || baseName.startsWith(".env.")) {
@@ -145,12 +152,25 @@ async function main() {
     catch { }
     // 4. Auto-detect bug-fix patterns and log them
     try {
-        if (oldStr && newStr) {
+        if (oldStr && newStr && autoLogEnabled(wolfDir)) {
             autoDetectBugFix(wolfDir, absolutePath, projectRoot, oldStr, newStr);
         }
     }
     catch { }
     process.exit(0);
+}
+// 自动 buglog 条目开关：openwolf.buglog.auto_log（默认关闭）。
+// 2026-09-22 用户定案关闭：存量 297 条里 246 条（83%）是这类自动摘要噪声，
+// 真正的修复由会话手工记录；memory.md 已逐条记录每次编辑，信息不丢。
+// 想恢复：把 .wolf/config.json 的 openwolf.buglog.auto_log 改成 true。
+function autoLogEnabled(wolfDir) {
+    try {
+        const cfg = readJSON(path.join(wolfDir, "config.json"), {});
+        return cfg?.openwolf?.buglog?.auto_log === true;
+    }
+    catch {
+        return false;
+    }
 }
 // ─── Edit Summarizer ─────────────────────────────────────────────
 function summarizeEdit(oldStr, newStr, filename) {

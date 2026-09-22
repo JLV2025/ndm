@@ -29,6 +29,9 @@
         "*.min.css"
       ]
     },
+    "buglog": {
+      "auto_log": false
+    },
     "token_audit": {
       "enabled": true,
       "report_frequency": "weekly",
