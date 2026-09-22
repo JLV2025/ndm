@@ -263,10 +263,10 @@ function NeighborDeviceNode({ data, selected }: NodeProps) {
 const nodeTypes = { switchNode: SwitchNode, neighborNode: NeighborDeviceNode }
 const edgeTypes = { pipe: PipeEdge }
 
-/** 堆叠成员标签格式化：PVGD1SWI01-M1 → PVGD1SWI01 (Member 1) */
+/** 堆叠成员标签格式化：PVGD1SWI01-M1 → PVGD1SWI01-1（物理名统一 -N，不补零） */
 function formatDevLabel(name: string): string {
   const m = name.match(/^(.+)-M(\d+)$/)
-  return m ? `${m[1]} (Member ${m[2]})` : name
+  return m ? `${m[1]}-${m[2]}` : name
 }
 
 // ============================================================
@@ -655,7 +655,7 @@ export default function PortTopologyCanvas({
             const nid = `switch-${member}`
             switchNodeIdSet.add(nid)
             nodes.push({ id: nid, type: 'switchNode', position: { x: cx, y: yCursor },
-              data: { label: `${deviceName} (Member ${member})`, model: memberModels?.[member] || deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, displayType: getSelectedDisplayType(deviceName, deviceNotes), handleRole: 'source', handleSide: selHandleSide } })
+              data: { label: `${deviceName}-${member}`, model: memberModels?.[member] || deviceModel, ip: deviceIp, topPorts: top, bottomPorts: bottom, displayType: getSelectedDisplayType(deviceName, deviceNotes), handleRole: 'source', handleSide: selHandleSide } })
             maxDeviceRight = Math.max(maxDeviceRight, cx + SWITCH_W)
             cx += SWITCH_W + STACK_GAP
           }

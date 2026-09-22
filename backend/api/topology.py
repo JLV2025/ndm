@@ -11,6 +11,7 @@ from analyzers.neighbor_parser import _extract_type as _extract_device_type
 from analyzers.role_verifier import RoleVerifier
 from storage.database import get_connection as _get_db
 from utils.port_names import member_no_from_port
+from utils.device_identity import member_suffixes
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -967,7 +968,7 @@ def _expand_physical_devices(location_devices: list[dict]) -> list[dict]:
     """将堆叠设备拆分为物理设备
 
     返回展开后的设备列表，每个物理设备新增:
-      - expanded_name: "BJQD1SWI01-01"
+      - expanded_name: "BJQD1SWI01-1"（物理名统一 -N，不补零）
       - logical_name: "BJQD1SWI01"
       - physical_index: 1-based
       - physical_count: 总成员数
@@ -991,16 +992,12 @@ def _expand_physical_devices(location_devices: list[dict]) -> list[dict]:
         model_list = [m.strip() for m in model_str.split(",")] if model_str else [""] * len(sn_list)
         ver_str = (dev.get("version") or "").strip()
         ver_list = [v.strip() for v in ver_str.split(",")] if ver_str else [""] * len(sn_list)
-        # 真实成员 ID（member_ids 与序列号同序 1:1，全数字才采用；否则回退序号）
-        mid_str = (dev.get("member_ids") or "").strip()
-        mid_list = [m.strip() for m in mid_str.split(",") if m.strip()]
-        use_real_ids = len(mid_list) == len(sn_list) and all(m.isdigit() for m in mid_list)
+        # 成员后缀（真实号优先、顺序号兜底）——与仪表盘/报告/成员行同一实现（device_identity）
+        suffix_list = member_suffixes(len(sn_list), dev.get("member_ids") or "")
 
         for i, s in enumerate(sn_list):
             d = dict(dev)
-            # 真实 ID 不 pad（-1/-3 原样）；回退时序号 padStart 两位
-            member_suffix = mid_list[i] if use_real_ids else f"{i + 1:02d}"
-            d["expanded_name"] = f"{dev['name']}-{member_suffix}"
+            d["expanded_name"] = f"{dev['name']}-{suffix_list[i]}"
             d["logical_name"] = dev["name"]
             d["physical_index"] = i + 1
             d["physical_count"] = len(sn_list)
