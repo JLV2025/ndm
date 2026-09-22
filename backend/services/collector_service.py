@@ -22,6 +22,7 @@ from utils.settings_loader import load_settings
 from utils.password import password_manager
 from utils.port_names import normalize_port_name, norm_lag_name
 from utils.device_identity import kind_from_config, member_suffixes, physical_name
+from analyzers.hardware_change import compute_fingerprint, diff_fingerprints, record_event
 from storage.file_manager import get_week_dir, run_retention
 from storage.database import get_connection as get_db
 from models.devices import Device
@@ -1234,6 +1235,15 @@ def _save_to_sqlite(
         # 显式事务包裹：确保 8 步写入原子化，避免孤儿记录
         db.execute("BEGIN IMMEDIATE")
 
+        # 0. 上次硬件指纹（必须在 upsert 覆盖之前读；首次采集 → None → 不产生事件）
+        prev_row = db.execute(
+            "SELECT platform, model, serial_number, kind, member_ids FROM devices WHERE name=?",
+            (device_name,)).fetchone()
+        prev_fp = (compute_fingerprint(prev_row["platform"], prev_row["model"],
+                                       prev_row["serial_number"], prev_row["kind"],
+                                       prev_row["member_ids"])
+                   if prev_row else None)
+
         # 1. 确保 device 记录存在
         db.execute("""
             INSERT INTO devices (name, ip, type, platform, serial_number, member_ids, model, version,
@@ -1276,8 +1286,15 @@ def _save_to_sqlite(
         version_list = [v.strip() for v in member_versions.split(",") if v.strip()]
         # 成员后缀（真实号优先、顺序号兜底）——与仪表盘/报告/拓扑同一实现（device_identity）
         suffixes = member_suffixes(len(serials), member_ids)
+        movements: list[dict] = []
         for idx, serial_part in enumerate(serials):
             member_no = suffixes[idx]
+            # 调拨检测：该序列号上一轮在别的设备名下（device_members 以 SN 为主键，天然给出上家）
+            prev_owner = db.execute(
+                "SELECT last_device FROM device_members WHERE serial_number=?",
+                (serial_part,)).fetchone()
+            if prev_owner and prev_owner["last_device"] and prev_owner["last_device"] != device_name:
+                movements.append({"serial": serial_part, "from_device": prev_owner["last_device"]})
             model_part = model_list[idx] if idx < len(model_list) else (model_list[-1] if model_list else "")
             # 成员自己的版本优先；无成员级版本（IOS-XE 堆叠 / Aruba VSF）退回整机版本
             version_part = version_list[idx] if len(version_list) == len(serials) else software_version
@@ -1309,6 +1326,13 @@ def _save_to_sqlite(
             if kind == "stack":
                 _maintain_member_rows(db, device_id, device_name, serials, suffixes,
                                       model_list, version_list, software_version, collected_at)
+
+            # 1.3 硬件变更检测（spec 第六节）：指纹 diff + 事件（调拨随事件记录）
+            cur_fp = compute_fingerprint(device_platform, device_model, serial_number,
+                                         kind, member_ids)
+            ev = diff_fingerprints(prev_fp, cur_fp)
+            if ev:
+                record_event(db, device_id, ev, collected_at, movements=movements)
 
         # 2. 写入采集会话
         running_lines = len(running_config.splitlines()) if running_config and not running_config.startswith('%') else 0
