@@ -752,3 +752,22 @@
   - 画布 / 前面板 / 图表轴 → Fira Code（**用户定案 2026-09-21：保持等宽不动**——做过 A/B 实拍对比：前面板几乎无差别、端口连接图的设备名会从"终端感"变"产品感"、无布局风险（节点宽度是常量 + ellipsis 保护）；用户选择保留画布的"设备终端"视觉语境。**以后不要"顺手统一"画布字体。**）
   - **禁止**（本次已清理 22 处）：裸 `fontFamily: 'monospace'`（fallback Consolas，用户嫌难看）、`"JetBrains Mono"`（用户机器未安装，实际渲染成 Consolas）；**body 默认字体已与 MUI 主题对齐**（index.css 原为 Fira Code，是全站"两套默认字体"并存的根因）
   - 排查技巧：`document.fonts.check('12px "Fira Code"')` 查字体是否真实可用；`getComputedStyle(td).fontFamily` 看实际生效的第一字体。
+
+## Decision Log
+- [2026-09-22] **设备身份模型定案（用户拍板）**：`devices` 引入 `kind`（stack / standalone / member）+ 物理成员行（`stack_name` + `member_no`，name 物化派生 `{堆叠名}-{编号}`）。位置身份 = 名字 + IP（配置/采集/审计/告警挂它）；硬件身份 = 序列号。配置类外键语义**不变**——刻意避免"-1 是主成员"隐藏约定与全表迁移。否决：布尔列（冗余）、物理行即设备全量重构（HIGH 风险）。spec：docs/superpowers/specs/2026-09-22-device-identity-design.md
+- [2026-09-22] 物理名格式定案：`名字-编号`、不补零、真实成员号优先、跳号原样、1 成员不加后缀（展示层省略；存储名恒定）。落地为单一 helper（后端 `device_identity`）+ 前端 memberSuffixes 唯一来源。
+- [2026-09-22] 硬件变更检测定案：指纹 (platform, 型号集合, SN 集合, 成员数) diff；成员级自动处理 + 留痕，整机级（平台变/SN 零交集）只记录只提示；**意图不自动化**（备件/报废人工标注 `device_members.status`）。
+
+## Key Learnings
+- [2026-09-22] `collector_service.py::_CISCO_MEMBER_TABLE_ROW` 正则**第 1 组就是 Switch 成员号**，当前只取第 4 组（版本）——补成员号解析近零成本；`extract_member_ids` 目前只解析 Aruba VSF。
+- [2026-09-22] 堆叠只有**一个管理 IP**（成员无独立 IP）；采集天然每堆叠一次，不存在"重复采集成员"问题。
+- [2026-09-22] 顺序号当成员号会**身份漂移**：跳号场景（成员 2 拆走后成员 3 被标成 -2），历史/保修断链——真实号必须优先。
+- [2026-09-22] 调拨检测不需要新采集：`device_members` 每次采集本就在 upsert `last_device/last_member/last_seen`，对比 last_device 变化即可。
+- [2026-09-22] 物理名现共 4 处拼装且已分叉：前端 `memberSuffixes`、`reports.py`（-1）、`topology.py:1013`（固定两位 -01）、`PortTopologyCanvas.tsx`（-M1 + "(Member N)"）。
+
+## User Preferences
+- [2026-09-22] 用户拍板：物理成员必须**真正成为行**（不是展示层派生）；接受"所有查 devices 的地方过一遍 kind 过滤"的成本。
+- [2026-09-22] 备件/报废等**意图**类信息：人工标注，不要系统猜。
+
+## Do-Not-Repeat
+- [2026-09-22] **不要用 bash heredoc 追加 cerebrum/memory**（内容含反引号/花括号/中文时）——会生成 0 字节怪文件（bug-151 第 8 次，本次 3 个：`1`、`3`、`FCW2129B3TR`，已删除）。追加一律用 Edit/Write 工具；`git add` 前先跑 `git status --short` 拦截。

@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-21T04:54:57.358Z
-> Files: 191 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T05:49:05.522Z
+> Files: 193 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -295,6 +295,8 @@
 ## docs/superpowers/specs/
 
 - `2026-08-04-aruba-ap-recognition-design.md` — Aruba AP 识别设计（2026-08-04） (~910 tok)
+- `2026-09-22-device-identity-design.md` — 设备身份模型设计：逻辑名退役、物理成员成行 (~2269 tok)
+- `2026-09-22-device-identity-design.md` — 设备身份模型设计：逻辑名退役、物理成员成行 (~2018 tok)
 
 ## frontend/
 
