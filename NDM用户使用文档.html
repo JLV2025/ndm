@@ -193,7 +193,7 @@
   <li><a href="#en-detail">6. Device Detail &amp; Front Panel</a></li>
   <li><a href="#en-viewer">7. Viewer — Config View &amp; Diff</a></li>
   <li><a href="#en-alerts">8. Alerts</a></li>
-  <li><a href="#en-reports">9. Reports</a></li>
+  <li><a href="#en-reports">9. Custom Reports</a></li>
   <li><a href="#en-loganalyzer">10. Log Analyzer &amp; AI Diagnosis</a></li>
   <li><a href="#en-nettopo">11. Network Topology</a></li>
   <li><a href="#en-porttopo">12. Port Topology</a></li>
@@ -211,10 +211,10 @@
   <li><a href="#zh-detail">24. 设备详情与前面板</a></li>
   <li><a href="#zh-viewer">25. 数据查看器</a></li>
   <li><a href="#zh-alerts">26. 告警中心</a></li>
-  <li><a href="#zh-reports">27. 报表</a></li>
+  <li><a href="#zh-reports">27. 自定义报告</a></li>
   <li><a href="#zh-loganalyzer">28. 日志分析与 AI 诊断</a></li>
   <li><a href="#zh-nettopo">29. 网络拓扑图</a></li>
-  <li><a href="#zh-porttopo">30. 端口拓扑图</a></li>
+  <li><a href="#zh-porttopo">30. 端口连接图</a></li>
   <li><a href="#zh-stptopo">31. STP 拓扑图</a></li>
   <li><a href="#zh-audit">32. 配置审计</a></li>
   <li><a href="#zh-batch">33. 批量执行</a></li>
@@ -263,11 +263,11 @@ collapsible groups. <strong>The group containing the current page opens automati
 remembers which groups you left open, so your layout survives a reload.</p>
 <table class="tbl">
   <tr><th>Section</th><th>Entries</th></tr>
-  <tr><td>Top level</td><td>Dashboard · Devices · Viewer</td></tr>
-  <tr><td>Topology</td><td>Network Topology · Port Map · STP Topology</td></tr>
-  <tr><td>Audit &amp; Compliance</td><td>Config Audit · Audit Standard</td></tr>
+  <tr><td>Top level</td><td>Dashboard · Device Management · Viewer</td></tr>
+  <tr><td>Topology</td><td>Network Topology · Port Topology · STP Topology</td></tr>
+  <tr><td>Audit &amp; Compliance</td><td>Configuration Audit · Audit Standards</td></tr>
   <tr><td>Monitoring &amp; Reports</td><td>Alerts · Log Analyzer · Custom Reports</td></tr>
-  <tr><td>Assets &amp; Operations</td><td>Lifecycle · Batch Exec</td></tr>
+  <tr><td>Assets &amp; Operations</td><td>Device Lifecycle · Batch Execution</td></tr>
 </table>
 <p class="note">Click a section title to fold or unfold it (the title carries an underline; the count on the right
 is the number of entries inside).</p>
@@ -464,8 +464,8 @@ is the number of entries inside).</p>
   <li><strong>Suggestion</strong> — fetch the recommended fix for the alert</li>
 </ul>
 
-<!-- ======================= 9. Reports ======================= -->
-<h2 id="en-reports">9. Reports</h2>
+<!-- ======================= 9. Custom Reports ======================= -->
+<h2 id="en-reports">9. Custom Reports</h2>
 <table class="tbl">
   <tr><th>Report</th><th>Description</th></tr>
   <tr><td><strong>Software Versions</strong></td><td>Firmware version matrix across devices (filterable by device type), highlights inconsistencies</td></tr>
@@ -743,7 +743,7 @@ data/
     <li><strong>告警与报表</strong> — 端口 DOWN / 配置变更 / 版本不一致等异常检测，自动生成修复建议</li>
     <li><strong>Dashboard 图表</strong> — 设备类型环形图、端口状态柱状图、流量 Top 10、配置变更趋势 + 热力图</li>
     <li><strong>前面板可视化</strong> — 交换机端口状态面板 + 路由器接口层级树，支持堆叠、10Gb 红色数字标识</li>
-    <li><strong>端口拓扑图</strong> — CDP/LLDP + ConfigParser 双数据源，React Flow 画布，四层自动布局，堆叠展开，LAG 聚合</li>
+    <li><strong>端口连接图</strong> — CDP/LLDP + ConfigParser 双数据源，React Flow 画布，四层自动布局，堆叠展开，LAG 聚合</li>
     <li><strong>网络拓扑图</strong> — CDP + LLDP 邻居自动发现，三层分层布局（WAN → 核心 → 接入），PNG / Visio 导出</li>
     <li><strong>STP 拓扑图</strong> — 按站点看生成树：根桥高亮、每 VLAN 伪端口（★ 根 / ✕ 阻塞）、VLAN 图例单棵高亮、模式混用告警、PNG 导出</li>
     <li><strong>SQLite 全量存储</strong> — running-config 双轨（文件 + 库），日志按时间戳去重</li>
@@ -756,14 +756,13 @@ data/
 <strong>当前页面所在的组会自动展开</strong>；你手动展开 / 收起的状态会被记住，刷新后仍是这个布局。</p>
 <table class="tbl">
   <tr><th>分区</th><th>入口</th></tr>
-  <tr><td>顶层</td><td>仪表盘 · 设备管理 · 配置查看器</td></tr>
-  <tr><td>拓扑视图</td><td>拓扑图 · 端口连接图 · STP 拓扑图</td></tr>
+  <tr><td>顶层</td><td>仪表盘 · 设备管理 · 数据查看器</td></tr>
+  <tr><td>拓扑视图</td><td>网络拓扑图 · 端口连接图 · STP 拓扑图</td></tr>
   <tr><td>审计与合规</td><td>配置审计 · 审计标准</td></tr>
-  <tr><td>监控与报告</td><td>问题面板 · 日志分析 · 自定义报告</td></tr>
+  <tr><td>监控与报告</td><td>告警中心 · 日志分析 · 自定义报告</td></tr>
   <tr><td>资产与操作</td><td>生命周期 · 批量执行</td></tr>
 </table>
-<p class="note">点分区标题即可折叠 / 展开（标题带下划线，右侧数字是组内条目数）。
-侧栏里的「问题面板」就是本文档第 26 章的「告警中心」，同一个页面。</p>
+<p class="note">点分区标题即可折叠 / 展开（标题带下划线，右侧数字是组内条目数）。</p>
 
 <h3>19.2 技术栈</h3>
 <table class="tbl">
@@ -957,10 +956,10 @@ data/
   <li><strong>建议</strong> — 获取该告警的修复建议</li>
 </ul>
 
-<!-- ======================= 27. 报表 ======================= -->
-<h2 id="zh-reports">27. 报表</h2>
+<!-- ======================= 27. 自定义报告 ======================= -->
+<h2 id="zh-reports">27. 自定义报告</h2>
 <table class="tbl">
-  <tr><th>报表</th><th>说明</th></tr>
+  <tr><th>报告</th><th>说明</th></tr>
   <tr><td><strong>软件版本</strong></td><td>跨设备固件版本矩阵（可按类型筛选），高亮版本不一致</td></tr>
   <tr><td><strong>设备运行时间</strong></td><td>全部设备 uptime，发现重启</td></tr>
   <tr><td><strong>端口趋势</strong></td><td>指定设备 + 端口的历史趋势（默认 8 周）</td></tr>
@@ -1006,8 +1005,8 @@ data/
   <li><strong>导出</strong> — PNG 图片或 Visio（.vsdx）导出</li>
 </ul>
 
-<!-- ======================= 30. 端口拓扑图 ======================= -->
-<h2 id="zh-porttopo">30. 端口拓扑图</h2>
+<!-- ======================= 30. 端口连接图 ======================= -->
+<h2 id="zh-porttopo">30. 端口连接图</h2>
 <p>单台设备的端口连接图，合并 <strong>CDP/LLDP 邻居</strong>与 <strong>ConfigParser</strong>（端口描述）双数据源。</p>
 <ul>
   <li><strong>四层自动布局</strong> — WAN → 核心 → 接入 → 端点</li>
@@ -1051,7 +1050,7 @@ data/
 
 <h3>32.1 单台审计</h3>
 <ol>
-  <li>进入<strong>配置查看器</strong> → 切到<strong>「审计」</strong>模式 → 选设备 → 点「审计」</li>
+  <li>进入<strong>数据查看器</strong> → 切到<strong>「审计」</strong>模式 → 选设备 → 点「审计」</li>
   <li>左侧标红的配置行与右侧建议卡片<strong>双向定位</strong>：点卡片跳到对应行，点行跳到对应卡片</li>
   <li>每张卡片给出<strong>档位</strong>（建议强度）、可复制的修复命令与依据</li>
   <li>「<strong>登记例外</strong>」把某条偏离正式登记（见 30.3）；「<strong>生成专家简报</strong>」让 AI 汇总讲评（见 30.5）</li>

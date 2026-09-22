@@ -11,10 +11,10 @@ const en: Record<string, string> = {
 
   // Navigation
   'nav.dashboard': 'Dashboard',
-  'nav.devices': 'Devices',
+  'nav.devices': 'Device Management',
   'nav.viewer': 'Viewer',
   'nav.topology': 'Network Topology',
-  'nav.portTopology': 'Port Map',
+  'nav.portTopology': 'Port Topology',
   'nav.stpTopology': 'STP Topology',
   'nav.login': 'Login',
 
@@ -133,7 +133,7 @@ const en: Record<string, string> = {
   'login.logout': 'Logout',
 
   // Viewer
-  'viewer.title': 'Configuration Viewer',
+  'viewer.title': 'Viewer',
   'viewer.description': 'View device running config and analysis results',
   'viewer.selectDevice': 'Select Device',
   'viewer.selectWeek': 'Select Week',
@@ -318,7 +318,7 @@ const en: Record<string, string> = {
   'viewer.dataTypes.config-changes': 'Config Changes',
 
   // Topology
-  'topology.title': 'Port Connection Topology',
+  'topology.title': 'Port Topology',
   'topology.description': 'Switch port connections by merging CDP, LLDP and port description data',
   'topology.selectDevice': 'Select Device',
   'topology.empty': 'Select a device to view port connections',
@@ -343,8 +343,8 @@ const en: Record<string, string> = {
   'topology.exportPng': 'Export PNG',
   'topology.exportVisio': 'Export Visio',
 
-  // STP spanning tree topology
-  'topology.stpTitle': 'STP Spanning Tree Topology',
+  // STP topology
+  'topology.stpTitle': 'STP Topology',
   'topology.stpDesc': 'Per-site switch spanning tree: root bridge / forwarding / blocking (VLANs as pseudo-ports, color-coded)',
   'topology.stpVlanLegend': 'VLAN Legend',
   'topology.stpAllVlans': 'All',
@@ -499,8 +499,8 @@ const en: Record<string, string> = {
   'logs.loadingTree': 'Loading tree...',
 
   // Configuration audit
-  'nav.audit': 'Config Audit',
-  'nav.lifecycle': 'Lifecycle',
+  'nav.audit': 'Configuration Audit',
+  'nav.lifecycle': 'Device Lifecycle',
   // Sidebar groups (2026-09-22: 13 entries folded into 4 groups; Dashboard/Devices/Viewer stay on top)
   'nav.group.topology': 'Topology',
   'nav.group.audit': 'Audit & Compliance',
@@ -542,7 +542,7 @@ const en: Record<string, string> = {
   'audit.findingCount': '{n} findings',
   'audit.loadFailed': 'Audit failed',
   // Audit standard page
-  'auditRules.title': 'Audit Standard',
+  'auditRules.title': 'Audit Standards',
   'auditRules.description': 'Three-layer rule library: company / vendor / convention',
   'auditRules.priority': 'Layer priority: company > vendor > convention',
   'auditRules.enabled': 'Enabled',
@@ -728,9 +728,9 @@ const en: Record<string, string> = {
   'lifecycle.status.expired': 'Out of warranty',
   'lifecycle.status.none': 'Not registered',
 
-  // Batch command execution
-  'nav.batchExec': 'Batch Exec',
-  'batch.title': 'Batch Command Execution',
+  // Batch execution
+  'nav.batchExec': 'Batch Execution',
+  'batch.title': 'Batch Execution',
   'batch.hint': 'Runs commands on the selected devices over SSH, one at a time. Commands take effect on the devices for real — pre-check and verify the device list & command preview before running. Config commands need a second confirmation; every run (who / when / which device / commands / output) is recorded.',
   'batch.stepDevices': '1. Select devices',
   'batch.stepCommands': '2. Commands',

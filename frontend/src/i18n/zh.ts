@@ -12,8 +12,8 @@ const zh: Record<string, string> = {
   // 导航
   'nav.dashboard': '仪表盘',
   'nav.devices': '设备管理',
-  'nav.viewer': '配置查看器',
-  'nav.topology': '拓扑图',
+  'nav.viewer': '数据查看器',
+  'nav.topology': '网络拓扑图',
   'nav.portTopology': '端口连接图',
   'nav.stpTopology': 'STP 拓扑图',
   'nav.login': '登录',
@@ -132,8 +132,8 @@ const zh: Record<string, string> = {
   'login.failed': '登录失败',
   'login.logout': '退出登录',
 
-  // 配置查看器
-  'viewer.title': '配置查看器',
+  // 数据查看器
+  'viewer.title': '数据查看器',
   'viewer.description': '查看设备运行配置与分析结果',
   'viewer.selectDevice': '选择设备',
   'viewer.selectWeek': '选择周次',
@@ -301,7 +301,7 @@ const zh: Record<string, string> = {
   'detail.loadPortData': '加载端口数据以查看端口列表',
   'detail.loadPortDataHint': '加载端口数据...',
 
-  // 配置查看器
+  // 数据查看器
   'viewer.newerVersion': '较新版本',
   'viewer.olderVersion': '较旧版本',
   'viewer.configHistory': '历史配置版本',
@@ -320,7 +320,7 @@ const zh: Record<string, string> = {
   'viewer.dataTypes.config-changes': '配置变更',
 
   // 拓扑图
-  'topology.title': '设备端口连接图',
+  'topology.title': '端口连接图',
   'topology.description': '通过合并CDP、LLDP和端口描述的数据，展示交换机端口连接关系',
   'topology.selectDevice': '选择设备',
   'topology.empty': '请选择一个设备查看端口连接图',
@@ -345,8 +345,8 @@ const zh: Record<string, string> = {
   'topology.exportPng': '导出 PNG',
   'topology.exportVisio': '导出 Visio',
 
-  // STP 生成树拓扑
-  'topology.stpTitle': 'STP 生成树拓扑',
+  // STP 拓扑图
+  'topology.stpTitle': 'STP 拓扑图',
   'topology.stpDesc': '按站点查看交换机生成树：根桥 / 转发 / 阻塞（VLAN 为伪端口，颜色区分）',
   'topology.stpVlanLegend': 'VLAN 图例',
   'topology.stpAllVlans': '全部',
@@ -382,7 +382,7 @@ const zh: Record<string, string> = {
   'lang.label': '语言',
 
   // 告警面板
-  'alerts.title': '问题面板',
+  'alerts.title': '告警中心',
   'alerts.description': '自动检测的设备异常与告警',
   'alerts.summary': '{total} 条未处理告警',
   'alerts.allTypes': '全部类型',
