@@ -257,8 +257,12 @@ function Layout() {
                 <ListItemText
                   primary={g.label}
                   primaryTypographyProps={{
-                    // 字号与导航条目一致（0.8rem，用户 2026-09-22 定案）；层级靠颜色 + 字重区分
-                    sx: { color: 'text.disabled', fontWeight: 600, fontSize: '0.8rem', letterSpacing: '0.04em' },
+                    // 字号与导航条目一致（0.8rem）；组标题文字加**下划线**区分（用户 2026-09-22 定案，
+                    // 如 Word 给文字加下划线那样——只划文字，不是整行分隔线）
+                    sx: {
+                      color: 'text.disabled', fontWeight: 600, fontSize: '0.8rem', letterSpacing: '0.04em',
+                      textDecoration: 'underline', textUnderlineOffset: '3px',
+                    },
                   }}
                 />
                 <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>{g.items.length}</Typography>
