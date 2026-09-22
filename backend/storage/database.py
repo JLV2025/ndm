@@ -11,7 +11,7 @@ import threading
 from pathlib import Path
 
 # 当前 Schema 版本（每次 schema 变更递增）
-SCHEMA_VERSION = 17
+SCHEMA_VERSION = 18
 
 # 线程本地存储 —— 每个线程持有自己的连接
 _local = threading.local()
@@ -229,6 +229,11 @@ def _migrate_v1(conn: sqlite3.Connection) -> None:
             ip TEXT NOT NULL,
             type TEXT NOT NULL,
             platform TEXT DEFAULT '',
+            -- v18 起：设备身份模型。stack/standalone = 位置行（持有 IP 与配置类数据）；
+            -- member = 物理成员行（name 物化派生 {stack_name}-{member_no}，不存 ip）
+            kind TEXT NOT NULL DEFAULT 'standalone',
+            stack_name TEXT DEFAULT '',
+            member_no INTEGER,
             serial_number TEXT DEFAULT '',
             member_versions TEXT DEFAULT '',
             member_rom_versions TEXT DEFAULT '',
@@ -284,6 +289,8 @@ def _migrate_v1(conn: sqlite3.Connection) -> None:
             -- 不写 DEFAULT —— NULL 必须与「读到 0」区分：NULL = 本轮没采到。
             in_octets INTEGER,
             out_octets INTEGER,
+            -- v18 起：端口所属成员号（写入时由端口名前缀解析；逻辑口 Po/Hu/lag 为 NULL）
+            member_no INTEGER,
             FOREIGN KEY (collection_id) REFERENCES collections(id),
             FOREIGN KEY (device_id) REFERENCES devices(id)
         );
@@ -495,6 +502,8 @@ def _migrate_v9(conn: sqlite3.Connection) -> None:
             last_device TEXT DEFAULT '',
             last_member TEXT DEFAULT '',
             last_seen TEXT DEFAULT '',
+            -- v18 起：active 在用 / spare 备件在库 / retired 已报废（人工标注，系统不猜）
+            status TEXT NOT NULL DEFAULT 'active',
             first_seen TEXT DEFAULT (datetime('now')),
             created_at TEXT DEFAULT (datetime('now'))
         )
@@ -772,6 +781,88 @@ def _migrate_v17(conn: sqlite3.Connection) -> None:
     """)
 
 
+def _migrate_v18(conn: sqlite3.Connection) -> None:
+    """Schema v18: 设备身份模型 —— kind + 物理成员行（spec 第三节）
+
+    迁移是**冻结代码**：拆分逻辑不 import 业务模块（collector/utils 会演进，
+    迁移必须永远可重放）。规则与 reports._expand_device_members 一致：
+    序列号同序 1:1，member_ids 数量一致且全数字才采用真实号，否则顺序号（不补零）。
+
+    逐表判存在再动：老库升级测试会手工造只含单表的旧库（如只有 port_snapshots），
+    缺表必须跳过而不是炸掉整条迁移链。
+    """
+    # 1) devices：新列 + 成员行回填
+    if _table_exists(conn, "devices"):
+        cols = {r[1] for r in conn.execute("PRAGMA table_info(devices)")}
+        if "kind" not in cols:
+            conn.execute("ALTER TABLE devices ADD COLUMN kind TEXT NOT NULL DEFAULT 'standalone'")
+        if "stack_name" not in cols:
+            conn.execute("ALTER TABLE devices ADD COLUMN stack_name TEXT DEFAULT ''")
+        if "member_no" not in cols:
+            conn.execute("ALTER TABLE devices ADD COLUMN member_no INTEGER")
+        conn.execute("""CREATE UNIQUE INDEX IF NOT EXISTS idx_devices_stack_member
+                        ON devices(stack_name, member_no) WHERE kind = 'member'""")
+
+        # 回填只对"完整" devices 表有意义：老库升级测试会造缺列的最小桩
+        needed = {"id", "name", "ip", "type", "platform", "serial_number", "member_ids",
+                  "model", "version", "location", "last_synced"}
+        if needed <= cols:
+            _v18_backfill_member_rows(conn)
+
+    # 2) port_snapshots / device_members 新列
+    if _table_exists(conn, "port_snapshots") and \
+            "member_no" not in {r[1] for r in conn.execute("PRAGMA table_info(port_snapshots)")}:
+        conn.execute("ALTER TABLE port_snapshots ADD COLUMN member_no INTEGER")
+    if _table_exists(conn, "device_members") and \
+            "status" not in {r[1] for r in conn.execute("PRAGMA table_info(device_members)")}:
+        conn.execute("ALTER TABLE device_members ADD COLUMN status TEXT NOT NULL DEFAULT 'active'")
+
+    # 3) 变更事件表（硬件指纹 diff 的结果记录，spec 第六节）
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS device_change_events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            device_id INTEGER NOT NULL REFERENCES devices(id),
+            detected_at TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            detail TEXT DEFAULT '',
+            note TEXT DEFAULT '',
+            annotated_by TEXT DEFAULT ''
+        )""")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_change_events_device "
+                 "ON device_change_events(device_id, detected_at)")
+
+
+def _v18_backfill_member_rows(conn: sqlite3.Connection) -> None:
+    """v18 数据回填：堆叠行 → kind='stack' + 成员行（幂等：按 name 存在性跳过）"""
+    def _split(raw: str) -> list[str]:
+        return [s.strip() for s in (raw or "").split(",") if s.strip()]
+
+    rows = conn.execute(
+        "SELECT id, name, ip, type, platform, serial_number, member_ids, model, version, "
+        "location, last_synced FROM devices WHERE kind != 'member'").fetchall()
+    for (did, name, ip, dtype, platform, sn_str, mid_str, model_str, version,
+         location, last_synced) in rows:
+        serials = _split(sn_str)
+        if len(serials) < 2:
+            continue                                    # 单机保持 standalone
+        conn.execute("UPDATE devices SET kind='stack' WHERE id=?", (did,))
+        mids = _split(mid_str)
+        use_real = len(mids) == len(serials) and all(m.isdigit() for m in mids)
+        models = _split(model_str) or [""] * len(serials)
+        for i, sn in enumerate(serials):
+            suffix = mids[i] if use_real else str(i + 1)
+            member_name = f"{name}-{suffix}"
+            if conn.execute("SELECT 1 FROM devices WHERE name=?", (member_name,)).fetchone():
+                continue                                # 幂等
+            conn.execute(
+                "INSERT INTO devices (name, ip, type, platform, kind, stack_name, member_no, "
+                "serial_number, model, version, location, last_synced) "
+                "VALUES (?, '', ?, ?, 'member', ?, ?, ?, ?, ?, ?, ?)",
+                (member_name, dtype, platform, name, int(suffix), sn,
+                 models[i] if i < len(models) else "", version or "", location or "",
+                 last_synced or ""))
+
+
 # 迁移注册表
 _MIGRATIONS = {
     1: _migrate_v1,
@@ -791,4 +882,5 @@ _MIGRATIONS = {
     15: _migrate_v15,
     16: _migrate_v16,
     17: _migrate_v17,
+    18: _migrate_v18,
 }
