@@ -215,21 +215,37 @@ def extract_serial_number(version_output: str, device_type: str, system_output: 
     return result
 
 
-def extract_member_ids(vsf_output: str) -> str:
-    """从 show vsf detail 输出提取 VSF 成员 ID（逗号拼接，与序列号同序 1:1）
+def extract_member_ids(vsf_output: str = "", version_output: str = "") -> str:
+    """堆叠成员号（逗号拼接，与序列号同序 1:1）
 
-    例: "Member ID                 : 1" → "1"；双成员 → "1, 2"
+    ① Aruba：show vsf detail 的 `Member ID : N` 行（例: "Member ID : 1" → "1"）；
+    ② Cisco：show version 成员表第 1 列（`* 1 52 WS-C2960X...`）——与成员版本同表，
+       此前只取了第 4 组（版本），Switch 号被丢弃。不加此源，Cisco 堆叠只能靠
+       顺序号兜底：跳号场景（成员 2 拆走后成员 3 被标成 -2）会身份漂移，
+       成员行"改名"，历史与保修断链。
     注意: 不去重 — 与序列号按行序一一对应，重复序列号（罕见）时去重会错位。
-    空输出（非 VSF / 提取失败）返回 ""，由调用方决定是否使用。
+    空输出（非堆叠 / 提取失败）返回 ""，由调用方决定是否使用。
     """
-    if not vsf_output:
-        return ""
-    vsf_output = _strip_ansi(vsf_output)
     members: list[str] = []
-    for line in vsf_output.splitlines():
-        match = re.search(r'^\s*Member\s+ID\s*:\s*(\d+)', line, re.IGNORECASE)
-        if match:
-            members.append(match.group(1))
+    # ① Aruba VSF
+    if vsf_output:
+        for line in _strip_ansi(vsf_output).splitlines():
+            match = re.search(r'^\s*Member\s+ID\s*:\s*(\d+)', line, re.IGNORECASE)
+            if match:
+                members.append(match.group(1))
+    if members:
+        return ", ".join(members)
+    # ② Cisco 成员表（复用版本解析的同一表头/行正则，第 1 组即 Switch 号）
+    if version_output:
+        text = _strip_ansi(version_output)
+        header = _CISCO_MEMBER_TABLE_HEADER.search(text)
+        if header:
+            for line in text[header.end():].splitlines():
+                match = _CISCO_MEMBER_TABLE_ROW.match(line)
+                if match:
+                    members.append(match.group(1))
+                elif members:
+                    break  # 表数据结束后的第一个不匹配行即表尾
     return ", ".join(members)
 
 
@@ -1670,8 +1686,8 @@ def _save_data(
             software_version=software_version,
             serial_number=serial_number,
             device_model=device_model,
-            # VSF 成员 ID（仅 Aruba VSF 有值；与序列号同源同序 1:1）
-            member_ids=extract_member_ids(vsf_info),
+            # 堆叠成员号（Aruba VSF 的 Member ID / Cisco 成员表的 Switch 号；与序列号同源同序 1:1）
+            member_ids=extract_member_ids(vsf_info, version_info),
             member_versions=extract_member_versions(version_info),
             # ROM 版本：Aruba 逐成员（show vsf detail）；Cisco 整机 BOOTLDR（show version）
             # 按成员数复制，保持「与序列号同序对齐」

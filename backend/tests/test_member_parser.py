@@ -287,3 +287,25 @@ def test_单机也建档一次(tmp_path, restore_db_path):
 
     rows = list(conn.execute("SELECT serial_number, last_member FROM device_members"))
     assert [(r["serial_number"], r["last_member"]) for r in rows] == [("FCZ1234", "1")]
+
+
+# ============================================================
+# 成员号（2026-09-22：Cisco 从成员表第 1 组取 Switch 号）
+# ============================================================
+
+def test_cisco堆叠_从成员表取Switch号():
+    """成员表第 1 组就是 Switch 号（`* 1 52 WS-C2960X...`，* 标记主交换机）——
+    此前只取了第 4 组（版本），号码被丢弃。真机样本：SZXD1SWI01 三成员堆叠。"""
+    assert extract_member_ids("", read_fixture(CISCO_STACK)) == "1, 2, 3"
+
+
+def test_aruba优先于cisco分支():
+    """两个数据源都有值时以 Aruba 为准（跳号原样保留）。"""
+    vsf = read_fixture(ARUBA_VSF)
+    aruba_only = extract_member_ids(vsf)
+    assert aruba_only                                              # 样本确有成员号
+    assert extract_member_ids(vsf, read_fixture(CISCO_STACK)) == aruba_only
+
+
+def test_两个数据源都没有则返回空():
+    assert extract_member_ids("", "") == ""
