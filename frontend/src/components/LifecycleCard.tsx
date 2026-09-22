@@ -9,11 +9,23 @@ import { lifecycleApi } from '../services/api'
 import { ImportDialog, ModelEolDialog } from './LifecycleDialogs'
 import { httpDetail } from './AuditExceptionDialog'
 import { useI18n } from '../i18n'
+import { STATUS_COLOR } from '../shared/constants'
 import type { DeviceLifecycle, LifecycleModelEol } from '../types'
 
 const SOURCE_COLORS: Record<string, string> = { api: '#3B82F6', manual: '#94A3B8' }
-const EOL_COLOR = { bg: 'rgba(245,158,11,0.16)', text: '#FBBF24' }
-const OK_COLOR = { bg: 'rgba(45,212,110,0.12)', text: '#5CE68C' }
+/** 状态 → 芯片配色（与 STATUS_COLOR 同一语义：ok 绿 / soon 橙 / expired 红 / none 灰） */
+const STATUS_CHIP: Record<string, { bg: string; text: string }> = {
+  ok: { bg: 'rgba(45,212,110,0.12)', text: '#5CE68C' },
+  soon: { bg: 'rgba(245,158,11,0.16)', text: '#FBBF24' },
+  expired: { bg: 'rgba(239,68,68,0.14)', text: '#F87171' },
+  none: { bg: 'rgba(148,163,184,0.12)', text: '#94A3B8' },
+}
+
+/** 状态圆点（颜色唯一来源 STATUS_COLOR，与生命周期页同源） */
+const StatusDot: React.FC<{ status?: string }> = ({ status }) => (
+  <Box sx={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+             bgcolor: STATUS_COLOR[status || 'none'] || STATUS_COLOR.none }} />
+)
 
 /**
  * 设备生命周期卡片 —— EoL 与保修期。
@@ -105,22 +117,25 @@ const LifecycleCard: React.FC<{ deviceName: string }> = ({ deviceName }) => {
               <TableBody>
                 {data.model_eol.map((m) => {
                   const announced = !!(m.end_of_sale || m.end_of_support)
+                  const chip = STATUS_CHIP[m.status || 'none'] || STATUS_CHIP.none
                   return (
                     <TableRow key={m.model}>
                       <TableCell sx={{ fontSize: '0.72rem', py: 0.4 }}>{m.model}</TableCell>
                       <TableCell sx={{ py: 0.4 }}>
                         <Chip size="small"
                           label={announced ? t('lifecycle.announced') : (m.source ? t('lifecycle.notAnnounced') : t('lifecycle.notRegistered'))}
-                          sx={{ height: 18, fontSize: '0.58rem',
-                                bgcolor: announced ? EOL_COLOR.bg : OK_COLOR.bg,
-                                color: announced ? EOL_COLOR.text : OK_COLOR.text }} />
+                          sx={{ height: 18, fontSize: '0.58rem', bgcolor: chip.bg, color: chip.text }} />
                         {m.source && (
                           <Chip size="small" label={m.source === 'api' ? t('lifecycle.sourceApi') : t('lifecycle.sourceManual')}
                             sx={{ height: 18, fontSize: '0.56rem', ml: 0.5, bgcolor: 'rgba(148,163,184,0.12)', color: SOURCE_COLORS[m.source] || 'text.disabled' }} />
                         )}
                       </TableCell>
-                      <TableCell sx={{ fontSize: '0.72rem', py: 0.4 }}>{m.end_of_sale || '—'}</TableCell>
-                      <TableCell sx={{ fontSize: '0.72rem', py: 0.4 }}>{m.end_of_support || '—'}</TableCell>
+                      <TableCell sx={{ fontSize: '0.72rem', py: 0.4, color: STATUS_COLOR[m.status || 'none'] }}>
+                        {m.end_of_sale || '—'}
+                      </TableCell>
+                      <TableCell sx={{ fontSize: '0.72rem', py: 0.4, color: STATUS_COLOR[m.status || 'none'] }}>
+                        {m.end_of_support || '—'}
+                      </TableCell>
                       <TableCell sx={{ fontSize: '0.68rem', py: 0.4 }}>
                         {m.bulletin_url
                           ? <a href={m.bulletin_url} target="_blank" rel="noreferrer" style={{ color: '#60A5FA' }}>{m.bulletin || m.bulletin_url}</a>
@@ -154,7 +169,12 @@ const LifecycleCard: React.FC<{ deviceName: string }> = ({ deviceName }) => {
                   <TableRow key={s.serial}>
                     <TableCell sx={{ fontSize: '0.72rem', py: 0.4 }}>{s.physical_name || s.serial}</TableCell>
                     <TableCell sx={{ fontSize: '0.72rem', py: 0.4 }}>{s.serial}</TableCell>
-                    <TableCell sx={{ fontSize: '0.72rem', py: 0.4 }}>{s.warranty_end || t('lifecycle.notRegistered')}</TableCell>
+                    <TableCell sx={{ fontSize: '0.72rem', py: 0.4 }}>
+                      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6 }}>
+                        <StatusDot status={s.warranty_status} />
+                        <span>{s.warranty_end || t('lifecycle.notRegistered')}</span>
+                      </Box>
+                    </TableCell>
                     <TableCell sx={{ fontSize: '0.68rem', color: 'text.secondary', py: 0.4 }}>{s.note || '—'}</TableCell>
                     <TableCell sx={{ fontSize: '0.66rem', color: 'text.disabled', py: 0.4 }}>
                       {s.verified_at ? `${s.verified_at.slice(0, 10)}${s.verified_by ? ` · ${s.verified_by}` : ''}` : '—'}
