@@ -199,9 +199,6 @@ const Lifecycle: React.FC = () => {
             </Select>
           </FormControl>
 
-          <TextField size="small" label={t('lifecycle.verifiedBy')} value={verifiedBy}
-            onChange={e => setVerifiedBy(e.target.value)} sx={{ width: 140 }} />
-
           <Box sx={{ flex: 1 }} />
           <Typography variant="caption" color="text.disabled" sx={{ mr: 1 }}>
             {t('lifecycle.page.count').replace('{n}', String(sorted.length))}
@@ -298,7 +295,8 @@ const Lifecycle: React.FC = () => {
       </Paper>
 
       {editRow && (
-        <WarrantyRowDialog row={editRow} verifiedBy={verifiedBy}
+        <WarrantyRowDialog row={editRow} lastVerifiedBy={verifiedBy}
+          onVerifiedByChange={setVerifiedBy}
           onClose={() => setEditRow(null)}
           onSaved={() => { setEditRow(null); setSnack(t('lifecycle.page.saveOk')); load() }} />
       )}
@@ -320,16 +318,22 @@ const Lifecycle: React.FC = () => {
   )
 }
 
-/** 单行维保编辑：只提交这台（所属管理体 + 序列号），不动兄弟成员 */
+/** 单行维保编辑：只提交这台（所属管理体 + 序列号），不动兄弟成员。
+ *
+ * 核实人在**弹窗内**（2026-09-22 用户定案：不放页面工具栏）；记住本次会话
+ * 上一次填写的名字，连续编辑多台时不用反复输入。
+ */
 const WarrantyRowDialog: React.FC<{
   row: PhysicalLifecycleRow
-  verifiedBy: string
+  lastVerifiedBy: string
+  onVerifiedByChange: (v: string) => void
   onClose: () => void
   onSaved: () => void
-}> = ({ row, verifiedBy, onClose, onSaved }) => {
+}> = ({ row, lastVerifiedBy, onVerifiedByChange, onClose, onSaved }) => {
   const { t } = useI18n()
   const [end, setEnd] = useState(row.warranty_end || '')
   const [note, setNote] = useState(row.note || '')
+  const [verifiedBy, setVerifiedBy] = useState(lastVerifiedBy)
   const [error, setError] = useState('')
 
   const save = async () => {
@@ -337,6 +341,7 @@ const WarrantyRowDialog: React.FC<{
     try {
       await lifecycleApi.saveDevice(row.device,
         [{ serial: row.serial, warranty_end: end, note }], verifiedBy.trim())
+      onVerifiedByChange(verifiedBy.trim())
       onSaved()
     } catch (e) {
       setError(httpDetail(e) || t('lifecycle.saveFailed'))
@@ -355,9 +360,8 @@ const WarrantyRowDialog: React.FC<{
           onChange={e => setEnd(e.target.value)} InputLabelProps={{ shrink: true }} />
         <TextField size="small" label={t('lifecycle.note')} value={note}
           onChange={e => setNote(e.target.value)} />
-        {!verifiedBy.trim() && (
-          <Alert severity="info" sx={{ py: 0.25, fontSize: '0.72rem' }}>{t('lifecycle.needVerifiedBy')}</Alert>
-        )}
+        <TextField size="small" label={t('lifecycle.verifiedBy')} value={verifiedBy}
+          onChange={e => setVerifiedBy(e.target.value)} sx={{ width: 200 }} />
         {error && <Alert severity="warning" sx={{ py: 0.25, fontSize: '0.75rem' }}>{error}</Alert>}
       </DialogContent>
       <DialogActions>
