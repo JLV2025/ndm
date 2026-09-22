@@ -4838,6 +4838,18 @@
       "related_bugs": [],
       "occurrences": 1,
       "last_seen": "2026-09-22T15:43:00"
+    },
+    {
+      "id": "bug-297",
+      "timestamp": "2026-09-22T16:10:00",
+      "error_message": "用户反馈：生命周期页只能编维保、不能填「审核人」、看不到 EoL 编辑入口",
+      "file": "frontend/src/pages/Lifecycle.tsx",
+      "root_cause": "① 核实人放在页面顶部工具栏（离编辑动作远，弹窗里没有该字段）；② 型号格子的 EoL 入口是无任何提示的纯文本按钮（用户必然找不到）；③ EoL 是型号级属性、本就不逐行编辑（有 stack/member 也有 standalone 行）——三件事叠加成「只能编维保」的观感",
+      "fix": "按用户定案：核实人移进维保弹窗（记住上次填写），EoL 入口保持型号级不变，并补测试钉死「改一次型号 → 所有同型号行同步」（test_型号EoL改动同步所有同型号行）+ 运行实例核对同型号日期一致",
+      "tags": ["lifecycle", "ux", "discoverability", "user-feedback"],
+      "related_bugs": [],
+      "occurrences": 1,
+      "last_seen": "2026-09-22T16:10:00"
     }
   ]
 }

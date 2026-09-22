@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T07:38:24.829Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T07:58:09.455Z
 > Files: 212 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
@@ -239,7 +239,7 @@
 - `test_eox_client.py` — Cisco EoX 客户端测试 —— mock HTTP（凭据到位前无法实盘验证，如实标注）。 (~1565 tok)
 - `test_hardware_change.py` — 硬件变更检测测试（spec 第六节）：指纹 diff 各情形 + 事件落库 + 调拨。 (~1718 tok)
 - `test_kind_filters.py` — kind 过滤纪律测试：成员行不得混入管理体视角（每类页面防漏网）。 (~1253 tok)
-- `test_lifecycle_api.py` — 生命周期 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）。 (~2821 tok)
+- `test_lifecycle_api.py` — 生命周期 API 端点测试 —— 临时库直接调端点函数（HTTP 层之下）。 (~3021 tok)
 - `test_lifecycle_checks.py` — 生命周期判定器与「集体性折叠」测试。 (~2561 tok)
 - `test_lifecycle_dal.py` — 设备生命周期数据层测试。 (~2272 tok)
 - `test_lifecycle_status.py` — 三色状态判定测试（spec 第十三节：绿在保 / 橙临近 / 红出保） (~608 tok)
@@ -360,7 +360,7 @@
 - `Dashboard.tsx` — 区间流量 Top10 —— 周锚定计数器差值算出的区间平均速率，不是瞬时速率 (~10850 tok)
 - `DeviceDetail.tsx` — DeviceDetail (~6839 tok)
 - `DeviceList.tsx` — 单个设备的完整收集流程（Ping → Collect） (~5680 tok)
-- `Lifecycle.tsx` — 生命周期页 —— 全部物理设备（堆叠成员逐台 + 单机）一行一台。 (~4801 tok)
+- `Lifecycle.tsx` — 生命周期页 —— 全部物理设备（堆叠成员逐台 + 单机）一行一台。 (~4842 tok)
 - `LogAnalyzer.tsx` — 严重级别 → 颜色 (数字→hex) (~7989 tok)
 - `Login.tsx` — Login (~2283 tok)
 - `Reports.tsx` — 两张表的默认排序：型号字母序 / 吞吐降序 (~4427 tok)
