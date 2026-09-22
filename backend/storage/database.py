@@ -839,9 +839,9 @@ def _v18_backfill_member_rows(conn: sqlite3.Connection) -> None:
 
     rows = conn.execute(
         "SELECT id, name, ip, type, platform, serial_number, member_ids, model, version, "
-        "location, last_synced FROM devices WHERE kind != 'member'").fetchall()
+        "member_versions, location, last_synced FROM devices WHERE kind != 'member'").fetchall()
     for (did, name, ip, dtype, platform, sn_str, mid_str, model_str, version,
-         location, last_synced) in rows:
+         mver_str, location, last_synced) in rows:
         serials = _split(sn_str)
         if len(serials) < 2:
             continue                                    # 单机保持 standalone
@@ -849,6 +849,10 @@ def _v18_backfill_member_rows(conn: sqlite3.Connection) -> None:
         mids = _split(mid_str)
         use_real = len(mids) == len(serials) and all(m.isdigit() for m in mids)
         models = _split(model_str) or [""] * len(serials)
+        # 成员级版本：member_versions 与序列号同序 1:1 时逐成员拆分，否则用整机版本
+        # （与采集写入路径 _maintain_member_rows 的规则一致；不拆分会丢掉
+        #  "升级未完成"这类成员级版本差异）
+        mvers = _split(mver_str)
         for i, sn in enumerate(serials):
             suffix = mids[i] if use_real else str(i + 1)
             member_name = f"{name}-{suffix}"
@@ -859,8 +863,9 @@ def _v18_backfill_member_rows(conn: sqlite3.Connection) -> None:
                 "serial_number, model, version, location, last_synced) "
                 "VALUES (?, '', ?, ?, 'member', ?, ?, ?, ?, ?, ?, ?)",
                 (member_name, dtype, platform, name, int(suffix), sn,
-                 models[i] if i < len(models) else "", version or "", location or "",
-                 last_synced or ""))
+                 models[i] if i < len(models) else "",
+                 mvers[i] if len(mvers) == len(serials) else (version or ""),
+                 location or "", last_synced or ""))
 
 
 # 迁移注册表

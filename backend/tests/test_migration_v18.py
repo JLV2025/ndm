@@ -34,9 +34,11 @@ def test_回填_堆叠展开成员行_单机不展开(tmp_path, restore_db_path)
     """设备已入库但还没拆成员行的库：跑 v18 后按序列号同序 1:1 展开"""
     db_path = db.init_db(str(tmp_path))
     conn = sqlite3.connect(db_path)
-    conn.execute("""INSERT INTO devices (name, ip, type, platform, serial_number, member_ids, model, version)
+    conn.execute("""INSERT INTO devices (name, ip, type, platform, serial_number, member_ids,
+                                        model, version, member_versions)
                     VALUES ('TESTD1SWI01', '10.0.0.1', 'aruba_aoscx', 'aruba_aoscx',
-                            'SN1, SN2', '1, 2', 'JL659A, JL659A', 'ML.10.16.1020')""")
+                            'SN1, SN2', '1, 2', 'JL659A, JL659A', 'ML.10.16.1020',
+                            'ML.10.16.1020, ML.10.16.0999')""")
     conn.execute("""INSERT INTO devices (name, ip, type, platform, serial_number, model, version)
                     VALUES ('TESTD1SWI02', '10.0.0.2', 'cisco_ios', 'cisco_ios',
                             'SN3', 'WS-C2960X', '15.2(4)E8')""")
@@ -47,7 +49,7 @@ def test_回填_堆叠展开成员行_单机不展开(tmp_path, restore_db_path)
     db.init_db(str(tmp_path))          # 触发 v18
     conn = sqlite3.connect(db_path)
 
-    cols = ["kind", "stack_name", "member_no", "serial_number"]
+    cols = ["kind", "stack_name", "member_no", "serial_number", "version"]
     rows = {r[0]: dict(zip(cols, r[1:]))
             for r in conn.execute(f"SELECT name, {', '.join(cols)} FROM devices")}
     assert rows["TESTD1SWI01"]["kind"] == "stack"
@@ -56,6 +58,8 @@ def test_回填_堆叠展开成员行_单机不展开(tmp_path, restore_db_path)
     assert rows["TESTD1SWI01-1"]["stack_name"] == "TESTD1SWI01"
     assert rows["TESTD1SWI01-1"]["member_no"] == 1
     assert rows["TESTD1SWI01-1"]["serial_number"] == "SN1"
+    assert rows["TESTD1SWI01-1"]["version"] == "ML.10.16.1020"     # 成员级版本逐成员拆分
+    assert rows["TESTD1SWI01-2"]["version"] == "ML.10.16.0999"
     assert rows["TESTD1SWI01-2"]["member_no"] == 2
     assert rows["TESTD1SWI02"]["kind"] == "standalone"
     assert "TESTD1SWI02-1" not in rows                             # 单机不建成员行
@@ -75,6 +79,7 @@ def test_从v17风格旧表迁移_走ALTER路径(tmp_path, restore_db_path):
             id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE, ip TEXT NOT NULL,
             type TEXT NOT NULL, platform TEXT DEFAULT '', serial_number TEXT DEFAULT '',
             member_ids TEXT DEFAULT '', model TEXT DEFAULT '', version TEXT DEFAULT '',
+            member_versions TEXT DEFAULT '',
             location TEXT DEFAULT '', last_synced TEXT DEFAULT '');
         CREATE TABLE port_snapshots (id INTEGER PRIMARY KEY AUTOINCREMENT);
         CREATE TABLE device_members (serial_number TEXT PRIMARY KEY);
