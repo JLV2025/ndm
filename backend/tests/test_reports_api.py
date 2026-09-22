@@ -42,6 +42,9 @@ def conn(tmp_path):
             (i, name, dtype, loc, model, version, serial, mids, mver, mrom, mupt),
         )
     c.commit()
+    # v18 身份模型：堆叠展开成成员行（报告的数据源是成员行，不再是逗号串展开）
+    db._v18_backfill_member_rows(c)
+    c.commit()
     yield c
     c.commit()
     db.close_connection()
@@ -131,13 +134,16 @@ def test_软件版本_单机运行时间回退设备级(conn):
 
 def test_软件版本_多成员无成员级数据不回退设备级(conn):
     """设备级运行时间只代表主/活动成员 —— 不能复制给堆叠里的每一台"""
-    conn.execute(
-        "INSERT INTO devices (id, name, ip, type, location, model, version, serial_number) "
-        "VALUES (9, 'SHAD1SWI01', '10.0.0.9', 'cisco_ios', 'SHA', 'C9500-24Y4C, C9500-24Y4C', "
+    cur = conn.execute(
+        "INSERT INTO devices (name, ip, type, location, model, version, serial_number) "
+        "VALUES ('SHAD1SWI01', '10.0.0.9', 'cisco_ios', 'SHA', 'C9500-24Y4C, C9500-24Y4C', "
         "'16.09.03', 'CAT2322L0L4, CAT2319L3WX')"
     )
     conn.commit()
-    _add_collection(conn, 9, uptime=56153340)      # 双成员 SVL：无成员级运行时间
+    shad_id = cur.lastrowid
+    db._v18_backfill_member_rows(conn)             # 后插入的设备同样要成行
+    conn.commit()
+    _add_collection(conn, shad_id, uptime=56153340)   # 双成员 SVL：无成员级运行时间
 
     data = asyncio.run(reports_api.report_software_versions(location="SHA"))
     by_name = {d["name"]: d for d in data["devices"]}

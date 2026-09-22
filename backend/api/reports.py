@@ -7,77 +7,13 @@ router = APIRouter()
 
 # 数据库已在 main.py 启动时初始化，可直接顶层导入
 from storage.database import get_connection as _get_db
+from storage.device_dal import list_managed
+from utils.device_identity import display_name, member_suffixes
 
 
 def _split_list(value: str) -> list[str]:
-    """逗号拼接字段 → 列表（成员级字段都与序列号同序）"""
+    """逗号拼接字段 → 列表（成员级缓存串都与序列号同序 1:1）"""
     return [v.strip() for v in (value or "").split(",") if v.strip()]
-
-
-def _expand_device_members(row) -> tuple[list[dict], dict | None]:
-    """把一台逻辑设备展开成**物理成员行**（堆叠拆成 设备名-1 / -2 / -3）
-
-    成员三元组（序列号 / 型号 / 成员编号）在采集时就按同序逗号拼接入库：
-    - 成员编号：Aruba VSF 用真实 Member ID，Cisco 堆叠没有 → 顺序号（≤9 不补零，
-      与仪表盘设备清单同一套规则）
-    - 成员版本：classic IOS 堆叠逐成员给出；IOS-XE 堆叠与 Aruba VSF 整堆叠共享
-      一个镜像 → 用整机版本填充
-    - 运行时间：成员级优先（Cisco 的 Switch Uptime / Aruba 的 Uptime）；
-      **单机设备没有成员段** → 回退到设备级 system_uptime_seconds（就是这台机器自己的
-      运行时间，准确）。多成员设备拿不到成员级数据时保持空 —— 设备级值只代表主/活动
-      成员，填给其它成员是错的。
-
-    版本一致性只看**同一台设备内部**的成员（跨设备型号相同但版本不同属正常：
-    不同站点、不同升级批次）。返回 (成员行, 不一致信息或 None)。
-    """
-    serials = _split_list(row["serial_number"]) or [""]
-    member_ids = _split_list(row["member_ids"])
-    models = _split_list(row["model"])
-    versions = _split_list(row["member_versions"])
-    roms = _split_list(row["member_rom_versions"])
-    uptimes = _split_list(row["member_uptimes"])
-    # 设备级运行时间（SQL 里 LEFT JOIN 最新一次采集带出；直接构造的行没有该键）
-    device_uptime = row["device_uptime_seconds"] if "device_uptime_seconds" in row.keys() else None
-    total = len(serials)
-    aligned_ids = member_ids if len(member_ids) == total else []
-    pad = len(str(total))
-
-    members: list[dict] = []
-    for i in range(total):
-        version = versions[i] if len(versions) == total else (row["version"] or "")
-        rom = roms[i] if len(roms) == total else ""
-        uptime = int(uptimes[i]) if len(uptimes) == total and uptimes[i].isdigit() else None
-        if uptime is None and total == 1 and device_uptime:
-            uptime = int(device_uptime)
-        suffix = aligned_ids[i] if aligned_ids else str(i + 1).zfill(pad)
-        members.append({
-            "name": row["name"] if total == 1 else f'{row["name"]}-{suffix}',
-            "device": row["name"],
-            "type": row["type"],
-            "location": row["location"] or "",
-            "model": models[i] if i < len(models) else (models[-1] if models else ""),
-            "serial": serials[i],
-            "version": version,
-            "rom_version": rom,
-            "uptime_days": round(uptime / 86400, 1) if uptime else None,
-            "last_synced": row["last_synced"],
-            "member_count": total,
-        })
-
-    version_set = {m["version"] for m in members if m["version"]}
-    rom_set = {m["rom_version"] for m in members if m["rom_version"]}
-    mismatch = None
-    if len(version_set) > 1 or len(rom_set) > 1:
-        mismatch = {
-            "device": row["name"],
-            "versions": sorted(version_set),
-            "rom_versions": sorted(rom_set),
-            "members": [
-                {"name": m["name"], "version": m["version"], "rom_version": m["rom_version"]}
-                for m in members
-            ],
-        }
-    return members, mismatch
 
 
 @router.get("/api/reports/software-versions")
@@ -85,15 +21,24 @@ async def report_software_versions(
     device_type: Optional[str] = None,
     location: Optional[str] = None,
 ):
-    """软件版本报告 —— 按**物理成员**展开（堆叠拆成 SZXD1SWI01-1 / -2 / -3）
+    """软件版本报告 —— 按**物理成员行**逐行（2026-09-22 身份模型：物理成员在库中成行）。
 
-    每行是一个物理交换机：自己的序列号、自己的型号、自己的版本与运行时间。
+    数据源是成员行自身（serial/model/version 为权威，展示层不再展开逗号串）；
+    只列**当前在位**的成员（序列号在堆叠行的序列号缓存里）——已离线/已拆除的
+    成员行不进报告，与旧展开语义一致。
+
+    过渡期分工（第二步并入成员行后停用）：
+    - ROM 版本 / 运行时间仍在堆叠行的 member_* 缓存串里（与序列号同序 1:1）；
+    - 单机运行时间回退设备级（最新一次采集）。
+
+    版本一致性只看**同一堆叠内部**（跨设备同型号版本不同属正常：分站点/升级批次）。
     查询参数：device_type（设备类型）、location（位置，不传则查全部）。
     默认值用普通 None 而非 Query(...) —— Query 对象在直接调用（测试）时会原样传进 SQL。
     """
     db = _get_db()
+    managed = {d["name"]: d for d in list_managed()}
 
-    conditions = ["d.version != ''", "d.version != '未知'"]
+    conditions = ["d.kind != 'stack'", "d.version != ''", "d.version != '未知'"]
     params = []
     if device_type:
         # cisco_ios_router 在 SQLite 中存储为 cisco_ios（Netmiko 驱动映射）
@@ -108,26 +53,79 @@ async def report_software_versions(
 
     where = " AND ".join(conditions)
     rows = db.execute(
-        f"""SELECT d.name, d.type, d.location, d.model, d.version, d.last_synced,
-                   d.serial_number, d.member_ids,
-                   d.member_versions, d.member_rom_versions, d.member_uptimes,
-                   c.system_uptime_seconds AS device_uptime_seconds
+        f"""SELECT d.name, d.kind, d.stack_name, d.member_no, d.type, d.serial_number,
+                   d.model, d.version, d.location, d.last_synced
             FROM devices d
-            LEFT JOIN collections c ON c.device_id = d.id
-                AND c.id = (SELECT MAX(c2.id) FROM collections c2
-                            WHERE c2.device_id = d.id AND c2.phase = '1')
             WHERE {where}
             ORDER BY d.model, d.name""",
         params,
     ).fetchall()
 
+    # 设备级运行时间（单机回退用）：管理体各自最新一次采集
+    uptime_by_managed = {
+        r["name"]: r["system_uptime_seconds"]
+        for r in db.execute(
+            """SELECT d.name, c.system_uptime_seconds
+               FROM devices d LEFT JOIN collections c ON c.device_id = d.id
+                 AND c.id = (SELECT MAX(c2.id) FROM collections c2
+                             WHERE c2.device_id = d.id AND c2.phase = '1')
+               WHERE d.kind IN ('stack', 'standalone')""")
+    }
+
     devices: list[dict] = []
-    mismatches: list[dict] = []
+    stack_groups: dict[str, list[dict]] = {}
     for r in rows:
-        members, mismatch = _expand_device_members(r)
-        devices.extend(members)
-        if mismatch:
-            mismatches.append(mismatch)
+        if r["kind"] == "member":
+            stack = managed.get(r["stack_name"] or "")
+            serials = _split_list(stack["serial_number"]) if stack else []
+            if r["serial_number"] not in serials:
+                continue                      # 已离线成员不进报告
+            suffixes = member_suffixes(len(serials), (stack.get("member_ids") or ""))
+            idx = suffixes.index(str(r["member_no"])) if str(r["member_no"]) in suffixes else -1
+            roms = _split_list(stack.get("member_rom_versions") or "")
+            upts = _split_list(stack.get("member_uptimes") or "")
+            rom = roms[idx] if 0 <= idx < len(roms) else ""
+            uptime = int(upts[idx]) if 0 <= idx < len(upts) and upts[idx].isdigit() else None
+            name = display_name(r["stack_name"], str(r["member_no"]), len(serials))
+            device_name = r["stack_name"]
+            member_count = len(serials)
+        else:
+            rom = ""
+            uptime = uptime_by_managed.get(r["name"])
+            uptime = int(uptime) if uptime else None
+            name = r["name"]
+            device_name = r["name"]
+            member_count = 1
+
+        row = {
+            "name": name,
+            "device": device_name,
+            "type": r["type"],
+            "location": r["location"] or "",
+            "model": r["model"] or "",
+            "serial": r["serial_number"],
+            "version": r["version"] or "",
+            "rom_version": rom,
+            "uptime_days": round(uptime / 86400, 1) if uptime else None,
+            "last_synced": r["last_synced"],
+            "member_count": member_count,
+        }
+        devices.append(row)
+        if r["kind"] == "member":
+            stack_groups.setdefault(device_name, []).append(row)
+
+    mismatches: list[dict] = []
+    for stack_name, members in stack_groups.items():
+        version_set = {m["version"] for m in members if m["version"]}
+        rom_set = {m["rom_version"] for m in members if m["rom_version"]}
+        if len(version_set) > 1 or len(rom_set) > 1:
+            mismatches.append({
+                "device": stack_name,
+                "versions": sorted(version_set),
+                "rom_versions": sorted(rom_set),
+                "members": [{"name": m["name"], "version": m["version"],
+                             "rom_version": m["rom_version"]} for m in members],
+            })
 
     return {"devices": devices, "mismatches": mismatches}
 
