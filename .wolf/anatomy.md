@@ -1,67 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T08:02:20.176Z
-> Files: 214 tracked | Anatomy hits: 0 | Misses: 0
-
-## ../../../../
-
-
-## ../../../../../../tmp/
-
-
-## ../../../../.claude/
-
-
-## ../../../../.claude/plans/
-
-
-## ../../../../.claude/projects/C--Users-jingl-Desktop-CC-Workspace-projects-ndm/
-
-
-## ../../../../.claude/projects/C--Users-jingl-Desktop-CC-Workspace-projects-ndm/memory/
-
-
-## ../../../../.claude/rules/
-
-
-## ../../../../.claude/skills/ui-ux-pro-max/
-
-
-## ../../../../.claude/skills/wrap-up/
-
-
-## ../../downloads/claude-fable-5-system-prompt-main/
-
-
-## ../../downloads/claude-fable-5-system-prompt-main/highlights/
-
-
-## ../../downloads/claude-fable-5-system-prompt-main/system-prompt/
-
-
-## ../../downloads/claude-fable-5-system-prompt-main/system-prompt/analysis/
-
-
-## ../../temp/
-
-- `add_audit_chapters.py` — 向《NDM用户使用文档》补写「配置审计」章节（英文 + 中文各一章）。 (~2790 tok)
-- `add_audit_chapters2.py` — 向《NDM用户使用文档》补写「配置审计」章节（英文 + 中文各一章）。 (~2669 tok)
-- `add_audit_settings.py` — 向本地 config/settings.yaml 追加 audit 段（若还没有）。不打印文件内容。 (~175 tok)
-- `add_bug203.py` — 追加 bug-203（批量执行连接超时误传 settings dict → float+dict 崩溃）到 .wolf/buglog.json。 (~436 tok)
-- `add_buglog.py` — 向 .wolf/buglog.json 追加一条手工记录（避免手改 JSON 出错）。 (~328 tok)
-- `add_buglog2.py` — 追加 bug-199（周格式约定）到 .wolf/buglog.json。 (~258 tok)
-- `add_buglog202.py` — 追加 bug-202（ConfigParser 字段名写错被 try/except 静默吞掉）到 .wolf/buglog.json。 (~312 tok)
-- `add_buglog3.py` — 追加 bug-200（单台审计漏传 lifecycle）到 .wolf/buglog.json。 (~320 tok)
-- `add_buglog4.py` — 追加 bug-201（heredoc 写错目录：根目录有同名旧 tests/）到 .wolf/buglog.json。 (~349 tok)
-- `add_stp_chapter.py` — 向《NDM用户使用文档》补写「STP 拓扑图」章节（中英各一章）。 (~1725 tok)
-- `bump151_v7.py` — 更新 bug-151：怪文件现象第 7 次（本次是 0 字节文件 `'`）。 (~305 tok)
-- `eq_check.py` — 移植等价性回归：同库同配置，逐设备逐规则对比 findings（stderr 输出给 A/B 两侧）。 (~317 tok)
-- `fix_bug151_again.py` — 把「第 5 次怪文件」记到**正确**的 bug-151 条目上，并还原被误改的另一条。 (~364 tok)
-- `fix_bug201.py` — 修正 bug-201：还原被误改的自动条目、删掉重复条目、把"第 2 次"记到真条目上。 (~545 tok)
-- `fix_zh_numbering.py` — 修正中文条目编号：整条中文尾巴 +1（英文插入一章后，连续编号要全段顺延）。 (~582 tok)
-- `upd_bug151.py` — 怪文件现象第 5 次：更新 bug-151 的计数与最近一次样本。 (~240 tok)
-- `wrap_memory.py` — 收工：向 .wolf/memory.md 追加会话小结行。 (~184 tok)
-- `wrap_memory2.py` — 追加 memory 行：修复批量执行真机报错（float+dict）。 (~140 tok)
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T08:11:11.963Z
+> Files: 158 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
 
@@ -92,56 +32,6 @@
 
 ## .gitnexus/
 
-
-## C:/Users/jingl/.claude/
-
-
-## C:/Users/jingl/.claude/plans/
-
-- `cisco-precious-thompson.md` — 端口流量排行：改用累计计数器差值 (~4284 tok)
-- `silly-weaving-hearth.md` — VSF 成员编号透传 + 物理设备档案 + 离线设备视图 实施计划 (~1286 tok)
-- `spanning-tree-glowing-gray.md` — NDM 配置审计（资深专家评审）—— 实施计划 (~3302 tok)
-
-## C:/Users/jingl/AppData/Local/Temp/
-
-- `add_bug.py` — 追加一条 bug 记录到 .wolf/buglog.json (~436 tok)
-- `add_bug2.py` (~430 tok)
-- `add_bug3.py` (~406 tok)
-- `baseline205.py` — 复现移植等价性基线：用 netstd 原版引擎跑 NDM 库里 36 台设备的最新配置 (~411 tok)
-- `bump151_v10.py` — bug-151 第 10 次：删除怪文件 + 更新条目（本次线索：打印中文到 GBK 控制台也会触发）。 (~354 tok)
-- `bump151_v9.py` — 更新 bug-151：怪文件现象第 9 次（本次样本 identical / frontend/identical）。 (~248 tok)
-- `bump151.py` — 修正 bug-151：累计第 3 次出现，并如实记录「成因未定 + 已排除项」 (~288 tok)
-- `cerebrum_append.md` — Key Learnings (~844 tok)
-- `cerebrum_append2.md` — Key Learnings (~812 tok)
-- `cerebrum_append3.md` — Decision Log (~418 tok)
-- `cerebrum_audit.md` — Decision Log (~554 tok)
-- `cerebrum_c.md` — Key Learnings (~341 tok)
-- `cerebrum_final.md` — Decision Log (~583 tok)
-- `dec1.md` — ## 定案 1（2026-09-20）：运维就绪度检查**纳入一期**，含 startup 一致性 (~184 tok)
-- `dec2.md` — ## 定案 2（2026-09-20）：厂商安全公告与生命周期 —— **二期做，先只做 EoL** (~123 tok)
-- `dec3.md` — ## 定案 3（2026-09-20）：规则增加 NIST 控制族标签 (~225 tok)
-- `dec4.md` — 十二、开工前讨论总结（2026-09-20） (~298 tok)
-- `dump_aruba.py` — 临时脚本：列出 Aruba 设备与最新采集的配置概况，并按需导出指定设备的配置 (~547 tok)
-- `equiv_check.py` — 移植等价性验证：netstd 原版引擎 vs NDM 移植版引擎 (~788 tok)
-- `extract_docx.py` — 临时脚本：按文档顺序提取 docx 的段落与表格（含样式名，用于判断标题层级） (~423 tok)
-- `lifecycle_check.py` — 生命周期页数据源：生产库副本端到端检查（只碰副本，不碰生产库）。 (~619 tok)
-- `ndm_diag_report.py` — 诊断：用真实函数跑「软件版本报告」的展开逻辑，看每一行缺什么 (~297 tok)
-- `ndm_svl_check.py` — C9500 SVL 端到端演练：真机样本 → member_uptimes → 报告成员行（库副本，不碰生产库） (~403 tok)
-- `plan_addendum.md` — 九、补充：总部《AUTOMATION-Cisco》对审计输出的约束（2026-09-18 晚，评估后新增） (~399 tok)
-- `plan_addendum2.md` — 十、定案：审计导出的 `status` 语义（2026-09-20） (~567 tok)
-- `plan_addendum3.md` — 十三、实施进度（2026-09-20 当日） (~468 tok)
-- `repair151.py` — 修复：① 还原被误改的自动条目（数组下标 150）② 正确更新真正的 bug-151 (~504 tok)
-- `role_demo.py` — 真机演练：端口角色 + 两条样板规则（不落库、不改规则文件） (~1176 tok)
-- `sunday_todo.md` — 周日开工前（2026-09-20）必读：待确认与待办 (~306 tok)
-- `undef_check.py` — 轻量未定义名检查：找出「作为全局/自由变量被读取，但既未定义也未导入」的名字。 (~840 tok)
-- `upd151.py` (~348 tok)
-- `v18_verify.py` — v18 身份模型：生产库副本端到端验证（只碰副本，不碰生产库）。 (~662 tok)
-
-## C:/Users/jingl/OneDrive - Qorvo/01-DocWiKi/01_network_configuration/
-
-- `CFG-Aruba-Example.md` — Aruba CX 交换机配置范例（Qorvo · BJQ 现网提炼） (~6014 tok)
-- `CFG-Aruba.md` — CFG-Aruba — Qorvo Aruba Configuration Baseline (~5085 tok)
-- `CFG-CISCO.md` — CFG-CISCO — Qorvo Cisco Configuration Baseline (~7721 tok)
 
 ## agents/
 
