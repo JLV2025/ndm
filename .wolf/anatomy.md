@@ -1,7 +1,7 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T06:06:37.242Z
-> Files: 193 tracked | Anatomy hits: 0 | Misses: 0
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T06:11:10.959Z
+> Files: 195 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ../../../../
 
@@ -291,6 +291,8 @@
 - `2026-09-20-device-lifecycle.md` — 设备生命周期（EoL + 保修期）（二期）—— 设计与实施计划 (~1466 tok)
 - `2026-09-20-exceptions-registry.md` — 例外登记机制（二期）—— 设计与实施计划 (~1236 tok)
 - `2026-09-21-batch-exec.md` — 发现汇总视图 + 批量执行命令 —— 设计与实施计划 (~1318 tok)
+- `2026-09-22-device-identity-model.md` — 设备身份模型 Implementation Plan（Plan 1 / 共 2 份） (~10067 tok)
+- `2026-09-22-lifecycle-page.md` — 生命周期页 Implementation Plan（Plan 2 / 共 2 份） (~2946 tok)
 
 ## docs/superpowers/specs/
 
