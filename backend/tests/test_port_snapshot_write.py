@@ -60,6 +60,25 @@ def test_读数0与没采到必须区分(tmp_path, restore_db_path):
     assert rows["Gi1/0/2"] is None
 
 
+def test_端口成员号落库_逻辑口为空(tmp_path, restore_db_path):
+    """端口→成员号（2026-09-22 身份模型）：Aruba/Cisco 首个数字段即成员号；
+    逻辑口（Po/Hu/lag）为 NULL —— 它们不属于任何物理成员"""
+    conn = save(tmp_path, [
+        {"name": "Gi2/0/1", "status": "connected", "status_up": True},
+        {"name": "2/1/1", "status": "connected", "status_up": True},
+        {"name": "Tw1/0/2", "status": "connected", "status_up": True},
+        {"name": "Po1", "status": "connected", "status_up": True},
+        {"name": "Hu1/0/27", "status": "connected", "status_up": True},
+    ])
+
+    rows = dict(conn.execute("SELECT port_name, member_no FROM port_snapshots"))
+    assert rows["Gi2/0/1"] == 2
+    assert rows["2/1/1"] == 2
+    assert rows["Tw1/0/2"] == 1
+    assert rows["Po1"] is None
+    assert rows["Hu1/0/27"] is None
+
+
 def test_大数据不丢精度(tmp_path, restore_db_path):
     """64 位累计字节（约 16 TB）用 INTEGER 存，不能变浮点"""
     conn = save(tmp_path, [

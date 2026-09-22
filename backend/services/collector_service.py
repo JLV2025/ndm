@@ -20,7 +20,7 @@ from analyzers.change_detector import ChangeDetector
 from analyzers.stp_parser import parse_spanning_tree
 from utils.settings_loader import load_settings
 from utils.password import password_manager
-from utils.port_names import normalize_port_name, norm_lag_name
+from utils.port_names import normalize_port_name, norm_lag_name, member_no_from_port
 from utils.device_identity import kind_from_config, member_suffixes, physical_name
 from analyzers.hardware_change import compute_fingerprint, diff_fingerprints, record_event
 from storage.file_manager import get_week_dir, run_retention
@@ -1361,8 +1361,9 @@ def _save_to_sqlite(
 
             rows = []
             for p in port_details:
+                port_name = p.get("name", "")
                 rows.append((
-                    collection_id, device_id, p.get("name", ""),
+                    collection_id, device_id, port_name,
                     p.get("status", ""), 1 if p.get("status_up") else 0,
                     _safe_str(p.get("speed")), _safe_str(p.get("mode")),
                     _safe_str(p.get("type")), _safe_str(p.get("description")),
@@ -1375,14 +1376,16 @@ def _save_to_sqlite(
                     # 累计计数器原始读数：**不要过 _safe_str**（它会把 None 变成 ""），
                     # None 必须原样入库为 NULL —— 与「读到 0」区分
                     p.get("in_octets"), p.get("out_octets"),
+                    # 端口→成员号（2026-09-22 身份模型）：逻辑口（Po/Hu/lag）为 NULL
+                    member_no_from_port(port_name, device_platform),
                 ))
             db.executemany("""
                 INSERT INTO port_snapshots
                     (collection_id, device_id, port_name, status, status_up,
                      speed, mode, port_type, description, native_vlan, is_uplink,
                      rx_mbps, tx_mbps, rx_util_pct, tx_util_pct, rx_pps, tx_pps, rxload, txload,
-                     in_octets, out_octets)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     in_octets, out_octets, member_no)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, rows)
 
         # 4. 写入端口错误
