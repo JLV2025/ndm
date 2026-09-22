@@ -55,6 +55,30 @@ def test_norm_date_坏格式报错而不是静默丢弃():
     assert "YYYY-MM-DD" in str(ei.value)
 
 
+# ---------------------------------------------------------------- 物理名（2026-09-22 身份模型）
+
+def test_get_device_lifecycle_序列号带物理名(conn):
+    """堆叠成员逐台给物理名；单机不带后缀（保修卡按物理名标注实体机）"""
+    data = dal.get_device_lifecycle(conn, "BJQD1SWI01")
+    assert [s["physical_name"] for s in data["serials"]] == ["BJQD1SWI01-1", "BJQD1SWI01-2"]
+
+    data2 = dal.get_device_lifecycle(conn, "SHAD1SWI01")
+    assert [s["physical_name"] for s in data2["serials"]] == ["SHAD1SWI01"]
+
+
+def test_serial_index_离线成员归到堆叠(conn):
+    """成员行的序列号在索引里归到所属堆叠——保修登记以管理体为记账单位
+    （归到成员名的话，详情页/生命周期页会查不到那行保修）"""
+    conn.execute(
+        "INSERT INTO devices (name, ip, type, kind, stack_name, member_no, serial_number) "
+        "VALUES ('BJQD1SWI01-3', '', 'aruba_aoscx', 'member', 'BJQD1SWI01', 3, 'OFFLINE1')")
+    conn.commit()
+
+    idx = dal.serial_index(conn)
+    assert idx["OFFLINE1"] == ["BJQD1SWI01"]
+    assert idx["SG30LMQ108"] == ["BJQD1SWI01"]     # 不重复、不夹带成员名
+
+
 def test_list_device_serials_拆堆叠成员(conn):
     assert dal.list_device_serials(conn, "BJQD1SWI01") == ["SG30LMQ17K", "SG30LMQ108"]
     assert dal.list_device_serials(conn, "SHAD1SWI01") == ["CAT2322L0L4"]
@@ -105,7 +129,8 @@ def test_设备生命周期全景(conn):
     assert info["model_eol"][0]["end_of_sale"] == "2025-01-31"
     by_serial = {s["serial"]: s for s in info["serials"]}
     assert by_serial["SG30LMQ17K"]["warranty_end"] == "2028-05-01"
-    assert by_serial["SG30LMQ108"] == {"serial": "SG30LMQ108"}   # 未登记的第二成员也在清单里
+    assert by_serial["SG30LMQ108"] == {"serial": "SG30LMQ108",
+                                       "physical_name": "BJQD1SWI01-2"}   # 未登记的第二成员也在清单里
 
 
 # ---------------------------------------------------------------- 批量导入

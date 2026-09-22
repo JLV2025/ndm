@@ -692,6 +692,7 @@ const en: Record<string, string> = {
   'lifecycle.verifiedAt': 'Verified at',
   'lifecycle.verifiedBy': 'Verified by',
   'lifecycle.note': 'Note',
+  'lifecycle.physicalName': 'Physical name',
   'lifecycle.editWarranty': 'Edit warranty',
   'lifecycle.editModel': 'Edit model EoL',
   'lifecycle.modelHint': 'Fill per vendor bulletin; end of support = LastDateOfSupport',

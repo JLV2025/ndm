@@ -291,6 +291,7 @@ export interface LifecycleModelEol {
 
 export interface LifecycleSerial {
   serial: string
+  physical_name?: string    // 物理名（1 成员/单机不带后缀；extra_rows 无此字段）
   warranty_end?: string     // YYYY-MM-DD（保修，不是服务合同）
   note?: string
   source?: string

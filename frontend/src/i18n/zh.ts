@@ -694,6 +694,7 @@ const zh: Record<string, string> = {
   'lifecycle.verifiedAt': '核实于',
   'lifecycle.verifiedBy': '核实人',
   'lifecycle.note': '备注',
+  'lifecycle.physicalName': '物理名',
   'lifecycle.editWarranty': '编辑保修期',
   'lifecycle.editModel': '编辑型号 EoL',
   'lifecycle.modelHint': '按厂商公告填写；停止支持日期即 LastDateOfSupport',

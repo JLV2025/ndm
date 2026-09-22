@@ -16,6 +16,8 @@ import datetime
 import re
 import sqlite3
 
+from utils.device_identity import display_name, member_suffixes
+
 _IMPORT_LINE_RE = re.compile(
     r"^\s*(\S+?)[,\t\s]+(\d{4}-\d{2}-\d{2})\s*(?:[,\t\s]+(.*))?$")
 
@@ -69,36 +71,55 @@ def get_model_eol(conn, model: str) -> dict | None:
 
 
 def get_device_lifecycle(conn, device_name: str) -> dict:
-    """设备生命周期全景：已知序列号 + 各自保修记录 + 型号 EoL。"""
+    """设备生命周期全景：已知序列号 + 各自保修记录 + 型号 EoL。
+
+    `serials` 每项带 `physical_name`（物理名，1 成员/单机不带后缀）——
+    保修卡按物理名标注每台实体机（2026-09-22 身份模型）。
+    """
     conn.row_factory = sqlite3.Row
-    dev = conn.execute("SELECT model FROM devices WHERE name = ?", (device_name,)).fetchone()
-    models = split_serials(dev[0] if dev else None)
+    dev = conn.execute("SELECT model, member_ids FROM devices WHERE name = ?",
+                       (device_name,)).fetchone()
+    models = split_serials(dev["model"] if dev else None)
+    member_ids = (dev["member_ids"] or "") if dev else ""
     serials = list_device_serials(conn, device_name)
     rows = {r["serial"]: dict(r) for r in conn.execute(
         "SELECT * FROM device_lifecycle WHERE device_name = ?", (device_name,))}
+    suffixes = member_suffixes(len(serials), member_ids)
     return {
         "device_name": device_name,
         "models": models,
         "model_eol": [{"model": m, **(get_model_eol(conn, m) or {})} for m in models],
-        "serials": [{"serial": s, **rows.get(s, {})} for s in serials],
+        "serials": [
+            {"serial": s,
+             "physical_name": display_name(device_name, suffixes[i], len(serials)),
+             **rows.get(s, {})}
+            for i, s in enumerate(serials)
+        ],
         # 库里登记了、但设备当前采集不到该序列号的行（改名/换件后仍要能看到）
         "extra_rows": [r for s, r in rows.items() if s not in serials],
     }
 
 
 def serial_index(conn) -> dict[str, list[str]]:
-    """全库序列号（大写）→ 设备名列表。取每台设备最近一次采集的序列号串。"""
+    """全库序列号（大写）→ 设备名列表。取每台设备最近一次采集的序列号串。
+
+    成员行的序列号归到**所属堆叠**（`stack_name`）——保修登记以管理体为记账单位，
+    批量导入把保修行写在该名下，详情页/生命周期页才能查到；已离线的成员
+    （堆叠缓存里没有它的序列号了）也仍能匹配到堆叠。
+    """
     idx: dict[str, list[str]] = {}
     for name, serial_str in conn.execute(
             "SELECT d.name, c.serial_number FROM devices d JOIN collections c ON c.device_id = d.id "
             "WHERE c.id = (SELECT MAX(id) FROM collections WHERE device_id = d.id)"):
         for s in split_serials(serial_str):
             idx.setdefault(s.upper(), []).append(name)
-    # devices 表兜底（还没采集过的设备）
-    for name, serial_str in conn.execute("SELECT name, serial_number FROM devices"):
+    # devices 表兜底（还没采集过的设备；成员行归到所属堆叠）
+    for name, serial_str, stack_name in conn.execute(
+            "SELECT name, serial_number, stack_name FROM devices"):
+        owner = stack_name or name
         for s in split_serials(serial_str):
-            if name not in idx.setdefault(s.upper(), []):
-                idx[s.upper()].append(name)
+            if owner not in idx.setdefault(s.upper(), []):
+                idx[s.upper()].append(owner)
     return idx
 
 

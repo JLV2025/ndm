@@ -142,8 +142,8 @@ const LifecycleCard: React.FC<{ deviceName: string }> = ({ deviceName }) => {
             <Table size="small" sx={{ mt: 1 }}>
               <TableHead>
                 <TableRow>
-                  {[t('lifecycle.serial'), t('lifecycle.warrantyEnd'), t('lifecycle.note'),
-                    t('lifecycle.verifiedAt'), ''].map((h, i) => (
+                  {[t('lifecycle.physicalName'), t('lifecycle.serial'), t('lifecycle.warrantyEnd'),
+                    t('lifecycle.note'), t('lifecycle.verifiedAt'), ''].map((h, i) => (
                     <TableCell key={i} sx={{ fontSize: '0.66rem', color: 'text.secondary', py: 0.4 }}>{h}</TableCell>
                   ))}
                 </TableRow>
@@ -151,6 +151,7 @@ const LifecycleCard: React.FC<{ deviceName: string }> = ({ deviceName }) => {
               <TableBody>
                 {data.serials.map((s) => (
                   <TableRow key={s.serial}>
+                    <TableCell sx={{ fontSize: '0.72rem', py: 0.4 }}>{s.physical_name || s.serial}</TableCell>
                     <TableCell sx={{ fontSize: '0.72rem', py: 0.4 }}>{s.serial}</TableCell>
                     <TableCell sx={{ fontSize: '0.72rem', py: 0.4 }}>{s.warranty_end || t('lifecycle.notRegistered')}</TableCell>
                     <TableCell sx={{ fontSize: '0.68rem', color: 'text.secondary', py: 0.4 }}>{s.note || '—'}</TableCell>
