@@ -36,7 +36,9 @@ NDM（QCNDM）：通过 SSH 批量收集 Cisco IOS / IOS-XE / Router 与 Aruba O
   `_exceptions.yaml`；页面可视化编辑写回 YAML）
 - **API**：`backend/api/`（devices / collector / data / auth / stats / topology / alerts /
   reports / logs / audit / lifecycle）
-- **前端**：`frontend/src`（React 18 + MUI + recharts；页面在 `pages/`；构建产物 `dist/` 入库）
+- **前端**：`frontend/src`（React 18 + MUI + recharts；页面在 `pages/`；构建产物 `dist/` 入库）。
+  侧栏导航结构在 `App.tsx`：顶层 3 项 + 4 个可折叠组（拓扑 / 审计 / 监控 / 资产），
+  **当前路由所在组自动展开**，开合状态存 localStorage（键 `ndm_nav_groups`）；新增页面时按类别加进对应组
 - **文档**：设计与实施计划在 `docs/superpowers/plans/`；跨会话决策与教训在 `.wolf/cerebrum.md`
 
 **Data flow：**

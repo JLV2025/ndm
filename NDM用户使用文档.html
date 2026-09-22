@@ -239,6 +239,7 @@
   <ul>
     <li><strong>Multi-vendor</strong> — Cisco IOS, Cisco IOS XE, Cisco IOS Router, Aruba OS, Aruba OS CX</li>
     <li><strong>Web console</strong> — React + MUI OLED Dark theme, built for network operations</li>
+    <li><strong>Grouped navigation</strong> — 13 pages folded into four collapsible sidebar sections; the current section opens automatically and your fold state is remembered</li>
     <li><strong>Device management</strong> — add / edit / delete / CSV batch import, filter by type and location</li>
     <li><strong>One-click collection</strong> — running-config, logs, interface status, routing table, version info</li>
     <li><strong>AI log analysis</strong> — bring-your-own LLM API key (DeepSeek / Qwen), priority-chain fallback, local caching, auto-masking</li>
@@ -256,7 +257,22 @@
   </ul>
 </div>
 
-<h3>1.1 Tech Stack</h3>
+<h3>1.1 Sidebar Navigation</h3>
+<p>The sidebar groups every page by purpose — the three most-used entries stay on top, the rest live in four
+collapsible groups. <strong>The group containing the current page opens automatically</strong>, and the sidebar
+remembers which groups you left open, so your layout survives a reload.</p>
+<table class="tbl">
+  <tr><th>Section</th><th>Entries</th></tr>
+  <tr><td>Top level</td><td>Dashboard · Devices · Viewer</td></tr>
+  <tr><td>Topology</td><td>Network Topology · Port Map · STP Topology</td></tr>
+  <tr><td>Audit &amp; Compliance</td><td>Config Audit · Audit Standard</td></tr>
+  <tr><td>Monitoring &amp; Reports</td><td>Alerts · Log Analyzer · Custom Reports</td></tr>
+  <tr><td>Assets &amp; Operations</td><td>Lifecycle · Batch Exec</td></tr>
+</table>
+<p class="note">Click a section title to fold or unfold it (the title carries an underline; the count on the right
+is the number of entries inside).</p>
+
+<h3>1.2 Tech Stack</h3>
 <table class="tbl">
   <tr><th>Layer</th><th>Technology</th></tr>
   <tr><td>Frontend</td><td>React 18 + TypeScript + MUI v5 + Recharts + React Flow (@xyflow/react) + Vite 7</td></tr>
@@ -717,6 +733,7 @@ data/
   <ul>
     <li><strong>多厂商支持</strong> — Cisco IOS、Cisco IOS XE、Cisco IOS Router、Aruba OS、Aruba OS CX</li>
     <li><strong>Web 管理面板</strong> — React + MUI OLED Dark 主题，专为网络运维设计</li>
+    <li><strong>分组侧栏</strong> — 13 个入口收进四个可折叠分区，当前页所在区自动展开，开合状态记忆</li>
     <li><strong>设备管理</strong> — 添加、编辑、删除、CSV 批量导入，按类型 / 位置筛选</li>
     <li><strong>一键采集</strong> — running-config、日志、接口状态、路由表、版本信息</li>
     <li><strong>AI 日志分析</strong> — 自配 LLM API Key（DeepSeek / Qwen），优先级链降级，本地缓存，自动脱敏</li>
@@ -734,7 +751,21 @@ data/
   </ul>
 </div>
 
-<h3>19.1 技术栈</h3>
+<h3>19.1 侧栏导航</h3>
+<p>侧栏把所有页面按用途分组：最常用的三个入口固定在上方，其余收在四个可折叠的组里。
+<strong>当前页面所在的组会自动展开</strong>；你手动展开 / 收起的状态会被记住，刷新后仍是这个布局。</p>
+<table class="tbl">
+  <tr><th>分区</th><th>入口</th></tr>
+  <tr><td>顶层</td><td>仪表盘 · 设备管理 · 配置查看器</td></tr>
+  <tr><td>拓扑视图</td><td>拓扑图 · 端口连接图 · STP 拓扑图</td></tr>
+  <tr><td>审计与合规</td><td>配置审计 · 审计标准</td></tr>
+  <tr><td>监控与报告</td><td>问题面板 · 日志分析 · 自定义报告</td></tr>
+  <tr><td>资产与操作</td><td>生命周期 · 批量执行</td></tr>
+</table>
+<p class="note">点分区标题即可折叠 / 展开（标题带下划线，右侧数字是组内条目数）。
+侧栏里的「问题面板」就是本文档第 26 章的「告警中心」，同一个页面。</p>
+
+<h3>19.2 技术栈</h3>
 <table class="tbl">
   <tr><th>层</th><th>技术</th></tr>
   <tr><td>前端</td><td>React 18 + TypeScript + MUI v5 + Recharts + React Flow (@xyflow/react) + Vite 7</td></tr>
