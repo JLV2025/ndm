@@ -115,6 +115,11 @@
 - OpenWolf 钩子：auto buglog 已关（`config.json` → `openwolf.buglog.auto_log`）；anatomy/memory 不收项目外文件。
 
 ## 当前状态（2026-09-22）
-- 版本 **2.9.21**；schema **v18**；测试 **613 全绿**；dist 已入库。
+- **发布 2.9.22**：版本号 6 处同步（VERSION / start.bat / package.json / README 徽章 / 使用文档页头+页脚）；
+  README 与 CLAUDE.md 已同步身份模型、生命周期页与三色判定唯一来源。
+- 版本 **2.9.22**；schema **v18**；测试 **613 全绿**；dist 已入库。
 - 生产库 61 行（12 stack / 24 standalone / 25 member）→ 物理 **49 台**。
-- 待办：Cisco EoX 凭据；SNTC 确认；CUI/CMMC/等保 待合规口；生命周期数据待登记；使用文档「批量执行」章节未补。
+- 使用文档：**中英章节编号已全量修正**（此前中文子标题号整体错位，如 17 章下挂 15.1）；已补
+  「批量执行」「设备生命周期」两章中英各一（编号 15/16 与 33/34，其余整段顺延）；数据存储章节
+  的"最多 10 个周版本"过期内容已改为分层保留。
+- 待办：Cisco EoX 凭据；SNTC 确认；CUI/CMMC/等保 待合规口；生命周期数据待登记。
