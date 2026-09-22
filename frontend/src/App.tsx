@@ -257,10 +257,11 @@ function Layout() {
                 <ListItemText
                   primary={g.label}
                   primaryTypographyProps={{
-                    sx: { color: 'text.disabled', fontWeight: 600, fontSize: '0.72rem', letterSpacing: '0.06em' },
+                    // 字号与导航条目一致（0.8rem，用户 2026-09-22 定案）；层级靠颜色 + 字重区分
+                    sx: { color: 'text.disabled', fontWeight: 600, fontSize: '0.8rem', letterSpacing: '0.04em' },
                   }}
                 />
-                <Typography sx={{ fontSize: '0.62rem', color: 'text.disabled' }}>{g.items.length}</Typography>
+                <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled' }}>{g.items.length}</Typography>
               </ListItemButton>
               <Collapse in={open} timeout={150} unmountOnExit>
                 <Box sx={{ mt: 0.25 }}>{g.items.map(renderNavItem)}</Box>
