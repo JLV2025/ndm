@@ -1,6 +1,6 @@
 # anatomy.md
 
-> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T08:40:07.985Z
+> Auto-maintained by OpenWolf. Last scanned: 2026-09-22T08:45:09.450Z
 > Files: 5 tracked | Anatomy hits: 0 | Misses: 0
 
 ## ./
@@ -91,7 +91,7 @@
 
 ## frontend/src/
 
-- `App.tsx` — 侧栏分组展开态的 localStorage 键 (~4583 tok)
+- `App.tsx` — 侧栏分组展开态的 localStorage 键 (~4636 tok)
 
 ## frontend/src/components/
 
