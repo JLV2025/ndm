@@ -503,6 +503,11 @@ const zh: Record<string, string> = {
   // 配置审计
   'nav.audit': '配置审计',
   'nav.lifecycle': '生命周期',
+  // 侧栏分组（2026-09-22：13 个入口分 4 组折叠，顶层保留 仪表盘/设备管理/数据查看器）
+  'nav.group.topology': '拓扑视图',
+  'nav.group.audit': '审计与合规',
+  'nav.group.monitor': '监控与报告',
+  'nav.group.assets': '资产与操作',
   'audit.title': '配置审计',
   'audit.description': '像资深网络工程师那样审配置：结合公司要求、厂商建议与现网惯例给建议',
   'audit.mode': '审计',

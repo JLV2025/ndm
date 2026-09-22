@@ -501,6 +501,11 @@ const en: Record<string, string> = {
   // Configuration audit
   'nav.audit': 'Config Audit',
   'nav.lifecycle': 'Lifecycle',
+  // Sidebar groups (2026-09-22: 13 entries folded into 4 groups; Dashboard/Devices/Viewer stay on top)
+  'nav.group.topology': 'Topology',
+  'nav.group.audit': 'Audit & Compliance',
+  'nav.group.monitor': 'Monitoring & Reports',
+  'nav.group.assets': 'Assets & Operations',
   'audit.title': 'Configuration Audit',
   'audit.description': 'Reviews your config like a senior network engineer: company requirements, vendor guidance and site conventions',
   'audit.mode': 'Audit',

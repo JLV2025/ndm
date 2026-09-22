@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import type { ReactNode } from 'react'
 import { Routes, Route, Navigate, useLocation, Link, Outlet } from 'react-router-dom'
 import ErrorBoundary from './components/ErrorBoundary'
 import {
   Box,
   CssBaseline,
+  Collapse,
   Drawer,
   Toolbar,
   Typography,
@@ -30,6 +32,8 @@ import {
   FactCheck as AuditIcon,
   Bolt as BoltIcon,
   VerifiedUser as LifecycleIcon,
+  ExpandLess,
+  ExpandMore,
 } from '@mui/icons-material'
 import Login from './pages/Login'
 import DeviceList from './pages/DeviceList'
@@ -51,6 +55,11 @@ import { sessionManager } from './services/auth'
 import { useI18n } from './i18n'
 
 const DRAWER_WIDTH = 260
+
+/** 侧栏分组展开态的 localStorage 键 */
+const NAV_GROUP_STORAGE = 'ndm_nav_groups'
+
+type NavEntry = { label: string; icon: ReactNode; path: string }
 
 function Layout() {
   const { t, lang, setLang } = useI18n()
@@ -91,21 +100,100 @@ function Layout() {
     }
   }, [])
 
-  const navItems = [
+  // 侧栏结构（2026-09-22 用户定案）：顶层留高频三项，其余按心智模型分 4 组折叠
+  const navPinned: NavEntry[] = [
     { label: t('nav.dashboard'), icon: <DashboardIcon />, path: '/' },
     { label: t('nav.devices'), icon: <Storage />, path: '/devices' },
-    { label: t('nav.topology'), icon: <HubIcon />, path: '/network-topology' },
-    { label: t('nav.portTopology'), icon: <HubIcon />, path: '/port-topology' },
-    { label: t('nav.stpTopology'), icon: <TreeIcon />, path: '/stp-topology' },
     { label: t('nav.viewer'), icon: <Terminal />, path: '/viewer' },
-    { label: t('alerts.title'), icon: <AlertIcon />, path: '/alerts' },
-    { label: t('reports.title'), icon: <ReportsIcon />, path: '/reports' },
-    { label: t('logs.title'), icon: <BugIcon />, path: '/log-analyzer' },
-    { label: t('nav.audit'), icon: <AuditIcon />, path: '/compliance-audit' },
-    { label: t('auditRules.title'), icon: <AuditIcon />, path: '/compliance-standard' },
-    { label: t('nav.lifecycle'), icon: <LifecycleIcon />, path: '/lifecycle' },
-    { label: t('nav.batchExec'), icon: <BoltIcon />, path: '/batch-exec' },
   ]
+  const navGroups: { key: string; label: string; items: NavEntry[] }[] = [
+    { key: 'topology', label: t('nav.group.topology'), items: [
+      { label: t('nav.topology'), icon: <HubIcon />, path: '/network-topology' },
+      { label: t('nav.portTopology'), icon: <HubIcon />, path: '/port-topology' },
+      { label: t('nav.stpTopology'), icon: <TreeIcon />, path: '/stp-topology' },
+    ] },
+    { key: 'audit', label: t('nav.group.audit'), items: [
+      { label: t('nav.audit'), icon: <AuditIcon />, path: '/compliance-audit' },
+      { label: t('auditRules.title'), icon: <AuditIcon />, path: '/compliance-standard' },
+    ] },
+    { key: 'monitor', label: t('nav.group.monitor'), items: [
+      { label: t('alerts.title'), icon: <AlertIcon />, path: '/alerts' },
+      { label: t('logs.title'), icon: <BugIcon />, path: '/log-analyzer' },
+      { label: t('reports.title'), icon: <ReportsIcon />, path: '/reports' },
+    ] },
+    { key: 'assets', label: t('nav.group.assets'), items: [
+      { label: t('nav.lifecycle'), icon: <LifecycleIcon />, path: '/lifecycle' },
+      { label: t('nav.batchExec'), icon: <BoltIcon />, path: '/batch-exec' },
+    ] },
+  ]
+
+  // 分组展开态：**当前路由所在组一律展开**（进站/跳转时自动打开并记忆——否则刷新或从深链进来
+  // 会看不到高亮项）；其余组的开合由用户点击决定，状态存 localStorage 跨会话保留。
+  // 首次进站（无存档）：展开第一组。
+  const activeGroup = navGroups.find(g => g.items.some(
+    it => currentPath === it.path || (it.path !== '/' && currentPath.startsWith(it.path))))?.key
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(NAV_GROUP_STORAGE) || 'null')
+      if (saved && typeof saved === 'object') return saved as Record<string, boolean>
+    } catch { /* 坏值当没有存档 */ }
+    return { [navGroups[0].key]: true }
+  })
+  useEffect(() => {
+    if (!activeGroup) return
+    setOpenGroups(prev => {
+      if (prev[activeGroup]) return prev
+      const next = { ...prev, [activeGroup]: true }
+      localStorage.setItem(NAV_GROUP_STORAGE, JSON.stringify(next))
+      return next
+    })
+  }, [activeGroup])
+  const toggleGroup = (key: string) => {
+    setOpenGroups(prev => {
+      const next = { ...prev, [key]: !(prev[key] ?? false) }
+      localStorage.setItem(NAV_GROUP_STORAGE, JSON.stringify(next))
+      return next
+    })
+  }
+
+  /** 单个导航条目 —— 顶层与组内共用，样式与高亮逻辑保持原样 */
+  const renderNavItem = (item: NavEntry) => {
+    const isActive = currentPath === item.path || (item.path !== '/' && currentPath.startsWith(item.path))
+    return (
+      <ListItem key={item.path} disablePadding sx={{ mb: 0.25 }}>
+        <ListItemButton
+          component={Link}
+          to={item.path}
+          sx={{
+            borderRadius: 1.5,
+            py: 1,
+            px: 1.5,
+            bgcolor: isActive ? 'rgba(45, 212, 110, 0.08)' : 'transparent',
+            border: '1px solid',
+            borderColor: isActive ? 'rgba(45, 212, 110, 0.2)' : 'transparent',
+            transition: 'all 150ms ease',
+            '&:hover': {
+              bgcolor: 'rgba(45, 212, 110, 0.06)',
+            },
+          }}
+        >
+          <ListItemIcon sx={{ color: isActive ? 'primary.main' : 'text.disabled', minWidth: 40 }}>
+            {item.icon}
+          </ListItemIcon>
+          <ListItemText
+            primary={item.label}
+            primaryTypographyProps={{
+              sx: {
+                color: isActive ? 'text.primary' : 'text.secondary',
+                fontWeight: isActive ? 600 : 400,
+                fontSize: '0.8rem',
+              },
+            }}
+          />
+        </ListItemButton>
+      </ListItem>
+    )
+  }
 
   const handleDrawerToggle = () => setMobileOpen(!mobileOpen)
 
@@ -152,41 +240,32 @@ function Layout() {
 
       <Box sx={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
       <List sx={{ px: 1, pt: 2, flex: 0 }}>
-        {navItems.map((item) => {
-          const isActive = currentPath === item.path || (item.path !== '/' && currentPath.startsWith(item.path))
+        {navPinned.map(renderNavItem)}
+        {navGroups.map(g => {
+          const open = openGroups[g.key] ?? false
           return (
-            <ListItem key={item.path} disablePadding sx={{ mb: 0.25 }}>
-              <ListItemButton
-                component={Link}
-                to={item.path}
+            <Box key={g.key} sx={{ mt: 0.5 }}>
+              {/* 组标题：可点、带箭头（折叠态 ▸ / 展开态 ▾）与条目数 */}
+              <ListItemButton onClick={() => toggleGroup(g.key)}
                 sx={{
-                  borderRadius: 1.5,
-                  py: 1,
-                  px: 1.5,
-                  bgcolor: isActive ? 'rgba(45, 212, 110, 0.08)' : 'transparent',
-                  border: '1px solid',
-                  borderColor: isActive ? 'rgba(45, 212, 110, 0.2)' : 'transparent',
-                  transition: 'all 150ms ease',
-                  '&:hover': {
-                    bgcolor: 'rgba(45, 212, 110, 0.06)',
-                  },
-                }}
-              >
-                <ListItemIcon sx={{ color: isActive ? 'primary.main' : 'text.disabled', minWidth: 40 }}>
-                  {item.icon}
+                  borderRadius: 1.5, py: 0.75, px: 1.5,
+                  '&:hover': { bgcolor: 'rgba(45, 212, 110, 0.06)' },
+                }}>
+                <ListItemIcon sx={{ color: 'text.disabled', minWidth: 40 }}>
+                  {open ? <ExpandLess sx={{ fontSize: 18 }} /> : <ExpandMore sx={{ fontSize: 18 }} />}
                 </ListItemIcon>
                 <ListItemText
-                  primary={item.label}
+                  primary={g.label}
                   primaryTypographyProps={{
-                    sx: {
-                      color: isActive ? 'text.primary' : 'text.secondary',
-                      fontWeight: isActive ? 600 : 400,
-                      fontSize: '0.8rem',
-                    },
+                    sx: { color: 'text.disabled', fontWeight: 600, fontSize: '0.72rem', letterSpacing: '0.06em' },
                   }}
                 />
+                <Typography sx={{ fontSize: '0.62rem', color: 'text.disabled' }}>{g.items.length}</Typography>
               </ListItemButton>
-            </ListItem>
+              <Collapse in={open} timeout={150} unmountOnExit>
+                <Box sx={{ mt: 0.25 }}>{g.items.map(renderNavItem)}</Box>
+              </Collapse>
+            </Box>
           )
         })}
       </List>
