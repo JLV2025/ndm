@@ -13,6 +13,7 @@ from pydantic import BaseModel
 router = APIRouter()
 
 from services import eox_client  # noqa: E402
+from services.lifecycle_status import eol_status, warranty_status  # noqa: E402
 from storage import lifecycle_dal as dal  # noqa: E402
 from storage.database import get_connection as _get_db  # noqa: E402
 
@@ -51,12 +52,26 @@ def _require_device(db, name: str) -> None:
         raise HTTPException(status_code=404, detail=f"设备不存在：{name}")
 
 
+def _attach_statuses(info: dict) -> dict:
+    """给生命周期全景的每行装配三色状态（判定唯一来源：services/lifecycle_status）。"""
+    for item in list(info.get("serials", [])) + list(info.get("extra_rows", [])):
+        item["warranty_status"] = warranty_status(item.get("warranty_end") or "",
+                                                  item.get("note") or "")
+    for m in info.get("model_eol", []):
+        m["status"] = eol_status(m.get("end_of_sale") or "", m.get("end_of_support") or "")
+    return info
+
+
+def _lifecycle_payload(db, name: str) -> dict:
+    return _attach_statuses(dal.get_device_lifecycle(db, name))
+
+
 @router.get("/api/lifecycle/device/{name}")
 async def get_device_lifecycle(name: str):
     """该设备的生命周期全景 + 刷新可用性（前端据此显示"未配凭据"提示）。"""
     db = _get_db()
     _require_device(db, name)
-    info = dal.get_device_lifecycle(db, name)
+    info = _lifecycle_payload(db, name)
     info["refresh"] = eox_client.status()
     return info
 
@@ -76,7 +91,7 @@ async def save_device_lifecycle(name: str, body: DeviceLifecycleUpdate):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     db.commit()
-    return {"ok": True, "saved": saved, "lifecycle": dal.get_device_lifecycle(db, name)}
+    return {"ok": True, "saved": saved, "lifecycle": _lifecycle_payload(db, name)}
 
 
 @router.post("/api/lifecycle/import")
@@ -139,3 +154,18 @@ async def lifecycle_overview():
     """全部设备的生命周期概况（供"待查"清单与页面筛选）。"""
     db = _get_db()
     return {"devices": dal.overview(db), "refresh": eox_client.status()}
+
+
+@router.get("/api/lifecycle/physical")
+async def lifecycle_physical():
+    """全部**物理设备**（成员 + 单机）一行一台：EoS/EoL + 维保 + 三色状态。
+
+    生命周期页的唯一数据源（spec 第十三节）；约 50 行量级 —— 筛选/排序在前端做。
+    每行 `device` = 编辑目标（所属堆叠/单机本身）：保修记账以管理体为单位。
+    """
+    db = _get_db()
+    rows = dal.list_physical_rows(db)
+    for row in rows:
+        row["warranty_status"] = warranty_status(row["warranty_end"], row["note"])
+        row["eol"]["status"] = eol_status(row["eol"]["end_of_sale"], row["eol"]["end_of_support"])
+    return {"devices": rows}
