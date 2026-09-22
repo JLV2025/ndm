@@ -227,3 +227,9 @@ def test_保存保修返回带状态字段(phys_conn):
         rows=[lc.WarrantyRow(serial="SG30LMQ17K", warranty_end=FAR)],
         verified_by="张工")))
     assert res["lifecycle"]["serials"][0]["warranty_status"] == "ok"
+
+
+def test_型号预填_未登记回空壳(phys_conn):
+    """页面点型号编辑要先取当前登记（保存是整条覆盖，不回填会抹掉公告/链接/备注）"""
+    assert call(lc.get_model_registered_eol("JL659A"))["model"]["end_of_sale"] == PAST
+    assert call(lc.get_model_registered_eol("NOSUCHMODEL"))["model"] == {"model": "NOSUCHMODEL"}

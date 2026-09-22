@@ -115,6 +115,16 @@ async def import_warranty(body: ImportRequest):
     return res
 
 
+@router.get("/api/lifecycle/model/{model}")
+async def get_model_registered_eol(model: str):
+    """型号 EoL 当前登记（未登记则回空壳）—— 生命周期页点型号编辑时预填用。
+
+    预填的作用：保存是整条覆盖，没有回填就会把公告/链接/备注等字段抹掉。
+    """
+    db = _get_db()
+    return {"model": dal.get_model_eol(db, model) or {"model": model}}
+
+
 @router.put("/api/lifecycle/model/{model}")
 async def save_model_eol(model: str, body: ModelEolUpdate):
     """手工登记型号 EoL（Aruba 与凭据到位前的 Cisco 都用它）。
