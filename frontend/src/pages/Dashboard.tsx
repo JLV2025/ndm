@@ -37,7 +37,7 @@ import {
 import { deviceApi, collectorApi, alertsApi } from '../services/api'
 import { sessionManager } from '../services/auth'
 import { useI18n } from '../i18n'
-import { getDeviceColor, getTypeLabel, memberSuffixes } from '../components/devices/deviceUtils'
+import { getDeviceColor, getTypeLabel } from '../components/devices/deviceUtils'
 import type { Device } from '../types'
 
 const DevicesLink = React.forwardRef<HTMLAnchorElement, React.HTMLProps<HTMLAnchorElement>>(
@@ -159,7 +159,7 @@ const Dashboard: React.FC = () => {
 
   const loadDevices = async () => {
     try {
-      const response = await deviceApi.list()
+      const response = await deviceApi.list('physical')
       setDevices(response.data)
     } catch (error: unknown) {
       console.error('加载设备失败:', error)
@@ -205,38 +205,12 @@ const Dashboard: React.FC = () => {
     ? devices.filter((d) => (d.location || '').toUpperCase() === selectedLocation.toUpperCase())
     : devices
 
-  // 堆叠设备拆分：序列号逗号分隔 → 每成员单独一行，逻辑设备名不显示
-  const physicalDevices = useMemo(() => {
-    const result: Array<Device & { logicalName: string; memberIndex: number; memberCount: number }> = []
-    for (const d of filteredDevices) {
-      const snRaw = d.serial_number || ''
-      const snList = snRaw.split(',').map(s => s.trim()).filter(Boolean)
-      if (snList.length <= 1) {
-        // 非堆叠设备，直接显示
-        result.push({ ...d, logicalName: d.name, memberIndex: 0, memberCount: 1 })
-        continue
-      }
-      // 堆叠设备：拆分成员，逻辑设备自己不显示
-      const modelRaw = d.model || ''
-      const modelList = modelRaw.split(',').map(m => m.trim()).filter(Boolean)
-      // 成员编号后缀（真实 Member ID 优先，否则回退序号）
-      const suffixes = memberSuffixes(snRaw, d.member_ids || '', String(snList.length).length)
-      snList.forEach((sn, i) => {
-        const idx = i + 1
-        const memberModel = modelList[i] || modelList[modelList.length - 1] || ''
-        result.push({
-          ...d,
-          name: `${d.name}-${suffixes[i]}`,
-          logicalName: d.name,
-          serial_number: sn,
-          model: memberModel,
-          memberIndex: idx,
-          memberCount: snList.length,
-        })
-      })
-    }
-    return result
-  }, [filteredDevices])
+  // 管理体名：成员行（-1/-2）归属其堆叠——Ping/详情页/在线状态都以管理体为单位
+  const managedName = (d: Device) => d.stack_name || d.name
+
+  // 物理设备行由 API 提供（view=physical）：堆叠拆成 {名字}-{成员号} 由后端完成，
+  // 前端不再展开（2026-09-22 身份模型：物理成员在库中真正成行）
+  const physicalDevices = filteredDevices
 
   const sortedDevices = [...physicalDevices].sort((a: Device, b: Device) => {
     const va = (a[sortField] || '').toString().toLowerCase()
@@ -261,16 +235,18 @@ const Dashboard: React.FC = () => {
   } as const)
 
   const pingAllDevices = async (deviceList: Device[], signal?: AbortSignal) => {
-    await Promise.all(deviceList.map(async (device) => {
+    // 物理成员共享堆叠管理 IP：按管理体名去重，一台堆叠只 Ping 一次
+    const managedNames = Array.from(new Set(deviceList.map(managedName)))
+    await Promise.all(managedNames.map(async (name) => {
       try {
-        const result = await collectorApi.ping(device.name, signal)
+        const result = await collectorApi.ping(name, signal)
         setDeviceStatus((prev) => ({
           ...prev,
-          [device.name]: result.reachable ? 'online' : 'offline',
+          [name]: result.reachable ? 'online' : 'offline',
         }))
       } catch (e: unknown) {
         if (e instanceof DOMException && e.name === 'AbortError') return
-        setDeviceStatus((prev) => ({ ...prev, [device.name]: 'offline' }))
+        setDeviceStatus((prev) => ({ ...prev, [name]: 'offline' }))
       }
     }))
   }
@@ -861,7 +837,7 @@ const Dashboard: React.FC = () => {
                         >
                           <Server sx={{ fontSize: 14 }} />
                         </Avatar>
-                        <Typography variant="body2" component="a" href={`/devices/${(device as any).logicalName || device.name}`} sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}>
+                        <Typography variant="body2" component="a" href={`/devices/${managedName(device)}`} sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}>
                           {device.name}
                         </Typography>
                       </Box>
@@ -894,8 +870,8 @@ const Dashboard: React.FC = () => {
                     </TableCell>
                     <TableCell>
                       {(() => {
-                        // 堆叠设备用逻辑设备名查状态（所有成员共享同一 IP/Ping 状态）
-                        const lookupName = (device as any).logicalName || device.name
+                        // 堆叠成员用管理体名查状态（所有成员共享同一 IP/Ping 状态）
+                        const lookupName = managedName(device)
                         const status = deviceStatus[lookupName]
                         if (!status) {
                           return <Chip label="-" size="small" sx={{ bgcolor: 'rgba(148,163,184,0.08)', color: 'text.secondary', height: 20, fontSize: '0.65rem' }} />

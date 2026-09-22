@@ -17,7 +17,9 @@ const apiJson = axios.create({
 
 // 设备管理
 export const deviceApi = {
-  list: () => apiJson.get('/devices/'),
+  // view: managed（默认，管理体）/ physical（物理成员行，仪表盘清单用）
+  list: (view: 'managed' | 'physical' = 'managed') =>
+    apiJson.get('/devices/', { params: { view } }),
   get: (name: string) => apiJson.get(`/devices/${name}`),
   add: (device: Device) => apiJson.post('/devices/', device),
   delete: (name: string) => apiJson.delete(`/devices/${name}`),

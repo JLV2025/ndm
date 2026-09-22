@@ -14,6 +14,9 @@ export interface Device {
   last_synced?: string
   last_collected?: string
   uplink_ports?: string[]
+  kind?: 'stack' | 'standalone' | 'member'
+  stack_name?: string      // 成员行：所属堆叠（管理体名）
+  member_no?: number       // 成员行：成员号
   [key: string]: unknown
 }
 

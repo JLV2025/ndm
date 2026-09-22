@@ -13,6 +13,8 @@ from storage.device_dal import (
     update_device as dal_update,
     delete_device as dal_delete,
     device_exists,
+    list_managed,
+    list_physical,
     list_offline_members,
     delete_member,
 )
@@ -130,6 +132,9 @@ class DeviceResponse(BaseModel):
     last_synced: Optional[str] = None
     username: Optional[str] = None
     uplink_ports: Optional[list] = None
+    kind: Optional[str] = None            # stack / standalone / member
+    stack_name: Optional[str] = None      # 成员行：所属堆叠
+    member_no: Optional[int] = None       # 成员行：成员号
 
 
 class OfflineDeviceResponse(BaseModel):
@@ -257,9 +262,23 @@ async def batch_import_devices(file: UploadFile = File(...)):
 
 
 @router.get("/")
-async def list_devices():
-    """获取设备列表"""
-    return [DeviceResponse(**d).model_dump() for d in get_all_devices()]
+async def list_devices(view: str = "managed"):
+    """获取设备列表。
+
+    view=managed（默认）：管理体（stack + standalone）—— 设备管理/采集/画图选设备等操作类页面；
+    view=physical：物理设备（member + standalone）—— 仪表盘清单等展示类页面。
+    物理视图的成员行补 ip（共享堆叠管理 IP；成员行本身不存 ip）。
+    """
+    if view == "physical":
+        rows = list_physical()
+        ip_by_stack = {d["name"]: d["ip"] for d in list_managed()}
+        for r in rows:
+            if not r.get("ip") and r.get("stack_name"):
+                r["ip"] = ip_by_stack.get(r["stack_name"], "")
+        data = rows
+    else:
+        data = list_managed()
+    return [DeviceResponse(**d).model_dump() for d in data]
 
 
 @router.get("/offline")
